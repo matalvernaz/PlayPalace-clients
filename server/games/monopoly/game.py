@@ -661,8 +661,9 @@ class MonopolyGame(ActionGuardMixin, Game):
     def get_available_preset_ids(self) -> list[str]:
         """Return selectable preset ids from generated catalog artifacts."""
         preset_ids = list(_catalog_preset_ids())
-        if "free_parking_jackpot" not in preset_ids:
-            preset_ids.append("free_parking_jackpot")
+        for preset_id in PRESET_LABEL_KEYS:
+            if preset_id not in preset_ids:
+                preset_ids.append(preset_id)
         return preset_ids
 
     def _fallback_preset(self) -> MonopolyPreset:
@@ -682,13 +683,18 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _resolve_selected_preset(self) -> MonopolyPreset:
         """Resolve currently selected lobby preset, applying fallback when needed."""
-        if self.options.preset_id == "free_parking_jackpot":
+        if self.options.preset_id in PRESET_LABEL_KEYS and not _catalog_get_preset(
+            self.options.preset_id
+        ):
             base = _catalog_get_preset(DEFAULT_PRESET_ID) or self._fallback_preset()
+            alias_name = self.options.preset_id.replace("_", " ").title()
+            if self.options.preset_id == "free_parking_jackpot":
+                alias_name = "Free Parking Jackpot"
             return MonopolyPreset(
-                preset_id="free_parking_jackpot",
+                preset_id=self.options.preset_id,
                 family_key=base.family_key,
-                name="Free Parking Jackpot",
-                description="Classic rules with jackpot payout on Free Parking.",
+                name=alias_name,
+                description="Classic rules profile for preset scaffolding.",
                 anchor_edition_id=base.anchor_edition_id,
                 edition_ids=tuple(base.edition_ids),
             )

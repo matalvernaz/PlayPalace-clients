@@ -81,6 +81,8 @@ def test_monopoly_options_present_catalog_preset_choices():
     menu_options = game._get_menu_options_for_action(set_preset_action, host_player)
     assert menu_options is not None
     assert DEFAULT_PRESET_ID in menu_options
+    assert "free_parking_jackpot" in menu_options
+    assert "sore_losers" in menu_options
 
 
 def test_monopoly_on_start_uses_selected_preset():
@@ -99,6 +101,14 @@ def test_monopoly_on_start_falls_back_to_default_preset():
 
     assert game.active_preset_id == get_default_preset_id()
     assert game.options.preset_id == get_default_preset_id()
+
+
+def test_monopoly_on_start_supports_non_catalog_alias_preset():
+    game = _start_two_player_game(MonopolyOptions(preset_id="sore_losers"))
+
+    assert game.active_preset_id == "sore_losers"
+    assert game.options.preset_id == "sore_losers"
+    assert game.active_edition_ids
 
 
 def test_monopoly_on_start_initializes_cash_positions_and_scores():
