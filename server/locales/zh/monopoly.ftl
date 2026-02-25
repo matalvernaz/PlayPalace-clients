@@ -47,3 +47,5 @@ monopoly-property-available = { $property } is available for { $price }.
 monopoly-property-bought = { $player } bought { $property } for { $price } (cash: { $cash }).
 monopoly-rent-paid = { $player } paid { $amount } in rent to { $owner } for { $property }.
 monopoly-landed-owned = { $player } landed on their own property: { $property }.
+monopoly-tax-paid = { $player } paid { $amount } for { $tax } (cash: { $cash }).
+monopoly-go-to-jail = { $player } goes to jail (moved to { $space }).

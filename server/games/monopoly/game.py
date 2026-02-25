@@ -98,6 +98,7 @@ PURCHASABLE_KINDS = {"property", "railroad", "utility"}
 BOARD_SIZE = len(CLASSIC_STANDARD_BOARD)
 STARTING_CASH = 1500
 PASS_GO_CASH = 200
+TAX_AMOUNTS = {"income_tax": 200, "luxury_tax": 100}
 
 
 @dataclass
@@ -456,6 +457,25 @@ class MonopolyGame(ActionGuardMixin, Game):
                     amount=paid,
                     property=landed_space.name,
                 )
+        elif landed_space.space_id in TAX_AMOUNTS:
+            tax_due = TAX_AMOUNTS[landed_space.space_id]
+            paid = min(mono_player.cash, tax_due)
+            mono_player.cash -= paid
+            self.broadcast_l(
+                "monopoly-tax-paid",
+                player=mono_player.name,
+                amount=paid,
+                tax=landed_space.name,
+                cash=mono_player.cash,
+            )
+        elif landed_space.kind == "go_to_jail":
+            jail_space = self._space_at(10)
+            mono_player.position = jail_space.index
+            self.broadcast_l(
+                "monopoly-go-to-jail",
+                player=mono_player.name,
+                space=jail_space.name,
+            )
 
         self._sync_cash_scores()
         self.rebuild_all_menus()

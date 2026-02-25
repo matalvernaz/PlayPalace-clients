@@ -198,3 +198,33 @@ def test_monopoly_rent_transfers_cash_to_owner(monkeypatch):
 
     assert host.cash == STARTING_CASH - 60 + 4
     assert guest.cash == STARTING_CASH - 4
+
+
+def test_monopoly_income_tax_space_deducts_cash(monkeypatch):
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+
+    rolls = iter([2, 2])  # total = 4 -> Income Tax
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+
+    game.execute_action(host, "roll_dice")
+
+    assert host.position == 4
+    assert host.cash == STARTING_CASH - 200
+    assert game.turn_pending_purchase_space_id == ""
+
+
+def test_monopoly_go_to_jail_space_moves_player_to_jail(monkeypatch):
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    host.position = 28
+
+    rolls = iter([1, 1])  # total = 2 -> Go to Jail
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+
+    game.execute_action(host, "roll_dice")
+
+    assert host.position == 10
+    assert game.turn_pending_purchase_space_id == ""
