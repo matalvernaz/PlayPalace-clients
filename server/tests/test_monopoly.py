@@ -425,3 +425,115 @@ def test_monopoly_mortgaged_property_charges_no_rent(monkeypatch):
 
     assert host.cash == STARTING_CASH
     assert guest.cash == STARTING_CASH
+
+
+def test_monopoly_color_set_doubles_base_rent(monkeypatch):
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    guest = game.players[1]
+
+    for space_id in ("mediterranean_avenue", "baltic_avenue"):
+        host.owned_space_ids.append(space_id)
+        game.property_owners[space_id] = host.id
+
+    game.current_player = guest
+    game.turn_has_rolled = False
+    game.turn_pending_purchase_space_id = ""
+
+    rolls = iter([1, 2])  # guest to Baltic
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+    game.execute_action(guest, "roll_dice")
+
+    assert host.cash == STARTING_CASH + 8
+    assert guest.cash == STARTING_CASH - 8
+
+
+def test_monopoly_house_rent_table_applies(monkeypatch):
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    guest = game.players[1]
+
+    for space_id in ("mediterranean_avenue", "baltic_avenue"):
+        host.owned_space_ids.append(space_id)
+        game.property_owners[space_id] = host.id
+    game._set_building_level("baltic_avenue", 3)
+
+    game.current_player = guest
+    game.turn_has_rolled = False
+    game.turn_pending_purchase_space_id = ""
+
+    rolls = iter([1, 2])  # guest to Baltic, 3 houses => 180
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+    game.execute_action(guest, "roll_dice")
+
+    assert host.cash == STARTING_CASH + 180
+    assert guest.cash == STARTING_CASH - 180
+
+
+def test_monopoly_railroad_rent_scales_with_owned_count(monkeypatch):
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    guest = game.players[1]
+
+    for space_id in ("reading_railroad", "bo_railroad"):
+        host.owned_space_ids.append(space_id)
+        game.property_owners[space_id] = host.id
+
+    game.current_player = guest
+    game.turn_has_rolled = False
+    game.turn_pending_purchase_space_id = ""
+
+    rolls = iter([2, 3])  # guest to Reading Railroad
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+    game.execute_action(guest, "roll_dice")
+
+    assert host.cash == STARTING_CASH + 50
+    assert guest.cash == STARTING_CASH - 50
+
+
+def test_monopoly_utility_rent_uses_roll_total(monkeypatch):
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    guest = game.players[1]
+
+    host.owned_space_ids.append("electric_company")
+    game.property_owners["electric_company"] = host.id
+
+    game.current_player = guest
+    game.turn_has_rolled = False
+    game.turn_pending_purchase_space_id = ""
+    guest.position = 10
+
+    rolls = iter([1, 1])  # total 2 -> Electric Company
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+    game.execute_action(guest, "roll_dice")
+
+    assert host.cash == STARTING_CASH + 8
+    assert guest.cash == STARTING_CASH - 8
+
+
+def test_monopoly_two_utilities_charge_higher_multiplier(monkeypatch):
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    guest = game.players[1]
+
+    for space_id in ("electric_company", "water_works"):
+        host.owned_space_ids.append(space_id)
+        game.property_owners[space_id] = host.id
+
+    game.current_player = guest
+    game.turn_has_rolled = False
+    game.turn_pending_purchase_space_id = ""
+    guest.position = 10
+
+    rolls = iter([1, 1])  # total 2 -> Electric Company
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+    game.execute_action(guest, "roll_dice")
+
+    assert host.cash == STARTING_CASH + 20
+    assert guest.cash == STARTING_CASH - 20

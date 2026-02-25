@@ -49,51 +49,278 @@ class MonopolySpace:
     kind: str
     price: int = 0
     rent: int = 0
+    color_group: str = ""
+    house_cost: int = 0
+    rents: tuple[int, ...] = ()
 
 
 CLASSIC_STANDARD_BOARD = [
     MonopolySpace(0, "go", "GO", "start"),
-    MonopolySpace(1, "mediterranean_avenue", "Mediterranean Avenue", "property", 60, 2),
+    MonopolySpace(
+        1,
+        "mediterranean_avenue",
+        "Mediterranean Avenue",
+        "property",
+        60,
+        2,
+        color_group="brown",
+        house_cost=50,
+        rents=(2, 10, 30, 90, 160, 250),
+    ),
     MonopolySpace(2, "community_chest_1", "Community Chest", "community_chest"),
-    MonopolySpace(3, "baltic_avenue", "Baltic Avenue", "property", 60, 4),
+    MonopolySpace(
+        3,
+        "baltic_avenue",
+        "Baltic Avenue",
+        "property",
+        60,
+        4,
+        color_group="brown",
+        house_cost=50,
+        rents=(4, 20, 60, 180, 320, 450),
+    ),
     MonopolySpace(4, "income_tax", "Income Tax", "tax"),
     MonopolySpace(5, "reading_railroad", "Reading Railroad", "railroad", 200, 25),
-    MonopolySpace(6, "oriental_avenue", "Oriental Avenue", "property", 100, 6),
+    MonopolySpace(
+        6,
+        "oriental_avenue",
+        "Oriental Avenue",
+        "property",
+        100,
+        6,
+        color_group="light_blue",
+        house_cost=50,
+        rents=(6, 30, 90, 270, 400, 550),
+    ),
     MonopolySpace(7, "chance_1", "Chance", "chance"),
-    MonopolySpace(8, "vermont_avenue", "Vermont Avenue", "property", 100, 6),
-    MonopolySpace(9, "connecticut_avenue", "Connecticut Avenue", "property", 120, 8),
+    MonopolySpace(
+        8,
+        "vermont_avenue",
+        "Vermont Avenue",
+        "property",
+        100,
+        6,
+        color_group="light_blue",
+        house_cost=50,
+        rents=(6, 30, 90, 270, 400, 550),
+    ),
+    MonopolySpace(
+        9,
+        "connecticut_avenue",
+        "Connecticut Avenue",
+        "property",
+        120,
+        8,
+        color_group="light_blue",
+        house_cost=50,
+        rents=(8, 40, 100, 300, 450, 600),
+    ),
     MonopolySpace(10, "jail", "Jail / Just Visiting", "jail"),
-    MonopolySpace(11, "st_charles_place", "St. Charles Place", "property", 140, 10),
+    MonopolySpace(
+        11,
+        "st_charles_place",
+        "St. Charles Place",
+        "property",
+        140,
+        10,
+        color_group="pink",
+        house_cost=100,
+        rents=(10, 50, 150, 450, 625, 750),
+    ),
     MonopolySpace(12, "electric_company", "Electric Company", "utility", 150, 20),
-    MonopolySpace(13, "states_avenue", "States Avenue", "property", 140, 10),
-    MonopolySpace(14, "virginia_avenue", "Virginia Avenue", "property", 160, 12),
+    MonopolySpace(
+        13,
+        "states_avenue",
+        "States Avenue",
+        "property",
+        140,
+        10,
+        color_group="pink",
+        house_cost=100,
+        rents=(10, 50, 150, 450, 625, 750),
+    ),
+    MonopolySpace(
+        14,
+        "virginia_avenue",
+        "Virginia Avenue",
+        "property",
+        160,
+        12,
+        color_group="pink",
+        house_cost=100,
+        rents=(12, 60, 180, 500, 700, 900),
+    ),
     MonopolySpace(15, "pennsylvania_railroad", "Pennsylvania Railroad", "railroad", 200, 25),
-    MonopolySpace(16, "st_james_place", "St. James Place", "property", 180, 14),
+    MonopolySpace(
+        16,
+        "st_james_place",
+        "St. James Place",
+        "property",
+        180,
+        14,
+        color_group="orange",
+        house_cost=100,
+        rents=(14, 70, 200, 550, 750, 950),
+    ),
     MonopolySpace(17, "community_chest_2", "Community Chest", "community_chest"),
-    MonopolySpace(18, "tennessee_avenue", "Tennessee Avenue", "property", 180, 14),
-    MonopolySpace(19, "new_york_avenue", "New York Avenue", "property", 200, 16),
+    MonopolySpace(
+        18,
+        "tennessee_avenue",
+        "Tennessee Avenue",
+        "property",
+        180,
+        14,
+        color_group="orange",
+        house_cost=100,
+        rents=(14, 70, 200, 550, 750, 950),
+    ),
+    MonopolySpace(
+        19,
+        "new_york_avenue",
+        "New York Avenue",
+        "property",
+        200,
+        16,
+        color_group="orange",
+        house_cost=100,
+        rents=(16, 80, 220, 600, 800, 1000),
+    ),
     MonopolySpace(20, "free_parking", "Free Parking", "free_parking"),
-    MonopolySpace(21, "kentucky_avenue", "Kentucky Avenue", "property", 220, 18),
+    MonopolySpace(
+        21,
+        "kentucky_avenue",
+        "Kentucky Avenue",
+        "property",
+        220,
+        18,
+        color_group="red",
+        house_cost=150,
+        rents=(18, 90, 250, 700, 875, 1050),
+    ),
     MonopolySpace(22, "chance_2", "Chance", "chance"),
-    MonopolySpace(23, "indiana_avenue", "Indiana Avenue", "property", 220, 18),
-    MonopolySpace(24, "illinois_avenue", "Illinois Avenue", "property", 240, 20),
+    MonopolySpace(
+        23,
+        "indiana_avenue",
+        "Indiana Avenue",
+        "property",
+        220,
+        18,
+        color_group="red",
+        house_cost=150,
+        rents=(18, 90, 250, 700, 875, 1050),
+    ),
+    MonopolySpace(
+        24,
+        "illinois_avenue",
+        "Illinois Avenue",
+        "property",
+        240,
+        20,
+        color_group="red",
+        house_cost=150,
+        rents=(20, 100, 300, 750, 925, 1100),
+    ),
     MonopolySpace(25, "bo_railroad", "B. & O. Railroad", "railroad", 200, 25),
-    MonopolySpace(26, "atlantic_avenue", "Atlantic Avenue", "property", 260, 22),
-    MonopolySpace(27, "ventnor_avenue", "Ventnor Avenue", "property", 260, 22),
+    MonopolySpace(
+        26,
+        "atlantic_avenue",
+        "Atlantic Avenue",
+        "property",
+        260,
+        22,
+        color_group="yellow",
+        house_cost=150,
+        rents=(22, 110, 330, 800, 975, 1150),
+    ),
+    MonopolySpace(
+        27,
+        "ventnor_avenue",
+        "Ventnor Avenue",
+        "property",
+        260,
+        22,
+        color_group="yellow",
+        house_cost=150,
+        rents=(22, 110, 330, 800, 975, 1150),
+    ),
     MonopolySpace(28, "water_works", "Water Works", "utility", 150, 20),
-    MonopolySpace(29, "marvin_gardens", "Marvin Gardens", "property", 280, 24),
+    MonopolySpace(
+        29,
+        "marvin_gardens",
+        "Marvin Gardens",
+        "property",
+        280,
+        24,
+        color_group="yellow",
+        house_cost=150,
+        rents=(24, 120, 360, 850, 1025, 1200),
+    ),
     MonopolySpace(30, "go_to_jail", "Go to Jail", "go_to_jail"),
-    MonopolySpace(31, "pacific_avenue", "Pacific Avenue", "property", 300, 26),
-    MonopolySpace(32, "north_carolina_avenue", "North Carolina Avenue", "property", 300, 26),
+    MonopolySpace(
+        31,
+        "pacific_avenue",
+        "Pacific Avenue",
+        "property",
+        300,
+        26,
+        color_group="green",
+        house_cost=200,
+        rents=(26, 130, 390, 900, 1100, 1275),
+    ),
+    MonopolySpace(
+        32,
+        "north_carolina_avenue",
+        "North Carolina Avenue",
+        "property",
+        300,
+        26,
+        color_group="green",
+        house_cost=200,
+        rents=(26, 130, 390, 900, 1100, 1275),
+    ),
     MonopolySpace(33, "community_chest_3", "Community Chest", "community_chest"),
-    MonopolySpace(34, "pennsylvania_avenue", "Pennsylvania Avenue", "property", 320, 28),
+    MonopolySpace(
+        34,
+        "pennsylvania_avenue",
+        "Pennsylvania Avenue",
+        "property",
+        320,
+        28,
+        color_group="green",
+        house_cost=200,
+        rents=(28, 150, 450, 1000, 1200, 1400),
+    ),
     MonopolySpace(35, "short_line", "Short Line", "railroad", 200, 25),
     MonopolySpace(36, "chance_3", "Chance", "chance"),
-    MonopolySpace(37, "park_place", "Park Place", "property", 350, 35),
+    MonopolySpace(
+        37,
+        "park_place",
+        "Park Place",
+        "property",
+        350,
+        35,
+        color_group="dark_blue",
+        house_cost=200,
+        rents=(35, 175, 500, 1100, 1300, 1500),
+    ),
     MonopolySpace(38, "luxury_tax", "Luxury Tax", "tax"),
-    MonopolySpace(39, "boardwalk", "Boardwalk", "property", 400, 50),
+    MonopolySpace(
+        39,
+        "boardwalk",
+        "Boardwalk",
+        "property",
+        400,
+        50,
+        color_group="dark_blue",
+        house_cost=200,
+        rents=(50, 200, 600, 1400, 1700, 2000),
+    ),
 ]
 SPACE_BY_ID = {space.space_id: space for space in CLASSIC_STANDARD_BOARD}
+COLOR_GROUP_TO_SPACE_IDS: dict[str, list[str]] = {}
+for _space in CLASSIC_STANDARD_BOARD:
+    if _space.color_group:
+        COLOR_GROUP_TO_SPACE_IDS.setdefault(_space.color_group, []).append(_space.space_id)
 PURCHASABLE_KINDS = {"property", "railroad", "utility"}
 BOARD_SIZE = len(CLASSIC_STANDARD_BOARD)
 STARTING_CASH = 1500
@@ -178,6 +405,7 @@ class MonopolyGame(ActionGuardMixin, Game):
     active_anchor_edition_id: str = ""
     property_owners: dict[str, str] = field(default_factory=dict)
     mortgaged_space_ids: list[str] = field(default_factory=list)
+    building_levels: dict[str, int] = field(default_factory=dict)
 
     turn_has_rolled: bool = False
     turn_last_roll: list[int] = field(default_factory=list)
@@ -427,6 +655,67 @@ class MonopolyGame(ActionGuardMixin, Game):
         """Check whether a space is currently mortgaged."""
         return space_id in self.mortgaged_space_ids
 
+    def _building_level(self, space_id: str) -> int:
+        """Get building level for a street property (0-5)."""
+        return self.building_levels.get(space_id, 0)
+
+    def _set_building_level(self, space_id: str, level: int) -> None:
+        """Set building level for a street property (0-5)."""
+        if space_id not in SPACE_BY_ID:
+            return
+        clamped = max(0, min(5, level))
+        self.building_levels[space_id] = clamped
+
+    def _is_street_property(self, space: MonopolySpace) -> bool:
+        """Return True for color-group street properties."""
+        return space.kind == "property" and bool(space.color_group)
+
+    def _owner_has_full_color_set(self, owner_id: str, color_group: str) -> bool:
+        """Check whether owner controls an entire color set."""
+        group_ids = COLOR_GROUP_TO_SPACE_IDS.get(color_group, [])
+        if not group_ids:
+            return False
+        return all(self.property_owners.get(space_id) == owner_id for space_id in group_ids)
+
+    def _count_owned_kind(self, owner_id: str, kind: str) -> int:
+        """Count how many properties of a kind the owner controls."""
+        total = 0
+        for space_id, space_owner_id in self.property_owners.items():
+            if space_owner_id != owner_id:
+                continue
+            space = SPACE_BY_ID.get(space_id)
+            if space and space.kind == kind:
+                total += 1
+        return total
+
+    def _calculate_rent_due(
+        self, space: MonopolySpace, owner_id: str, dice_total: int | None
+    ) -> int:
+        """Compute official-ish rent for a landed space."""
+        if self._is_street_property(space):
+            level = self._building_level(space.space_id)
+            if space.rents:
+                if level > 0:
+                    return space.rents[min(level, len(space.rents) - 1)]
+                base = space.rents[0]
+            else:
+                base = space.rent
+            if self._owner_has_full_color_set(owner_id, space.color_group):
+                return base * 2
+            return base
+
+        if space.kind == "railroad":
+            owned = max(1, self._count_owned_kind(owner_id, "railroad"))
+            return 25 * (2 ** (owned - 1))
+
+        if space.kind == "utility":
+            owned = max(1, self._count_owned_kind(owner_id, "utility"))
+            factor = 10 if owned >= 2 else 4
+            roll_value = dice_total if dice_total is not None else sum(self.turn_last_roll)
+            return factor * max(0, roll_value)
+
+        return space.rent
+
     def _pending_purchase_space(self) -> MonopolySpace | None:
         """Get the currently pending purchasable space for this turn."""
         if not self.turn_pending_purchase_space_id:
@@ -573,6 +862,8 @@ class MonopolyGame(ActionGuardMixin, Game):
                 del self.property_owners[space_id]
             if space_id in self.mortgaged_space_ids:
                 self.mortgaged_space_ids.remove(space_id)
+            if space_id in self.building_levels:
+                self.building_levels[space_id] = 0
         player.owned_space_ids.clear()
         player.in_jail = False
         player.jail_turns = 0
@@ -618,6 +909,7 @@ class MonopolyGame(ActionGuardMixin, Game):
         card_id: str,
         *,
         depth: int,
+        dice_total: int | None,
     ) -> str:
         """Apply one Chance/Community Chest card and return resolution state."""
         deck_label = "Chance" if deck_type == "chance" else "Community Chest"
@@ -654,7 +946,9 @@ class MonopolyGame(ActionGuardMixin, Game):
                 player=player.name,
                 space=landed_space.name,
             )
-            return self._resolve_space(player, landed_space, depth=depth + 1)
+            return self._resolve_space(
+                player, landed_space, depth=depth + 1, dice_total=dice_total
+            )
 
         if card_id == "go_to_jail":
             self._send_to_jail(player)
@@ -715,6 +1009,7 @@ class MonopolyGame(ActionGuardMixin, Game):
         landed_space: MonopolySpace,
         *,
         depth: int = 0,
+        dice_total: int | None = None,
     ) -> str:
         """Resolve effects for the landed space.
 
@@ -756,7 +1051,7 @@ class MonopolyGame(ActionGuardMixin, Game):
                 return "resolved"
 
             owner = self.get_player_by_id(owner_id)
-            rent_due = landed_space.rent
+            rent_due = self._calculate_rent_due(landed_space, owner_id, dice_total)
             paid = min(player.cash, rent_due)
             player.cash -= paid
             if owner and isinstance(owner, MonopolyPlayer):
@@ -790,11 +1085,23 @@ class MonopolyGame(ActionGuardMixin, Game):
 
         if landed_space.kind == "chance":
             card = self._draw_card("chance")
-            return self._resolve_card_effect(player, "chance", card, depth=depth)
+            return self._resolve_card_effect(
+                player,
+                "chance",
+                card,
+                depth=depth,
+                dice_total=dice_total,
+            )
 
         if landed_space.kind == "community_chest":
             card = self._draw_card("community_chest")
-            return self._resolve_card_effect(player, "community_chest", card, depth=depth)
+            return self._resolve_card_effect(
+                player,
+                "community_chest",
+                card,
+                depth=depth,
+                dice_total=dice_total,
+            )
 
         return "resolved"
 
@@ -1066,7 +1373,7 @@ class MonopolyGame(ActionGuardMixin, Game):
                     total=total,
                     space=landed_space.name,
                 )
-                self._resolve_space(mono_player, landed_space)
+                self._resolve_space(mono_player, landed_space, dice_total=total)
             else:
                 mono_player.jail_turns += 1
                 self.broadcast_l(
@@ -1102,7 +1409,7 @@ class MonopolyGame(ActionGuardMixin, Game):
                         total=total,
                         space=landed_space.name,
                     )
-                    self._resolve_space(mono_player, landed_space)
+                    self._resolve_space(mono_player, landed_space, dice_total=total)
             self.turn_doubles_count = 0
             self._sync_cash_scores()
             self.rebuild_all_menus()
@@ -1128,7 +1435,7 @@ class MonopolyGame(ActionGuardMixin, Game):
             total=total,
             space=landed_space.name,
         )
-        resolution = self._resolve_space(mono_player, landed_space)
+        resolution = self._resolve_space(mono_player, landed_space, dice_total=total)
 
         if not mono_player.bankrupt and resolution == "resolved" and is_doubles:
             self._prepare_next_roll_after_doubles(mono_player)
@@ -1324,6 +1631,9 @@ class MonopolyGame(ActionGuardMixin, Game):
         self.active_anchor_edition_id = preset.anchor_edition_id
         self.property_owners.clear()
         self.mortgaged_space_ids.clear()
+        self.building_levels = {
+            space.space_id: 0 for space in CLASSIC_STANDARD_BOARD if self._is_street_property(space)
+        }
         self._reset_turn_state()
         self.turn_doubles_count = 0
 
