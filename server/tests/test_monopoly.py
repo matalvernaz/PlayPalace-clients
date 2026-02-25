@@ -36,6 +36,14 @@ def _start_two_player_game(options: MonopolyOptions | None = None) -> MonopolyGa
     return game
 
 
+def _find_trade_option(game: MonopolyGame, player, text: str) -> str | None:
+    """Return first trade option containing the provided text."""
+    for option in game._options_for_offer_trade(player):
+        if text in option:
+            return option
+    return None
+
+
 def test_monopoly_game_creation():
     game = MonopolyGame()
     assert game.get_name() == "Monopoly"
@@ -431,6 +439,91 @@ def test_monopoly_mortgage_and_unmortgage_cycle():
     game.execute_action(host, "unmortgage_property", input_value="boardwalk")
     assert "boardwalk" not in game.mortgaged_space_ids
     assert host.cash == STARTING_CASH - 20
+
+
+def test_monopoly_trade_offer_accept_transfers_property_for_cash():
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    guest = game.players[1]
+
+    host.owned_space_ids.append("baltic_avenue")
+    game.property_owners["baltic_avenue"] = host.id
+
+    offer = _find_trade_option(game, host, "Sell Baltic Avenue to Guest for 60")
+    assert offer is not None
+
+    game.execute_action(host, "offer_trade", input_value=offer)
+    assert game.pending_trade_offer is not None
+    assert game.pending_trade_offer.target_id == guest.id
+
+    game.execute_action(guest, "accept_trade")
+
+    assert game.pending_trade_offer is None
+    assert game.property_owners["baltic_avenue"] == guest.id
+    assert "baltic_avenue" not in host.owned_space_ids
+    assert "baltic_avenue" in guest.owned_space_ids
+    assert host.cash == STARTING_CASH + 60
+    assert guest.cash == STARTING_CASH - 60
+
+
+def test_monopoly_trade_offer_decline_keeps_state_unchanged():
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    guest = game.players[1]
+
+    host.owned_space_ids.append("baltic_avenue")
+    game.property_owners["baltic_avenue"] = host.id
+
+    offer = _find_trade_option(game, host, "Sell Baltic Avenue to Guest for 60")
+    assert offer is not None
+
+    game.execute_action(host, "offer_trade", input_value=offer)
+    assert game.pending_trade_offer is not None
+
+    game.execute_action(guest, "decline_trade")
+
+    assert game.pending_trade_offer is None
+    assert game.property_owners["baltic_avenue"] == host.id
+    assert host.cash == STARTING_CASH
+    assert guest.cash == STARTING_CASH
+
+
+def test_monopoly_trade_options_block_properties_when_group_has_buildings():
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+
+    for space_id in ("mediterranean_avenue", "baltic_avenue"):
+        host.owned_space_ids.append(space_id)
+        game.property_owners[space_id] = host.id
+    game._set_building_level("mediterranean_avenue", 1)
+
+    assert game._options_for_offer_trade(host) == []
+
+
+def test_monopoly_trade_accept_invalid_offer_cancels_pending():
+    game = _start_two_player_game()
+    host = game.current_player
+    assert host is not None
+    guest = game.players[1]
+
+    host.owned_space_ids.append("baltic_avenue")
+    game.property_owners["baltic_avenue"] = host.id
+
+    offer = _find_trade_option(game, host, "Sell Baltic Avenue to Guest for 60")
+    assert offer is not None
+
+    game.execute_action(host, "offer_trade", input_value=offer)
+    assert game.pending_trade_offer is not None
+
+    guest.cash = 0
+    game.execute_action(guest, "accept_trade")
+
+    assert game.pending_trade_offer is None
+    assert game.property_owners["baltic_avenue"] == host.id
+    assert host.cash == STARTING_CASH
 
 
 def test_monopoly_build_house_obeys_even_building_rules():

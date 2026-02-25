@@ -330,6 +330,7 @@ BAIL_AMOUNT = 50
 MIN_AUCTION_INCREMENT = 10
 TOTAL_HOUSES = 32
 TOTAL_HOTELS = 12
+JAIL_CARD_TRADE_CASH = 50
 
 CHANCE_CARD_IDS = [
     "advance_to_go",
@@ -372,6 +373,21 @@ class MonopolyPlayer(Player):
 
 
 @dataclass
+class MonopolyTradeOffer:
+    """Pending trade offer between two players."""
+
+    proposer_id: str = ""
+    target_id: str = ""
+    give_cash: int = 0
+    give_property_id: str = ""
+    give_jail_cards: int = 0
+    receive_cash: int = 0
+    receive_property_id: str = ""
+    receive_jail_cards: int = 0
+    summary: str = ""
+
+
+@dataclass
 class MonopolyOptions(GameOptions):
     """Lobby options for Monopoly scaffold."""
 
@@ -408,6 +424,7 @@ class MonopolyGame(ActionGuardMixin, Game):
     property_owners: dict[str, str] = field(default_factory=dict)
     mortgaged_space_ids: list[str] = field(default_factory=list)
     building_levels: dict[str, int] = field(default_factory=dict)
+    pending_trade_offer: MonopolyTradeOffer | None = None
 
     turn_has_rolled: bool = False
     turn_last_roll: list[int] = field(default_factory=list)
@@ -535,6 +552,37 @@ class MonopolyGame(ActionGuardMixin, Game):
         )
         action_set.add(
             Action(
+                id="offer_trade",
+                label=Localization.get(locale, "monopoly-offer-trade"),
+                handler="_action_offer_trade",
+                is_enabled="_is_offer_trade_enabled",
+                is_hidden="_is_offer_trade_hidden",
+                input_request=MenuInput(
+                    prompt="monopoly-select-trade-offer",
+                    options="_options_for_offer_trade",
+                ),
+            )
+        )
+        action_set.add(
+            Action(
+                id="accept_trade",
+                label=Localization.get(locale, "monopoly-accept-trade"),
+                handler="_action_accept_trade",
+                is_enabled="_is_accept_trade_enabled",
+                is_hidden="_is_accept_trade_hidden",
+            )
+        )
+        action_set.add(
+            Action(
+                id="decline_trade",
+                label=Localization.get(locale, "monopoly-decline-trade"),
+                handler="_action_decline_trade",
+                is_enabled="_is_decline_trade_enabled",
+                is_hidden="_is_decline_trade_hidden",
+            )
+        )
+        action_set.add(
+            Action(
                 id="pay_bail",
                 label=Localization.get(locale, "monopoly-pay-bail"),
                 handler="_action_pay_bail",
@@ -577,6 +625,9 @@ class MonopolyGame(ActionGuardMixin, Game):
         )
         self.define_keybind("h", "Build house", ["build_house"], state=KeybindState.ACTIVE)
         self.define_keybind("shift+h", "Sell house", ["sell_house"], state=KeybindState.ACTIVE)
+        self.define_keybind("t", "Offer trade", ["offer_trade"], state=KeybindState.ACTIVE)
+        self.define_keybind("shift+t", "Accept trade", ["accept_trade"], state=KeybindState.ACTIVE)
+        self.define_keybind("ctrl+t", "Decline trade", ["decline_trade"], state=KeybindState.ACTIVE)
         self.define_keybind("j", "Pay bail", ["pay_bail"], state=KeybindState.ACTIVE)
         self.define_keybind("e", "End turn", ["end_turn"], state=KeybindState.ACTIVE)
         self.define_keybind(
@@ -820,6 +871,266 @@ class MonopolyGame(ActionGuardMixin, Game):
 
             break
 
+    def _property_trade_value(self, space_id: str) -> int:
+        """Estimate trade value for a property."""
+        space = SPACE_BY_ID.get(space_id)
+        if not space:
+            return 100
+        return max(1, space.price)
+
+    def _is_property_tradable_for_trade(self, space_id: str, owner_id: str) -> bool:
+        """Return True when a property can be traded in a private deal."""
+        if self.property_owners.get(space_id) != owner_id:
+            return False
+        space = SPACE_BY_ID.get(space_id)
+        if not space or space.kind not in PURCHASABLE_KINDS:
+            return False
+        if self._is_street_property(space) and self._group_has_any_buildings(space.color_group):
+            return False
+        return True
+
+    def _transfer_property(
+        self,
+        space_id: str,
+        from_player: MonopolyPlayer,
+        to_player: MonopolyPlayer,
+    ) -> bool:
+        """Transfer one property between players."""
+        if not self._is_property_tradable_for_trade(space_id, from_player.id):
+            return False
+        self.property_owners[space_id] = to_player.id
+        if space_id in from_player.owned_space_ids:
+            from_player.owned_space_ids.remove(space_id)
+        if space_id not in to_player.owned_space_ids:
+            to_player.owned_space_ids.append(space_id)
+        return True
+
+    def _encode_trade_option(self, summary: str, offer: MonopolyTradeOffer) -> str:
+        """Encode trade metadata into one menu option string."""
+        return (
+            f"{summary} ## target={offer.target_id};gc={offer.give_cash};"
+            f"gp={offer.give_property_id or '-'};gj={offer.give_jail_cards};"
+            f"rc={offer.receive_cash};rp={offer.receive_property_id or '-'};"
+            f"rj={offer.receive_jail_cards}"
+        )
+
+    def _parse_trade_option(self, option: str) -> MonopolyTradeOffer | None:
+        """Parse a trade option string from the menu."""
+        if "##" not in option:
+            return None
+        summary, raw_meta = option.split("##", 1)
+        meta: dict[str, str] = {}
+        for part in raw_meta.strip().split(";"):
+            if "=" not in part:
+                continue
+            key, value = part.split("=", 1)
+            meta[key.strip()] = value.strip()
+
+        target_id = meta.get("target", "")
+        if not target_id:
+            return None
+        try:
+            give_cash = max(0, int(meta.get("gc", "0")))
+            give_jail_cards = max(0, int(meta.get("gj", "0")))
+            receive_cash = max(0, int(meta.get("rc", "0")))
+            receive_jail_cards = max(0, int(meta.get("rj", "0")))
+        except ValueError:
+            return None
+
+        give_property_id = meta.get("gp", "")
+        if give_property_id == "-":
+            give_property_id = ""
+        receive_property_id = meta.get("rp", "")
+        if receive_property_id == "-":
+            receive_property_id = ""
+
+        return MonopolyTradeOffer(
+            target_id=target_id,
+            give_cash=give_cash,
+            give_property_id=give_property_id,
+            give_jail_cards=give_jail_cards,
+            receive_cash=receive_cash,
+            receive_property_id=receive_property_id,
+            receive_jail_cards=receive_jail_cards,
+            summary=summary.strip(),
+        )
+
+    def _is_trade_offer_valid(
+        self,
+        proposer: MonopolyPlayer,
+        target: MonopolyPlayer,
+        offer: MonopolyTradeOffer,
+    ) -> bool:
+        """Validate that both sides can still perform an offered trade."""
+        if proposer.bankrupt or target.bankrupt:
+            return False
+        if offer.target_id != target.id:
+            return False
+        if offer.give_cash < 0 or offer.receive_cash < 0:
+            return False
+        if offer.give_jail_cards < 0 or offer.receive_jail_cards < 0:
+            return False
+
+        proposer_gives_any = bool(
+            offer.give_cash > 0 or offer.give_property_id or offer.give_jail_cards > 0
+        )
+        proposer_gets_any = bool(
+            offer.receive_cash > 0 or offer.receive_property_id or offer.receive_jail_cards > 0
+        )
+        if not proposer_gives_any or not proposer_gets_any:
+            return False
+
+        if proposer.cash < offer.give_cash:
+            return False
+        if target.cash < offer.receive_cash:
+            return False
+        if proposer.get_out_of_jail_cards < offer.give_jail_cards:
+            return False
+        if target.get_out_of_jail_cards < offer.receive_jail_cards:
+            return False
+
+        if offer.give_property_id and not self._is_property_tradable_for_trade(
+            offer.give_property_id, proposer.id
+        ):
+            return False
+        if offer.receive_property_id and not self._is_property_tradable_for_trade(
+            offer.receive_property_id, target.id
+        ):
+            return False
+        return True
+
+    def _apply_trade_offer(
+        self,
+        proposer: MonopolyPlayer,
+        target: MonopolyPlayer,
+        offer: MonopolyTradeOffer,
+    ) -> bool:
+        """Apply a validated trade offer."""
+        if not self._is_trade_offer_valid(proposer, target, offer):
+            return False
+
+        if offer.give_property_id and not self._transfer_property(offer.give_property_id, proposer, target):
+            return False
+        if offer.receive_property_id and not self._transfer_property(
+            offer.receive_property_id, target, proposer
+        ):
+            return False
+
+        proposer.cash -= offer.give_cash
+        target.cash += offer.give_cash
+
+        target.cash -= offer.receive_cash
+        proposer.cash += offer.receive_cash
+
+        proposer.get_out_of_jail_cards -= offer.give_jail_cards
+        target.get_out_of_jail_cards += offer.give_jail_cards
+
+        target.get_out_of_jail_cards -= offer.receive_jail_cards
+        proposer.get_out_of_jail_cards += offer.receive_jail_cards
+        return True
+
+    def _bot_accepts_trade_offer(
+        self,
+        proposer: MonopolyPlayer,
+        target: MonopolyPlayer,
+        offer: MonopolyTradeOffer,
+    ) -> bool:
+        """Simple heuristic for bot trade acceptance."""
+        if not self._is_trade_offer_valid(proposer, target, offer):
+            return False
+
+        target_gain = (
+            offer.give_cash
+            + (self._property_trade_value(offer.give_property_id) if offer.give_property_id else 0)
+            + (offer.give_jail_cards * JAIL_CARD_TRADE_CASH)
+        )
+        target_cost = (
+            offer.receive_cash
+            + (self._property_trade_value(offer.receive_property_id) if offer.receive_property_id else 0)
+            + (offer.receive_jail_cards * JAIL_CARD_TRADE_CASH)
+        )
+        return target_gain >= target_cost
+
+    def _pending_trade_for_target(self, player: MonopolyPlayer) -> MonopolyTradeOffer | None:
+        """Return pending trade offer when player is the offer target."""
+        offer = self.pending_trade_offer
+        if not offer or offer.target_id != player.id:
+            return None
+        return offer
+
+    def _pending_trade_for_proposer(self, player: MonopolyPlayer) -> MonopolyTradeOffer | None:
+        """Return pending trade offer when player is the offer proposer."""
+        offer = self.pending_trade_offer
+        if not offer or offer.proposer_id != player.id:
+            return None
+        return offer
+
+    def _options_for_offer_trade(self, player: Player) -> list[str]:
+        """Menu options for private trades from current player to others."""
+        mono_player: MonopolyPlayer = player  # type: ignore
+        options: list[str] = []
+        other_players = [
+            p
+            for p in self.turn_players
+            if isinstance(p, MonopolyPlayer) and p.id != mono_player.id and not p.bankrupt
+        ]
+        for other in other_players:
+            # Buy one tradable property from target for listed price.
+            for space_id in sorted(other.owned_space_ids):
+                if not self._is_property_tradable_for_trade(space_id, other.id):
+                    continue
+                price = self._property_trade_value(space_id)
+                if mono_player.cash < price:
+                    continue
+                summary = f"Buy {self._space_label(space_id)} from {other.name} for {price}"
+                offer = MonopolyTradeOffer(
+                    target_id=other.id,
+                    give_cash=price,
+                    receive_property_id=space_id,
+                    summary=summary,
+                )
+                options.append(self._encode_trade_option(summary, offer))
+
+            # Sell one tradable property to target for listed price.
+            for space_id in sorted(mono_player.owned_space_ids):
+                if not self._is_property_tradable_for_trade(space_id, mono_player.id):
+                    continue
+                price = self._property_trade_value(space_id)
+                if other.cash < price:
+                    continue
+                summary = f"Sell {self._space_label(space_id)} to {other.name} for {price}"
+                offer = MonopolyTradeOffer(
+                    target_id=other.id,
+                    give_property_id=space_id,
+                    receive_cash=price,
+                    summary=summary,
+                )
+                options.append(self._encode_trade_option(summary, offer))
+
+            # Jail-card for cash offers.
+            if other.get_out_of_jail_cards > 0 and mono_player.cash >= JAIL_CARD_TRADE_CASH:
+                summary = f"Buy jail card from {other.name} for {JAIL_CARD_TRADE_CASH}"
+                offer = MonopolyTradeOffer(
+                    target_id=other.id,
+                    give_cash=JAIL_CARD_TRADE_CASH,
+                    receive_jail_cards=1,
+                    summary=summary,
+                )
+                options.append(self._encode_trade_option(summary, offer))
+            if mono_player.get_out_of_jail_cards > 0 and other.cash >= JAIL_CARD_TRADE_CASH:
+                summary = f"Sell jail card to {other.name} for {JAIL_CARD_TRADE_CASH}"
+                offer = MonopolyTradeOffer(
+                    target_id=other.id,
+                    give_jail_cards=1,
+                    receive_cash=JAIL_CARD_TRADE_CASH,
+                    summary=summary,
+                )
+                options.append(self._encode_trade_option(summary, offer))
+
+        # Keep list stable and reasonably sized for menu navigation.
+        deduped = sorted(dict.fromkeys(options))
+        return deduped[:120]
+
     def _count_owned_kind(self, owner_id: str, kind: str) -> int:
         """Count how many properties of a kind the owner controls."""
         total = 0
@@ -1013,6 +1324,11 @@ class MonopolyGame(ActionGuardMixin, Game):
         player.owned_space_ids.clear()
         player.in_jail = False
         player.jail_turns = 0
+
+        pending = self.pending_trade_offer
+        if pending and (pending.proposer_id == player.id or pending.target_id == player.id):
+            self.broadcast_l("monopoly-trade-cancelled", offer=pending.summary)
+            self.pending_trade_offer = None
 
         self.broadcast_l(
             "monopoly-player-bankrupt",
@@ -1512,6 +1828,75 @@ class MonopolyGame(ActionGuardMixin, Game):
             player, extra_condition=bool(self._options_for_sell_house(player))
         )
 
+    def _is_offer_trade_enabled(self, player: Player) -> str | None:
+        """Enable trade offers for active players with at least one valid option."""
+        error = self.guard_turn_action_enabled(player)
+        if error:
+            return error
+        mono_player: MonopolyPlayer = player  # type: ignore
+        if mono_player.bankrupt:
+            return "monopoly-bankrupt-player"
+        if self.turn_pending_purchase_space_id:
+            return "monopoly-resolve-property-first"
+        if self.pending_trade_offer is not None:
+            return "monopoly-trade-pending"
+        if not self._options_for_offer_trade(player):
+            return "monopoly-no-trade-options"
+        return None
+
+    def _is_offer_trade_hidden(self, player: Player) -> Visibility:
+        """Show offer-trade when player can open a new trade."""
+        return self.turn_action_visibility(
+            player,
+            extra_condition=self.pending_trade_offer is None and bool(self._options_for_offer_trade(player)),
+        )
+
+    def _is_accept_trade_enabled(self, player: Player) -> str | None:
+        """Enable accepting a pending trade for the addressed target player."""
+        error = self.guard_turn_action_enabled(player, require_current_player=False)
+        if error:
+            return error
+        if self.turn_pending_purchase_space_id:
+            return "monopoly-resolve-property-first"
+        mono_player: MonopolyPlayer = player  # type: ignore
+        if mono_player.bankrupt:
+            return "monopoly-bankrupt-player"
+        if self._pending_trade_for_target(mono_player) is None:
+            return "monopoly-no-trade-pending"
+        return None
+
+    def _is_accept_trade_hidden(self, player: Player) -> Visibility:
+        """Show accept-trade only to the targeted player."""
+        mono_player: MonopolyPlayer = player  # type: ignore
+        return self.turn_action_visibility(
+            player,
+            require_current_player=False,
+            extra_condition=self._pending_trade_for_target(mono_player) is not None,
+        )
+
+    def _is_decline_trade_enabled(self, player: Player) -> str | None:
+        """Enable declining a pending trade for the addressed target player."""
+        error = self.guard_turn_action_enabled(player, require_current_player=False)
+        if error:
+            return error
+        if self.turn_pending_purchase_space_id:
+            return "monopoly-resolve-property-first"
+        mono_player: MonopolyPlayer = player  # type: ignore
+        if mono_player.bankrupt:
+            return "monopoly-bankrupt-player"
+        if self._pending_trade_for_target(mono_player) is None:
+            return "monopoly-no-trade-pending"
+        return None
+
+    def _is_decline_trade_hidden(self, player: Player) -> Visibility:
+        """Show decline-trade only to the targeted player."""
+        mono_player: MonopolyPlayer = player  # type: ignore
+        return self.turn_action_visibility(
+            player,
+            require_current_player=False,
+            extra_condition=self._pending_trade_for_target(mono_player) is not None,
+        )
+
     def _is_pay_bail_enabled(self, player: Player) -> str | None:
         """Enable paying bail while in jail before rolling."""
         error = self.guard_turn_action_enabled(player)
@@ -1851,6 +2236,103 @@ class MonopolyGame(ActionGuardMixin, Game):
         self._sync_cash_scores()
         self.rebuild_all_menus()
 
+    def _action_offer_trade(self, player: Player, option: str, action_id: str) -> None:
+        """Create a pending trade offer for another player."""
+        mono_player: MonopolyPlayer = player  # type: ignore
+        if self.pending_trade_offer is not None:
+            return
+        if option not in self._options_for_offer_trade(player):
+            return
+        parsed = self._parse_trade_option(option)
+        if not parsed:
+            return
+
+        target = self.get_player_by_id(parsed.target_id)
+        if not target or not isinstance(target, MonopolyPlayer):
+            return
+        parsed.proposer_id = mono_player.id
+        if not self._is_trade_offer_valid(mono_player, target, parsed):
+            return
+
+        self.pending_trade_offer = parsed
+        self.broadcast_l(
+            "monopoly-trade-offered",
+            proposer=mono_player.name,
+            target=target.name,
+            offer=parsed.summary,
+        )
+
+        if target.is_bot:
+            if self._bot_accepts_trade_offer(mono_player, target, parsed) and self._apply_trade_offer(
+                mono_player, target, parsed
+            ):
+                self.broadcast_l(
+                    "monopoly-trade-completed",
+                    proposer=mono_player.name,
+                    target=target.name,
+                    offer=parsed.summary,
+                )
+            else:
+                self.broadcast_l(
+                    "monopoly-trade-declined",
+                    proposer=mono_player.name,
+                    target=target.name,
+                    offer=parsed.summary,
+                )
+            self.pending_trade_offer = None
+
+        self._sync_cash_scores()
+        self.rebuild_all_menus()
+
+    def _action_accept_trade(self, player: Player, action_id: str) -> None:
+        """Accept the currently pending trade for this player."""
+        mono_player: MonopolyPlayer = player  # type: ignore
+        offer = self._pending_trade_for_target(mono_player)
+        if offer is None:
+            return
+        proposer = self.get_player_by_id(offer.proposer_id)
+        if not proposer or not isinstance(proposer, MonopolyPlayer):
+            self.pending_trade_offer = None
+            self.rebuild_all_menus()
+            return
+
+        if not self._apply_trade_offer(proposer, mono_player, offer):
+            self.broadcast_l(
+                "monopoly-trade-cancelled",
+                offer=offer.summary,
+            )
+            self.pending_trade_offer = None
+            self._sync_cash_scores()
+            self.rebuild_all_menus()
+            return
+
+        self.broadcast_l(
+            "monopoly-trade-completed",
+            proposer=proposer.name,
+            target=mono_player.name,
+            offer=offer.summary,
+        )
+        self.pending_trade_offer = None
+        self._sync_cash_scores()
+        self.rebuild_all_menus()
+
+    def _action_decline_trade(self, player: Player, action_id: str) -> None:
+        """Decline the currently pending trade for this player."""
+        mono_player: MonopolyPlayer = player  # type: ignore
+        offer = self._pending_trade_for_target(mono_player)
+        if offer is None:
+            return
+        proposer = self.get_player_by_id(offer.proposer_id)
+        proposer_name = proposer.name if proposer and isinstance(proposer, MonopolyPlayer) else "Unknown"
+        self.broadcast_l(
+            "monopoly-trade-declined",
+            proposer=proposer_name,
+            target=mono_player.name,
+            offer=offer.summary,
+        )
+        self.pending_trade_offer = None
+        self.rebuild_all_menus()
+
     def _action_pay_bail(self, player: Player, action_id: str) -> None:
         """Pay bail to leave jail before rolling."""
         mono_player: MonopolyPlayer = player  # type: ignore
@@ -1902,6 +2384,14 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def bot_think(self, player: MonopolyPlayer) -> str | None:
         """Simple scaffold bot logic."""
+        pending_offer = self._pending_trade_for_target(player)
+        if pending_offer:
+            proposer = self.get_player_by_id(pending_offer.proposer_id)
+            if proposer and isinstance(proposer, MonopolyPlayer):
+                if self._bot_accepts_trade_offer(proposer, player, pending_offer):
+                    return "accept_trade"
+            return "decline_trade"
+
         if player.in_jail and not self.turn_has_rolled:
             if player.get_out_of_jail_cards > 0:
                 return "use_jail_card"
@@ -1940,6 +2430,7 @@ class MonopolyGame(ActionGuardMixin, Game):
         self.building_levels = {
             space.space_id: 0 for space in CLASSIC_STANDARD_BOARD if self._is_street_property(space)
         }
+        self.pending_trade_offer = None
         self._reset_turn_state()
         self.turn_doubles_count = 0
 

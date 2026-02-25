@@ -59,6 +59,9 @@ monopoly-mortgage-property = Mortgage property
 monopoly-unmortgage-property = Unmortgage property
 monopoly-build-house = Build house or hotel
 monopoly-sell-house = Sell house or hotel
+monopoly-offer-trade = Offer trade
+monopoly-accept-trade = Accept trade
+monopoly-decline-trade = Decline trade
 monopoly-pay-bail = Pay bail
 monopoly-use-jail-card = Use get-out-of-jail card
 
@@ -67,6 +70,7 @@ monopoly-select-property-mortgage = Select a property to mortgage
 monopoly-select-property-unmortgage = Select a property to unmortgage
 monopoly-select-property-build = Select a property to build on
 monopoly-select-property-sell = Select a property to sell from
+monopoly-select-trade-offer = Select a trade offer
 
 # Additional validation
 monopoly-no-property-to-auction = There is no property to auction right now.
@@ -74,6 +78,10 @@ monopoly-no-mortgage-options = You do not have properties available to mortgage.
 monopoly-no-unmortgage-options = You do not have mortgaged properties to unmortgage.
 monopoly-no-build-options = You do not have properties available to build on.
 monopoly-no-sell-options = You do not have properties with buildings available to sell.
+monopoly-no-trade-options = You do not have any valid trades to offer right now.
+monopoly-no-trade-pending = There is no pending trade for you.
+monopoly-trade-pending = A trade is already pending.
+monopoly-trade-no-longer-valid = That trade is no longer valid.
 monopoly-not-in-jail = You are not in jail.
 monopoly-no-jail-card = You do not have a get-out-of-jail card.
 monopoly-roll-again-required = You rolled doubles and must roll again.
@@ -94,6 +102,10 @@ monopoly-property-mortgaged = { $player } mortgaged { $property } for { $amount 
 monopoly-property-unmortgaged = { $player } unmortgaged { $property } for { $amount } (cash: { $cash }).
 monopoly-house-built = { $player } built on { $property } for { $amount } (level: { $level }, cash: { $cash }).
 monopoly-house-sold = { $player } sold a building on { $property } for { $amount } (level: { $level }, cash: { $cash }).
+monopoly-trade-offered = { $proposer } offered { $target } a trade: { $offer }.
+monopoly-trade-completed = Trade completed between { $proposer } and { $target }: { $offer }.
+monopoly-trade-declined = { $target } declined trade from { $proposer }: { $offer }.
+monopoly-trade-cancelled = Trade cancelled: { $offer }.
 monopoly-mortgaged-no-rent = { $player } landed on mortgaged { $property }; no rent is due.
 
 # Card engine
