@@ -4512,6 +4512,26 @@ class MonopolyGame(ActionGuardMixin, Game):
             preset=preset.name,
             count=len(self.active_edition_ids),
         )
+        if self.active_board_auto_fixed_from_preset_id:
+            self.broadcast_l(
+                "monopoly-board-preset-autofixed",
+                board=self.active_board_id,
+                from_preset=self.active_board_auto_fixed_from_preset_id,
+                to_preset=self.active_preset_id,
+            )
+        self.broadcast_l(
+            "monopoly-board-active",
+            board=self.active_board_id,
+            mode=self.active_board_effective_mode,
+        )
+        if (
+            self.active_board_effective_mode == "board_rules"
+            and self.active_board_rule_pack_status == "partial"
+        ):
+            self.broadcast_l(
+                "monopoly-board-rules-simplified",
+                board=self.active_board_id,
+            )
 
         self.announce_turn(turn_sound="game_pig/turn.ogg")
         BotHelper.jolt_bots(self, ticks=random.randint(12, 20))

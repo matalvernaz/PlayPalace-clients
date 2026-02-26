@@ -185,3 +185,8 @@ monopoly-board-junior-super-mario = Junior Super Mario Edition
 # Board rules mode labels
 monopoly-board-rules-mode-auto = Auto
 monopoly-board-rules-mode-skin-only = Skin only
+
+# Board runtime announcements
+monopoly-board-preset-autofixed = Board { $board } is incompatible with { $from_preset }; switched to { $to_preset }.
+monopoly-board-rules-simplified = Board rules for { $board } are partially implemented; base preset behavior is used for missing mechanics.
+monopoly-board-active = Active board: { $board } (mode: { $mode }).
