@@ -257,3 +257,91 @@ def test_mario_collectors_skin_only_uses_default_bank_error_cash(monkeypatch):
 
     assert host.position == 2
     assert host.cash == 1700
+
+
+def test_mario_celebration_board_rules_remaps_poor_tax_to_dividend(monkeypatch):
+    game = _start_two_player_game(
+        MonopolyOptions(
+            preset_id="classic_standard",
+            board_id="mario_celebration",
+            board_rules_mode="auto",
+        )
+    )
+    host = game.current_player
+    assert host is not None
+
+    host.position = 5
+    monkeypatch.setattr(game, "_draw_card", lambda deck_type: "poor_tax_15")
+    rolls = iter([1, 1])
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+
+    game.execute_action(host, "roll_dice")
+
+    assert host.position == 7
+    assert host.cash == 1550
+
+
+def test_mario_celebration_skin_only_keeps_poor_tax(monkeypatch):
+    game = _start_two_player_game(
+        MonopolyOptions(
+            preset_id="classic_standard",
+            board_id="mario_celebration",
+            board_rules_mode="skin_only",
+        )
+    )
+    host = game.current_player
+    assert host is not None
+
+    host.position = 5
+    monkeypatch.setattr(game, "_draw_card", lambda deck_type: "poor_tax_15")
+    rolls = iter([1, 1])
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+
+    game.execute_action(host, "roll_dice")
+
+    assert host.position == 7
+    assert host.cash == 1485
+
+
+def test_mario_celebration_board_rules_applies_income_refund_override(monkeypatch):
+    game = _start_two_player_game(
+        MonopolyOptions(
+            preset_id="classic_standard",
+            board_id="mario_celebration",
+            board_rules_mode="auto",
+        )
+    )
+    host = game.current_player
+    assert host is not None
+
+    host.position = 0
+    monkeypatch.setattr(game, "_draw_card", lambda deck_type: "income_tax_refund_20")
+    rolls = iter([1, 1])
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+
+    game.execute_action(host, "roll_dice")
+
+    assert host.position == 2
+    assert host.cash == 1560
+
+
+def test_mario_celebration_skin_only_uses_default_income_refund(monkeypatch):
+    game = _start_two_player_game(
+        MonopolyOptions(
+            preset_id="classic_standard",
+            board_id="mario_celebration",
+            board_rules_mode="skin_only",
+        )
+    )
+    host = game.current_player
+    assert host is not None
+
+    host.position = 0
+    monkeypatch.setattr(game, "_draw_card", lambda deck_type: "income_tax_refund_20")
+    rolls = iter([1, 1])
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+
+    game.execute_action(host, "roll_dice")
+
+    assert host.position == 2
+    assert host.cash == 1520
