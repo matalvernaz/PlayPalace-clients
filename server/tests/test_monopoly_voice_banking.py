@@ -85,3 +85,15 @@ def test_voice_transfer_insufficient_funds_keeps_balances_unchanged():
 
     assert game._bank_balance(host) == 100
     assert game._bank_balance(guest) == 1500
+
+
+def test_voice_preset_keeps_normal_board_actions_available(monkeypatch):
+    game = _start_two_player_game(MonopolyOptions(preset_id="voice_banking"))
+    host = game.current_player
+    assert host is not None
+
+    rolls = iter([1, 2])  # Baltic Avenue
+    monkeypatch.setattr("server.games.monopoly.game.random.randint", lambda a, b: next(rolls))
+    game.execute_action(host, "roll_dice")
+
+    assert game.turn_pending_purchase_space_id == "baltic_avenue"
