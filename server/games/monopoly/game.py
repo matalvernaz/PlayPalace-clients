@@ -23,7 +23,7 @@ from .banking_sim import (
     init_accounts as init_bank_accounts,
     transfer as bank_transfer,
 )
-from .cheaters_engine import CheatersEngine
+from .cheaters_engine import CheaterOutcome, CheatersEngine
 from .cheaters_profile import CheatersProfile, resolve_cheaters_profile
 from .electronic_banking_profile import resolve_electronic_banking_profile
 from .junior_rules import (
@@ -2028,6 +2028,57 @@ class MonopolyGame(ActionGuardMixin, Game):
             return
         self.cheaters_engine.on_turn_start(turn_player.id, turn_index=self.turn_index)
 
+    def _apply_cheaters_outcome(
+        self,
+        player: MonopolyPlayer,
+        outcome: CheaterOutcome,
+        *,
+        reason: str,
+        block_action_on_penalty: bool = False,
+    ) -> bool:
+        """Apply a cheaters outcome and return whether normal flow should continue."""
+        if outcome.status == "allow":
+            return True
+
+        amount = 0
+        penalty_due = 0
+        if outcome.cash_delta < 0:
+            penalty_due = max(0, -outcome.cash_delta)
+            if penalty_due > 0 and self._current_liquid_balance(player) < penalty_due:
+                self._liquidate_assets_for_debt(player, penalty_due)
+            amount = self._debit_player_to_bank(
+                player,
+                penalty_due,
+                f"cheaters:{outcome.reason_code or reason}",
+                allow_partial=True,
+            )
+        elif outcome.cash_delta > 0:
+            amount = self._credit_player(
+                player,
+                outcome.cash_delta,
+                f"cheaters:{outcome.reason_code or reason}",
+            )
+
+        if outcome.message_key:
+            self.broadcast_l(
+                outcome.message_key,
+                player=player.name,
+                amount=amount,
+                cash=player.cash,
+            )
+
+        if penalty_due > 0 and amount < penalty_due:
+            self._declare_bankrupt(player)
+            self._sync_cash_scores()
+            return False
+
+        self._sync_cash_scores()
+        if outcome.status == "block":
+            return False
+        if block_action_on_penalty and outcome.status == "penalty":
+            return False
+        return True
+
     def _prepare_next_roll_after_doubles(self, player: MonopolyPlayer) -> None:
         """Unlock another roll for doubles chain turns."""
         self.turn_has_rolled = False
@@ -2103,14 +2154,36 @@ class MonopolyGame(ActionGuardMixin, Game):
         card_reason_key: str | None = None,
     ) -> bool:
         """Charge player money to bank; return False if player bankrupt."""
-        if self._current_liquid_balance(player) < amount:
-            self._liquidate_assets_for_debt(player, amount)
+        if amount <= 0:
+            return True
 
         reason = "bank_payment"
         if tax_name:
             reason = f"tax:{tax_name}"
         elif card_reason_key:
             reason = f"card:{card_reason_key}"
+
+        if self.cheaters_engine is not None:
+            required_outcome = self.cheaters_engine.on_payment_required(
+                player.id,
+                reason,
+                amount,
+                context={
+                    "payment_type": "bank",
+                    "tax_name": tax_name,
+                    "card_reason_key": card_reason_key,
+                },
+            )
+            if not self._apply_cheaters_outcome(
+                player,
+                required_outcome,
+                reason="payment_required",
+            ):
+                return False
+
+        if self._current_liquid_balance(player) < amount:
+            self._liquidate_assets_for_debt(player, amount)
+
         paid = self._debit_player_to_bank(player, amount, reason, allow_partial=True)
         if self._is_free_parking_jackpot_enabled():
             self.free_parking_pool += paid
@@ -2133,6 +2206,26 @@ class MonopolyGame(ActionGuardMixin, Game):
 
         self._apply_sore_loser_rebate(player, paid)
 
+        if self.cheaters_engine is not None and not player.bankrupt:
+            result_outcome = self.cheaters_engine.on_payment_result(
+                player.id,
+                paid,
+                amount,
+                context={
+                    "payment_type": "bank",
+                    "tax_name": tax_name,
+                    "card_reason_key": card_reason_key,
+                },
+            )
+            if not self._apply_cheaters_outcome(
+                player,
+                result_outcome,
+                reason="payment_result",
+            ):
+                return False
+
+        if player.bankrupt:
+            return False
         if paid < amount:
             self._declare_bankrupt(player)
             return False
@@ -2465,6 +2558,23 @@ class MonopolyGame(ActionGuardMixin, Game):
 
             owner = self.get_player_by_id(owner_id)
             rent_due = self._calculate_rent_due(landed_space, owner_id, dice_total)
+            if self.cheaters_engine is not None:
+                required_outcome = self.cheaters_engine.on_payment_required(
+                    player.id,
+                    f"rent:{landed_space.space_id}",
+                    rent_due,
+                    context={
+                        "payment_type": "rent",
+                        "space_id": landed_space.space_id,
+                        "owner_id": owner_id,
+                    },
+                )
+                if not self._apply_cheaters_outcome(
+                    player,
+                    required_outcome,
+                    reason="payment_required",
+                ):
+                    return "bankrupt" if player.bankrupt else "resolved"
             if self._current_liquid_balance(player) < rent_due:
                 self._liquidate_assets_for_debt(player, rent_due)
             paid = 0
@@ -2492,6 +2602,25 @@ class MonopolyGame(ActionGuardMixin, Game):
                 property=landed_space.name,
             )
             self._apply_sore_loser_rebate(player, paid)
+            if self.cheaters_engine is not None and not player.bankrupt:
+                result_outcome = self.cheaters_engine.on_payment_result(
+                    player.id,
+                    paid,
+                    rent_due,
+                    context={
+                        "payment_type": "rent",
+                        "space_id": landed_space.space_id,
+                        "owner_id": owner_id,
+                    },
+                )
+                if not self._apply_cheaters_outcome(
+                    player,
+                    result_outcome,
+                    reason="payment_result",
+                ):
+                    return "bankrupt" if player.bankrupt else "resolved"
+            if player.bankrupt:
+                return "bankrupt"
             if paid < rent_due:
                 creditor_name = owner.name if owner else "Bank"
                 creditor_id = owner.id if owner and isinstance(owner, MonopolyPlayer) else None
@@ -3927,28 +4056,12 @@ class MonopolyGame(ActionGuardMixin, Game):
                 mono_player.id,
                 context={"turn_has_rolled": self.turn_has_rolled},
             )
-            if outcome.status in {"block", "penalty"}:
-                penalty_due = max(0, -outcome.cash_delta)
-                paid = 0
-                if penalty_due > 0:
-                    if self._current_liquid_balance(mono_player) < penalty_due:
-                        self._liquidate_assets_for_debt(mono_player, penalty_due)
-                    paid = self._debit_player_to_bank(
-                        mono_player,
-                        penalty_due,
-                        f"cheaters:{outcome.reason_code or 'turn_end'}",
-                        allow_partial=True,
-                    )
-                if outcome.message_key:
-                    self.broadcast_l(
-                        outcome.message_key,
-                        player=mono_player.name,
-                        amount=paid,
-                        cash=mono_player.cash,
-                    )
-                if penalty_due > 0 and paid < penalty_due:
-                    self._declare_bankrupt(mono_player)
-                self._sync_cash_scores()
+            if not self._apply_cheaters_outcome(
+                mono_player,
+                outcome,
+                reason="turn_end",
+                block_action_on_penalty=True,
+            ):
                 self.rebuild_all_menus()
                 return
         if self._is_junior_preset() and self._check_junior_endgame():

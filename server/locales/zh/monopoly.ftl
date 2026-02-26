@@ -113,6 +113,7 @@ monopoly-three-doubles-jail = { $player } rolled three doubles in one turn and i
 monopoly-jail-card-used = { $player } used a get-out-of-jail card ({ $cards } remaining).
 monopoly-sore-loser-rebate = { $player } received a sore loser rebate of { $amount } (cash: { $cash }).
 monopoly-cheaters-early-end-turn-blocked = { $player } tried to end the turn early and paid a cheating penalty of { $amount } (cash: { $cash }).
+monopoly-cheaters-payment-avoidance-blocked = { $player } triggered a cheaters payment penalty of { $amount } (cash: { $cash }).
 
 # Auctions and mortgages
 monopoly-auction-no-bids = No bids for { $property }. It remains unsold.
