@@ -13,6 +13,11 @@ from ...game_utils.actions import Action, ActionSet, Visibility, MenuInput
 from ...game_utils.options import MenuOption, option_field
 from ...messages.localization import Localization
 from ...ui.keybinds import KeybindState
+from .junior_rules import (
+    JuniorRuleset,
+    get_junior_ruleset,
+    is_junior_ruleset_preset,
+)
 from .presets import (
     DEFAULT_PRESET_ID,
     MonopolyPreset,
@@ -25,6 +30,8 @@ from .presets import (
 PRESET_LABEL_KEYS = {
     "classic_standard": "monopoly-preset-classic-standard",
     "junior": "monopoly-preset-junior",
+    "junior_modern": "monopoly-preset-junior-modern",
+    "junior_legacy": "monopoly-preset-junior-legacy",
     "cheaters": "monopoly-preset-cheaters",
     "electronic_banking": "monopoly-preset-electronic-banking",
     "voice_banking": "monopoly-preset-voice-banking",
@@ -37,6 +44,8 @@ PRESET_LABEL_KEYS = {
     "knockout": "monopoly-preset-knockout",
     "free_parking_jackpot": "monopoly-preset-free-parking-jackpot",
 }
+JUNIOR_MODERN_PRESET_ID = "junior_modern"
+JUNIOR_LEGACY_PRESET_ID = "junior_legacy"
 
 
 @dataclass(frozen=True)
@@ -359,6 +368,65 @@ CARD_DESCRIPTION_KEYS = {
 }
 
 
+@dataclass(frozen=True)
+class MonopolyRuleProfile:
+    """Preset-scoped gameplay rule switches and economy knobs."""
+
+    preset_id: str
+    starting_cash: int = STARTING_CASH
+    pass_go_cash: int = PASS_GO_CASH
+    bail_amount: int = BAIL_AMOUNT
+    enable_free_parking_jackpot: bool = False
+    allow_manual_property_buy: bool = True
+    auto_auction_unowned_property: bool = False
+    doubles_grant_extra_roll: bool = True
+    require_full_set_for_build: bool = True
+    builder_blocks_per_purchase: int = 0
+    builder_block_required_for_build: bool = False
+    sore_loser_rebate_on_payment: int = 0
+
+
+RULE_PROFILES: dict[str, MonopolyRuleProfile] = {
+    DEFAULT_PRESET_ID: MonopolyRuleProfile(preset_id=DEFAULT_PRESET_ID),
+    JUNIOR_MODERN_PRESET_ID: MonopolyRuleProfile(
+        preset_id=JUNIOR_MODERN_PRESET_ID,
+        starting_cash=get_junior_ruleset(JUNIOR_MODERN_PRESET_ID).starting_cash,
+        pass_go_cash=get_junior_ruleset(JUNIOR_MODERN_PRESET_ID).pass_go_cash,
+        bail_amount=get_junior_ruleset(JUNIOR_MODERN_PRESET_ID).bail_amount,
+        doubles_grant_extra_roll=False,
+    ),
+    JUNIOR_LEGACY_PRESET_ID: MonopolyRuleProfile(
+        preset_id=JUNIOR_LEGACY_PRESET_ID,
+        starting_cash=get_junior_ruleset(JUNIOR_LEGACY_PRESET_ID).starting_cash,
+        pass_go_cash=get_junior_ruleset(JUNIOR_LEGACY_PRESET_ID).pass_go_cash,
+        bail_amount=get_junior_ruleset(JUNIOR_LEGACY_PRESET_ID).bail_amount,
+        doubles_grant_extra_roll=False,
+    ),
+    "free_parking_jackpot": MonopolyRuleProfile(
+        preset_id="free_parking_jackpot",
+        enable_free_parking_jackpot=True,
+    ),
+    "sore_losers": MonopolyRuleProfile(
+        preset_id="sore_losers",
+        sore_loser_rebate_on_payment=10,
+    ),
+    "speed": MonopolyRuleProfile(
+        preset_id="speed",
+        starting_cash=1000,
+        pass_go_cash=100,
+        allow_manual_property_buy=False,
+        auto_auction_unowned_property=True,
+        doubles_grant_extra_roll=False,
+    ),
+    "builder": MonopolyRuleProfile(
+        preset_id="builder",
+        require_full_set_for_build=False,
+        builder_blocks_per_purchase=1,
+        builder_block_required_for_build=True,
+    ),
+}
+
+
 @dataclass
 class MonopolyPlayer(Player):
     """Player state for Monopoly scaffold."""
@@ -370,6 +438,7 @@ class MonopolyPlayer(Player):
     in_jail: bool = False
     jail_turns: int = 0
     get_out_of_jail_cards: int = 0
+    builder_blocks: int = 0
 
 
 @dataclass
@@ -421,17 +490,27 @@ class MonopolyGame(ActionGuardMixin, Game):
     active_family_key: str = ""
     active_edition_ids: list[str] = field(default_factory=list)
     active_anchor_edition_id: str = ""
+    junior_ruleset: JuniorRuleset | None = None
+    rule_profile: MonopolyRuleProfile = field(
+        default_factory=lambda: RULE_PROFILES[DEFAULT_PRESET_ID]
+    )
     property_owners: dict[str, str] = field(default_factory=dict)
     mortgaged_space_ids: list[str] = field(default_factory=list)
     building_levels: dict[str, int] = field(default_factory=dict)
     pending_trade_offer: MonopolyTradeOffer | None = None
     free_parking_pool: int = 0
+    pending_auction_space_id: str = ""
+    pending_auction_bidder_ids: list[str] = field(default_factory=list)
+    pending_auction_turn_index: int = 0
+    pending_auction_high_bidder_id: str = ""
+    pending_auction_current_bid: int = 0
 
     turn_has_rolled: bool = False
     turn_last_roll: list[int] = field(default_factory=list)
     turn_pending_purchase_space_id: str = ""
     turn_doubles_count: int = 0
     turn_can_roll_again: bool = False
+    junior_endgame_evaluating: bool = False
 
     chance_deck_order: list[str] = field(default_factory=lambda: CHANCE_CARD_IDS.copy())
     chance_deck_index: int = 0
@@ -497,6 +576,29 @@ class MonopolyGame(ActionGuardMixin, Game):
                 handler="_action_auction_property",
                 is_enabled="_is_auction_property_enabled",
                 is_hidden="_is_auction_property_hidden",
+            )
+        )
+        action_set.add(
+            Action(
+                id="auction_bid",
+                label=Localization.get(locale, "monopoly-auction-bid"),
+                handler="_action_auction_bid",
+                is_enabled="_is_auction_bid_enabled",
+                is_hidden="_is_auction_bid_hidden",
+                input_request=MenuInput(
+                    prompt="monopoly-select-auction-bid",
+                    options="_options_for_auction_bid",
+                    bot_select="_bot_select_auction_bid",
+                ),
+            )
+        )
+        action_set.add(
+            Action(
+                id="auction_pass",
+                label=Localization.get(locale, "monopoly-auction-pass"),
+                handler="_action_auction_pass",
+                is_enabled="_is_auction_pass_enabled",
+                is_hidden="_is_auction_pass_hidden",
             )
         )
         action_set.add(
@@ -620,6 +722,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         self.define_keybind("r", "Roll dice", ["roll_dice"], state=KeybindState.ACTIVE)
         self.define_keybind("b", "Buy property", ["buy_property"], state=KeybindState.ACTIVE)
         self.define_keybind("a", "Auction property", ["auction_property"], state=KeybindState.ACTIVE)
+        self.define_keybind("shift+a", "Auction bid", ["auction_bid"], state=KeybindState.ACTIVE)
+        self.define_keybind("ctrl+a", "Auction pass", ["auction_pass"], state=KeybindState.ACTIVE)
         self.define_keybind("m", "Mortgage property", ["mortgage_property"], state=KeybindState.ACTIVE)
         self.define_keybind(
             "shift+m",
@@ -683,6 +787,23 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _resolve_selected_preset(self) -> MonopolyPreset:
         """Resolve currently selected lobby preset, applying fallback when needed."""
+        if is_junior_ruleset_preset(self.options.preset_id):
+            junior_base = _catalog_get_preset("junior")
+            base = junior_base or _catalog_get_preset(DEFAULT_PRESET_ID) or self._fallback_preset()
+            ruleset = get_junior_ruleset(self.options.preset_id)
+            alias_name = (
+                "Monopoly Junior (Modern)"
+                if self.options.preset_id == JUNIOR_MODERN_PRESET_ID
+                else "Monopoly Junior (Legacy)"
+            )
+            return MonopolyPreset(
+                preset_id=self.options.preset_id,
+                family_key="junior",
+                name=alias_name,
+                description="Junior rules profile anchored to curated manual editions.",
+                anchor_edition_id=ruleset.anchor_edition_id,
+                edition_ids=tuple(base.edition_ids),
+            )
         if self.options.preset_id in PRESET_LABEL_KEYS and not _catalog_get_preset(
             self.options.preset_id
         ):
@@ -704,6 +825,14 @@ class MonopolyGame(ActionGuardMixin, Game):
         fallback = self._fallback_preset()
         self.options.preset_id = fallback.preset_id
         return fallback
+
+    def _resolve_rule_profile(self, preset_id: str) -> MonopolyRuleProfile:
+        """Resolve gameplay rules for the selected preset."""
+        return RULE_PROFILES.get(preset_id, RULE_PROFILES[DEFAULT_PRESET_ID])
+
+    def _is_junior_preset(self) -> bool:
+        """Return True when the active preset uses Junior ruleset flow."""
+        return self.junior_ruleset is not None
 
     def _localize_preset_name(self, locale: str, preset_id: str, fallback: str) -> str:
         """Resolve localized preset label for speech."""
@@ -785,14 +914,21 @@ class MonopolyGame(ActionGuardMixin, Game):
         """Get all board space ids in one color group."""
         return COLOR_GROUP_TO_SPACE_IDS.get(color_group, [])
 
-    def _group_levels(self, color_group: str) -> list[int]:
-        """Get all building levels for one color group."""
-        return [self._building_level(space_id) for space_id in self._group_space_ids(color_group)]
+    def _group_levels(self, color_group: str, owner_id: str | None = None) -> list[int]:
+        """Get building levels for one color group, optionally filtered by owner."""
+        levels: list[int] = []
+        for space_id in self._group_space_ids(color_group):
+            if owner_id is not None and self.property_owners.get(space_id) != owner_id:
+                continue
+            levels.append(self._building_level(space_id))
+        return levels
 
-    def _group_has_mortgage(self, color_group: str) -> bool:
-        """Return True if any property in the group is mortgaged."""
+    def _group_has_mortgage(self, color_group: str, owner_id: str | None = None) -> bool:
+        """Return True if any matching property in the group is mortgaged."""
         return any(
-            space_id in self.mortgaged_space_ids for space_id in self._group_space_ids(color_group)
+            space_id in self.mortgaged_space_ids
+            and (owner_id is None or self.property_owners.get(space_id) == owner_id)
+            for space_id in self._group_space_ids(color_group)
         )
 
     def _group_has_any_buildings(self, color_group: str) -> bool:
@@ -1091,17 +1227,36 @@ class MonopolyGame(ActionGuardMixin, Game):
     def _options_for_offer_trade(self, player: Player) -> list[str]:
         """Menu options for private trades from current player to others."""
         mono_player: MonopolyPlayer = player  # type: ignore
+        if self._is_junior_preset():
+            return []
         options: list[str] = []
+
+        def _append_offer(summary: str, offer: MonopolyTradeOffer) -> None:
+            options.append(self._encode_trade_option(summary, offer))
+
         other_players = [
             p
             for p in self.turn_players
             if isinstance(p, MonopolyPlayer) and p.id != mono_player.id and not p.bankrupt
         ]
         for other in other_players:
+            proposer_props = sorted(
+                [
+                    space_id
+                    for space_id in mono_player.owned_space_ids
+                    if self._is_property_tradable_for_trade(space_id, mono_player.id)
+                ]
+            )
+            target_props = sorted(
+                [
+                    space_id
+                    for space_id in other.owned_space_ids
+                    if self._is_property_tradable_for_trade(space_id, other.id)
+                ]
+            )
+
             # Buy one tradable property from target for listed price.
-            for space_id in sorted(other.owned_space_ids):
-                if not self._is_property_tradable_for_trade(space_id, other.id):
-                    continue
+            for space_id in target_props:
                 price = self._property_trade_value(space_id)
                 if mono_player.cash < price:
                     continue
@@ -1112,12 +1267,24 @@ class MonopolyGame(ActionGuardMixin, Game):
                     receive_property_id=space_id,
                     summary=summary,
                 )
-                options.append(self._encode_trade_option(summary, offer))
+                _append_offer(summary, offer)
+
+                for bid in sorted({max(1, price // 2), price, price + 100}):
+                    if bid <= 0 or bid > mono_player.cash:
+                        continue
+                    custom_summary = (
+                        f"Offer {bid} to {other.name} for {self._space_label(space_id)}"
+                    )
+                    custom_offer = MonopolyTradeOffer(
+                        target_id=other.id,
+                        give_cash=bid,
+                        receive_property_id=space_id,
+                        summary=custom_summary,
+                    )
+                    _append_offer(custom_summary, custom_offer)
 
             # Sell one tradable property to target for listed price.
-            for space_id in sorted(mono_player.owned_space_ids):
-                if not self._is_property_tradable_for_trade(space_id, mono_player.id):
-                    continue
+            for space_id in proposer_props:
                 price = self._property_trade_value(space_id)
                 if other.cash < price:
                     continue
@@ -1128,31 +1295,94 @@ class MonopolyGame(ActionGuardMixin, Game):
                     receive_cash=price,
                     summary=summary,
                 )
-                options.append(self._encode_trade_option(summary, offer))
+                _append_offer(summary, offer)
+
+                for ask in sorted({max(1, price // 2), price, price + 100}):
+                    if ask <= 0 or ask > other.cash:
+                        continue
+                    custom_summary = (
+                        f"Offer {self._space_label(space_id)} to {other.name} for {ask}"
+                    )
+                    custom_offer = MonopolyTradeOffer(
+                        target_id=other.id,
+                        give_property_id=space_id,
+                        receive_cash=ask,
+                        summary=custom_summary,
+                    )
+                    _append_offer(custom_summary, custom_offer)
+
+            # Property-for-property swaps, with optional balancing cash.
+            for give_space_id in proposer_props:
+                give_value = self._property_trade_value(give_space_id)
+                give_label = self._space_label(give_space_id)
+                for receive_space_id in target_props:
+                    receive_value = self._property_trade_value(receive_space_id)
+                    receive_label = self._space_label(receive_space_id)
+
+                    swap_summary = f"Swap {give_label} with {other.name} for {receive_label}"
+                    swap_offer = MonopolyTradeOffer(
+                        target_id=other.id,
+                        give_property_id=give_space_id,
+                        receive_property_id=receive_space_id,
+                        summary=swap_summary,
+                    )
+                    _append_offer(swap_summary, swap_offer)
+
+                    diff = receive_value - give_value
+                    if diff > 0 and mono_player.cash >= diff:
+                        plus_cash_summary = (
+                            f"Swap {give_label} + {diff} with {other.name} for {receive_label}"
+                        )
+                        plus_cash_offer = MonopolyTradeOffer(
+                            target_id=other.id,
+                            give_cash=diff,
+                            give_property_id=give_space_id,
+                            receive_property_id=receive_space_id,
+                            summary=plus_cash_summary,
+                        )
+                        _append_offer(plus_cash_summary, plus_cash_offer)
+                    elif diff < 0 and other.cash >= abs(diff):
+                        plus_cash_summary = (
+                            f"Swap {give_label} for {receive_label} + {abs(diff)} from {other.name}"
+                        )
+                        plus_cash_offer = MonopolyTradeOffer(
+                            target_id=other.id,
+                            give_property_id=give_space_id,
+                            receive_cash=abs(diff),
+                            receive_property_id=receive_space_id,
+                            summary=plus_cash_summary,
+                        )
+                        _append_offer(plus_cash_summary, plus_cash_offer)
 
             # Jail-card for cash offers.
             if other.get_out_of_jail_cards > 0 and mono_player.cash >= JAIL_CARD_TRADE_CASH:
-                summary = f"Buy jail card from {other.name} for {JAIL_CARD_TRADE_CASH}"
-                offer = MonopolyTradeOffer(
-                    target_id=other.id,
-                    give_cash=JAIL_CARD_TRADE_CASH,
-                    receive_jail_cards=1,
-                    summary=summary,
-                )
-                options.append(self._encode_trade_option(summary, offer))
+                for price in sorted({JAIL_CARD_TRADE_CASH, JAIL_CARD_TRADE_CASH * 2}):
+                    if price > mono_player.cash:
+                        continue
+                    summary = f"Buy jail card from {other.name} for {price}"
+                    offer = MonopolyTradeOffer(
+                        target_id=other.id,
+                        give_cash=price,
+                        receive_jail_cards=1,
+                        summary=summary,
+                    )
+                    _append_offer(summary, offer)
             if mono_player.get_out_of_jail_cards > 0 and other.cash >= JAIL_CARD_TRADE_CASH:
-                summary = f"Sell jail card to {other.name} for {JAIL_CARD_TRADE_CASH}"
-                offer = MonopolyTradeOffer(
-                    target_id=other.id,
-                    give_jail_cards=1,
-                    receive_cash=JAIL_CARD_TRADE_CASH,
-                    summary=summary,
-                )
-                options.append(self._encode_trade_option(summary, offer))
+                for price in sorted({JAIL_CARD_TRADE_CASH, JAIL_CARD_TRADE_CASH * 2}):
+                    if price > other.cash:
+                        continue
+                    summary = f"Sell jail card to {other.name} for {price}"
+                    offer = MonopolyTradeOffer(
+                        target_id=other.id,
+                        give_jail_cards=1,
+                        receive_cash=price,
+                        summary=summary,
+                    )
+                    _append_offer(summary, offer)
 
         # Keep list stable and reasonably sized for menu navigation.
         deduped = sorted(dict.fromkeys(options))
-        return deduped[:120]
+        return deduped[:220]
 
     def _bot_select_mortgage_property(
         self, player: MonopolyPlayer, options: list[str]
@@ -1209,10 +1439,53 @@ class MonopolyGame(ActionGuardMixin, Game):
                 total += 1
         return total
 
+    def _calculate_junior_rent_due(
+        self, space: MonopolySpace, owner_id: str, dice_total: int | None
+    ) -> int:
+        """Compute Junior rent using active ruleset profile."""
+        ruleset = self.junior_ruleset
+        if ruleset is None:
+            return max(0, space.rent)
+
+        if ruleset.rent_mode == "modern_tier":
+            if self._is_street_property(space):
+                base = max(1, space.rent)
+                if self._owner_has_full_color_set(owner_id, space.color_group):
+                    return base + 1
+                return base
+            if space.kind == "railroad":
+                return max(2, 2 * self._count_owned_kind(owner_id, "railroad"))
+            if space.kind == "utility":
+                roll_value = dice_total if dice_total is not None else sum(self.turn_last_roll)
+                return max(2, max(1, roll_value // 2))
+            return max(1, space.rent)
+
+        if self._is_street_property(space):
+            if space.rents:
+                base = space.rents[0]
+            else:
+                base = space.rent
+            if self._owner_has_full_color_set(owner_id, space.color_group):
+                return base * 2
+            return base
+
+        if space.kind == "railroad":
+            owned = max(1, self._count_owned_kind(owner_id, "railroad"))
+            return 5 * owned
+
+        if space.kind == "utility":
+            owned = max(1, self._count_owned_kind(owner_id, "utility"))
+            roll_value = dice_total if dice_total is not None else sum(self.turn_last_roll)
+            return max(2, owned * max(1, roll_value // 2))
+
+        return max(1, space.rent)
+
     def _calculate_rent_due(
         self, space: MonopolySpace, owner_id: str, dice_total: int | None
     ) -> int:
         """Compute official-ish rent for a landed space."""
+        if self._is_junior_preset():
+            return self._calculate_junior_rent_due(space, owner_id, dice_total)
         if self._is_street_property(space):
             level = self._building_level(space.space_id)
             if space.rents:
@@ -1243,12 +1516,255 @@ class MonopolyGame(ActionGuardMixin, Game):
             return None
         return SPACE_BY_ID.get(self.turn_pending_purchase_space_id)
 
+    def _pending_auction_space(self) -> MonopolySpace | None:
+        """Get active auction space when an interactive auction is running."""
+        if not self.pending_auction_space_id:
+            return None
+        return SPACE_BY_ID.get(self.pending_auction_space_id)
+
+    def _is_auction_active(self) -> bool:
+        """Return True when an interactive property auction is running."""
+        return bool(self.pending_auction_space_id and self.pending_auction_bidder_ids)
+
+    def _clear_pending_auction(self) -> None:
+        """Clear transient interactive auction state."""
+        self.pending_auction_space_id = ""
+        self.pending_auction_bidder_ids.clear()
+        self.pending_auction_turn_index = 0
+        self.pending_auction_high_bidder_id = ""
+        self.pending_auction_current_bid = 0
+
+    def _current_auction_bidder(self) -> MonopolyPlayer | None:
+        """Return the player whose turn it is in the interactive auction."""
+        if not self._is_auction_active():
+            return None
+        bidder_ids = self.pending_auction_bidder_ids
+        if not bidder_ids:
+            return None
+        bidder_id = bidder_ids[self.pending_auction_turn_index % len(bidder_ids)]
+        bidder = self.get_player_by_id(bidder_id)
+        if bidder and isinstance(bidder, MonopolyPlayer) and not bidder.bankrupt:
+            return bidder
+        return None
+
+    def _auction_bidders_in_turn_order(self, declined_by: MonopolyPlayer) -> list[MonopolyPlayer]:
+        """Get eligible auction bidders in order starting after the declining player."""
+        ordered_players = [p for p in self.turn_players if isinstance(p, MonopolyPlayer)]
+        if not ordered_players:
+            return []
+        try:
+            start_index = ordered_players.index(declined_by)
+        except ValueError:
+            start_index = 0
+
+        rotated = ordered_players[start_index + 1 :] + ordered_players[: start_index + 1]
+        bidders: list[MonopolyPlayer] = []
+        for bidder in rotated:
+            if bidder.bankrupt:
+                continue
+            if bidder.cash < MIN_AUCTION_INCREMENT:
+                continue
+            bidders.append(bidder)
+        return bidders
+
+    def _auction_min_bid(self) -> int:
+        """Return minimum legal next bid for the active interactive auction."""
+        return max(MIN_AUCTION_INCREMENT, self.pending_auction_current_bid + MIN_AUCTION_INCREMENT)
+
+    def _next_auction_turn_index(self, start_index: int) -> int | None:
+        """Find next bidder index after start_index, skipping high bidder when possible."""
+        bidder_ids = self.pending_auction_bidder_ids
+        if not bidder_ids:
+            return None
+        high_bidder_id = self.pending_auction_high_bidder_id
+        for offset in range(1, len(bidder_ids) + 1):
+            idx = (start_index + offset) % len(bidder_ids)
+            if (
+                high_bidder_id
+                and len(bidder_ids) > 1
+                and bidder_ids[idx] == high_bidder_id
+            ):
+                continue
+            return idx
+        return None
+
+    def _advance_pending_auction_turn(self, start_index: int) -> None:
+        """Advance interactive auction to the next bidder or resolve winner."""
+        if not self._is_auction_active():
+            return
+        bidder_ids = self.pending_auction_bidder_ids
+        if not bidder_ids:
+            self._finish_pending_auction()
+            return
+        if (
+            len(bidder_ids) == 1
+            and self.pending_auction_high_bidder_id
+            and bidder_ids[0] == self.pending_auction_high_bidder_id
+        ):
+            self._finish_pending_auction(
+                winner_id=self.pending_auction_high_bidder_id,
+                winning_bid=self.pending_auction_current_bid,
+            )
+            return
+
+        next_index = self._next_auction_turn_index(start_index)
+        if next_index is None:
+            winner_id = self.pending_auction_high_bidder_id or None
+            winning_bid = self.pending_auction_current_bid
+            self._finish_pending_auction(winner_id=winner_id, winning_bid=winning_bid)
+            return
+
+        self.pending_auction_turn_index = next_index
+        bidder = self._current_auction_bidder()
+        space = self._pending_auction_space()
+        if bidder and space:
+            self.broadcast_l(
+                "monopoly-auction-turn",
+                player=bidder.name,
+                property=space.name,
+                amount=self.pending_auction_current_bid,
+            )
+            if bidder.is_bot:
+                BotHelper.jolt_bot(bidder, ticks=random.randint(8, 14))
+
+    def _complete_auction_sale(
+        self, space: MonopolySpace, winner: MonopolyPlayer, winning_bid: int
+    ) -> None:
+        """Transfer auctioned property to winner and announce outcome."""
+        bid = max(1, min(winner.cash, winning_bid))
+        winner.cash -= bid
+        if space.space_id not in winner.owned_space_ids:
+            winner.owned_space_ids.append(space.space_id)
+        self.property_owners[space.space_id] = winner.id
+        if space.space_id in self.mortgaged_space_ids:
+            self.mortgaged_space_ids.remove(space.space_id)
+
+        self.broadcast_l(
+            "monopoly-auction-won",
+            player=winner.name,
+            property=space.name,
+            amount=bid,
+            cash=winner.cash,
+        )
+        self._award_builder_blocks(winner)
+
+    def _finish_pending_auction(
+        self,
+        *,
+        winner_id: str | None = None,
+        winning_bid: int = 0,
+    ) -> None:
+        """Resolve and clear the active interactive auction state."""
+        space = self._pending_auction_space()
+        self._clear_pending_auction()
+        self.turn_pending_purchase_space_id = ""
+
+        winner: MonopolyPlayer | None = None
+        if winner_id and space:
+            maybe_winner = self.get_player_by_id(winner_id)
+            if (
+                maybe_winner
+                and isinstance(maybe_winner, MonopolyPlayer)
+                and not maybe_winner.bankrupt
+                and maybe_winner.cash > 0
+            ):
+                winner = maybe_winner
+
+        if winner and space and winning_bid > 0:
+            self._complete_auction_sale(space, winner, winning_bid)
+        elif space:
+            self.broadcast_l("monopoly-auction-no-bids", property=space.name)
+
+        current = self.current_player
+        if (
+            self.turn_can_roll_again
+            and current
+            and isinstance(current, MonopolyPlayer)
+            and not current.bankrupt
+        ):
+            self._prepare_next_roll_after_doubles(current)
+
+        self._sync_cash_scores()
+        self.rebuild_all_menus()
+
+    def _start_property_auction(self, space: MonopolySpace, declined_by: MonopolyPlayer) -> None:
+        """Start an interactive auction for a pending unpurchased property."""
+        bidders = self._auction_bidders_in_turn_order(declined_by)
+        if not bidders:
+            self.broadcast_l("monopoly-auction-no-bids", property=space.name)
+            self.turn_pending_purchase_space_id = ""
+            if self.turn_can_roll_again and not declined_by.bankrupt:
+                self._prepare_next_roll_after_doubles(declined_by)
+            self._sync_cash_scores()
+            self.rebuild_all_menus()
+            return
+
+        if len(bidders) == 1:
+            winner = bidders[0]
+            reserve = max(1, space.price // 2)
+            winning_bid = min(winner.cash, reserve)
+            self.turn_pending_purchase_space_id = ""
+            self._complete_auction_sale(space, winner, winning_bid)
+            if self.turn_can_roll_again and not declined_by.bankrupt:
+                self._prepare_next_roll_after_doubles(declined_by)
+            self._sync_cash_scores()
+            self.rebuild_all_menus()
+            return
+
+        self.pending_auction_space_id = space.space_id
+        self.pending_auction_bidder_ids = [bidder.id for bidder in bidders]
+        self.pending_auction_turn_index = 0
+        self.pending_auction_high_bidder_id = ""
+        self.pending_auction_current_bid = 0
+
+        self.broadcast_l(
+            "monopoly-auction-started",
+            property=space.name,
+            amount=MIN_AUCTION_INCREMENT,
+        )
+        self._advance_pending_auction_turn(-1)
+
     def _is_free_parking_jackpot_enabled(self) -> bool:
         """Return True when current preset enables jackpot on Free Parking."""
-        return self.active_preset_id == "free_parking_jackpot"
+        return self.rule_profile.enable_free_parking_jackpot
+
+    def _bail_amount(self) -> int:
+        """Return active bail amount from the current rule profile."""
+        return max(0, self.rule_profile.bail_amount)
+
+    def _apply_sore_loser_rebate(self, player: MonopolyPlayer, amount_paid: int) -> int:
+        """Grant profile-configured consolation cash after a forced payment."""
+        rebate = max(0, self.rule_profile.sore_loser_rebate_on_payment)
+        if rebate <= 0 or amount_paid <= 0:
+            return 0
+        granted = min(rebate, amount_paid)
+        player.cash += granted
+        self.broadcast_l(
+            "monopoly-sore-loser-rebate",
+            player=player.name,
+            amount=granted,
+            cash=player.cash,
+        )
+        return granted
+
+    def _award_builder_blocks(self, player: MonopolyPlayer) -> int:
+        """Award builder blocks after a successful property acquisition."""
+        blocks = max(0, self.rule_profile.builder_blocks_per_purchase)
+        if blocks <= 0:
+            return 0
+        player.builder_blocks += blocks
+        self.broadcast_l(
+            "monopoly-builder-blocks-awarded",
+            player=player.name,
+            amount=blocks,
+            blocks=player.builder_blocks,
+        )
+        return blocks
 
     def _can_buy_pending_space(self, player: MonopolyPlayer) -> bool:
         """Return True if the active player can buy pending space now."""
+        if not self.rule_profile.allow_manual_property_buy:
+            return False
         space = self._pending_purchase_space()
         if not space:
             return False
@@ -1284,11 +1800,12 @@ class MonopolyGame(ActionGuardMixin, Game):
         player.position = absolute_position % BOARD_SIZE
 
         if collect_pass_go and absolute_position >= BOARD_SIZE:
-            player.cash += PASS_GO_CASH
+            pass_go_cash = max(0, self.rule_profile.pass_go_cash)
+            player.cash += pass_go_cash
             self.broadcast_l(
                 "monopoly-pass-go",
                 player=player.name,
-                amount=PASS_GO_CASH,
+                amount=pass_go_cash,
                 cash=player.cash,
             )
         return self._space_at(player.position)
@@ -1363,6 +1880,8 @@ class MonopolyGame(ActionGuardMixin, Game):
                 cash=player.cash,
             )
 
+        self._apply_sore_loser_rebate(player, paid)
+
         if paid < amount:
             self._declare_bankrupt(player)
             return False
@@ -1378,6 +1897,56 @@ class MonopolyGame(ActionGuardMixin, Game):
             player = self.get_player_by_name(team.members[0])
             team.total_score = player.cash if player else 0
             team.round_score = 0
+        if self._is_junior_preset() and not self.junior_endgame_evaluating:
+            self._check_junior_endgame()
+
+    def _junior_property_pool_limit(self) -> int:
+        """Return purchasable property count for junior completion checks."""
+        return sum(1 for space in CLASSIC_STANDARD_BOARD if space.kind in PURCHASABLE_KINDS)
+
+    def _finish_junior_game_by_cash(self, contenders: list[MonopolyPlayer]) -> bool:
+        """Finish junior game selecting highest-cash player as winner."""
+        if not contenders:
+            return False
+        winner = max(contenders, key=lambda item: (item.cash, -item.position, item.name))
+        self.status = "finished"
+        self.game_active = False
+        self.set_turn_players([winner])
+        self.turn_index = 0
+        self.broadcast_l(
+            "monopoly-winner-by-cash",
+            player=winner.name,
+            cash=winner.cash,
+        )
+        return True
+
+    def _check_junior_endgame(self) -> bool:
+        """Evaluate junior-specific win conditions."""
+        if not self._is_junior_preset() or not self.junior_ruleset:
+            return False
+        if self.status != "playing" or not self.game_active:
+            return False
+
+        self.junior_endgame_evaluating = True
+        try:
+            contenders = [
+                player
+                for player in self.turn_players
+                if isinstance(player, MonopolyPlayer) and not player.bankrupt
+            ]
+            if len(contenders) <= 1:
+                if contenders:
+                    return self._finish_junior_game_by_cash(contenders)
+                return False
+
+            if self.junior_ruleset.game_end_mode == "property_pool_exhausted":
+                if len(self.property_owners) >= self._junior_property_pool_limit():
+                    return self._finish_junior_game_by_cash(contenders)
+                if self.round >= self.junior_ruleset.max_rounds:
+                    return self._finish_junior_game_by_cash(contenders)
+            return False
+        finally:
+            self.junior_endgame_evaluating = False
 
     def _declare_bankrupt(
         self,
@@ -1419,6 +1988,7 @@ class MonopolyGame(ActionGuardMixin, Game):
             creditor.get_out_of_jail_cards += player.get_out_of_jail_cards
         player.get_out_of_jail_cards = 0
         player.cash = 0
+        player.builder_blocks = 0
         player.owned_space_ids.clear()
         player.in_jail = False
         player.jail_turns = 0
@@ -1484,11 +2054,12 @@ class MonopolyGame(ActionGuardMixin, Game):
 
         if card_id == "advance_to_go":
             player.position = 0
-            player.cash += PASS_GO_CASH
+            pass_go_cash = max(0, self.rule_profile.pass_go_cash)
+            player.cash += pass_go_cash
             self.broadcast_l(
                 "monopoly-pass-go",
                 player=player.name,
-                amount=PASS_GO_CASH,
+                amount=pass_go_cash,
                 cash=player.cash,
             )
             return "resolved"
@@ -1553,6 +2124,15 @@ class MonopolyGame(ActionGuardMixin, Game):
             return "resolved"
 
         if card_id == "get_out_of_jail_free":
+            if self._is_junior_preset():
+                player.cash += 1
+                self.broadcast_l(
+                    "monopoly-card-collect",
+                    player=player.name,
+                    amount=1,
+                    cash=player.cash,
+                )
+                return "resolved"
             player.get_out_of_jail_cards += 1
             self.broadcast_l(
                 "monopoly-card-jail-free",
@@ -1585,6 +2165,15 @@ class MonopolyGame(ActionGuardMixin, Game):
         if landed_space.kind in PURCHASABLE_KINDS:
             owner_id = self.property_owners.get(landed_space.space_id)
             if owner_id is None:
+                if self.rule_profile.auto_auction_unowned_property:
+                    self.broadcast_l(
+                        "monopoly-property-available",
+                        player=player.name,
+                        property=landed_space.name,
+                        price=landed_space.price,
+                    )
+                    self._run_property_auction(landed_space, player)
+                    return "resolved"
                 self.turn_pending_purchase_space_id = landed_space.space_id
                 self.broadcast_l(
                     "monopoly-property-available",
@@ -1626,6 +2215,7 @@ class MonopolyGame(ActionGuardMixin, Game):
                 amount=paid,
                 property=landed_space.name,
             )
+            self._apply_sore_loser_rebate(player, paid)
             if paid < rent_due:
                 creditor_name = owner.name if owner else "Bank"
                 creditor_id = owner.id if owner and isinstance(owner, MonopolyPlayer) else None
@@ -1711,20 +2301,7 @@ class MonopolyGame(ActionGuardMixin, Game):
             winning_bid = min(winner_cap, second_cap + MIN_AUCTION_INCREMENT)
         winning_bid = max(1, winning_bid)
 
-        winner.cash -= winning_bid
-        if space.space_id not in winner.owned_space_ids:
-            winner.owned_space_ids.append(space.space_id)
-        self.property_owners[space.space_id] = winner.id
-        if space.space_id in self.mortgaged_space_ids:
-            self.mortgaged_space_ids.remove(space.space_id)
-
-        self.broadcast_l(
-            "monopoly-auction-won",
-            player=winner.name,
-            property=space.name,
-            amount=winning_bid,
-            cash=winner.cash,
-        )
+        self._complete_auction_sale(space, winner, winning_bid)
 
     def _is_roll_dice_enabled(self, player: Player) -> str | None:
         """Enable roll action for active player before rolling."""
@@ -1752,6 +2329,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player)
         if error:
             return error
+        if not self.rule_profile.allow_manual_property_buy:
+            return "monopoly-buy-disabled"
         if not self.turn_has_rolled:
             return "monopoly-roll-first"
         mono_player: MonopolyPlayer = player  # type: ignore
@@ -1768,7 +2347,9 @@ class MonopolyGame(ActionGuardMixin, Game):
         """Show buy action only after a roll when a property is pending."""
         return self.turn_action_visibility(
             player,
-            extra_condition=self.turn_has_rolled and self._pending_purchase_space() is not None,
+            extra_condition=self.rule_profile.allow_manual_property_buy
+            and self.turn_has_rolled
+            and self._pending_purchase_space() is not None,
         )
 
     def _is_auction_property_enabled(self, player: Player) -> str | None:
@@ -1776,6 +2357,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player)
         if error:
             return error
+        if self._is_auction_active():
+            return "monopoly-auction-active"
         if not self.turn_has_rolled:
             return "monopoly-roll-first"
         if self._pending_purchase_space() is None:
@@ -1786,7 +2369,107 @@ class MonopolyGame(ActionGuardMixin, Game):
         """Show auction only when property purchase is pending."""
         return self.turn_action_visibility(
             player,
-            extra_condition=self.turn_has_rolled and self._pending_purchase_space() is not None,
+            extra_condition=not self._is_auction_active()
+            and self.turn_has_rolled
+            and self._pending_purchase_space() is not None,
+        )
+
+    def _options_for_auction_bid(self, player: Player) -> list[str]:
+        """Menu options for bidding in the active interactive auction."""
+        mono_player: MonopolyPlayer = player  # type: ignore
+        current_bidder = self._current_auction_bidder()
+        if current_bidder is None or current_bidder.id != mono_player.id:
+            return []
+        min_bid = self._auction_min_bid()
+        if mono_player.cash < min_bid:
+            return []
+
+        max_bid = mono_player.cash
+        spread_steps = [0, 1, 3, 6]
+        options: set[int] = {min_bid, max_bid}
+        for step in spread_steps:
+            candidate = min(max_bid, min_bid + (step * MIN_AUCTION_INCREMENT))
+            if candidate >= min_bid:
+                options.add(candidate)
+
+        return [str(value) for value in sorted(options)]
+
+    def _bot_select_auction_bid(
+        self, player: MonopolyPlayer, options: list[str]
+    ) -> str | None:
+        """Pick a practical bid for bots in interactive auctions."""
+        if not options:
+            return None
+        space = self._pending_auction_space()
+        if not space:
+            return options[0]
+
+        cap = min(space.price, int(player.cash * 0.85))
+        affordable = []
+        for option in options:
+            try:
+                value = int(option)
+            except ValueError:
+                continue
+            if value <= cap:
+                affordable.append(value)
+
+        if affordable:
+            return str(max(affordable))
+        return options[0]
+
+    def _is_auction_bid_enabled(self, player: Player) -> str | None:
+        """Enable placing a bid when it is this player's auction turn."""
+        error = self.guard_turn_action_enabled(player, require_current_player=False)
+        if error:
+            return error
+        if not self._is_auction_active():
+            return "monopoly-no-auction-active"
+        mono_player: MonopolyPlayer = player  # type: ignore
+        if mono_player.bankrupt:
+            return "monopoly-bankrupt-player"
+        current_bidder = self._current_auction_bidder()
+        if current_bidder is None or current_bidder.id != mono_player.id:
+            return "monopoly-not-your-auction-turn"
+        if not self._options_for_auction_bid(player):
+            return "monopoly-not-enough-cash"
+        return None
+
+    def _is_auction_bid_hidden(self, player: Player) -> Visibility:
+        """Show bid action only to the active auction bidder."""
+        current_bidder = self._current_auction_bidder()
+        return self.turn_action_visibility(
+            player,
+            require_current_player=False,
+            extra_condition=self._is_auction_active()
+            and current_bidder is not None
+            and current_bidder.id == player.id,
+        )
+
+    def _is_auction_pass_enabled(self, player: Player) -> str | None:
+        """Enable passing in an active interactive auction."""
+        error = self.guard_turn_action_enabled(player, require_current_player=False)
+        if error:
+            return error
+        if not self._is_auction_active():
+            return "monopoly-no-auction-active"
+        mono_player: MonopolyPlayer = player  # type: ignore
+        if mono_player.bankrupt:
+            return "monopoly-bankrupt-player"
+        current_bidder = self._current_auction_bidder()
+        if current_bidder is None or current_bidder.id != mono_player.id:
+            return "monopoly-not-your-auction-turn"
+        return None
+
+    def _is_auction_pass_hidden(self, player: Player) -> Visibility:
+        """Show pass action only to the active auction bidder."""
+        current_bidder = self._current_auction_bidder()
+        return self.turn_action_visibility(
+            player,
+            require_current_player=False,
+            extra_condition=self._is_auction_active()
+            and current_bidder is not None
+            and current_bidder.id == player.id,
         )
 
     def _options_for_mortgage_property(self, player: Player) -> list[str]:
@@ -1830,17 +2513,24 @@ class MonopolyGame(ActionGuardMixin, Game):
                 continue
             if space_id in self.mortgaged_space_ids:
                 continue
-            if not self._owner_has_full_color_set(mono_player.id, space.color_group):
-                continue
-            if self._group_has_mortgage(space.color_group):
-                continue
+            if self.rule_profile.require_full_set_for_build:
+                if not self._owner_has_full_color_set(mono_player.id, space.color_group):
+                    continue
+                if self._group_has_mortgage(space.color_group):
+                    continue
+                levels = self._group_levels(space.color_group)
+            else:
+                if self._group_has_mortgage(space.color_group, owner_id=mono_player.id):
+                    continue
+                levels = self._group_levels(space.color_group, owner_id=mono_player.id)
             level = self._building_level(space_id)
             if level >= 5:
                 continue
             if not self._can_raise_building_level(space_id):
                 continue
-            levels = self._group_levels(space.color_group)
             if not levels or level != min(levels):
+                continue
+            if self.rule_profile.builder_block_required_for_build and mono_player.builder_blocks <= 0:
                 continue
             if mono_player.cash < space.house_cost:
                 continue
@@ -1873,6 +2563,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player)
         if error:
             return error
+        if self._is_junior_preset():
+            return "monopoly-action-disabled-for-preset"
         mono_player: MonopolyPlayer = player  # type: ignore
         if mono_player.bankrupt:
             return "monopoly-bankrupt-player"
@@ -1882,6 +2574,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_mortgage_property_hidden(self, player: Player) -> Visibility:
         """Show mortgage action when options exist."""
+        if self._is_junior_preset():
+            return Visibility.HIDDEN
         return self.turn_action_visibility(
             player, extra_condition=bool(self._options_for_mortgage_property(player))
         )
@@ -1891,6 +2585,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player)
         if error:
             return error
+        if self._is_junior_preset():
+            return "monopoly-action-disabled-for-preset"
         mono_player: MonopolyPlayer = player  # type: ignore
         if mono_player.bankrupt:
             return "monopoly-bankrupt-player"
@@ -1900,6 +2596,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_unmortgage_property_hidden(self, player: Player) -> Visibility:
         """Show unmortgage action only when options exist."""
+        if self._is_junior_preset():
+            return Visibility.HIDDEN
         return self.turn_action_visibility(
             player, extra_condition=bool(self._options_for_unmortgage_property(player))
         )
@@ -1909,6 +2607,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player)
         if error:
             return error
+        if self._is_junior_preset():
+            return "monopoly-action-disabled-for-preset"
         if self.turn_pending_purchase_space_id:
             return "monopoly-resolve-property-first"
         mono_player: MonopolyPlayer = player  # type: ignore
@@ -1920,6 +2620,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_build_house_hidden(self, player: Player) -> Visibility:
         """Show build action when options exist."""
+        if self._is_junior_preset():
+            return Visibility.HIDDEN
         return self.turn_action_visibility(
             player, extra_condition=bool(self._options_for_build_house(player))
         )
@@ -1929,6 +2631,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player)
         if error:
             return error
+        if self._is_junior_preset():
+            return "monopoly-action-disabled-for-preset"
         if self.turn_pending_purchase_space_id:
             return "monopoly-resolve-property-first"
         mono_player: MonopolyPlayer = player  # type: ignore
@@ -1940,6 +2644,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_sell_house_hidden(self, player: Player) -> Visibility:
         """Show sell action when options exist."""
+        if self._is_junior_preset():
+            return Visibility.HIDDEN
         return self.turn_action_visibility(
             player, extra_condition=bool(self._options_for_sell_house(player))
         )
@@ -1949,6 +2655,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player)
         if error:
             return error
+        if self._is_junior_preset():
+            return "monopoly-action-disabled-for-preset"
         mono_player: MonopolyPlayer = player  # type: ignore
         if mono_player.bankrupt:
             return "monopoly-bankrupt-player"
@@ -1962,6 +2670,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_offer_trade_hidden(self, player: Player) -> Visibility:
         """Show offer-trade when player can open a new trade."""
+        if self._is_junior_preset():
+            return Visibility.HIDDEN
         return self.turn_action_visibility(
             player,
             extra_condition=self.pending_trade_offer is None and bool(self._options_for_offer_trade(player)),
@@ -1972,6 +2682,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player, require_current_player=False)
         if error:
             return error
+        if self._is_junior_preset():
+            return "monopoly-action-disabled-for-preset"
         if self.turn_pending_purchase_space_id:
             return "monopoly-resolve-property-first"
         mono_player: MonopolyPlayer = player  # type: ignore
@@ -1983,6 +2695,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_accept_trade_hidden(self, player: Player) -> Visibility:
         """Show accept-trade only to the targeted player."""
+        if self._is_junior_preset():
+            return Visibility.HIDDEN
         mono_player: MonopolyPlayer = player  # type: ignore
         return self.turn_action_visibility(
             player,
@@ -1995,6 +2709,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         error = self.guard_turn_action_enabled(player, require_current_player=False)
         if error:
             return error
+        if self._is_junior_preset():
+            return "monopoly-action-disabled-for-preset"
         if self.turn_pending_purchase_space_id:
             return "monopoly-resolve-property-first"
         mono_player: MonopolyPlayer = player  # type: ignore
@@ -2006,6 +2722,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_decline_trade_hidden(self, player: Player) -> Visibility:
         """Show decline-trade only to the targeted player."""
+        if self._is_junior_preset():
+            return Visibility.HIDDEN
         mono_player: MonopolyPlayer = player  # type: ignore
         return self.turn_action_visibility(
             player,
@@ -2023,7 +2741,7 @@ class MonopolyGame(ActionGuardMixin, Game):
             return "monopoly-not-in-jail"
         if self.turn_has_rolled:
             return "monopoly-already-rolled"
-        if mono_player.cash < BAIL_AMOUNT:
+        if mono_player.cash < self._bail_amount():
             return "monopoly-not-enough-cash"
         return None
 
@@ -2084,17 +2802,26 @@ class MonopolyGame(ActionGuardMixin, Game):
     def _action_roll_dice(self, player: Player, action_id: str) -> None:
         """Handle rolling and landing logic for classic scaffold."""
         mono_player: MonopolyPlayer = player  # type: ignore
+        bail_amount = self._bail_amount()
 
         if self.turn_has_rolled or mono_player.bankrupt or self.turn_pending_purchase_space_id:
             return
 
-        die_1 = random.randint(1, 6)
-        die_2 = random.randint(1, 6)
-        total = die_1 + die_2
-        is_doubles = die_1 == die_2
+        if self._is_junior_preset() and self.junior_ruleset:
+            rolls = [random.randint(1, 6) for _ in range(self.junior_ruleset.dice_count)]
+            die_1 = rolls[0]
+            die_2 = rolls[1] if len(rolls) > 1 else 0
+            total = sum(rolls)
+            is_doubles = len(rolls) > 1 and all(value == rolls[0] for value in rolls)
+            self.turn_last_roll = rolls
+        else:
+            die_1 = random.randint(1, 6)
+            die_2 = random.randint(1, 6)
+            total = die_1 + die_2
+            is_doubles = die_1 == die_2
+            self.turn_last_roll = [die_1, die_2]
 
         self.turn_has_rolled = True
-        self.turn_last_roll = [die_1, die_2]
         self.turn_pending_purchase_space_id = ""
         if mono_player.in_jail:
             if is_doubles:
@@ -2128,22 +2855,23 @@ class MonopolyGame(ActionGuardMixin, Game):
                     attempts=mono_player.jail_turns,
                 )
                 if mono_player.jail_turns >= 3:
-                    if mono_player.cash < BAIL_AMOUNT:
-                        self._liquidate_assets_for_debt(mono_player, BAIL_AMOUNT)
-                    if mono_player.cash < BAIL_AMOUNT:
+                    if mono_player.cash < bail_amount:
+                        self._liquidate_assets_for_debt(mono_player, bail_amount)
+                    if mono_player.cash < bail_amount:
                         self._declare_bankrupt(mono_player)
                         self._sync_cash_scores()
                         self.rebuild_all_menus()
                         return
-                    mono_player.cash -= BAIL_AMOUNT
+                    mono_player.cash -= bail_amount
                     mono_player.in_jail = False
                     mono_player.jail_turns = 0
                     self.broadcast_l(
                         "monopoly-bail-paid",
                         player=mono_player.name,
-                        amount=BAIL_AMOUNT,
+                        amount=bail_amount,
                         cash=mono_player.cash,
                     )
+                    self._apply_sore_loser_rebate(mono_player, bail_amount)
                     landed_space = self._move_player(
                         mono_player, total, collect_pass_go=False
                     )
@@ -2161,12 +2889,12 @@ class MonopolyGame(ActionGuardMixin, Game):
             self.rebuild_all_menus()
             return
 
-        if is_doubles:
+        if self.rule_profile.doubles_grant_extra_roll and is_doubles:
             self.turn_doubles_count += 1
         else:
             self.turn_doubles_count = 0
 
-        if self.turn_doubles_count >= 3:
+        if self.rule_profile.doubles_grant_extra_roll and self.turn_doubles_count >= 3:
             self._send_to_jail(mono_player, by_triple_doubles=True)
             self._sync_cash_scores()
             self.rebuild_all_menus()
@@ -2183,16 +2911,19 @@ class MonopolyGame(ActionGuardMixin, Game):
         )
         resolution = self._resolve_space(mono_player, landed_space, dice_total=total)
 
-        if not mono_player.bankrupt and resolution == "resolved" and is_doubles:
-            self._prepare_next_roll_after_doubles(mono_player)
-        elif not mono_player.bankrupt and resolution == "pending_purchase" and is_doubles:
-            self.turn_can_roll_again = True
+        if self.rule_profile.doubles_grant_extra_roll and not mono_player.bankrupt and is_doubles:
+            if resolution == "resolved":
+                self._prepare_next_roll_after_doubles(mono_player)
+            elif resolution == "pending_purchase":
+                self.turn_can_roll_again = True
 
         self._sync_cash_scores()
         self.rebuild_all_menus()
 
     def _action_buy_property(self, player: Player, action_id: str) -> None:
         """Buy currently pending property."""
+        if not self.rule_profile.allow_manual_property_buy:
+            return
         mono_player: MonopolyPlayer = player  # type: ignore
         space = self._pending_purchase_space()
         if not space:
@@ -2217,6 +2948,7 @@ class MonopolyGame(ActionGuardMixin, Game):
             price=space.price,
             cash=mono_player.cash,
         )
+        self._award_builder_blocks(mono_player)
 
         if self.turn_can_roll_again:
             self._prepare_next_roll_after_doubles(mono_player)
@@ -2225,24 +2957,88 @@ class MonopolyGame(ActionGuardMixin, Game):
         self.rebuild_all_menus()
 
     def _action_auction_property(self, player: Player, action_id: str) -> None:
-        """Resolve pending property via automatic auction."""
+        """Start an interactive auction for the pending unpurchased property."""
         mono_player: MonopolyPlayer = player  # type: ignore
+        if self._is_auction_active():
+            return
         space = self._pending_purchase_space()
         if not space:
             return
 
-        self.turn_pending_purchase_space_id = ""
-        self._run_property_auction(space, mono_player)
-        if self.turn_can_roll_again and not mono_player.bankrupt:
-            self._prepare_next_roll_after_doubles(mono_player)
+        self._start_property_auction(space, mono_player)
 
-        self._sync_cash_scores()
-        self.rebuild_all_menus()
+    def _action_auction_bid(self, player: Player, option: str, action_id: str) -> None:
+        """Place a bid in the active interactive auction."""
+        if not self._is_auction_active():
+            return
+        current_bidder = self._current_auction_bidder()
+        if current_bidder is None or current_bidder.id != player.id:
+            return
+        if option not in self._options_for_auction_bid(player):
+            return
+        space = self._pending_auction_space()
+        if not space:
+            return
+
+        try:
+            bid = int(option)
+        except ValueError:
+            return
+
+        min_bid = self._auction_min_bid()
+        if bid < min_bid or bid > current_bidder.cash:
+            return
+
+        self.pending_auction_current_bid = bid
+        self.pending_auction_high_bidder_id = current_bidder.id
+        self.broadcast_l(
+            "monopoly-auction-bid-placed",
+            player=current_bidder.name,
+            property=space.name,
+            amount=bid,
+        )
+
+        current_index = self.pending_auction_turn_index % len(self.pending_auction_bidder_ids)
+        self._advance_pending_auction_turn(current_index)
+        if self._is_auction_active():
+            self.rebuild_all_menus()
+
+    def _action_auction_pass(self, player: Player, action_id: str) -> None:
+        """Pass on bidding in the active interactive auction."""
+        if not self._is_auction_active():
+            return
+        current_bidder = self._current_auction_bidder()
+        if current_bidder is None or current_bidder.id != player.id:
+            return
+        if player.id not in self.pending_auction_bidder_ids:
+            return
+
+        space = self._pending_auction_space()
+        if not space:
+            self._finish_pending_auction()
+            return
+
+        current_index = self.pending_auction_bidder_ids.index(player.id)
+        self.pending_auction_bidder_ids.remove(player.id)
+        if self.pending_auction_high_bidder_id == player.id:
+            self.pending_auction_high_bidder_id = ""
+            self.pending_auction_current_bid = 0
+        self.broadcast_l(
+            "monopoly-auction-pass-event",
+            player=current_bidder.name,
+            property=space.name,
+        )
+
+        self._advance_pending_auction_turn(current_index - 1)
+        if self._is_auction_active():
+            self.rebuild_all_menus()
 
     def _action_mortgage_property(
         self, player: Player, space_id: str, action_id: str
     ) -> None:
         """Mortgage one owned property to raise cash."""
+        if self._is_junior_preset():
+            return
         mono_player: MonopolyPlayer = player  # type: ignore
         if space_id not in self._options_for_mortgage_property(player):
             return
@@ -2268,6 +3064,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         self, player: Player, space_id: str, action_id: str
     ) -> None:
         """Unmortgage one owned property."""
+        if self._is_junior_preset():
+            return
         mono_player: MonopolyPlayer = player  # type: ignore
         if space_id not in self._options_for_unmortgage_property(player):
             return
@@ -2293,6 +3091,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _action_build_house(self, player: Player, space_id: str, action_id: str) -> None:
         """Build one house/hotel on an owned eligible street property."""
+        if self._is_junior_preset():
+            return
         mono_player: MonopolyPlayer = player  # type: ignore
         if space_id not in self._options_for_build_house(player):
             return
@@ -2303,12 +3103,21 @@ class MonopolyGame(ActionGuardMixin, Game):
         cost = max(0, space.house_cost)
         if mono_player.cash < cost:
             return
+        if self.rule_profile.builder_block_required_for_build and mono_player.builder_blocks <= 0:
+            return
 
         if not self._can_raise_building_level(space_id):
             return
         mono_player.cash -= cost
         new_level = self._building_level(space_id) + 1
         self._set_building_level(space_id, new_level)
+        if self.rule_profile.builder_block_required_for_build:
+            mono_player.builder_blocks -= 1
+            self.broadcast_l(
+                "monopoly-builder-block-spent",
+                player=mono_player.name,
+                blocks=mono_player.builder_blocks,
+            )
         self.broadcast_l(
             "monopoly-house-built",
             player=mono_player.name,
@@ -2323,6 +3132,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _action_sell_house(self, player: Player, space_id: str, action_id: str) -> None:
         """Sell one house/hotel from an owned eligible street property."""
+        if self._is_junior_preset():
+            return
         mono_player: MonopolyPlayer = player  # type: ignore
         if space_id not in self._options_for_sell_house(player):
             return
@@ -2354,6 +3165,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _action_offer_trade(self, player: Player, option: str, action_id: str) -> None:
         """Create a pending trade offer for another player."""
+        if self._is_junior_preset():
+            return
         mono_player: MonopolyPlayer = player  # type: ignore
         if self.pending_trade_offer is not None:
             return
@@ -2402,6 +3215,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _action_accept_trade(self, player: Player, action_id: str) -> None:
         """Accept the currently pending trade for this player."""
+        if self._is_junior_preset():
+            return
         mono_player: MonopolyPlayer = player  # type: ignore
         offer = self._pending_trade_for_target(mono_player)
         if offer is None:
@@ -2434,6 +3249,8 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _action_decline_trade(self, player: Player, action_id: str) -> None:
         """Decline the currently pending trade for this player."""
+        if self._is_junior_preset():
+            return
         mono_player: MonopolyPlayer = player  # type: ignore
         offer = self._pending_trade_for_target(mono_player)
         if offer is None:
@@ -2452,18 +3269,20 @@ class MonopolyGame(ActionGuardMixin, Game):
     def _action_pay_bail(self, player: Player, action_id: str) -> None:
         """Pay bail to leave jail before rolling."""
         mono_player: MonopolyPlayer = player  # type: ignore
-        if not mono_player.in_jail or self.turn_has_rolled or mono_player.cash < BAIL_AMOUNT:
+        bail_amount = self._bail_amount()
+        if not mono_player.in_jail or self.turn_has_rolled or mono_player.cash < bail_amount:
             return
 
-        mono_player.cash -= BAIL_AMOUNT
+        mono_player.cash -= bail_amount
         mono_player.in_jail = False
         mono_player.jail_turns = 0
         self.broadcast_l(
             "monopoly-bail-paid",
             player=mono_player.name,
-            amount=BAIL_AMOUNT,
+            amount=bail_amount,
             cash=mono_player.cash,
         )
+        self._apply_sore_loser_rebate(mono_player, bail_amount)
 
         self._sync_cash_scores()
         self.rebuild_all_menus()
@@ -2488,18 +3307,65 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _action_end_turn(self, player: Player, action_id: str) -> None:
         """End current player's turn and advance."""
+        if self._is_junior_preset() and self._check_junior_endgame():
+            self.rebuild_all_menus()
+            return
         self._reset_turn_state()
         next_player = self.advance_turn(announce=True)
+        if self._is_junior_preset() and self._check_junior_endgame():
+            self.rebuild_all_menus()
+            return
         if next_player and next_player.is_bot:
             BotHelper.jolt_bot(next_player, ticks=random.randint(8, 14))
 
     def on_tick(self) -> None:
         """Run per-tick updates (bot actions)."""
         super().on_tick()
+        if self._is_auction_active():
+            bidder = self._current_auction_bidder()
+            if bidder and bidder.is_bot:
+                if bidder.bot_think_ticks > 0:
+                    bidder.bot_think_ticks -= 1
+                    return
+                action_id = self.bot_think(bidder)
+                if action_id:
+                    self.execute_action(bidder, action_id)
+            return
         BotHelper.on_tick(self)
 
     def bot_think(self, player: MonopolyPlayer) -> str | None:
         """Simple scaffold bot logic."""
+        bail_amount = self._bail_amount()
+        if self._is_auction_active():
+            current_bidder = self._current_auction_bidder()
+            if current_bidder and current_bidder.id == player.id:
+                bid_options = self._options_for_auction_bid(player)
+                if not bid_options:
+                    return "auction_pass"
+                space = self._pending_auction_space()
+                min_bid = int(bid_options[0])
+                cap = min(space.price, int(player.cash * 0.85)) if space else min_bid
+                if cap >= min_bid:
+                    return "auction_bid"
+                return "auction_pass"
+            return None
+
+        if self._is_junior_preset():
+            if player.in_jail and not self.turn_has_rolled:
+                if player.cash >= bail_amount and player.jail_turns >= 1:
+                    return "pay_bail"
+            if not self.turn_has_rolled:
+                return "roll_dice"
+            pending_space = self._pending_purchase_space()
+            if pending_space:
+                reserve = max(2, self.rule_profile.starting_cash // 6)
+                if self._can_buy_pending_space(player) and player.cash - pending_space.price >= reserve:
+                    return "buy_property"
+                return "auction_property"
+            if self.turn_can_roll_again:
+                return "roll_dice"
+            return "end_turn"
+
         pending_offer = self._pending_trade_for_target(player)
         if pending_offer:
             proposer = self.get_player_by_id(pending_offer.proposer_id)
@@ -2511,7 +3377,7 @@ class MonopolyGame(ActionGuardMixin, Game):
         if player.in_jail and not self.turn_has_rolled:
             if player.get_out_of_jail_cards > 0:
                 return "use_jail_card"
-            if player.cash >= BAIL_AMOUNT and player.jail_turns >= 2:
+            if player.cash >= bail_amount and player.jail_turns >= 2:
                 return "pay_bail"
 
         if not self.turn_has_rolled and not self.turn_pending_purchase_space_id:
@@ -2553,6 +3419,12 @@ class MonopolyGame(ActionGuardMixin, Game):
         self.active_family_key = preset.family_key
         self.active_edition_ids = list(preset.edition_ids)
         self.active_anchor_edition_id = preset.anchor_edition_id
+        self.junior_ruleset = (
+            get_junior_ruleset(self.active_preset_id)
+            if is_junior_ruleset_preset(self.active_preset_id)
+            else None
+        )
+        self.rule_profile = self._resolve_rule_profile(self.active_preset_id)
         self.property_owners.clear()
         self.mortgaged_space_ids.clear()
         self.building_levels = {
@@ -2560,6 +3432,8 @@ class MonopolyGame(ActionGuardMixin, Game):
         }
         self.pending_trade_offer = None
         self.free_parking_pool = 0
+        self._clear_pending_auction()
+        self.junior_endgame_evaluating = False
         self._reset_turn_state()
         self.turn_doubles_count = 0
 
@@ -2573,12 +3447,13 @@ class MonopolyGame(ActionGuardMixin, Game):
         for player in active_players:
             if isinstance(player, MonopolyPlayer):
                 player.position = 0
-                player.cash = STARTING_CASH
+                player.cash = self.rule_profile.starting_cash
                 player.owned_space_ids.clear()
                 player.bankrupt = False
                 player.in_jail = False
                 player.jail_turns = 0
                 player.get_out_of_jail_cards = 0
+                player.builder_blocks = 0
 
         self._sync_cash_scores()
 

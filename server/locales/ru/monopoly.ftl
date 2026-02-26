@@ -11,6 +11,8 @@ monopoly-option-changed-preset = Preset set to { $preset }.
 # Preset labels
 monopoly-preset-classic-standard = Classic and Themed Standard
 monopoly-preset-junior = Monopoly Junior
+monopoly-preset-junior-modern = Monopoly Junior (Modern)
+monopoly-preset-junior-legacy = Monopoly Junior (Legacy)
 monopoly-preset-cheaters = Monopoly Cheaters Edition
 monopoly-preset-electronic-banking = Electronic Banking
 monopoly-preset-voice-banking = Voice Banking
@@ -39,6 +41,8 @@ monopoly-already-rolled = You already rolled this turn.
 monopoly-no-property-to-buy = There is no property to buy right now.
 monopoly-property-owned = That property is already owned.
 monopoly-not-enough-cash = You don't have enough cash.
+monopoly-action-disabled-for-preset = This action is disabled for the selected preset.
+monopoly-buy-disabled = Buying property directly is disabled for this preset.
 
 # Turn events
 monopoly-pass-go = { $player } passed GO and collected { $amount } (cash: { $cash }).
@@ -52,9 +56,12 @@ monopoly-go-to-jail = { $player } goes to jail (moved to { $space }).
 monopoly-bankrupt-player = You are bankrupt and out of the game.
 monopoly-player-bankrupt = { $player } is bankrupt. Creditor: { $creditor }.
 monopoly-winner-by-bankruptcy = { $player } wins by bankruptcy with { $cash } cash remaining.
+monopoly-winner-by-cash = { $player } wins with the highest cash total: { $cash }.
 
 # Additional actions
 monopoly-auction-property = Auction property
+monopoly-auction-bid = Place auction bid
+monopoly-auction-pass = Pass in auction
 monopoly-mortgage-property = Mortgage property
 monopoly-unmortgage-property = Unmortgage property
 monopoly-build-house = Build house or hotel
@@ -71,9 +78,13 @@ monopoly-select-property-unmortgage = Select a property to unmortgage
 monopoly-select-property-build = Select a property to build on
 monopoly-select-property-sell = Select a property to sell from
 monopoly-select-trade-offer = Select a trade offer
+monopoly-select-auction-bid = Select your auction bid
 
 # Additional validation
 monopoly-no-property-to-auction = There is no property to auction right now.
+monopoly-auction-active = Resolve the active auction first.
+monopoly-no-auction-active = There is no auction in progress.
+monopoly-not-your-auction-turn = It is not your turn in the auction.
 monopoly-no-mortgage-options = You do not have properties available to mortgage.
 monopoly-no-unmortgage-options = You do not have mortgaged properties to unmortgage.
 monopoly-no-build-options = You do not have properties available to build on.
@@ -94,9 +105,14 @@ monopoly-jail-roll-failed = { $player } rolled { $die1 } and { $die2 } in jail (
 monopoly-bail-paid = { $player } paid { $amount } bail (cash: { $cash }).
 monopoly-three-doubles-jail = { $player } rolled three doubles in one turn and is sent to jail.
 monopoly-jail-card-used = { $player } used a get-out-of-jail card ({ $cards } remaining).
+monopoly-sore-loser-rebate = { $player } received a sore loser rebate of { $amount } (cash: { $cash }).
 
 # Auctions and mortgages
 monopoly-auction-no-bids = No bids for { $property }. It remains unsold.
+monopoly-auction-started = Auction started for { $property } (opening bid: { $amount }).
+monopoly-auction-turn = Auction turn: { $player } to act on { $property } (current bid: { $amount }).
+monopoly-auction-bid-placed = { $player } bid { $amount } for { $property }.
+monopoly-auction-pass-event = { $player } passed on { $property }.
 monopoly-auction-won = { $player } won the auction for { $property } at { $amount } (cash: { $cash }).
 monopoly-property-mortgaged = { $player } mortgaged { $property } for { $amount } (cash: { $cash }).
 monopoly-property-unmortgaged = { $player } unmortgaged { $property } for { $amount } (cash: { $cash }).
@@ -108,6 +124,8 @@ monopoly-trade-declined = { $target } declined trade from { $proposer }: { $offe
 monopoly-trade-cancelled = Trade cancelled: { $offer }.
 monopoly-free-parking-jackpot = { $player } collected the Free Parking jackpot of { $amount } (cash: { $cash }).
 monopoly-mortgaged-no-rent = { $player } landed on mortgaged { $property }; no rent is due.
+monopoly-builder-blocks-awarded = { $player } gained { $amount } builder blocks ({ $blocks } total).
+monopoly-builder-block-spent = { $player } spent a builder block ({ $blocks } remaining).
 
 # Card engine
 monopoly-card-drawn = { $player } drew a { $deck } card: { $card }.
