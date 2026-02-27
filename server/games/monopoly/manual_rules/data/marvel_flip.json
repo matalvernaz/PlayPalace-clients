@@ -997,7 +997,7 @@
           "collect_pass_go": true
         },
         "text_status": "not_observed_in_available_manual_sources",
-        "text_note": "Native Event card id retained for manual deck modeling; official F9931 manual text surfaces Event/Team-Up deck mechanics but no literal matching card line for this specific effect id.",
+        "text_note": "Native Event card id retained for manual deck modeling; official F9931 manuals and external manual mirrors reviewed on 2026-02-27 surface Event/Team-Up deck mechanics but no literal matching card line for this specific effect id.",
         "text_evidence": "16 Location Cards * 16 Team-Up Cards * 16 Event Cards",
         "legacy_id": "advance_to_go"
       },
@@ -1083,7 +1083,7 @@
           "type": "no_effect"
         },
         "text_status": "not_observed_in_available_manual_sources",
-        "text_note": "Native Team-Up card id retained for manual deck modeling; official F9931 jail rules describe pay-or-roll release flow but do not list a literal matching card line.",
+        "text_note": "Native Team-Up card id retained for manual deck modeling; official F9931 manuals and external manual mirrors reviewed on 2026-02-27 describe pay-or-roll release flow but do not list a literal matching card line.",
         "text_evidence": "You have 2 options: pay BP or roll the numbered die to get out of Jail.",
         "legacy_id": "get_out_of_jail_free"
       }
@@ -1104,13 +1104,13 @@
       "status": "seeded_from_extracted_manual_text",
       "extraction_mode": "strings_fallback",
       "manifest_path": "server/games/monopoly/manual_rules/extracted/manifest.json",
-      "text_path": "server/games/monopoly/manual_rules/extracted/marvel_flip.txt",
-      "text_sha256": "1d11e2523f13d34afbf7ab2855489ea504bf5dce6d99ae1bbe557943018a3a52",
-      "text_char_count": 120704,
+      "text_path": "server/games/monopoly/manual_rules/extracted/marvel_flip.ocr.txt",
+      "text_sha256": "687cf2a9848b468e7b0fe5dfb9c4f90689431ddc456b4afc1d68bc196df6c9f2",
+      "text_char_count": 15757,
       "pdf_sha256": "0ffff478e92c280e97aba40cd6d1d8cb06f90b1e61fc61bb4733c41e1c3e0dcb",
       "pdf_size_bytes": 204352952,
       "page_count": 1,
-      "preferred_text_source": "strings_fallback",
+      "preferred_text_source": "ocr_sidecar",
       "raw_text_path": "server/games/monopoly/manual_rules/extracted/marvel_flip.txt",
       "raw_text_sha256": "1d11e2523f13d34afbf7ab2855489ea504bf5dce6d99ae1bbe557943018a3a52",
       "raw_text_char_count": 120704,

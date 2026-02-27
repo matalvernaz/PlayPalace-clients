@@ -36,6 +36,34 @@ BOARD_ZLIB_RETRY_LIMITS: dict[str, int] = {
     "marvel_flip": 252_000_000,
 }
 
+QUALITY_STOPWORDS = {
+    "a",
+    "and",
+    "card",
+    "cards",
+    "collect",
+    "community",
+    "do",
+    "for",
+    "go",
+    "if",
+    "in",
+    "is",
+    "jail",
+    "of",
+    "on",
+    "pay",
+    "player",
+    "roll",
+    "team",
+    "the",
+    "to",
+    "turn",
+    "up",
+    "you",
+    "your",
+}
+
 
 def _stable_dump(path: Path, data: Any) -> None:
     tmp_path = path.with_suffix(path.suffix + ".tmp")
@@ -97,6 +125,10 @@ def _attach_preferred_text_metadata(meta: dict[str, Any], output_dir: Path) -> d
 
     ocr_path = output_dir / f"{board_id}.ocr.txt"
     if ocr_path.exists():
+        base_text = ""
+        base_path = Path(text_path_value)
+        if base_path.exists():
+            base_text = base_path.read_text(encoding="utf-8", errors="ignore")
         ocr_text = ocr_path.read_text(encoding="utf-8")
         ocr_char_count = len(ocr_text)
         ocr_sha = hashlib.sha256(ocr_text.encode("utf-8")).hexdigest()
@@ -104,8 +136,17 @@ def _attach_preferred_text_metadata(meta: dict[str, Any], output_dir: Path) -> d
         meta["ocr_text_sha256"] = ocr_sha
         meta["ocr_text_char_count"] = ocr_char_count
 
-        # Prefer OCR text only when it is richer than base extraction.
-        if ocr_char_count > text_char_count:
+        # Prefer OCR over strings fallback when OCR is meaningfully more readable.
+        if (
+            extraction_mode == "strings_fallback"
+            and _score_text_quality(ocr_text) > (_score_text_quality(base_text) * 1.35)
+        ):
+            preferred_text_path = str(ocr_path)
+            preferred_text_sha = ocr_sha
+            preferred_text_char_count = ocr_char_count
+            preferred_text_source = "ocr_sidecar"
+        # Otherwise prefer OCR text only when it is richer than base extraction.
+        elif ocr_char_count > text_char_count:
             preferred_text_path = str(ocr_path)
             preferred_text_sha = ocr_sha
             preferred_text_char_count = ocr_char_count
@@ -156,6 +197,20 @@ def _extract_pages_with_ocr(pdf_bytes: bytes, *, dpi: int) -> list[str]:
                 raise RuntimeError(f"tesseract failed on {image_path.name}: {ocr.stderr.strip()}")
             pages.append(ocr.stdout.strip())
         return pages
+
+
+def _score_text_quality(text: str) -> float:
+    """Return a simple readability score for extracted text quality selection."""
+    if not text:
+        return 0.0
+    words = re.findall(r"[A-Za-z]{2,}", text)
+    if not words:
+        return 0.0
+    stopword_hits = sum(1 for word in words if word.lower() in QUALITY_STOPWORDS)
+    stopword_ratio = stopword_hits / len(words)
+    alpha_ratio = sum(char.isalpha() for char in text) / len(text)
+    space_ratio = sum(char.isspace() for char in text) / len(text)
+    return (stopword_ratio * 0.7) + (alpha_ratio * 0.2) + (space_ratio * 0.1)
 
 
 def _maybe_write_ocr_sidecar(

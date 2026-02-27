@@ -18,7 +18,7 @@ EXPECTED_OCR_SIDECAR_BOARDS = {
     "marvel_flip",
     "star_wars_saga",
 }
-EXPECTED_OCR_PREFERRED_BOARDS = EXPECTED_OCR_SIDECAR_BOARDS - {"marvel_flip"}
+EXPECTED_OCR_PREFERRED_BOARDS = EXPECTED_OCR_SIDECAR_BOARDS
 
 
 def _load_json(path: Path):
