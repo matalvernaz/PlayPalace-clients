@@ -7,13 +7,13 @@ Continue Monopoly special-board parity/hardware audio work without losing contex
 - Repo: `/home/alek/git/PlayPalace`
 - Branch: `monopoly`
 - Worktree: clean
-- Latest commit: `cdff1f9` (`Seed universal card text, add cash override evidence, and fix merge import breakage`)
+- Latest commit: `a7b80e2` (`Refine themed card text on 19 boards for currency consistency`)
 
 ## Recent Commit Chain (newest first)
-- *(pending)* Refine themed card text on 19 boards for currency consistency
+- *(pending)* Add Disney Lion King Pride Rock pass-GO hardware celebration event
+- `a7b80e2` Refine themed card text on 19 boards for currency consistency
 - `cdff1f9` Seed universal card text, add cash override evidence, and fix merge import breakage
 - `8da4b3f` Merge branch 'main' into monopoly
-- `4374591` Implement Mario Celebration Question Block deeper mechanic modeling
 
 ## What Is Done
 - All 55 special boards are `manual_core`.
@@ -43,6 +43,7 @@ Continue Monopoly special-board parity/hardware audio work without losing contex
 - `mario_question_block_game_over`
 - `jurassic_park_gate_theme`
 - `jurassic_park_gate_roar`
+- `pride_rock_celebration`
 
 ## Key Files To Start From
 - `server/games/monopoly/game.py`
@@ -55,6 +56,8 @@ Continue Monopoly special-board parity/hardware audio work without losing contex
 - `docs/plans/2026-02-28-monopoly-hardware-audio-legal-shortlist.md`
 
 ## Last Verification Results
+- Hardware audio tests: `37 passed`
+- Full monopoly suite: `1548 passed, 99 skipped`
 - Card text coverage tests: `231 passed, 99 skipped`
 - Extraction artifact tests: `3 passed`
 
@@ -62,14 +65,14 @@ Continue Monopoly special-board parity/hardware audio work without losing contex
 - Card text coverage:
   - `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest tests/test_monopoly_card_text_coverage.py -q`
 - Targeted hardware/audio:
-  - `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest tests/test_monopoly_hardware_emulation.py tests/test_monopoly_wave_special_audio_star_wars.py tests/test_monopoly_wave_special_audio_junior.py tests/test_monopoly_wave_special_audio_mario_celebration.py -q`
+  - `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest tests/test_monopoly_hardware_emulation.py tests/test_monopoly_wave_special_audio_star_wars.py tests/test_monopoly_wave_special_audio_junior.py tests/test_monopoly_wave_special_audio_mario_celebration.py tests/test_monopoly_wave_special_audio_jurassic_park.py tests/test_monopoly_wave_special_audio_lion_king.py -q`
 - Full Monopoly:
   - `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest -k monopoly -q`
 
 ## Recommended Next Work
-- Continue option-2 expansion: add hardware event mappings only where manual text shows deterministic sound-unit behavior.
-- Keep legal-source stand-ins for new events with provenance in `client/sounds/game_monopoly_hardware/README.md`.
-- Update parity/status docs each time a new hardware capability/event is added.
+- Hardware/audio mapping is complete (2026-03-01): all 55 boards reviewed, 5 implemented, no further candidates.
+- Keep parity matrix and plan docs synchronized with any future board-rule revisions.
+- OCR quality re-extraction at 600 DPI completed; disney_the_edition remains unusable grade.
 
 ## Important Constraints
 - Pac-Man game-unit behavior remains intentionally out of scope.

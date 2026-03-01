@@ -11,7 +11,7 @@ Head: tracked via git history on `monopoly`
 - Fidelity statuses:
   - `manual_core`: `55`
   - `near_full`: `0`
-- Boards with hardware capability flags: `junior_super_mario`, `mario_celebration`, `star_wars_mandalorian`, `jurassic_park`
+- Boards with hardware capability flags: `junior_super_mario`, `mario_celebration`, `star_wars_mandalorian`, `jurassic_park`, `disney_lion_king`
 - Pac-Man game-unit behavior remains intentionally out of scope.
 
 ## Verification Evidence (2026-02-27)
@@ -355,16 +355,73 @@ The final-part promotion target is complete:
 - `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest -k monopoly -q`
   - Result: `1543 passed, 99 skipped, 1105 deselected`
 
+## Verification Evidence (2026-03-01, Disney Lion King Pride Rock)
+
+- `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest tests/test_monopoly_hardware_emulation.py tests/test_monopoly_wave_special_audio_star_wars.py tests/test_monopoly_wave_special_audio_junior.py tests/test_monopoly_wave_special_audio_mario_celebration.py tests/test_monopoly_wave_special_audio_jurassic_park.py tests/test_monopoly_wave_special_audio_lion_king.py -q`
+  - Result: `37 passed`
+- `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest -k monopoly -q`
+  - Result: `1548 passed, 99 skipped, 1105 deselected`
+
+## New Progress: Disney Lion King Pride Rock Hardware Mapping (2026-03-01)
+
+- Added Disney Lion King Pride Rock Music Unit pass-GO celebration event:
+  - When a player passes or lands on GO on `disney_lion_king`, the Pride Rock unit plays a celebration sound.
+  - This is purely celebratory — it does not affect pass-GO cash (standard $200).
+  - Manual evidence: `server/games/monopoly/manual_rules/extracted/disney_lion_king.txt` (page 2, lines 285-291):
+    "GO: When you pass or land on the GO space, collect a200 from the Bank. Then, press the button on the Pride Rock unit to celebrate your journey!"
+  - New capability: `pride_rock_sound_unit` added to `disney_lion_king` board rules.
+  - New hardware event: `pride_rock_celebration`.
+  - Resolver: `_resolve_pride_rock_celebration()` in `game.py` returns `None` when not active, or `"pride_rock_celebration"`.
+  - Integration point: `_move_player()` pass-GO block — after `_credit_player`, before `broadcast_l("monopoly-pass-go")`.
+  - Game of Thrones was reviewed but rejected: its Iron Throne musical stand button is optional atmosphere ("You *can* push the button"), not tied to a specific game event.
+- Added sourced stand-in asset:
+  - `pride_rock_celebration.ogg` (OpenGameArt `sci-fi-sound-effects-library`, `Jingle_Win_00.mp3` transcoded to OGG, author Little Robot Sound Factory, CC-BY 3.0)
+- Added verification coverage:
+  - `server/tests/test_monopoly_wave_special_audio_lion_king.py` (emits event in emulated mode, ignored in none mode, does not affect cash, non-lion-king boards unaffected)
+  - Expanded `server/tests/test_monopoly_hardware_emulation.py` with pride_rock_celebration framework-level test.
+
+## Hardware/Audio Mapping: Complete (2026-03-01)
+
+All 55 extracted manuals reviewed for deterministic sound-unit behavior.
+No additional candidates beyond the 5 implemented boards.
+
+Mapped boards:
+- junior_super_mario: coin sound on power-up die
+- mario_celebration: Question Block Sound Unit (4 outcomes)
+- star_wars_mandalorian: theme on card draw (all star_wars_* boards)
+- jurassic_park: Electronic Gate (theme/roar, cash randomization)
+- disney_lion_king: Pride Rock celebration on pass-GO
+
+Rejected:
+- game_of_thrones: Iron Throne button is optional/atmospheric
+- pacman: game-unit behavior intentionally out of scope
+
+All other boards use standard dice/card mechanics with no electronic components.
+
+## OCR Quality Re-Extraction (2026-03-01)
+
+Re-ran OCR extraction at 600 DPI (up from 400) for 5 OCR sidecar boards:
+
+| Board | Old chars | New chars | Grade | Change |
+|-------|----------|----------|-------|--------|
+| `disney_the_edition` | 22,838 | 26,561 | unusable | +16% chars but text still garbled |
+| `lord_of_the_rings_trilogy` | 19,230 | 19,343 | low | Marginal improvement |
+| `marvel_avengers_legacy` | 11,385 | 11,218 | medium | Stable (minor cleanup) |
+| `marvel_flip` | 15,757 | 16,763 | medium | +6% chars, partial readability |
+| `star_wars_saga` | 19,753 | 20,200 | medium | Slight improvement |
+
+Web mirror harvesting for `disney_the_edition` exhausted — no accessible supplementary sources found beyond the manualsdir.com mirror already used for canonical card seeding.
+
+Card candidate re-extraction results: disney_the_edition=0, lord_of_the_rings_trilogy=44, marvel_avengers_legacy=11, marvel_flip=35, star_wars_saga=36.
+
 ## Follow-Up Work
 
-1. Continue manual-source quality improvements for image-heavy manuals and OCR stability.
-2. Expand hardware/audio mappings when manuals provide deterministic trigger behavior.
-3. Keep parity matrix and plan docs synchronized with any future board-rule revisions.
+1. Keep parity matrix and plan docs synchronized with any future board-rule revisions.
 
 ## Current Blockers
 
 - No blockers for `manual_core` status rollout remain.
-- Ongoing limitation: direct per-card scan quality is still noisy on some image-heavy manuals, so a subset of card literals continue to rely on legacy-slot compatibility inference with OCR evidence notes.
+- Ongoing limitation: direct per-card scan quality is still noisy on some image-heavy manuals (notably disney_the_edition at unusable grade), so a subset of card literals continue to rely on legacy-slot compatibility inference with OCR evidence notes.
 - Environment-specific network/OCR tooling reliability can still affect extraction refresh throughput, but no longer blocks conformance due cached extraction fallback.
 
 ## Definition of Done for the Final Part

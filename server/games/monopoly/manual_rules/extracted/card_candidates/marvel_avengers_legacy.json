@@ -2,21 +2,22 @@
   "board_id": "marvel_avengers_legacy",
   "candidate_lines": [
     {
+      "line": "Take the top Villains card from the deck and do what it says If you haven't got enough power to 5 su - \"4 aw - 4 R ps o i QR At s - R P e i",
+      "tags": [
+        "mentions_card"
+      ]
+    },
+    {
       "line": "Return used cards to the bottom of the deck.",
       "tags": [
         "mentions_card"
       ]
     },
     {
-      "line": "Hero die Your back-up Hero will not move, but o L.",
+      "line": "e SUPerpOWer card (if you've used i) Hero die Your back-up Hero will not move, but B & .",
       "tags": [
+        "mentions_card",
         "movement"
-      ]
-    },
-    {
-      "line": "eost ¢ pay the power cost shown in the top-left on the space car?d uint have the power to overcome the .",
-      "tags": [
-        "pay"
       ]
     },
     {
@@ -26,50 +27,49 @@
       ]
     },
     {
-      "line": "g How do I get out of Jail?",
-      "tags": [
-        "jail"
-      ]
-    },
-    {
-      "line": "$ Pay 50 Power at the start of your next turn to break out!",
+      "line": "[ J : any shortfall and you don't pay it 8N YT, ot ’ PR f_ L’f‘ SWAP ANY .",
       "tags": [
         "pay"
       ]
     },
     {
-      "line": "Theén roll and move as normal.",
+      "line": "R & = : : Go to Jail defeated, the game is over!",
       "tags": [
-        "movement"
+        "jail"
       ]
     },
     {
-      "line": "A e \" « h‘i\"; b 7 S o : Collect power by passing GO and from Chance and Community Chest cards.",
+      "line": "M 5540 collect is doubled when anyone lands on either one!",
       "tags": [
-        "mentions_card",
         "collect"
       ]
     },
     {
-      "line": "Use your power to Land on a space, take a card, do what it : ) ’ : villains are defeated!",
+      "line": "Pay 50 Power at the start of your next turn to break out!",
       "tags": [
-        "mentions_card"
+        "pay"
       ]
     },
     {
-      "line": "= e Move your token clockwise that number of spaces around",
+      "line": "Then roll and move as normal.",
       "tags": [
         "movement"
       ]
     },
     {
-      "line": "Collect power-ups from other Avengers } that match your O W ” } ) o That's it!",
+      "line": ": S 3 il e If AN = e Move your token clockwise that number of spaces around",
+      "tags": [
+        "movement"
+      ]
+    },
+    {
+      "line": "Collect power-ups from other Avengers i that match your ) ) W ) .",
       "tags": [
         "collect"
       ]
     }
   ],
-  "generated_at_utc": "2026-02-27T00:58:06.259458+00:00",
+  "generated_at_utc": "2026-03-01T23:20:02.352077+00:00",
   "preferred_text_source": "ocr_sidecar",
   "source_text_path": "server/games/monopoly/manual_rules/extracted/marvel_avengers_legacy.ocr.txt"
 }
