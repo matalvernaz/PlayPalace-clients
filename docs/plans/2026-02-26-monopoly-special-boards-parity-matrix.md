@@ -1,6 +1,6 @@
 # Monopoly Special Boards Parity Matrix
 
-Date: 2026-02-27
+Date: 2026-03-01
 
 Source: `server/games/monopoly/catalog/special_board_anchor_index.json` (generated from parity manifest)
 
@@ -69,4 +69,7 @@ Source: `server/games/monopoly/catalog/special_board_anchor_index.json` (generat
 ## Next Maintenance Targets
 1. Keep extraction/source metadata fresh so manual citations stay reproducible.
 2. Add additional hardware/audio event mappings where manual evidence supports it.
-3. Continue resolving low-text manual literal gaps, preserving explicit hybrid exception notes when text is not observed.
+3. All 55 boards now have full card text coverage (10/10 cards with `text` fields). Non-universal card text seeding completed 2026-03-01.
+4. OCR quality grades documented for all 5 OCR sidecar boards.
+5. All cards across all boards now have `text_note` evidence annotations.
+6. Next focus: themed/localized card text refinement (e.g., Portuguese `disney_princesses` edition).

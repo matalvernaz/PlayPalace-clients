@@ -997,7 +997,8 @@
           "collect_pass_go": true
         },
         "text": "Advance to GO. Collect 200.",
-        "legacy_id": "advance_to_go"
+        "legacy_id": "advance_to_go",
+        "text_note": "Resolved via canonical legacy slot mapping (`advance_to_go`) with deck-prefixed id `uni_mind_advance_to_go`. Source: canonical card text template with board-specific deck naming."
       },
       {
         "id": "uni_mind_bank_dividend_50",
@@ -1007,7 +1008,8 @@
           "amount": 85
         },
         "legacy_id": "bank_dividend_50",
-        "text_note": "Cash override active: board_rules bank_dividend_50 → 85. Source: manual-evidenced board economy."
+        "text_note": "Cash override active: board_rules bank_dividend_50 → 85. Source: manual-evidenced board economy. Resolved via canonical legacy slot mapping (`bank_dividend_50`) with deck-prefixed id `uni_mind_bank_dividend_50`.",
+        "text": "Bank pays you dividend of $85."
       },
       {
         "id": "uni_mind_go_back_three",
@@ -1017,7 +1019,9 @@
           "steps": -3,
           "collect_pass_go": false
         },
-        "legacy_id": "go_back_three"
+        "legacy_id": "go_back_three",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_back_three`) with deck-prefixed id `uni_mind_go_back_three`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Go Back Three Spaces."
       },
       {
         "id": "uni_mind_go_to_jail",
@@ -1026,7 +1030,8 @@
           "type": "go_to_jail"
         },
         "text": "Move your token to the In Jail space immediately. Do not collect 200 for passing GO.",
-        "legacy_id": "go_to_jail"
+        "legacy_id": "go_to_jail",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_to_jail`) with deck-prefixed id `uni_mind_go_to_jail`. Source: canonical card text template with board-specific deck naming."
       },
       {
         "id": "uni_mind_poor_tax_15",
@@ -1035,7 +1040,9 @@
           "type": "debit",
           "amount": 15
         },
-        "legacy_id": "poor_tax_15"
+        "legacy_id": "poor_tax_15",
+        "text_note": "Resolved via canonical legacy slot mapping (`poor_tax_15`) with deck-prefixed id `uni_mind_poor_tax_15`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Pay Poor Tax of $15."
       }
     ],
     "community_chest": [
@@ -1046,7 +1053,9 @@
           "type": "credit",
           "amount": 200
         },
-        "legacy_id": "bank_error_collect_200"
+        "legacy_id": "bank_error_collect_200",
+        "text_note": "Resolved via canonical legacy slot mapping (`bank_error_collect_200`) with deck-prefixed id `arishem_s_judgement_bank_error_collect_200`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Bank error in your favor. Collect $200."
       },
       {
         "id": "arishem_s_judgement_doctor_fee_pay_50",
@@ -1055,7 +1064,9 @@
           "type": "debit",
           "amount": 50
         },
-        "legacy_id": "doctor_fee_pay_50"
+        "legacy_id": "doctor_fee_pay_50",
+        "text_note": "Resolved via canonical legacy slot mapping (`doctor_fee_pay_50`) with deck-prefixed id `arishem_s_judgement_doctor_fee_pay_50`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Doctor's fee. Pay $50."
       },
       {
         "id": "arishem_s_judgement_income_tax_refund_20",
@@ -1064,7 +1075,9 @@
           "type": "credit",
           "amount": 20
         },
-        "legacy_id": "income_tax_refund_20"
+        "legacy_id": "income_tax_refund_20",
+        "text_note": "Resolved via canonical legacy slot mapping (`income_tax_refund_20`) with deck-prefixed id `arishem_s_judgement_income_tax_refund_20`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Income Tax refund. Collect $20."
       },
       {
         "id": "arishem_s_judgement_go_to_jail",
@@ -1073,13 +1086,15 @@
           "type": "go_to_jail"
         },
         "text": "Move your token to the In Jail space immediately. Do not collect 200 for passing GO.",
-        "legacy_id": "go_to_jail"
+        "legacy_id": "go_to_jail",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_to_jail`) with deck-prefixed id `arishem_s_judgement_go_to_jail`. Source: canonical card text template with board-specific deck naming."
       },
       {
         "id": "arishem_s_judgement_get_out_of_jail_free",
         "text_key": "monopoly-card-get-out-of-jail",
         "text": "Use a Get Out of Jail Free card at the start of your next turn if you have one (or buy one from another player).",
-        "legacy_id": "get_out_of_jail_free"
+        "legacy_id": "get_out_of_jail_free",
+        "text_note": "Resolved via canonical legacy slot mapping (`get_out_of_jail_free`) with deck-prefixed id `arishem_s_judgement_get_out_of_jail_free`. Source: canonical card text template with board-specific deck naming."
       }
     ]
   },

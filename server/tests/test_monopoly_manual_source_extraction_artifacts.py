@@ -87,3 +87,25 @@ def test_manifest_entries_are_valid_or_known_exceptions() -> None:
 
         meta_path = EXTRACTED_DIR / f"{board_id}.json"
         assert meta_path.exists(), f"missing metadata for {board_id}"
+
+
+VALID_OCR_QUALITY_GRADES = {"unusable", "low", "medium", "high"}
+
+
+def test_ocr_sidecar_boards_have_quality_grade() -> None:
+    manifest_rows = _load_json(MANIFEST_PATH)
+    for row in manifest_rows:
+        board_id = row["board_id"]
+        if board_id not in EXPECTED_OCR_SIDECAR_BOARDS:
+            continue
+        grade = row.get("ocr_quality_grade")
+        assert grade is not None, (
+            f"{board_id}: OCR sidecar board missing 'ocr_quality_grade'"
+        )
+        assert grade in VALID_OCR_QUALITY_GRADES, (
+            f"{board_id}: invalid ocr_quality_grade '{grade}'"
+        )
+        note = row.get("ocr_quality_note")
+        assert note and isinstance(note, str), (
+            f"{board_id}: OCR sidecar board missing 'ocr_quality_note'"
+        )

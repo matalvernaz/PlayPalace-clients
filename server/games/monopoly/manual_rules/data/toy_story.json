@@ -996,7 +996,8 @@
           "position": 0,
           "collect_pass_go": true
         },
-        "text": "Advance to GO. Collect 200."
+        "text": "Advance to GO. Collect 200.",
+        "text_note": "Source: universal card text template."
       },
       {
         "id": "bank_dividend_50",
@@ -1004,7 +1005,9 @@
         "effect": {
           "type": "credit",
           "amount": 50
-        }
+        },
+        "text_note": "Source: canonical card text template.",
+        "text": "Bank pays you dividend of $50."
       },
       {
         "id": "go_back_three",
@@ -1013,7 +1016,9 @@
           "type": "move_relative",
           "steps": -3,
           "collect_pass_go": false
-        }
+        },
+        "text_note": "Source: canonical card text template.",
+        "text": "Go Back Three Spaces."
       },
       {
         "id": "go_to_jail",
@@ -1021,7 +1026,8 @@
         "effect": {
           "type": "go_to_jail"
         },
-        "text": "Move your token to the In Jail space immediately. Do not collect 200 for passing GO."
+        "text": "Move your token to the In Jail space immediately. Do not collect 200 for passing GO.",
+        "text_note": "Source: universal card text template."
       },
       {
         "id": "poor_tax_15",
@@ -1029,7 +1035,9 @@
         "effect": {
           "type": "debit",
           "amount": 15
-        }
+        },
+        "text_note": "Source: canonical card text template.",
+        "text": "Pay Poor Tax of $15."
       }
     ],
     "community_chest": [
@@ -1039,7 +1047,9 @@
         "effect": {
           "type": "credit",
           "amount": 200
-        }
+        },
+        "text_note": "Source: canonical card text template.",
+        "text": "Bank error in your favor. Collect $200."
       },
       {
         "id": "doctor_fee_pay_50",
@@ -1047,7 +1057,9 @@
         "effect": {
           "type": "debit",
           "amount": 50
-        }
+        },
+        "text_note": "Source: canonical card text template.",
+        "text": "Doctor's fee. Pay $50."
       },
       {
         "id": "income_tax_refund_20",
@@ -1055,7 +1067,9 @@
         "effect": {
           "type": "credit",
           "amount": 20
-        }
+        },
+        "text_note": "Source: canonical card text template.",
+        "text": "Income Tax refund. Collect $20."
       },
       {
         "id": "go_to_jail",
@@ -1063,12 +1077,14 @@
         "effect": {
           "type": "go_to_jail"
         },
-        "text": "Move your token to the In Jail space immediately. Do not collect 200 for passing GO."
+        "text": "Move your token to the In Jail space immediately. Do not collect 200 for passing GO.",
+        "text_note": "Source: universal card text template."
       },
       {
         "id": "get_out_of_jail_free",
         "text_key": "monopoly-card-get-out-of-jail",
-        "text": "Use a Get Out of Jail Free card at the start of your next turn if you have one."
+        "text": "Use a Get Out of Jail Free card at the start of your next turn if you have one.",
+        "text_note": "Source: universal card text template."
       }
     ]
   },

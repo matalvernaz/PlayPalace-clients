@@ -300,10 +300,43 @@ The final-part promotion target is complete:
   - `test_all_boards_have_universal_card_text` — verifies every board has `"text"` on advance_to_go, go_to_jail, get_out_of_jail_free.
   - `test_cash_override_boards_have_evidence_notes` — verifies every board with non-empty `CARD_CASH_OVERRIDES` has `text_note` on the overridden card.
 
+## New Progress: Non-Universal Card Text Seeding (2026-03-01)
+
+- Seeded non-universal card text for all 55 boards (329 `text` fields added):
+  - Canonical templates: `bank_dividend_50`, `go_back_three`, `poor_tax_15`, `bank_error_collect_200`, `doctor_fee_pay_50`, `income_tax_refund_20`.
+  - Cash-overridden amounts are reflected in text (e.g., animal_crossing `bank_dividend_50` → "Bank pays you dividend of $86.").
+  - Legacy-id boards (18 Disney/Marvel) get mapping notes in `text_note`.
+- Added `text_note` evidence annotations across all cards (527 total fields added across all passes):
+  - 329 non-universal cards: "Source: canonical card text template."
+  - 148 universal cards without legacy_id: "Source: universal card text template."
+  - 10 legacy-id cards with cash overrides: appended "Resolved via canonical legacy slot mapping" to existing cash override notes.
+  - ~110 legacy-id cards (Disney/Marvel): mapping notes referencing both legacy_id and deck-prefixed id.
+- All 55 boards now have 10/10 cards with `text` fields.
+- All cards across all boards now have `text_note` evidence annotations.
+- Script: `server/scripts/monopoly/seed_non_universal_card_text.py` (idempotent, --dry-run supported).
+
+## New Progress: OCR Quality Documentation (2026-03-01)
+
+- Added `ocr_quality_grade` and `ocr_quality_note` fields to 5 OCR sidecar entries in `manifest.json`:
+  - `disney_the_edition`: unusable (garbled OCR, 134 chars from pypdf)
+  - `lord_of_the_rings_trilogy`: low (rules-level text, no per-card literals)
+  - `marvel_avengers_legacy`: medium (structural rules readable)
+  - `marvel_flip`: medium (strings_fallback noise, partial OCR readability)
+  - `star_wars_saga`: medium (rules/currency extractable, no per-card literals)
+- Test: `test_ocr_sidecar_boards_have_quality_grade` in extraction artifacts test file.
+
+## Verification Evidence (2026-03-01, Non-Universal Card Text & OCR Quality)
+
+- `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest tests/test_monopoly_card_text_coverage.py -q`
+  - Result: `212 passed, 63 skipped`
+  - New tests: Part C (non-universal card text), Part D (text_note on all cards), Part E (legacy-id mapping notes).
+- `cd server && nix shell nixpkgs#uv -c uv run --extra dev pytest tests/test_monopoly_manual_source_extraction_artifacts.py -q`
+  - Result: `3 passed`
+
 ## Follow-Up Work
 
-1. Continue manual-source quality improvements for image-heavy manuals and OCR stability.
-2. Keep explicit evidence notes on inferred/legacy-slot-promoted literals where direct per-card scans are still noisy.
+1. Refine themed/localized card text where authentic source text is available (e.g., Portuguese `disney_princesses` edition).
+2. Continue manual-source quality improvements for image-heavy manuals and OCR stability.
 3. Expand hardware/audio mappings when manuals provide deterministic trigger behavior.
 4. Keep parity matrix and plan docs synchronized with any future board-rule revisions.
 

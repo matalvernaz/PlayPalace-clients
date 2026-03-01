@@ -1008,7 +1008,9 @@
           "type": "credit",
           "amount": 50
         },
-        "legacy_id": "bank_dividend_50"
+        "legacy_id": "bank_dividend_50",
+        "text_note": "Resolved via canonical legacy slot mapping (`bank_dividend_50`) with deck-prefixed id `shield_bank_dividend_50`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Bank pays you dividend of $50."
       },
       {
         "id": "shield_go_back_three",
@@ -1018,7 +1020,9 @@
           "steps": -3,
           "collect_pass_go": false
         },
-        "legacy_id": "go_back_three"
+        "legacy_id": "go_back_three",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_back_three`) with deck-prefixed id `shield_go_back_three`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Go Back Three Spaces."
       },
       {
         "id": "shield_go_to_jail",
@@ -1027,7 +1031,8 @@
           "type": "go_to_jail"
         },
         "text": "Go directly to Jail. Do not pass GO.",
-        "legacy_id": "go_to_jail"
+        "legacy_id": "go_to_jail",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_to_jail`) with deck-prefixed id `shield_go_to_jail`. Source: canonical card text template with board-specific deck naming."
       },
       {
         "id": "shield_poor_tax_15",
@@ -1036,7 +1041,9 @@
           "type": "debit",
           "amount": 15
         },
-        "legacy_id": "poor_tax_15"
+        "legacy_id": "poor_tax_15",
+        "text_note": "Resolved via canonical legacy slot mapping (`poor_tax_15`) with deck-prefixed id `shield_poor_tax_15`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Pay Poor Tax of $15."
       }
     ],
     "community_chest": [
@@ -1048,7 +1055,8 @@
           "amount": 215
         },
         "legacy_id": "bank_error_collect_200",
-        "text_note": "Cash override active: board_rules bank_error_collect_200 → 215. Source: manual-evidenced board economy."
+        "text_note": "Cash override active: board_rules bank_error_collect_200 → 215. Source: manual-evidenced board economy. Resolved via canonical legacy slot mapping (`bank_error_collect_200`) with deck-prefixed id `villains_bank_error_collect_215`.",
+        "text": "Bank error in your favor. Collect $215."
       },
       {
         "id": "villains_doctor_fee_pay_50",
@@ -1057,7 +1065,9 @@
           "type": "credit",
           "amount": 215
         },
-        "legacy_id": "doctor_fee_pay_50"
+        "legacy_id": "doctor_fee_pay_50",
+        "text_note": "Resolved via canonical legacy slot mapping (`doctor_fee_pay_50`) with deck-prefixed id `villains_doctor_fee_pay_50`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Doctor's fee. Pay $215."
       },
       {
         "id": "villains_income_tax_refund_20",
@@ -1066,7 +1076,9 @@
           "type": "credit",
           "amount": 20
         },
-        "legacy_id": "income_tax_refund_20"
+        "legacy_id": "income_tax_refund_20",
+        "text_note": "Resolved via canonical legacy slot mapping (`income_tax_refund_20`) with deck-prefixed id `villains_income_tax_refund_20`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Income Tax refund. Collect $20."
       },
       {
         "id": "villains_go_to_jail",
@@ -1075,7 +1087,8 @@
           "type": "go_to_jail"
         },
         "text": "Go directly to Jail. Do not pass GO.",
-        "legacy_id": "go_to_jail"
+        "legacy_id": "go_to_jail",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_to_jail`) with deck-prefixed id `villains_go_to_jail`. Source: canonical card text template with board-specific deck naming."
       },
       {
         "id": "villains_jail_release_options",

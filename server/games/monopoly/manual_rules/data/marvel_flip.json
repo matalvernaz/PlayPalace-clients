@@ -1008,7 +1008,8 @@
           "type": "go_to_jail"
         },
         "text": "Move your token to the In Jail space immediately. Do not pass GO. Do not collect 2 BP.",
-        "legacy_id": "bank_dividend_50"
+        "legacy_id": "bank_dividend_50",
+        "text_note": "Resolved via canonical legacy slot mapping (`bank_dividend_50`) with deck-prefixed id `event_go_to_jail_primary`. Source: canonical card text template with board-specific deck naming."
       },
       {
         "id": "event_go_back_three",
@@ -1018,7 +1019,9 @@
           "steps": -3,
           "collect_pass_go": false
         },
-        "legacy_id": "go_back_three"
+        "legacy_id": "go_back_three",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_back_three`) with deck-prefixed id `event_go_back_three`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Go Back Three Spaces."
       },
       {
         "id": "event_go_to_jail_secondary",
@@ -1027,7 +1030,8 @@
           "type": "go_to_jail"
         },
         "text": "Move your token to the In Jail space immediately. Do not pass GO. Do not collect 2 BP.",
-        "legacy_id": "go_to_jail"
+        "legacy_id": "go_to_jail",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_to_jail`) with deck-prefixed id `event_go_to_jail_secondary`. Source: canonical card text template with board-specific deck naming."
       },
       {
         "id": "event_poor_tax_15",
@@ -1036,7 +1040,9 @@
           "type": "debit",
           "amount": 15
         },
-        "legacy_id": "poor_tax_15"
+        "legacy_id": "poor_tax_15",
+        "text_note": "Resolved via canonical legacy slot mapping (`poor_tax_15`) with deck-prefixed id `event_poor_tax_15`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Pay Poor Tax of $15."
       }
     ],
     "community_chest": [
@@ -1047,7 +1053,9 @@
           "type": "credit",
           "amount": 200
         },
-        "legacy_id": "bank_error_collect_200"
+        "legacy_id": "bank_error_collect_200",
+        "text_note": "Resolved via canonical legacy slot mapping (`bank_error_collect_200`) with deck-prefixed id `team_up_bank_error_collect_200`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Bank error in your favor. Collect $200."
       },
       {
         "id": "team_up_doctor_fee_pay_50",
@@ -1056,7 +1064,9 @@
           "type": "debit",
           "amount": 50
         },
-        "legacy_id": "doctor_fee_pay_50"
+        "legacy_id": "doctor_fee_pay_50",
+        "text_note": "Resolved via canonical legacy slot mapping (`doctor_fee_pay_50`) with deck-prefixed id `team_up_doctor_fee_pay_50`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Doctor's fee. Pay $50."
       },
       {
         "id": "team_up_income_tax_refund_20",
@@ -1065,7 +1075,9 @@
           "type": "credit",
           "amount": 20
         },
-        "legacy_id": "income_tax_refund_20"
+        "legacy_id": "income_tax_refund_20",
+        "text_note": "Resolved via canonical legacy slot mapping (`income_tax_refund_20`) with deck-prefixed id `team_up_income_tax_refund_20`. Source: canonical card text template with board-specific deck naming.",
+        "text": "Income Tax refund. Collect $20."
       },
       {
         "id": "team_up_go_to_jail",
@@ -1074,7 +1086,8 @@
           "type": "go_to_jail"
         },
         "text": "Move your token to the In Jail space immediately. Do not pass GO. Do not collect 2 BP.",
-        "legacy_id": "go_to_jail"
+        "legacy_id": "go_to_jail",
+        "text_note": "Resolved via canonical legacy slot mapping (`go_to_jail`) with deck-prefixed id `team_up_go_to_jail`. Source: canonical card text template with board-specific deck naming."
       },
       {
         "id": "team_up_jail_release_options",

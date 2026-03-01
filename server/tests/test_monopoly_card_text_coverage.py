@@ -95,3 +95,74 @@ def test_cash_override_boards_have_evidence_notes(board_id: str) -> None:
         assert "text_note" in card and card["text_note"], (
             f"{board_id}: overridden card {card_id} missing 'text_note' evidence"
         )
+
+
+# Non-universal card IDs (the 6 canonical card slots seeded in the second pass).
+NON_UNIVERSAL_CARD_IDS = {
+    ("chance", "bank_dividend_50"),
+    ("chance", "go_back_three"),
+    ("chance", "poor_tax_15"),
+    ("community_chest", "bank_error_collect_200"),
+    ("community_chest", "doctor_fee_pay_50"),
+    ("community_chest", "income_tax_refund_20"),
+}
+
+
+# ── Part C: every board has non-universal card text ──────────────────
+
+
+@pytest.mark.parametrize("board_id", ALL_BOARD_IDS)
+def test_all_boards_have_non_universal_card_text(board_id: str) -> None:
+    data = _load_raw_json(board_id)
+    cards = data.get("cards", {})
+
+    for deck, card_id in NON_UNIVERSAL_CARD_IDS:
+        card = _find_card(cards, deck, card_id)
+        assert card is not None, (
+            f"{board_id}: missing card {deck}/{card_id}"
+        )
+        assert "text" in card and card["text"], (
+            f"{board_id}: card {deck}/{card_id} has no 'text' field"
+        )
+
+
+# ── Part D: every card has a text_note ───────────────────────────────
+
+
+@pytest.mark.parametrize("board_id", ALL_BOARD_IDS)
+def test_all_cards_have_text_note(board_id: str) -> None:
+    data = _load_raw_json(board_id)
+    cards = data.get("cards", {})
+
+    for deck in ("chance", "community_chest"):
+        for card in cards.get(deck, []):
+            card_id = card.get("id", "<unknown>")
+            assert "text_note" in card and card["text_note"], (
+                f"{board_id}: card {deck}/{card_id} missing 'text_note'"
+            )
+
+
+# ── Part E: legacy-id cards have mapping notes ───────────────────────
+
+
+@pytest.mark.parametrize("board_id", ALL_BOARD_IDS)
+def test_legacy_id_cards_have_mapping_notes(board_id: str) -> None:
+    data = _load_raw_json(board_id)
+    cards = data.get("cards", {})
+    has_legacy = False
+
+    for deck in ("chance", "community_chest"):
+        for card in cards.get(deck, []):
+            legacy_id = card.get("legacy_id")
+            if not legacy_id:
+                continue
+            has_legacy = True
+            card_id = card.get("id", "<unknown>")
+            note = card.get("text_note", "")
+            assert "legacy slot mapping" in note, (
+                f"{board_id}: legacy-id card {deck}/{card_id} "
+                f"(legacy_id={legacy_id}) missing mapping info in text_note"
+            )
+
+    if not has_legacy:
+        pytest.skip(f"{board_id} has no legacy-id cards")
