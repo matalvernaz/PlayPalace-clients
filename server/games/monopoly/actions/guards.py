@@ -265,3 +265,191 @@ def is_sell_house_hidden(game: MonopolyGame, player: Player) -> Visibility:
     return game.turn_action_visibility(
         player, extra_condition=bool(game._options_for_sell_house(player))
     )
+
+
+def is_offer_trade_enabled(game: MonopolyGame, player: Player) -> str | None:
+    """Enable trade offers for active players with at least one valid option."""
+    error = game.guard_turn_action_enabled(player)
+    if error:
+        return error
+    if game._is_junior_preset():
+        return "monopoly-action-disabled-for-preset"
+    mono_player = player  # type: ignore[assignment]
+    if mono_player.bankrupt:
+        return "monopoly-bankrupt-player"
+    if game.turn_pending_purchase_space_id:
+        return "monopoly-resolve-property-first"
+    if game.pending_trade_offer is not None:
+        return "monopoly-trade-pending"
+    if not game._options_for_offer_trade(player):
+        return "monopoly-no-trade-options"
+    return None
+
+
+def is_offer_trade_hidden(game: MonopolyGame, player: Player) -> Visibility:
+    """Show offer-trade when player can open a new trade."""
+    if game._is_junior_preset():
+        return Visibility.HIDDEN
+    return game.turn_action_visibility(
+        player,
+        extra_condition=game.pending_trade_offer is None and bool(game._options_for_offer_trade(player)),
+    )
+
+
+def is_accept_trade_enabled(game: MonopolyGame, player: Player) -> str | None:
+    """Enable accepting a pending trade for the addressed target player."""
+    error = game.guard_turn_action_enabled(player, require_current_player=False)
+    if error:
+        return error
+    if game._is_junior_preset():
+        return "monopoly-action-disabled-for-preset"
+    if game.turn_pending_purchase_space_id:
+        return "monopoly-resolve-property-first"
+    mono_player = player  # type: ignore[assignment]
+    if mono_player.bankrupt:
+        return "monopoly-bankrupt-player"
+    if game._pending_trade_for_target(mono_player) is None:
+        return "monopoly-no-trade-pending"
+    return None
+
+
+def is_accept_trade_hidden(game: MonopolyGame, player: Player) -> Visibility:
+    """Show accept-trade only to the targeted player."""
+    if game._is_junior_preset():
+        return Visibility.HIDDEN
+    mono_player = player  # type: ignore[assignment]
+    return game.turn_action_visibility(
+        player,
+        require_current_player=False,
+        extra_condition=game._pending_trade_for_target(mono_player) is not None,
+    )
+
+
+def is_decline_trade_enabled(game: MonopolyGame, player: Player) -> str | None:
+    """Enable declining a pending trade for the addressed target player."""
+    error = game.guard_turn_action_enabled(player, require_current_player=False)
+    if error:
+        return error
+    if game._is_junior_preset():
+        return "monopoly-action-disabled-for-preset"
+    if game.turn_pending_purchase_space_id:
+        return "monopoly-resolve-property-first"
+    mono_player = player  # type: ignore[assignment]
+    if mono_player.bankrupt:
+        return "monopoly-bankrupt-player"
+    if game._pending_trade_for_target(mono_player) is None:
+        return "monopoly-no-trade-pending"
+    return None
+
+
+def is_decline_trade_hidden(game: MonopolyGame, player: Player) -> Visibility:
+    """Show decline-trade only to the targeted player."""
+    if game._is_junior_preset():
+        return Visibility.HIDDEN
+    mono_player = player  # type: ignore[assignment]
+    return game.turn_action_visibility(
+        player,
+        require_current_player=False,
+        extra_condition=game._pending_trade_for_target(mono_player) is not None,
+    )
+
+
+def is_pay_bail_enabled(game: MonopolyGame, player: Player) -> str | None:
+    """Enable paying bail while in jail before rolling."""
+    error = game.guard_turn_action_enabled(player)
+    if error:
+        return error
+    mono_player = player  # type: ignore[assignment]
+    if not mono_player.in_jail:
+        return "monopoly-not-in-jail"
+    if game.turn_has_rolled:
+        return "monopoly-already-rolled"
+    if game._current_liquid_balance(mono_player) < game._bail_amount():
+        return "monopoly-not-enough-cash"
+    return None
+
+
+def is_pay_bail_hidden(game: MonopolyGame, player: Player) -> Visibility:
+    """Show pay bail only while player is jailed and has not rolled."""
+    mono_player = player  # type: ignore[assignment]
+    return game.turn_action_visibility(
+        player,
+        extra_condition=mono_player.in_jail and not game.turn_has_rolled,
+    )
+
+
+def is_use_jail_card_enabled(game: MonopolyGame, player: Player) -> str | None:
+    """Enable jail-card use while in jail before rolling."""
+    error = game.guard_turn_action_enabled(player)
+    if error:
+        return error
+    mono_player = player  # type: ignore[assignment]
+    if not mono_player.in_jail:
+        return "monopoly-not-in-jail"
+    if game.turn_has_rolled:
+        return "monopoly-already-rolled"
+    if mono_player.get_out_of_jail_cards <= 0:
+        return "monopoly-no-jail-card"
+    return None
+
+
+def is_use_jail_card_hidden(game: MonopolyGame, player: Player) -> Visibility:
+    """Show jail-card action only while usable."""
+    mono_player = player  # type: ignore[assignment]
+    return game.turn_action_visibility(
+        player,
+        extra_condition=mono_player.in_jail
+        and not game.turn_has_rolled
+        and mono_player.get_out_of_jail_cards > 0,
+    )
+
+
+def is_claim_cheat_reward_enabled(game: MonopolyGame, player: Player) -> str | None:
+    """Enable reward claim action only during cheaters preset turns."""
+    error = game.guard_turn_action_enabled(player)
+    if error:
+        return error
+    mono_player = player  # type: ignore[assignment]
+    if mono_player.bankrupt:
+        return "monopoly-bankrupt-player"
+    if game.active_preset_id != "cheaters" or game.cheaters_engine is None:
+        return "monopoly-action-disabled-for-preset"
+    return None
+
+
+def is_claim_cheat_reward_hidden(game: MonopolyGame, player: Player) -> Visibility:
+    """Show reward claim only while the cheaters engine is active."""
+    return game.turn_action_visibility(
+        player,
+        extra_condition=game.active_preset_id == "cheaters" and game.cheaters_engine is not None,
+    )
+
+
+def is_end_turn_enabled(game: MonopolyGame, player: Player) -> str | None:
+    """Enable end-turn after rolling."""
+    error = game.guard_turn_action_enabled(player)
+    if error:
+        return error
+    if game.turn_pending_purchase_space_id:
+        return "monopoly-resolve-property-first"
+    if game.turn_can_roll_again:
+        return "monopoly-roll-again-required"
+    if game.active_preset_id != "cheaters" and not game.turn_has_rolled:
+        return "monopoly-roll-first"
+    return None
+
+
+def is_end_turn_hidden(game: MonopolyGame, player: Player) -> Visibility:
+    """Hide end-turn when turn state cannot accept an end-turn attempt."""
+    if game.active_preset_id == "cheaters":
+        show_action = not game.turn_pending_purchase_space_id and not game.turn_can_roll_again
+        return game.turn_action_visibility(
+            player,
+            extra_condition=show_action,
+        )
+    return game.turn_action_visibility(
+        player,
+        extra_condition=game.turn_has_rolled
+        and not game.turn_pending_purchase_space_id
+        and not game.turn_can_roll_again,
+    )

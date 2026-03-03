@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import random
 from typing import TYPE_CHECKING
 
+from ....game_utils.bot_helper import BotHelper
 from ...base import Player
 from ..voice_commands import parse_voice_command
 
@@ -425,3 +427,218 @@ def action_sell_house(game: MonopolyGame, player: Player, space_id: str, action_
 
     game._sync_cash_scores()
     game.rebuild_all_menus()
+
+
+def action_offer_trade(game: MonopolyGame, player: Player, option: str, action_id: str) -> None:
+    """Create a pending trade offer for another player."""
+    _ = action_id
+    if game._is_junior_preset():
+        return
+    mono_player = player  # type: ignore[assignment]
+    if game.pending_trade_offer is not None:
+        return
+    if option not in game._options_for_offer_trade(player):
+        return
+    parsed = game._parse_trade_option(option)
+    if not parsed:
+        return
+
+    target = game.get_player_by_id(parsed.target_id)
+    if not target or not isinstance(target, type(mono_player)):
+        return
+    parsed.proposer_id = mono_player.id
+    if not game._is_trade_offer_valid(mono_player, target, parsed):
+        return
+
+    game.pending_trade_offer = parsed
+    game.broadcast_l(
+        "monopoly-trade-offered",
+        proposer=mono_player.name,
+        target=target.name,
+        offer=parsed.summary,
+    )
+
+    if target.is_bot:
+        if game._bot_accepts_trade_offer(mono_player, target, parsed) and game._apply_trade_offer(
+            mono_player, target, parsed
+        ):
+            game.broadcast_l(
+                "monopoly-trade-completed",
+                proposer=mono_player.name,
+                target=target.name,
+                offer=parsed.summary,
+            )
+        else:
+            game.broadcast_l(
+                "monopoly-trade-declined",
+                proposer=mono_player.name,
+                target=target.name,
+                offer=parsed.summary,
+            )
+        game.pending_trade_offer = None
+
+    game._sync_cash_scores()
+    game.rebuild_all_menus()
+
+
+def action_accept_trade(game: MonopolyGame, player: Player, action_id: str) -> None:
+    """Accept the currently pending trade for this player."""
+    _ = action_id
+    if game._is_junior_preset():
+        return
+    mono_player = player  # type: ignore[assignment]
+    offer = game._pending_trade_for_target(mono_player)
+    if offer is None:
+        return
+    proposer = game.get_player_by_id(offer.proposer_id)
+    if not proposer or not isinstance(proposer, type(mono_player)):
+        game.pending_trade_offer = None
+        game.rebuild_all_menus()
+        return
+
+    if not game._apply_trade_offer(proposer, mono_player, offer):
+        game.broadcast_l(
+            "monopoly-trade-cancelled",
+            offer=offer.summary,
+        )
+        game.pending_trade_offer = None
+        game._sync_cash_scores()
+        game.rebuild_all_menus()
+        return
+
+    game.broadcast_l(
+        "monopoly-trade-completed",
+        proposer=proposer.name,
+        target=mono_player.name,
+        offer=offer.summary,
+    )
+    game.pending_trade_offer = None
+    game._sync_cash_scores()
+    game.rebuild_all_menus()
+
+
+def action_decline_trade(game: MonopolyGame, player: Player, action_id: str) -> None:
+    """Decline the currently pending trade for this player."""
+    _ = action_id
+    if game._is_junior_preset():
+        return
+    mono_player = player  # type: ignore[assignment]
+    offer = game._pending_trade_for_target(mono_player)
+    if offer is None:
+        return
+    proposer = game.get_player_by_id(offer.proposer_id)
+    proposer_name = proposer.name if proposer and isinstance(proposer, type(mono_player)) else "Unknown"
+    game.broadcast_l(
+        "monopoly-trade-declined",
+        proposer=proposer_name,
+        target=mono_player.name,
+        offer=offer.summary,
+    )
+    game.pending_trade_offer = None
+    game.rebuild_all_menus()
+
+
+def action_pay_bail(game: MonopolyGame, player: Player, action_id: str) -> None:
+    """Pay bail to leave jail before rolling."""
+    _ = action_id
+    mono_player = player  # type: ignore[assignment]
+    bail_amount = game._bail_amount()
+    if (
+        not mono_player.in_jail
+        or game.turn_has_rolled
+        or game._current_liquid_balance(mono_player) < bail_amount
+    ):
+        return
+
+    paid = game._debit_player_to_bank(mono_player, bail_amount, "pay_bail")
+    if paid < bail_amount:
+        return
+    mono_player.in_jail = False
+    mono_player.jail_turns = 0
+    game.broadcast_l(
+        "monopoly-bail-paid",
+        player=mono_player.name,
+        amount=paid,
+        cash=mono_player.cash,
+    )
+    game._apply_sore_loser_rebate(mono_player, paid)
+
+    game._sync_cash_scores()
+    game.rebuild_all_menus()
+
+
+def action_use_jail_card(game: MonopolyGame, player: Player, action_id: str) -> None:
+    """Use a get-out-of-jail-free card."""
+    _ = action_id
+    mono_player = player  # type: ignore[assignment]
+    if not mono_player.in_jail or game.turn_has_rolled or mono_player.get_out_of_jail_cards <= 0:
+        return
+
+    mono_player.get_out_of_jail_cards -= 1
+    mono_player.in_jail = False
+    mono_player.jail_turns = 0
+    game.broadcast_l(
+        "monopoly-jail-card-used",
+        player=mono_player.name,
+        cards=mono_player.get_out_of_jail_cards,
+    )
+
+    game._sync_cash_scores()
+    game.rebuild_all_menus()
+
+
+def action_claim_cheat_reward(game: MonopolyGame, player: Player, action_id: str) -> None:
+    """Apply cheaters reward claim outcome for the active player."""
+    _ = action_id
+    mono_player = player  # type: ignore[assignment]
+    if game.cheaters_engine is None or mono_player.bankrupt:
+        return
+    outcome = game.cheaters_engine.on_action_attempt(
+        mono_player.id,
+        "claim_cheat_reward",
+        context={"turn_has_rolled": game.turn_has_rolled},
+    )
+    game._apply_cheaters_outcome(
+        mono_player,
+        outcome,
+        reason="reward_claim",
+    )
+    game.rebuild_all_menus()
+
+
+def action_end_turn(game: MonopolyGame, player: Player, action_id: str) -> None:
+    """End current player's turn and advance."""
+    _ = action_id
+    mono_player = player  # type: ignore[assignment]
+    game.voice_pending_transfer_by_player_id.pop(player.id, None)
+    if game.cheaters_engine is not None and not mono_player.bankrupt:
+        outcome = game.cheaters_engine.on_turn_end_attempt(
+            mono_player.id,
+            context={"turn_has_rolled": game.turn_has_rolled},
+        )
+        if not game._apply_cheaters_outcome(
+            mono_player,
+            outcome,
+            reason="turn_end",
+            block_action_on_penalty=True,
+        ):
+            game.rebuild_all_menus()
+            return
+    if game._is_city_preset() and game._check_city_endgame():
+        game.rebuild_all_menus()
+        return
+    if game._is_junior_preset() and game._check_junior_endgame():
+        game.rebuild_all_menus()
+        return
+    game._reset_turn_state()
+    next_player = game.advance_turn(announce=True)
+    game._start_cheaters_turn(next_player)
+    game._start_city_turn(next_player)
+    if game._is_city_preset() and game._check_city_endgame():
+        game.rebuild_all_menus()
+        return
+    if game._is_junior_preset() and game._check_junior_endgame():
+        game.rebuild_all_menus()
+        return
+    if next_player and next_player.is_bot:
+        BotHelper.jolt_bot(next_player, ticks=random.randint(8, 14))

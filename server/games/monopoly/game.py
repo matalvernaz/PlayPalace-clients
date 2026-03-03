@@ -3668,130 +3668,43 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_offer_trade_enabled(self, player: Player) -> str | None:
         """Enable trade offers for active players with at least one valid option."""
-        error = self.guard_turn_action_enabled(player)
-        if error:
-            return error
-        if self._is_junior_preset():
-            return "monopoly-action-disabled-for-preset"
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if mono_player.bankrupt:
-            return "monopoly-bankrupt-player"
-        if self.turn_pending_purchase_space_id:
-            return "monopoly-resolve-property-first"
-        if self.pending_trade_offer is not None:
-            return "monopoly-trade-pending"
-        if not self._options_for_offer_trade(player):
-            return "monopoly-no-trade-options"
-        return None
+        return action_guards.is_offer_trade_enabled(self, player)
 
     def _is_offer_trade_hidden(self, player: Player) -> Visibility:
         """Show offer-trade when player can open a new trade."""
-        if self._is_junior_preset():
-            return Visibility.HIDDEN
-        return self.turn_action_visibility(
-            player,
-            extra_condition=self.pending_trade_offer is None and bool(self._options_for_offer_trade(player)),
-        )
+        return action_guards.is_offer_trade_hidden(self, player)
 
     def _is_accept_trade_enabled(self, player: Player) -> str | None:
         """Enable accepting a pending trade for the addressed target player."""
-        error = self.guard_turn_action_enabled(player, require_current_player=False)
-        if error:
-            return error
-        if self._is_junior_preset():
-            return "monopoly-action-disabled-for-preset"
-        if self.turn_pending_purchase_space_id:
-            return "monopoly-resolve-property-first"
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if mono_player.bankrupt:
-            return "monopoly-bankrupt-player"
-        if self._pending_trade_for_target(mono_player) is None:
-            return "monopoly-no-trade-pending"
-        return None
+        return action_guards.is_accept_trade_enabled(self, player)
 
     def _is_accept_trade_hidden(self, player: Player) -> Visibility:
         """Show accept-trade only to the targeted player."""
-        if self._is_junior_preset():
-            return Visibility.HIDDEN
-        mono_player: MonopolyPlayer = player  # type: ignore
-        return self.turn_action_visibility(
-            player,
-            require_current_player=False,
-            extra_condition=self._pending_trade_for_target(mono_player) is not None,
-        )
+        return action_guards.is_accept_trade_hidden(self, player)
 
     def _is_decline_trade_enabled(self, player: Player) -> str | None:
         """Enable declining a pending trade for the addressed target player."""
-        error = self.guard_turn_action_enabled(player, require_current_player=False)
-        if error:
-            return error
-        if self._is_junior_preset():
-            return "monopoly-action-disabled-for-preset"
-        if self.turn_pending_purchase_space_id:
-            return "monopoly-resolve-property-first"
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if mono_player.bankrupt:
-            return "monopoly-bankrupt-player"
-        if self._pending_trade_for_target(mono_player) is None:
-            return "monopoly-no-trade-pending"
-        return None
+        return action_guards.is_decline_trade_enabled(self, player)
 
     def _is_decline_trade_hidden(self, player: Player) -> Visibility:
         """Show decline-trade only to the targeted player."""
-        if self._is_junior_preset():
-            return Visibility.HIDDEN
-        mono_player: MonopolyPlayer = player  # type: ignore
-        return self.turn_action_visibility(
-            player,
-            require_current_player=False,
-            extra_condition=self._pending_trade_for_target(mono_player) is not None,
-        )
+        return action_guards.is_decline_trade_hidden(self, player)
 
     def _is_pay_bail_enabled(self, player: Player) -> str | None:
         """Enable paying bail while in jail before rolling."""
-        error = self.guard_turn_action_enabled(player)
-        if error:
-            return error
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if not mono_player.in_jail:
-            return "monopoly-not-in-jail"
-        if self.turn_has_rolled:
-            return "monopoly-already-rolled"
-        if self._current_liquid_balance(mono_player) < self._bail_amount():
-            return "monopoly-not-enough-cash"
-        return None
+        return action_guards.is_pay_bail_enabled(self, player)
 
     def _is_pay_bail_hidden(self, player: Player) -> Visibility:
         """Show pay bail only while player is jailed and has not rolled."""
-        mono_player: MonopolyPlayer = player  # type: ignore
-        return self.turn_action_visibility(
-            player,
-            extra_condition=mono_player.in_jail and not self.turn_has_rolled,
-        )
+        return action_guards.is_pay_bail_hidden(self, player)
 
     def _is_use_jail_card_enabled(self, player: Player) -> str | None:
         """Enable jail-card use while in jail before rolling."""
-        error = self.guard_turn_action_enabled(player)
-        if error:
-            return error
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if not mono_player.in_jail:
-            return "monopoly-not-in-jail"
-        if self.turn_has_rolled:
-            return "monopoly-already-rolled"
-        if mono_player.get_out_of_jail_cards <= 0:
-            return "monopoly-no-jail-card"
-        return None
+        return action_guards.is_use_jail_card_enabled(self, player)
 
     def _is_use_jail_card_hidden(self, player: Player) -> Visibility:
         """Show jail-card action only while usable."""
-        mono_player: MonopolyPlayer = player  # type: ignore
-        return self.turn_action_visibility(
-            player,
-            extra_condition=mono_player.in_jail
-            and not self.turn_has_rolled
-            and mono_player.get_out_of_jail_cards > 0,
-        )
+        return action_guards.is_use_jail_card_hidden(self, player)
 
     def _is_banking_balance_enabled(self, player: Player) -> str | None:
         """Enable bank balance checks only for electronic banking preset."""
@@ -3839,50 +3752,19 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _is_claim_cheat_reward_enabled(self, player: Player) -> str | None:
         """Enable reward claim action only during cheaters preset turns."""
-        error = self.guard_turn_action_enabled(player)
-        if error:
-            return error
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if mono_player.bankrupt:
-            return "monopoly-bankrupt-player"
-        if self.active_preset_id != "cheaters" or self.cheaters_engine is None:
-            return "monopoly-action-disabled-for-preset"
-        return None
+        return action_guards.is_claim_cheat_reward_enabled(self, player)
 
     def _is_claim_cheat_reward_hidden(self, player: Player) -> Visibility:
         """Show reward claim only while the cheaters engine is active."""
-        return self.turn_action_visibility(
-            player,
-            extra_condition=self.active_preset_id == "cheaters" and self.cheaters_engine is not None,
-        )
+        return action_guards.is_claim_cheat_reward_hidden(self, player)
 
     def _is_end_turn_enabled(self, player: Player) -> str | None:
         """Enable end-turn after rolling."""
-        error = self.guard_turn_action_enabled(player)
-        if error:
-            return error
-        if self.turn_pending_purchase_space_id:
-            return "monopoly-resolve-property-first"
-        if self.turn_can_roll_again:
-            return "monopoly-roll-again-required"
-        if self.active_preset_id != "cheaters" and not self.turn_has_rolled:
-            return "monopoly-roll-first"
-        return None
+        return action_guards.is_end_turn_enabled(self, player)
 
     def _is_end_turn_hidden(self, player: Player) -> Visibility:
         """Hide end-turn when turn state cannot accept an end-turn attempt."""
-        if self.active_preset_id == "cheaters":
-            show_action = not self.turn_pending_purchase_space_id and not self.turn_can_roll_again
-            return self.turn_action_visibility(
-                player,
-                extra_condition=show_action,
-            )
-        return self.turn_action_visibility(
-            player,
-            extra_condition=self.turn_has_rolled
-            and not self.turn_pending_purchase_space_id
-            and not self.turn_can_roll_again,
-        )
+        return action_guards.is_end_turn_hidden(self, player)
 
     def _action_roll_dice(self, player: Player, action_id: str) -> None:
         """Handle rolling and landing logic for classic scaffold."""
@@ -4125,151 +4007,23 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _action_offer_trade(self, player: Player, option: str, action_id: str) -> None:
         """Create a pending trade offer for another player."""
-        if self._is_junior_preset():
-            return
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if self.pending_trade_offer is not None:
-            return
-        if option not in self._options_for_offer_trade(player):
-            return
-        parsed = self._parse_trade_option(option)
-        if not parsed:
-            return
-
-        target = self.get_player_by_id(parsed.target_id)
-        if not target or not isinstance(target, MonopolyPlayer):
-            return
-        parsed.proposer_id = mono_player.id
-        if not self._is_trade_offer_valid(mono_player, target, parsed):
-            return
-
-        self.pending_trade_offer = parsed
-        self.broadcast_l(
-            "monopoly-trade-offered",
-            proposer=mono_player.name,
-            target=target.name,
-            offer=parsed.summary,
-        )
-
-        if target.is_bot:
-            if self._bot_accepts_trade_offer(mono_player, target, parsed) and self._apply_trade_offer(
-                mono_player, target, parsed
-            ):
-                self.broadcast_l(
-                    "monopoly-trade-completed",
-                    proposer=mono_player.name,
-                    target=target.name,
-                    offer=parsed.summary,
-                )
-            else:
-                self.broadcast_l(
-                    "monopoly-trade-declined",
-                    proposer=mono_player.name,
-                    target=target.name,
-                    offer=parsed.summary,
-                )
-            self.pending_trade_offer = None
-
-        self._sync_cash_scores()
-        self.rebuild_all_menus()
+        action_handlers.action_offer_trade(self, player, option, action_id)
 
     def _action_accept_trade(self, player: Player, action_id: str) -> None:
         """Accept the currently pending trade for this player."""
-        if self._is_junior_preset():
-            return
-        mono_player: MonopolyPlayer = player  # type: ignore
-        offer = self._pending_trade_for_target(mono_player)
-        if offer is None:
-            return
-        proposer = self.get_player_by_id(offer.proposer_id)
-        if not proposer or not isinstance(proposer, MonopolyPlayer):
-            self.pending_trade_offer = None
-            self.rebuild_all_menus()
-            return
-
-        if not self._apply_trade_offer(proposer, mono_player, offer):
-            self.broadcast_l(
-                "monopoly-trade-cancelled",
-                offer=offer.summary,
-            )
-            self.pending_trade_offer = None
-            self._sync_cash_scores()
-            self.rebuild_all_menus()
-            return
-
-        self.broadcast_l(
-            "monopoly-trade-completed",
-            proposer=proposer.name,
-            target=mono_player.name,
-            offer=offer.summary,
-        )
-        self.pending_trade_offer = None
-        self._sync_cash_scores()
-        self.rebuild_all_menus()
+        action_handlers.action_accept_trade(self, player, action_id)
 
     def _action_decline_trade(self, player: Player, action_id: str) -> None:
         """Decline the currently pending trade for this player."""
-        if self._is_junior_preset():
-            return
-        mono_player: MonopolyPlayer = player  # type: ignore
-        offer = self._pending_trade_for_target(mono_player)
-        if offer is None:
-            return
-        proposer = self.get_player_by_id(offer.proposer_id)
-        proposer_name = proposer.name if proposer and isinstance(proposer, MonopolyPlayer) else "Unknown"
-        self.broadcast_l(
-            "monopoly-trade-declined",
-            proposer=proposer_name,
-            target=mono_player.name,
-            offer=offer.summary,
-        )
-        self.pending_trade_offer = None
-        self.rebuild_all_menus()
+        action_handlers.action_decline_trade(self, player, action_id)
 
     def _action_pay_bail(self, player: Player, action_id: str) -> None:
         """Pay bail to leave jail before rolling."""
-        mono_player: MonopolyPlayer = player  # type: ignore
-        bail_amount = self._bail_amount()
-        if (
-            not mono_player.in_jail
-            or self.turn_has_rolled
-            or self._current_liquid_balance(mono_player) < bail_amount
-        ):
-            return
-
-        paid = self._debit_player_to_bank(mono_player, bail_amount, "pay_bail")
-        if paid < bail_amount:
-            return
-        mono_player.in_jail = False
-        mono_player.jail_turns = 0
-        self.broadcast_l(
-            "monopoly-bail-paid",
-            player=mono_player.name,
-            amount=paid,
-            cash=mono_player.cash,
-        )
-        self._apply_sore_loser_rebate(mono_player, paid)
-
-        self._sync_cash_scores()
-        self.rebuild_all_menus()
+        action_handlers.action_pay_bail(self, player, action_id)
 
     def _action_use_jail_card(self, player: Player, action_id: str) -> None:
         """Use a get-out-of-jail-free card."""
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if not mono_player.in_jail or self.turn_has_rolled or mono_player.get_out_of_jail_cards <= 0:
-            return
-
-        mono_player.get_out_of_jail_cards -= 1
-        mono_player.in_jail = False
-        mono_player.jail_turns = 0
-        self.broadcast_l(
-            "monopoly-jail-card-used",
-            player=mono_player.name,
-            cards=mono_player.get_out_of_jail_cards,
-        )
-
-        self._sync_cash_scores()
-        self.rebuild_all_menus()
+        action_handlers.action_use_jail_card(self, player, action_id)
 
     def _action_banking_balance(self, player: Player, action_id: str) -> None:
         """Announce current electronic bank balance to the requesting player."""
@@ -4289,56 +4043,11 @@ class MonopolyGame(ActionGuardMixin, Game):
 
     def _action_claim_cheat_reward(self, player: Player, action_id: str) -> None:
         """Apply cheaters reward claim outcome for the active player."""
-        mono_player: MonopolyPlayer = player  # type: ignore
-        if self.cheaters_engine is None or mono_player.bankrupt:
-            return
-        outcome = self.cheaters_engine.on_action_attempt(
-            mono_player.id,
-            "claim_cheat_reward",
-            context={"turn_has_rolled": self.turn_has_rolled},
-        )
-        self._apply_cheaters_outcome(
-            mono_player,
-            outcome,
-            reason="reward_claim",
-        )
-        self.rebuild_all_menus()
+        action_handlers.action_claim_cheat_reward(self, player, action_id)
 
     def _action_end_turn(self, player: Player, action_id: str) -> None:
         """End current player's turn and advance."""
-        mono_player: MonopolyPlayer = player  # type: ignore
-        self.voice_pending_transfer_by_player_id.pop(player.id, None)
-        if self.cheaters_engine is not None and not mono_player.bankrupt:
-            outcome = self.cheaters_engine.on_turn_end_attempt(
-                mono_player.id,
-                context={"turn_has_rolled": self.turn_has_rolled},
-            )
-            if not self._apply_cheaters_outcome(
-                mono_player,
-                outcome,
-                reason="turn_end",
-                block_action_on_penalty=True,
-            ):
-                self.rebuild_all_menus()
-                return
-        if self._is_city_preset() and self._check_city_endgame():
-            self.rebuild_all_menus()
-            return
-        if self._is_junior_preset() and self._check_junior_endgame():
-            self.rebuild_all_menus()
-            return
-        self._reset_turn_state()
-        next_player = self.advance_turn(announce=True)
-        self._start_cheaters_turn(next_player)
-        self._start_city_turn(next_player)
-        if self._is_city_preset() and self._check_city_endgame():
-            self.rebuild_all_menus()
-            return
-        if self._is_junior_preset() and self._check_junior_endgame():
-            self.rebuild_all_menus()
-            return
-        if next_player and next_player.is_bot:
-            BotHelper.jolt_bot(next_player, ticks=random.randint(8, 14))
+        action_handlers.action_end_turn(self, player, action_id)
 
     def on_tick(self) -> None:
         """Run per-tick updates (bot actions)."""
