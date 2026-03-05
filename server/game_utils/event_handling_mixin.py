@@ -91,6 +91,12 @@ class EventHandlingMixin:
         menu_item_id = event.get("menu_item_id")
         menu_index = event.get("menu_index")
 
+        # Space key speaks option descriptions when not playing
+        if key == "space" and getattr(self, "status", "playing") != "playing" and menu_item_id:
+            handler = getattr(self, "_speak_option_description", None)
+            if handler and handler(player, menu_item_id):
+                return
+
         keybinds = self._keybinds.get(key)
         if keybinds is None:
             return
