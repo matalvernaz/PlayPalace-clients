@@ -827,7 +827,6 @@ class GameOptions(DataClassJSONMixin):
             # Mark enforced options as disabled-but-visible
             if self._is_value_enforced(name):
                 action.is_enabled = "_is_always_disabled"
-                action.keep_visible_when_disabled = True
                 action.disabled_message = "option-locked"
             action_set.add(action)
 

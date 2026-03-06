@@ -364,8 +364,10 @@ class ScopaGame(Game):
         return None
 
     def _is_card_action_hidden(self, player: Player) -> Visibility:
-        """Card actions are visible during play (players can always see their hand)."""
+        """Card actions are visible during play for non-spectators."""
         if self.status != "playing":
+            return Visibility.HIDDEN
+        if player.is_spectator:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 

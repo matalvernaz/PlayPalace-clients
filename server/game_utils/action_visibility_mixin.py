@@ -127,8 +127,10 @@ class ActionVisibilityMixin:
         return None
 
     def _is_option_hidden(self, player: "Player") -> Visibility:
-        """Options are visible in waiting state only."""
+        """Options are visible in waiting state for the host only."""
         if self.status != "waiting":
+            return Visibility.HIDDEN
+        if player.name != self.host:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 

@@ -128,7 +128,10 @@ def is_auction_bid_enabled(game: MonopolyGame, player: Player) -> str | None:
 
 
 def is_auction_bid_hidden(game: MonopolyGame, player: Player) -> Visibility:
-    """Show bid action only to the active auction bidder."""
+    """Show bid action only to the active non-bankrupt auction bidder."""
+    mono_player = player  # type: ignore[assignment]
+    if mono_player.bankrupt:
+        return Visibility.HIDDEN
     current_bidder = game._current_auction_bidder()
     return game.turn_action_visibility(
         player,
@@ -156,7 +159,10 @@ def is_auction_pass_enabled(game: MonopolyGame, player: Player) -> str | None:
 
 
 def is_auction_pass_hidden(game: MonopolyGame, player: Player) -> Visibility:
-    """Show pass action only to the active auction bidder."""
+    """Show pass action only to the active non-bankrupt auction bidder."""
+    mono_player = player  # type: ignore[assignment]
+    if mono_player.bankrupt:
+        return Visibility.HIDDEN
     current_bidder = game._current_auction_bidder()
     return game.turn_action_visibility(
         player,
@@ -314,10 +320,12 @@ def is_accept_trade_enabled(game: MonopolyGame, player: Player) -> str | None:
 
 
 def is_accept_trade_hidden(game: MonopolyGame, player: Player) -> Visibility:
-    """Show accept-trade only to the targeted player."""
+    """Show accept-trade only to the targeted non-bankrupt player."""
     if game._is_junior_preset():
         return Visibility.HIDDEN
     mono_player = player  # type: ignore[assignment]
+    if mono_player.bankrupt:
+        return Visibility.HIDDEN
     return game.turn_action_visibility(
         player,
         require_current_player=False,
@@ -343,10 +351,12 @@ def is_decline_trade_enabled(game: MonopolyGame, player: Player) -> str | None:
 
 
 def is_decline_trade_hidden(game: MonopolyGame, player: Player) -> Visibility:
-    """Show decline-trade only to the targeted player."""
+    """Show decline-trade only to the targeted non-bankrupt player."""
     if game._is_junior_preset():
         return Visibility.HIDDEN
     mono_player = player  # type: ignore[assignment]
+    if mono_player.bankrupt:
+        return Visibility.HIDDEN
     return game.turn_action_visibility(
         player,
         require_current_player=False,
