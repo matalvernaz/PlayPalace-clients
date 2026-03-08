@@ -4204,8 +4204,12 @@ class MonopolyGame(ActionGuardMixin, Game):
         if space.space_id in self.mortgaged_space_ids:
             self.mortgaged_space_ids.remove(space.space_id)
 
-        self.broadcast_l(
-            "monopoly-auction-won",
+        self._broadcast_monopoly_personal(
+            winner,
+            personal_message_id="monopoly-you-auction-won",
+            others_message_id="monopoly-player-auction-won",
+            personal_fallback=f"You won the auction for {space.name} at {self._format_money(paid)}.",
+            others_fallback=f"{winner.name} won the auction for {space.name} at {self._format_money(paid)}.",
             player=winner.name,
             property=space.name,
             amount=paid,
@@ -5051,8 +5055,12 @@ class MonopolyGame(ActionGuardMixin, Game):
             )
         else:
             jail_space = self._space_at(10)
-            self.broadcast_l(
-                "monopoly-go-to-jail",
+            self._broadcast_monopoly_personal(
+                player,
+                personal_message_id="monopoly-you-go-to-jail",
+                others_message_id="monopoly-player-go-to-jail",
+                personal_fallback=f"You go to jail (moved to {jail_space.name}).",
+                others_fallback=f"{player.name} goes to jail (moved to {jail_space.name}).",
                 player=player.name,
                 space=jail_space.name,
             )
@@ -5695,8 +5703,12 @@ class MonopolyGame(ActionGuardMixin, Game):
     ) -> str:
         player.position = (player.position - 3) % self.active_board_size
         landed_space = self._space_at(player.position)
-        self.broadcast_l(
-            "monopoly-card-move",
+        self._broadcast_monopoly_personal(
+            player,
+            personal_message_id="monopoly-you-card-move",
+            others_message_id="monopoly-player-card-move",
+            personal_fallback=f"You moved to {landed_space.name}.",
+            others_fallback=f"{player.name} moved to {landed_space.name}.",
             player=player.name,
             space=landed_space.name,
         )

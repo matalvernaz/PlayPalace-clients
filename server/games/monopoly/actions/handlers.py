@@ -187,15 +187,30 @@ def action_banking_transfer(game: MonopolyGame, player: Player, option: str, act
         "manual_transfer",
     )
     if transferred == amount:
-        game.broadcast_l(
-            "monopoly-banking-transfer-success",
+        game._broadcast_monopoly_transaction(
+            mono_player,
+            target,
+            actor_message_id="monopoly-you-banking-transfer-success",
+            recipient_message_id="monopoly-player-banking-transferred-to-you",
+            others_message_id="monopoly-player-banking-transfer-success",
+            actor_fallback=f"You transferred {game._format_money(transferred)} to {target.name}.",
+            recipient_fallback=(
+                f"{mono_player.name} transferred {game._format_money(transferred)} to you."
+            ),
+            others_fallback=(
+                f"{mono_player.name} transferred {game._format_money(transferred)} to {target.name}."
+            ),
             from_player=mono_player.name,
             to_player=target.name,
             amount=transferred,
         )
     else:
-        game.broadcast_l(
-            "monopoly-banking-transfer-failed",
+        game._broadcast_monopoly_personal(
+            mono_player,
+            personal_message_id="monopoly-you-banking-transfer-failed",
+            others_message_id="monopoly-player-banking-transfer-failed",
+            personal_fallback="Your bank transfer failed (insufficient_funds).",
+            others_fallback=f"{mono_player.name} bank transfer failed (insufficient_funds).",
             player=mono_player.name,
             reason="insufficient_funds",
         )
@@ -337,8 +352,19 @@ def action_voice_command(game: MonopolyGame, player: Player, text: str, action_i
         game.voice_pending_transfer_by_player_id.pop(mono_player.id, None)
         if transferred == amount:
             game.voice_last_response_by_player_id[mono_player.id] = "transfer_confirmed"
-            game.broadcast_l(
-                "monopoly-banking-transfer-success",
+            game._broadcast_monopoly_transaction(
+                mono_player,
+                target,
+                actor_message_id="monopoly-you-banking-transfer-success",
+                recipient_message_id="monopoly-player-banking-transferred-to-you",
+                others_message_id="monopoly-player-banking-transfer-success",
+                actor_fallback=f"You transferred {game._format_money(transferred)} to {target.name}.",
+                recipient_fallback=(
+                    f"{mono_player.name} transferred {game._format_money(transferred)} to you."
+                ),
+                others_fallback=(
+                    f"{mono_player.name} transferred {game._format_money(transferred)} to {target.name}."
+                ),
                 from_player=mono_player.name,
                 to_player=target.name,
                 amount=transferred,
@@ -432,8 +458,12 @@ def action_auction_pass(game: MonopolyGame, player: Player, action_id: str) -> N
     if game.pending_auction_high_bidder_id == player.id:
         game.pending_auction_high_bidder_id = ""
         game.pending_auction_current_bid = 0
-    game.broadcast_l(
-        "monopoly-auction-pass-event",
+    game._broadcast_monopoly_personal(
+        current_bidder,
+        personal_message_id="monopoly-you-auction-pass-event",
+        others_message_id="monopoly-player-auction-pass-event",
+        personal_fallback=f"You passed on {space.name}.",
+        others_fallback=f"{current_bidder.name} passed on {space.name}.",
         player=current_bidder.name,
         property=space.name,
     )
@@ -470,8 +500,12 @@ def action_mortgage_property(
     if credited <= 0:
         return
     game.mortgaged_space_ids.append(resolved_space_id)
-    game.broadcast_l(
-        "monopoly-property-mortgaged",
+    game._broadcast_monopoly_personal(
+        mono_player,
+        personal_message_id="monopoly-you-property-mortgaged",
+        others_message_id="monopoly-player-property-mortgaged",
+        personal_fallback=f"You mortgaged {space.name} for {game._format_money(credited)}.",
+        others_fallback=f"{mono_player.name} mortgaged {space.name} for {game._format_money(credited)}.",
         player=mono_player.name,
         property=space.name,
         amount=credited,
@@ -511,8 +545,12 @@ def action_unmortgage_property(
     if paid < cost:
         return
     game.mortgaged_space_ids.remove(resolved_space_id)
-    game.broadcast_l(
-        "monopoly-property-unmortgaged",
+    game._broadcast_monopoly_personal(
+        mono_player,
+        personal_message_id="monopoly-you-property-unmortgaged",
+        others_message_id="monopoly-player-property-unmortgaged",
+        personal_fallback=f"You unmortgaged {space.name} for {game._format_money(paid)}.",
+        others_fallback=f"{mono_player.name} unmortgaged {space.name} for {game._format_money(paid)}.",
         player=mono_player.name,
         property=space.name,
         amount=paid,
@@ -564,15 +602,27 @@ def action_build_house(game: MonopolyGame, player: Player, space_id: str, action
             blocks=mono_player.builder_blocks,
         )
     if new_level >= 5:
-        game.broadcast_l(
-            "monopoly-house-built-hotel",
+        game._broadcast_monopoly_personal(
+            mono_player,
+            personal_message_id="monopoly-you-house-built-hotel",
+            others_message_id="monopoly-player-house-built-hotel",
+            personal_fallback=f"You built a hotel on {space.name} for {game._format_money(paid)}.",
+            others_fallback=f"{mono_player.name} built a hotel on {space.name} for {game._format_money(paid)}.",
             player=mono_player.name,
             property=space.name,
             amount=paid,
         )
     else:
-        game.broadcast_l(
-            "monopoly-house-built-house",
+        game._broadcast_monopoly_personal(
+            mono_player,
+            personal_message_id="monopoly-you-house-built-house",
+            others_message_id="monopoly-player-house-built-house",
+            personal_fallback=(
+                f"You built a house on {space.name} for {game._format_money(paid)}. It now has {new_level}."
+            ),
+            others_fallback=(
+                f"{mono_player.name} built a house on {space.name} for {game._format_money(paid)}. It now has {new_level}."
+            ),
             player=mono_player.name,
             property=space.name,
             amount=paid,
@@ -621,8 +671,16 @@ def action_sell_house(game: MonopolyGame, player: Player, space_id: str, action_
     game._set_building_level(resolved_space_id, current_level - 1)
     new_level = game._building_level(resolved_space_id)
     credited = game._credit_player(mono_player, value, f"sell_building:{space.space_id}")
-    game.broadcast_l(
-        "monopoly-house-sold",
+    game._broadcast_monopoly_personal(
+        mono_player,
+        personal_message_id="monopoly-you-house-sold",
+        others_message_id="monopoly-player-house-sold",
+        personal_fallback=(
+            f"You sold a building on {space.name} for {game._format_money(credited)} (level: {new_level})."
+        ),
+        others_fallback=(
+            f"{mono_player.name} sold a building on {space.name} for {game._format_money(credited)} (level: {new_level})."
+        ),
         player=mono_player.name,
         property=space.name,
         amount=credited,
@@ -770,8 +828,12 @@ def action_pay_bail(game: MonopolyGame, player: Player, action_id: str) -> None:
         return
     mono_player.in_jail = False
     mono_player.jail_turns = 0
-    game.broadcast_l(
-        "monopoly-bail-paid",
+    game._broadcast_monopoly_personal(
+        mono_player,
+        personal_message_id="monopoly-you-bail-paid",
+        others_message_id="monopoly-player-bail-paid",
+        personal_fallback=f"You paid {game._format_money(paid)} bail.",
+        others_fallback=f"{mono_player.name} paid {game._format_money(paid)} bail.",
         player=mono_player.name,
         amount=paid,
     )
@@ -795,8 +857,12 @@ def action_use_jail_card(game: MonopolyGame, player: Player, action_id: str) -> 
         game._return_get_out_of_jail_card_to_deck(deck_type, card_id)
     mono_player.in_jail = False
     mono_player.jail_turns = 0
-    game.broadcast_l(
-        "monopoly-jail-card-used",
+    game._broadcast_monopoly_personal(
+        mono_player,
+        personal_message_id="monopoly-you-jail-card-used",
+        others_message_id="monopoly-player-jail-card-used",
+        personal_fallback="You used a get-out-of-jail card.",
+        others_fallback=f"{mono_player.name} used a get-out-of-jail card.",
         player=mono_player.name,
     )
 
@@ -887,8 +953,12 @@ def action_roll_dice(game: MonopolyGame, player: Player, action_id: str) -> None
                     game._return_get_out_of_jail_card_to_deck(deck_type, card_id)
                 mono_player.in_jail = False
                 mono_player.jail_turns = 0
-                game.broadcast_l(
-                    "monopoly-jail-card-used",
+                game._broadcast_monopoly_personal(
+                    mono_player,
+                    personal_message_id="monopoly-you-jail-card-used",
+                    others_message_id="monopoly-player-jail-card-used",
+                    personal_fallback="You used a get-out-of-jail card.",
+                    others_fallback=f"{mono_player.name} used a get-out-of-jail card.",
                     player=mono_player.name,
                 )
             elif game._current_liquid_balance(mono_player) >= 1:
@@ -900,8 +970,12 @@ def action_roll_dice(game: MonopolyGame, player: Player, action_id: str) -> None
                     return
                 mono_player.in_jail = False
                 mono_player.jail_turns = 0
-                game.broadcast_l(
-                    "monopoly-bail-paid",
+                game._broadcast_monopoly_personal(
+                    mono_player,
+                    personal_message_id="monopoly-you-bail-paid",
+                    others_message_id="monopoly-player-bail-paid",
+                    personal_fallback=f"You paid {game._format_money(paid)} bail.",
+                    others_fallback=f"{mono_player.name} paid {game._format_money(paid)} bail.",
                     player=mono_player.name,
                     amount=paid,
                 )
@@ -966,8 +1040,12 @@ def action_roll_dice(game: MonopolyGame, player: Player, action_id: str) -> None
                     return
                 mono_player.in_jail = False
                 mono_player.jail_turns = 0
-                game.broadcast_l(
-                    "monopoly-bail-paid",
+                game._broadcast_monopoly_personal(
+                    mono_player,
+                    personal_message_id="monopoly-you-bail-paid",
+                    others_message_id="monopoly-player-bail-paid",
+                    personal_fallback=f"You paid {game._format_money(paid)} bail.",
+                    others_fallback=f"{mono_player.name} paid {game._format_money(paid)} bail.",
                     player=mono_player.name,
                     amount=paid,
                 )

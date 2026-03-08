@@ -1636,7 +1636,10 @@ def test_monopoly_jail_card_messages_hide_card_counts() -> None:
     game = _start_two_player_game()
     host = game.players[0]
     host_user = game.get_user(host)
+    guest = game.players[1]
+    guest_user = game.get_user(guest)
     assert host_user is not None
+    assert guest_user is not None
 
     host_user.clear_messages()
     game._grant_get_out_of_jail_card(
@@ -1647,25 +1650,93 @@ def test_monopoly_jail_card_messages_hide_card_counts() -> None:
     assert host_user.get_last_spoken() == "Host received a get-out-of-jail card."
 
     host.in_jail = True
+    guest_user.clear_messages()
     host_user.clear_messages()
     game.execute_action(host, "use_jail_card")
-    assert host_user.get_last_spoken() == "Host used a get-out-of-jail card."
+    assert host_user.get_last_spoken() == "You used a get-out-of-jail card."
+    assert guest_user.get_last_spoken() == "Host used a get-out-of-jail card."
 
 
 def test_monopoly_build_house_announcement_uses_house_wording() -> None:
     game = _start_two_player_game()
     host = game.players[0]
     host_user = game.get_user(host)
+    guest = game.players[1]
+    guest_user = game.get_user(guest)
     assert host_user is not None
+    assert guest_user is not None
 
     for space_id in ("mediterranean_avenue", "baltic_avenue"):
         host.owned_space_ids.append(space_id)
         game.property_owners[space_id] = host.id
 
+    guest_user.clear_messages()
     host_user.clear_messages()
     game.execute_action(host, "build_house", input_value="baltic_avenue")
 
-    assert "Host built a house on Baltic Avenue for $50. It now has 1." in host_user.get_spoken_messages()
+    assert "You built a house on Baltic Avenue for $50. It now has 1." in host_user.get_spoken_messages()
+    assert (
+        "Host built a house on Baltic Avenue for $50. It now has 1."
+        in guest_user.get_spoken_messages()
+    )
+
+
+def test_monopoly_gameplay_announcements_use_you_variants() -> None:
+    game = _start_two_player_game()
+    host = game.players[0]
+    guest = game.players[1]
+    host_user = game.get_user(host)
+    guest_user = game.get_user(guest)
+    assert host_user is not None
+    assert guest_user is not None
+
+    host.owned_space_ids.append("boardwalk")
+    game.property_owners["boardwalk"] = host.id
+    host_user.clear_messages()
+    guest_user.clear_messages()
+    game.execute_action(host, "mortgage_property", input_value="boardwalk")
+    assert "You mortgaged Boardwalk for $200." in " ".join(host_user.get_spoken_messages())
+    assert "Host mortgaged Boardwalk for $200." in " ".join(guest_user.get_spoken_messages())
+
+    host.in_jail = True
+    host.cash = STARTING_CASH
+    host_user.clear_messages()
+    guest_user.clear_messages()
+    game.execute_action(host, "pay_bail")
+    assert "You paid $50 bail." in " ".join(host_user.get_spoken_messages())
+    assert "Host paid $50 bail." in " ".join(guest_user.get_spoken_messages())
+
+    host_user.clear_messages()
+    guest_user.clear_messages()
+    game._broadcast_monopoly_personal(
+        guest,
+        personal_message_id="monopoly-you-auction-pass-event",
+        others_message_id="monopoly-player-auction-pass-event",
+        personal_fallback="You passed on Baltic Avenue.",
+        others_fallback="Guest passed on Baltic Avenue.",
+        player=guest.name,
+        property="Baltic Avenue",
+    )
+    assert "You passed on Baltic Avenue." in " ".join(guest_user.get_spoken_messages())
+    assert "Guest passed on Baltic Avenue." in " ".join(host_user.get_spoken_messages())
+
+    host_user.clear_messages()
+    guest_user.clear_messages()
+    game._broadcast_monopoly_transaction(
+        host,
+        guest,
+        actor_message_id="monopoly-you-banking-transfer-success",
+        recipient_message_id="monopoly-player-banking-transferred-to-you",
+        others_message_id="monopoly-player-banking-transfer-success",
+        actor_fallback="You transferred $25 to Guest.",
+        recipient_fallback="Host transferred $25 to you.",
+        others_fallback="Host transferred $25 to Guest.",
+        from_player=host.name,
+        to_player=guest.name,
+        amount="$25",
+    )
+    assert "You transferred $25 to Guest." in " ".join(host_user.get_spoken_messages())
+    assert "Host transferred $25 to you." in " ".join(guest_user.get_spoken_messages())
 
 
 def test_monopoly_buying_second_brown_announces_completed_color_set() -> None:
