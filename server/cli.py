@@ -398,7 +398,7 @@ def cmd_show_options(args):
     options_list = []
 
     # Inspect the options dataclass
-    from .game_utils.options import get_option_meta
+    from server.game_utils.options import get_option_meta
 
     for field_name in options_obj.__dataclass_fields__:
         current_value = getattr(options_obj, field_name)

@@ -33,6 +33,7 @@ from .nine.game import NineGame
 from .blackjack.game import BlackjackGame
 from .twentyone import TwentyOneGame
 from .chess.game import ChessGame
+from .backgammon.game import BackgammonGame
 
 __all__ = [
     "Game",
@@ -68,4 +69,5 @@ __all__ = [
     "BlackjackGame",
     "TwentyOneGame",
     "ChessGame",
+    "BackgammonGame",
 ]

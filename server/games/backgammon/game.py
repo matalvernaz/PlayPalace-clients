@@ -1,0 +1,1495 @@
+"""Backgammon game for PlayPalace."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+import random
+
+from ..base import Game, Player, GameOptions
+from ..registry import register_game
+from ...game_utils.actions import Action, ActionSet, Visibility
+from ...game_utils.options import IntOption, BoolOption, MenuOption, option_field
+from ...game_utils.bot_helper import BotHelper
+from ...messages.localization import Localization
+from server.core.ui.keybinds import KeybindState
+from server.core.users.bot import Bot
+from server.core.users.base import User, MenuItem, EscapeBehavior
+from .bot import bot_think, cleanup_gnubg
+from .moves import (
+    BackgammonMove,
+    apply_move,
+    generate_legal_moves,
+    has_any_legal_move,
+    must_use_both_dice,
+    undo_last_move,
+)
+from .state import (
+    BackgammonGameState,
+    BackgammonBoardState,
+    INITIAL_BOARD,
+    all_checkers_in_home,
+    bar_count,
+    build_initial_game_state,
+    color_sign,
+    game_multiplier,
+    off_count,
+    opponent_color,
+    pip_count,
+    point_count,
+    point_number_for_player,
+    point_owner,
+    remaining_dice,
+    remaining_dice_unique,
+    roll_dice,
+    set_bar,
+    set_off,
+)
+
+
+BOT_DIFFICULTY_CHOICES = [
+    "random",
+    "simple",
+    "gnubg_0ply",
+    "gnubg_1ply",
+    "gnubg_2ply",
+    "whackgammon",
+]
+BOT_DIFFICULTY_LABELS = {
+    "random": "backgammon-difficulty-random",
+    "simple": "backgammon-difficulty-simple",
+    "gnubg_0ply": "backgammon-difficulty-gnubg-0ply",
+    "gnubg_1ply": "backgammon-difficulty-gnubg-1ply",
+    "gnubg_2ply": "backgammon-difficulty-gnubg-2ply",
+    "whackgammon": "backgammon-difficulty-whackgammon",
+}
+# Maps difficulty name to GNUBG ply depth (None = no GNUBG)
+DIFFICULTY_PLY = {
+    "random": None,
+    "simple": None,  # Algorithmic heuristic, no GNUBG
+    "gnubg_0ply": 0,
+    "gnubg_1ply": 1,
+    "gnubg_2ply": 2,
+    "whackgammon": 0,
+}
+
+
+@dataclass
+class BackgammonOptions(GameOptions):
+    """Configurable options for Backgammon."""
+
+    match_length: int = option_field(
+        IntOption(
+            default=1,
+            min_val=1,
+            max_val=25,
+            value_key="match_length",
+            label="backgammon-option-match-length",
+            prompt="backgammon-option-select-match-length",
+            change_msg="backgammon-option-changed-match-length",
+        )
+    )
+    bot_difficulty: str = option_field(
+        MenuOption(
+            default="simple",
+            choices=BOT_DIFFICULTY_CHOICES,
+            choice_labels=BOT_DIFFICULTY_LABELS,
+            value_key="bot_difficulty",
+            label="backgammon-option-bot-difficulty",
+            prompt="backgammon-option-select-bot-difficulty",
+            change_msg="backgammon-option-changed-bot-difficulty",
+        )
+    )
+    verbose_commentary: bool = option_field(
+        BoolOption(
+            default=False,
+            value_key="verbose_commentary",
+            label="backgammon-option-verbose-commentary",
+            change_msg="backgammon-option-changed-verbose-commentary",
+        )
+    )
+    hints_enabled: bool = option_field(
+        BoolOption(
+            default=False,
+            value_key="hints_enabled",
+            label="backgammon-option-hints",
+            change_msg="backgammon-option-changed-hints",
+        )
+    )
+    cube_hints_enabled: bool = option_field(
+        BoolOption(
+            default=False,
+            value_key="cube_hints_enabled",
+            label="backgammon-option-cube-hints",
+            change_msg="backgammon-option-changed-cube-hints",
+        )
+    )
+
+
+@dataclass
+class BackgammonPlayer(Player):
+    """Player state for Backgammon."""
+
+    color: str = ""  # "red" or "white"
+
+
+@register_game
+@dataclass
+class BackgammonGame(Game):
+    """Backgammon with accessibility-first design."""
+
+    players: list[BackgammonPlayer] = field(default_factory=list)
+    options: BackgammonOptions = field(default_factory=BackgammonOptions)
+    game_state: BackgammonGameState = field(default_factory=BackgammonGameState)
+
+    # Track which dice the must-use-both rule restricts to
+    _forced_dice: list[int] | None = None
+    # Queued bot actions from GNUBG (full turn planned at once)
+    _bot_action_queue: list[str] = field(default_factory=list)
+
+    @classmethod
+    def get_name(cls) -> str:
+        return "Backgammon"
+
+    @classmethod
+    def get_type(cls) -> str:
+        return "backgammon"
+
+    @classmethod
+    def get_category(cls) -> str:
+        return "category-board-games"
+
+    @classmethod
+    def get_min_players(cls) -> int:
+        return 2
+
+    @classmethod
+    def get_max_players(cls) -> int:
+        return 2
+
+    def create_player(
+        self, player_id: str, name: str, is_bot: bool = False
+    ) -> BackgammonPlayer:
+        return BackgammonPlayer(id=player_id, name=name, is_bot=is_bot)
+
+    def add_player(self, name: str, user: User) -> BackgammonPlayer:
+        player = super().add_player(name, user)
+        return player
+
+    def _player_locale(self, player: Player) -> str:
+        user = self.get_user(player)
+        if user:
+            return user.locale
+        return "en"
+
+    def _get_player_by_color(self, color: str) -> BackgammonPlayer | None:
+        for p in self.players:
+            if isinstance(p, BackgammonPlayer) and p.color == color:
+                return p
+        return None
+
+    def _current_bg_player(self) -> BackgammonPlayer | None:
+        p = self.current_player
+        return p if isinstance(p, BackgammonPlayer) else None
+
+    # ==========================================================================
+    # Action sets
+    # ==========================================================================
+
+    def create_turn_action_set(self, player: BackgammonPlayer) -> ActionSet:
+        action_set = ActionSet(name="turn")
+        locale = self._player_locale(player)
+
+        # 24 point actions in grid order: 2 rows x 12 cols
+        # Top row (L→R): points 13-24 (indices 12-23)
+        # Bottom row (L→R): points 12-1 (indices 11-0)
+        for idx in self._grid_indices():
+            action_set.add(Action(
+                id=f"point_{idx}",
+                label="",
+                handler="_action_point_click",
+                is_enabled="_is_point_enabled",
+                is_hidden="_is_point_hidden",
+                get_label="_get_point_label",
+                get_sound="_get_point_sound",
+                show_in_actions_menu=False,
+                show_disabled_label=False,
+            ))
+
+        # Offer double (keybind-triggered, hidden from menu)
+        action_set.add(Action(
+            id="offer_double",
+            label="Double",
+            handler="_action_offer_double",
+            is_enabled="_is_offer_double_enabled",
+            is_hidden="_is_always_hidden",
+            show_in_actions_menu=False,
+        ))
+
+        # Doubling response (shown as modal menu items when in doubling phase)
+        action_set.add(Action(
+            id="accept_double",
+            label=Localization.get(locale, "backgammon-accept"),
+            handler="_action_accept_double",
+            is_enabled="_is_accept_double_enabled",
+            is_hidden="_is_accept_double_hidden",
+            show_in_actions_menu=False,
+        ))
+        action_set.add(Action(
+            id="drop_double",
+            label=Localization.get(locale, "backgammon-drop"),
+            handler="_action_drop_double",
+            is_enabled="_is_drop_double_enabled",
+            is_hidden="_is_drop_double_hidden",
+            show_in_actions_menu=False,
+        ))
+
+        # Undo (keybind-triggered, hidden from menu)
+        action_set.add(Action(
+            id="undo_move",
+            label="Undo",
+            handler="_action_undo_move",
+            is_enabled="_is_undo_enabled",
+            is_hidden="_is_always_hidden",
+            show_in_actions_menu=False,
+        ))
+
+        # Hint (keybind-triggered, hidden from menu)
+        action_set.add(Action(
+            id="get_hint",
+            label="Hint",
+            handler="_action_get_hint",
+            is_enabled="_is_hint_enabled",
+            is_hidden="_is_always_hidden",
+            show_in_actions_menu=False,
+        ))
+
+        # Resign (actions menu)
+        action_set.add(Action(
+            id="resign",
+            label=Localization.get(locale, "backgammon-resign"),
+            handler="_action_resign",
+            is_enabled="_is_resign_enabled",
+            is_hidden="_is_resign_hidden",
+            show_in_actions_menu=True,
+        ))
+
+        return action_set
+
+    def create_standard_action_set(self, player: Player) -> ActionSet:
+        action_set = super().create_standard_action_set(player)
+        locale = self._player_locale(player)
+        local_actions = [
+            Action(
+                id="check_status",
+                label=Localization.get(locale, "backgammon-check-status"),
+                handler="_action_check_status",
+                is_enabled="_is_info_enabled",
+                is_hidden="_is_always_hidden",
+            ),
+            Action(
+                id="check_pip",
+                label=Localization.get(locale, "backgammon-check-pip"),
+                handler="_action_check_pip",
+                is_enabled="_is_info_enabled",
+                is_hidden="_is_always_hidden",
+            ),
+            Action(
+                id="check_score",
+                label=Localization.get(locale, "backgammon-check-score"),
+                handler="_action_check_score",
+                is_enabled="_is_info_enabled",
+                is_hidden="_is_always_hidden",
+            ),
+            Action(
+                id="check_dice",
+                label=Localization.get(locale, "backgammon-check-dice"),
+                handler="_action_check_dice",
+                is_enabled="_is_info_enabled",
+                is_hidden="_is_always_hidden",
+            ),
+        ]
+        for action in reversed(local_actions):
+            action_set.add(action)
+            if action.id in action_set._order:
+                action_set._order.remove(action.id)
+            action_set._order.insert(0, action.id)
+        return action_set
+
+    def setup_keybinds(self) -> None:
+        super().setup_keybinds()
+        # Rolling is done by pressing enter on any grid point (no dedicated key)
+        self.define_keybind("shift+d", "Double", ["offer_double"], state=KeybindState.ACTIVE)
+        self.define_keybind("y", "Accept double", ["accept_double"], state=KeybindState.ACTIVE)
+        self.define_keybind("n", "Drop double", ["drop_double"], state=KeybindState.ACTIVE)
+        self.define_keybind("e", "Status", ["check_status"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind("d", "Cube", ["check_cube"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind("p", "Pip count", ["check_pip"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind("u", "Undo", ["undo_move"], state=KeybindState.ACTIVE)
+        self.define_keybind("s", "Score", ["check_score"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind("c", "Dice", ["check_dice"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind("h", "Hint", ["get_hint"], state=KeybindState.ACTIVE)
+        self.define_keybind("shift+h", "Cube hint", ["get_cube_hint"], state=KeybindState.ACTIVE)
+        self.define_keybind("shift+r", "Resign", ["resign"], state=KeybindState.ACTIVE)
+
+    # ==========================================================================
+    # Grid helpers
+    # ==========================================================================
+
+    def _grid_indices(self) -> list[int]:
+        """Return point indices in grid order for Red's perspective.
+
+        The board is a 1D track (points 1-24) folded into a U.
+        Home board is on the RIGHT (like a physical board in front of you):
+          Top row (L→R):  13 14 15 16 17 18 | 19 20 21 22 23 24
+          Bottom row (L→R): 12 11 10  9  8  7 |  6  5  4  3  2  1
+
+        Home board (1-6) is bottom-right. Opponent enters top-left.
+        For White, rebuild_player_menu swaps the two halves so both
+        players see their own home at bottom-right.
+        """
+        top = list(range(12, 24))        # indices 12,13,...,23 (pts 13→24)
+        bottom = list(range(11, -1, -1)) # indices 11,10,...,0  (pts 12→1)
+        return top + bottom
+
+    # ==========================================================================
+    # Menu overrides (grid mode)
+    # ==========================================================================
+
+    def rebuild_player_menu(
+        self, player: "Player", *, position: int | None = None
+    ) -> None:
+        if self._destroyed or self.status == "finished":
+            return
+        if player.id in self._status_box_open:
+            return
+        user = self.get_user(player)
+        if not user:
+            return
+
+        point_items: list[MenuItem] = []
+        other_items: list[MenuItem] = []
+        for resolved in self.get_all_visible_actions(player):
+            label = resolved.label
+            if not resolved.enabled and resolved.action.show_disabled_label:
+                unavailable = Localization.get(user.locale, "visibility-unavailable")
+                label = f"{label}; {unavailable}"
+            item = MenuItem(text=label, id=resolved.action.id, sound=resolved.sound)
+            if resolved.action.id.startswith("point_"):
+                point_items.append(item)
+            else:
+                other_items.append(item)
+
+        use_grid = len(point_items) == 24
+
+        # Flip for White: swap the two 12-item row halves so both
+        # players see their own home board at bottom-left.
+        if use_grid and isinstance(player, BackgammonPlayer) and player.color == "white":
+            point_items = point_items[12:] + point_items[:12]
+
+        user.show_menu(
+            "turn_menu",
+            point_items + other_items,
+            multiletter=False,
+            escape_behavior=EscapeBehavior.KEYBIND,
+            position=position,
+            grid_enabled=use_grid,
+            grid_width=12 if use_grid else 1,
+        )
+
+    # ==========================================================================
+    # Game flow
+    # ==========================================================================
+
+    def on_start(self) -> None:
+        self.status = "playing"
+        self.game_active = True
+        self.round = 1
+
+        active_players = [p for p in self.players if not p.is_spectator]
+        self.set_turn_players(active_players, reset_index=True)
+
+        self._team_manager.team_mode = "individual"
+        self._team_manager.setup_teams([p.name for p in active_players])
+
+        # Assign colors randomly
+        if random.random() < 0.5:  # nosec B311
+            active_players[0].color = "red"
+            active_players[1].color = "white"
+        else:
+            active_players[0].color = "white"
+            active_players[1].color = "red"
+
+        self.game_state = build_initial_game_state(
+            match_length=self.options.match_length,
+        )
+
+        red_player = self._get_player_by_color("red")
+        white_player = self._get_player_by_color("white")
+        self.broadcast_l(
+            "backgammon-game-started",
+            red=red_player.name if red_player else "?",
+            white=white_player.name if white_player else "?",
+        )
+
+        # Opening roll
+        self._do_opening_roll()
+
+    def _do_opening_roll(self) -> None:
+        """Roll one die each for opening; higher goes first."""
+        gs = self.game_state
+        gs.opening_roll = True
+
+        d1, d2 = roll_dice()
+        while d1 == d2:
+            self.broadcast_l("backgammon-opening-tie", die=d1)
+            d1, d2 = roll_dice()
+
+        gs.opening_die_red = d1
+        gs.opening_die_white = d2
+
+        red_player = self._get_player_by_color("red")
+        white_player = self._get_player_by_color("white")
+
+        self.broadcast_l(
+            "backgammon-opening-roll",
+            red=red_player.name if red_player else "Red",
+            red_die=d1,
+            white=white_player.name if white_player else "White",
+            white_die=d2,
+        )
+        self._play_dice_sound()
+
+        if d1 > d2:
+            first_color = "red"
+        else:
+            first_color = "white"
+
+        gs.current_color = first_color
+        gs.dice = [d1, d2]
+        gs.dice_used = [False, False]
+        gs.opening_roll = False
+        gs.turn_phase = "moving"
+
+        first_player = self._get_player_by_color(first_color)
+        if first_player:
+            self.current_player = first_player
+
+        winner_name = first_player.name if first_player else first_color
+        self.broadcast_l(
+            "backgammon-opening-winner",
+            player=winner_name,
+            die1=d1,
+            die2=d2,
+        )
+
+        self._check_forced_dice()
+        if not has_any_legal_move(gs, first_color):
+            self.broadcast_l("backgammon-no-moves", player=winner_name)
+            self._end_moving_phase()
+        else:
+            self.rebuild_all_menus()
+
+    def on_tick(self) -> None:
+        super().on_tick()
+        self.process_scheduled_sounds()
+        if not self.game_active:
+            return
+        BotHelper.on_tick(self)
+
+    def bot_think(self, player: BackgammonPlayer) -> str | None:
+        return bot_think(self, player)
+
+    def execute_action(self, player, action_id, input_value=None, context=None):
+        """Override to handle bot combined move format: point_{src}_{dst}."""
+        if action_id and action_id.startswith("point_") and action_id.count("_") == 2:
+            if isinstance(player, BackgammonPlayer):
+                self._action_point_click(player, action_id)
+                return
+        super().execute_action(player, action_id, input_value=input_value, context=context)
+
+    # ==========================================================================
+    # Point click handler (roll + select + move)
+    # ==========================================================================
+
+    def _action_point_click(self, player: Player, action_id: str) -> None:
+        """Handle point click — roll, select source, or select destination."""
+        if not isinstance(player, BackgammonPlayer):
+            return
+        gs = self.game_state
+
+        # Pre-roll: pressing enter on any point rolls
+        if gs.turn_phase == "pre_roll" and player.color == gs.current_color:
+            self._do_roll(player)
+            return
+
+        if gs.turn_phase != "moving":
+            return
+        if player.color != gs.current_color:
+            return
+
+        parts = action_id.split("_")
+        # Bot combined move: point_{src}_{dst}
+        if len(parts) == 3:
+            try:
+                src = int(parts[1])
+                dst = int(parts[2])
+            except ValueError:
+                return
+            self._try_apply_move_direct(player, src, dst)
+            return
+
+        try:
+            point_idx = int(parts[1])
+        except (ValueError, IndexError):
+            return
+
+        color = player.color
+        selected = gs.selected_source
+
+        if selected is None:
+            # First click: select source
+            self._try_select_source(player, point_idx)
+        else:
+            # Second click: destination
+            if selected == point_idx:
+                # Double-click same point: try bear off, else deselect
+                if not self._try_bear_off(player, point_idx):
+                    gs.selected_source = None
+                    self.play_sound("game_chess/setdown.ogg")
+                    user = self.get_user(player)
+                    if user:
+                        user.speak_l("backgammon-deselected")
+                    self.update_player_menu(player)
+            else:
+                self._try_move_to(player, selected, point_idx)
+
+    def _try_select_source(self, player: BackgammonPlayer, point_idx: int) -> None:
+        """Try to select a point as the move source."""
+        gs = self.game_state
+        color = player.color
+        sign = color_sign(color)
+
+        # Check if player has checkers on bar — directly attempt bar entry
+        if bar_count(gs, color) > 0:
+            self._try_apply_move_direct(player, -1, point_idx)
+            return
+
+        # Check the point has our checkers
+        if gs.board.points[point_idx] * sign <= 0:
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-no-checkers-there")
+            return
+
+        # Check if any legal move originates from this point
+        has_move = False
+        for die_val in self._get_usable_dice():
+            for m in generate_legal_moves(gs, color, die_val):
+                if m.source == point_idx:
+                    has_move = True
+                    break
+            if has_move:
+                break
+
+        if not has_move:
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-no-moves-from-here")
+            return
+
+        gs.selected_source = point_idx
+        self.play_sound("game_chess/pickup.ogg")
+        user = self.get_user(player)
+        if user:
+            pn = point_number_for_player(point_idx, color)
+            cnt = point_count(gs, point_idx)
+            user.speak_l("backgammon-selected-point", point=pn, count=cnt)
+        self.update_player_menu(player)
+
+    def _try_move_to(self, player: BackgammonPlayer, source: int, dest_point: int) -> None:
+        """Try to move from selected source to destination point."""
+        self._try_apply_move_direct(player, source, dest_point)
+
+    def _try_bear_off(self, player: BackgammonPlayer, point_idx: int) -> bool:
+        """Try to bear off from point_idx (double-click). Returns True if handled."""
+        gs = self.game_state
+        color = player.color
+        user = self.get_user(player)
+
+        # Not in bearing-off position at all
+        if not all_checkers_in_home(gs, color):
+            return False
+
+        # Check if any usable die produces a bear-off from this point
+        for die_idx, (die_val, used) in enumerate(zip(gs.dice, gs.dice_used)):
+            if used:
+                continue
+            if self._forced_dice is not None and die_val not in self._forced_dice:
+                continue
+            for m in generate_legal_moves(gs, color, die_val):
+                if m.source == point_idx and m.is_bear_off:
+                    # Found a legal bear-off — apply it
+                    self._try_apply_move_direct(player, point_idx, 24)
+                    return True
+
+        # All checkers are home but can't bear off from this specific point.
+        # Give a helpful error explaining why.
+        pn = point_number_for_player(point_idx, color)
+        usable_dice = [
+            d for d, u in zip(gs.dice, gs.dice_used) if not u
+            and (self._forced_dice is None or d in self._forced_dice)
+        ]
+
+        if not usable_dice:
+            return False
+
+        # The player's point number tells us the exact die needed
+        exact_die = pn  # e.g. 5-point needs a 5 to bear off exactly
+
+        # Which dice overshoot (could bear off if no higher checker)?
+        overshooting = [d for d in usable_dice if d > exact_die]
+
+        # Check: is there a higher checker blocking overshoot bear-off?
+        sign = color_sign(color)
+        higher_pn = None
+        if color == "red":
+            for i in range(point_idx + 1, 6):
+                if gs.board.points[i] * sign > 0:
+                    higher_pn = point_number_for_player(i, color)
+                    break
+        else:
+            for i in range(18, point_idx):
+                if gs.board.points[i] * sign > 0:
+                    higher_pn = point_number_for_player(i, color)
+                    break
+
+        if overshooting and higher_pn is not None:
+            # Has dice that overshoot but a higher checker blocks it
+            die_str = ", ".join(str(d) for d in overshooting)
+            if user:
+                user.speak_l(
+                    "backgammon-bearoff-blocked",
+                    point=pn,
+                    die=die_str,
+                    blocking_point=higher_pn,
+                )
+        else:
+            # No die is large enough (all undershoot)
+            die_str = ", ".join(str(d) for d in usable_dice)
+            if user:
+                user.speak_l(
+                    "backgammon-bearoff-no-die",
+                    point=pn,
+                    die=die_str,
+                )
+
+        gs.selected_source = None
+        self.play_sound("game_chess/setdown.ogg")
+        self.update_player_menu(player)
+        return True
+
+    def _try_apply_move_direct(self, player: BackgammonPlayer, source: int, dest: int) -> None:
+        """Try to apply a move from source to dest, finding matching die."""
+        gs = self.game_state
+        color = player.color
+
+        # Find a matching legal move
+        matched_move: BackgammonMove | None = None
+        matched_die_idx: int | None = None
+
+        for die_idx, (die_val, used) in enumerate(zip(gs.dice, gs.dice_used)):
+            if used:
+                continue
+            if self._forced_dice is not None and die_val not in self._forced_dice:
+                continue
+            for m in generate_legal_moves(gs, color, die_val):
+                if m.source == source and m.destination == dest:
+                    matched_move = m
+                    matched_die_idx = die_idx
+                    break
+            if matched_move:
+                break
+
+        if matched_move is None or matched_die_idx is None:
+            gs.selected_source = None
+            self._bot_action_queue.clear()  # Discard stale queued moves
+            self.play_sound("game_chess/setdown.ogg")
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-illegal-move")
+            self.update_player_menu(player)
+            return
+
+        # Apply the move
+        apply_move(gs, matched_move, color)
+        gs.dice_used[matched_die_idx] = True
+        gs.selected_source = None
+
+        # Announce
+        self._announce_sub_move(player, matched_move)
+
+        # Play sound
+        if matched_move.is_hit:
+            self.play_sound(f"game_chess/capture{random.randint(1, 2)}.ogg")  # nosec B311
+        elif matched_move.is_bear_off:
+            self.play_sound("mention.ogg")
+        else:
+            self.play_sound("game_squares/step1.ogg")
+
+        # Check if game won
+        if off_count(gs, color) == 15:
+            self._win_game(player)
+            return
+
+        # Check for more moves
+        self._check_forced_dice()
+        if not has_any_legal_move(gs, color):
+            remaining = remaining_dice(gs)
+            if remaining:
+                self.broadcast_l("backgammon-no-moves", player=player.name)
+            self._end_moving_phase()
+        elif not remaining_dice(gs):
+            self._end_moving_phase()
+        else:
+            self.rebuild_all_menus()
+
+    def _do_roll(self, player: BackgammonPlayer) -> None:
+        """Roll dice and enter moving phase."""
+        gs = self.game_state
+        d1, d2 = roll_dice()
+        if d1 == d2:
+            gs.dice = [d1, d1, d1, d1]
+            gs.dice_used = [False, False, False, False]
+        else:
+            gs.dice = [d1, d2]
+            gs.dice_used = [False, False]
+
+        gs.moves_this_turn = []
+        gs.turn_phase = "moving"
+
+        self._play_dice_sound()
+        self.broadcast_l(
+            "backgammon-roll",
+            player=player.name,
+            die1=d1,
+            die2=d2,
+        )
+
+        self._check_forced_dice()
+        if not has_any_legal_move(gs, player.color):
+            self.broadcast_l("backgammon-no-moves", player=player.name)
+            self._end_moving_phase()
+        else:
+            self.rebuild_all_menus()
+
+    def _check_forced_dice(self) -> None:
+        """Check and apply the must-use-both-dice rule."""
+        gs = self.game_state
+        unused = [d for d, u in zip(gs.dice, gs.dice_used) if not u]
+        unique_unused = sorted(set(unused))
+        if len(unique_unused) == 2:
+            self._forced_dice = must_use_both_dice(gs, gs.current_color, unique_unused)
+        else:
+            self._forced_dice = None
+
+    def _get_usable_dice(self) -> list[int]:
+        """Get die values that can be used this sub-move."""
+        gs = self.game_state
+        unused = remaining_dice_unique(gs)
+        if self._forced_dice is not None:
+            return [d for d in unused if d in self._forced_dice]
+        return unused
+
+    def _end_moving_phase(self) -> None:
+        """End the moving phase and advance turn."""
+        gs = self.game_state
+        gs.turn_phase = "pre_roll"
+        gs.selected_source = None
+        gs.moves_this_turn = []
+        self._forced_dice = None
+        self._bot_action_queue.clear()
+
+        # Advance to other player
+        opp_color = opponent_color(gs.current_color)
+        gs.current_color = opp_color
+        opp_player = self._get_player_by_color(opp_color)
+        if opp_player:
+            self.current_player = opp_player
+            self.broadcast_personal_l(opp_player, "game-your-turn", "game-turn-start")
+            if opp_player.is_bot:
+                BotHelper.jolt_bot(opp_player, ticks=random.randint(15, 30))  # nosec B311
+
+        self.rebuild_all_menus()
+
+    # ==========================================================================
+    # Doubling cube
+    # ==========================================================================
+
+    def _can_double(self, player: BackgammonPlayer) -> bool:
+        """Check if player can offer the doubling cube."""
+        gs = self.game_state
+        if gs.match_length <= 1:
+            return False
+        if gs.is_crawford:
+            return False
+        if gs.cube_owner and gs.cube_owner != player.color:
+            return False
+        if gs.turn_phase != "pre_roll":
+            return False
+        if player.color != gs.current_color:
+            return False
+        return True
+
+    def _action_offer_double(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, BackgammonPlayer):
+            return
+        if not self._can_double(player):
+            return
+        gs = self.game_state
+        gs.turn_phase = "doubling"
+        new_value = gs.cube_value * 2
+        self.broadcast_l(
+            "backgammon-doubles",
+            player=player.name,
+            value=new_value,
+        )
+        self.rebuild_all_menus()
+
+    def _action_accept_double(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, BackgammonPlayer):
+            return
+        gs = self.game_state
+        if gs.turn_phase != "doubling":
+            return
+        if player.color == gs.current_color:
+            return  # Can't accept own double
+
+        gs.cube_value *= 2
+        gs.cube_owner = player.color
+        gs.turn_phase = "pre_roll"
+        self.broadcast_l("backgammon-accepts", player=player.name)
+        self.rebuild_all_menus()
+
+    def _action_drop_double(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, BackgammonPlayer):
+            return
+        gs = self.game_state
+        if gs.turn_phase != "doubling":
+            return
+        if player.color == gs.current_color:
+            return
+
+        self.broadcast_l("backgammon-drops", player=player.name)
+        winner = self._get_player_by_color(gs.current_color)
+        if winner:
+            self._score_game(winner, gs.cube_value)
+
+    # ==========================================================================
+    # Undo
+    # ==========================================================================
+
+    def _action_undo_move(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, BackgammonPlayer):
+            return
+        gs = self.game_state
+        if gs.turn_phase != "moving":
+            return
+        if player.color != gs.current_color:
+            return
+
+        undone = undo_last_move(gs, player.color)
+        if undone is None:
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-nothing-to-undo")
+            return
+
+        # Unmark the die
+        for i in range(len(gs.dice_used) - 1, -1, -1):
+            if gs.dice_used[i] and gs.dice[i] == undone.die_value:
+                gs.dice_used[i] = False
+                break
+
+        gs.selected_source = None
+        self._check_forced_dice()
+        self.play_sound("game_chess/setdown.ogg")
+        user = self.get_user(player)
+        if user:
+            user.speak_l("backgammon-undone")
+        self.rebuild_all_menus()
+
+    # ==========================================================================
+    # Info keybinds
+    # ==========================================================================
+
+    def _action_check_status(self, player: Player, action_id: str) -> None:
+        user = self.get_user(player)
+        if not user:
+            return
+        gs = self.game_state
+        color = player.color if isinstance(player, BackgammonPlayer) else "red"
+        bar_r = gs.board.bar_red
+        bar_w = gs.board.bar_white
+        off_r = gs.board.off_red
+        off_w = gs.board.off_white
+        dice_str = ", ".join(str(d) for d in remaining_dice(gs)) if remaining_dice(gs) else "none"
+        user.speak_l(
+            "backgammon-status",
+            bar_red=bar_r,
+            bar_white=bar_w,
+            off_red=off_r,
+            off_white=off_w,
+            dice=dice_str,
+        )
+
+    def _action_check_pip(self, player: Player, action_id: str) -> None:
+        user = self.get_user(player)
+        if not user:
+            return
+        gs = self.game_state
+        user.speak_l(
+            "backgammon-pip-count",
+            red_pip=pip_count(gs, "red"),
+            white_pip=pip_count(gs, "white"),
+        )
+
+    def _action_check_score(self, player: Player, action_id: str) -> None:
+        user = self.get_user(player)
+        if not user:
+            return
+        gs = self.game_state
+        red_p = self._get_player_by_color("red")
+        white_p = self._get_player_by_color("white")
+        user.speak_l(
+            "backgammon-match-score",
+            red=red_p.name if red_p else "Red",
+            red_score=gs.score_red,
+            white=white_p.name if white_p else "White",
+            white_score=gs.score_white,
+            match_length=gs.match_length,
+            cube=gs.cube_value,
+        )
+
+    def _action_check_cube(self, player: Player, action_id: str) -> None:
+        user = self.get_user(player)
+        if not user:
+            return
+        gs = self.game_state
+
+        if gs.match_length <= 1:
+            user.speak_l("backgammon-cube-no-match")
+            return
+
+        # Who owns the cube?
+        if not gs.cube_owner:
+            owner_desc = "center"
+        else:
+            owner_p = self._get_player_by_color(gs.cube_owner)
+            owner_desc = owner_p.name if owner_p else gs.cube_owner
+
+        # Can the current player double right now?
+        current_player = self._get_player_by_color(gs.current_color)
+        if isinstance(current_player, BackgammonPlayer) and self._can_double(current_player):
+            can_double = "yes"
+        elif gs.is_crawford:
+            can_double = "crawford"
+        else:
+            can_double = "no"
+
+        user.speak_l(
+            "backgammon-cube-status",
+            value=gs.cube_value,
+            owner=owner_desc,
+            can_double=can_double,
+        )
+
+    def _action_check_dice(self, player: Player, action_id: str) -> None:
+        user = self.get_user(player)
+        if not user:
+            return
+        gs = self.game_state
+        dice = remaining_dice(gs)
+        if dice:
+            user.speak_l("backgammon-dice", dice=" ".join(str(d) for d in dice))
+        else:
+            user.speak_l("backgammon-dice-none")
+
+    def _action_get_hint(self, player: Player, action_id: str) -> None:
+        """Get a GNUBG hint and broadcast it to the table."""
+        if not isinstance(player, BackgammonPlayer):
+            return
+        gs = self.game_state
+        if gs.turn_phase != "moving":
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-hint-not-now")
+            return
+        if not self.options.hints_enabled:
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-hints-disabled")
+            return
+
+        from .gnubg import GnubgProcess, is_gnubg_available, parse_hint_line
+        if not is_gnubg_available():
+            self.broadcast_l("backgammon-hint-unavailable")
+            return
+
+        # Use a temporary process at ply 2 for best hint quality
+        proc = getattr(self, "_hint_proc", None)
+        if proc is None:
+            proc = GnubgProcess(ply=2)
+            if not proc.start():
+                self.broadcast_l("backgammon-hint-unavailable")
+                return
+            self._hint_proc = proc
+
+        # Get raw hint lines for display
+        from .gnubg import encode_position_id, _HINT_RE
+        pos_id = encode_position_id(gs)
+        proc._send(f"set board {pos_id}")
+        proc._read_until_idle()
+        proc._send("set turn 1")
+        proc._read_until_idle()
+        unused = [d for d, u in zip(gs.dice, gs.dice_used) if not u]
+        if len(unused) < 2:
+            if unused:
+                unused = [unused[0], unused[0]]
+            else:
+                return
+        proc._send(f"set dice {unused[0]} {unused[1]}")
+        proc._read_until_idle()
+        proc._send("hint 3")
+        output = proc._read_until_idle()
+
+        # Parse and format the top moves
+        hint_lines = []
+        for line in output:
+            m = _HINT_RE.match(line)
+            if m:
+                rank = m.group(1)
+                move_str = m.group(2).strip()
+                hint_lines.append(f"{rank}. {move_str}")
+
+        if hint_lines:
+            hint_text = "; ".join(hint_lines)
+            self.broadcast_l("backgammon-hint", player=player.name, hint=hint_text)
+        else:
+            self.broadcast_l("backgammon-hint-unavailable")
+
+    def _action_get_cube_hint(self, player: Player, action_id: str) -> None:
+        """Get a GNUBG cube hint."""
+        if not isinstance(player, BackgammonPlayer):
+            return
+        gs = self.game_state
+
+        if gs.turn_phase not in ("pre_roll", "doubling"):
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-cube-hint-not-now")
+            return
+
+        if not self.options.cube_hints_enabled:
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-cube-hints-disabled")
+            return
+
+        if gs.match_length <= 1:
+            user = self.get_user(player)
+            if user:
+                user.speak_l("backgammon-cube-no-match")
+            return
+
+        from .gnubg import GnubgProcess, is_gnubg_available
+        if not is_gnubg_available():
+            self.broadcast_l("backgammon-hint-unavailable")
+            return
+
+        proc = getattr(self, "_hint_proc", None)
+        if proc is None:
+            proc = GnubgProcess(ply=2)
+            if not proc.start():
+                self.broadcast_l("backgammon-hint-unavailable")
+                return
+            self._hint_proc = proc
+
+        hint_text = proc.get_cube_hint_text(gs, player.color)
+        if hint_text:
+            self.broadcast_l("backgammon-cube-hint", player=player.name, hint=hint_text)
+        else:
+            self.broadcast_l("backgammon-hint-unavailable")
+
+    def _action_resign(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, BackgammonPlayer):
+            return
+        if self.status != "playing":
+            return
+        winner_color = opponent_color(player.color)
+        winner = self._get_player_by_color(winner_color)
+        self.broadcast_l("backgammon-resigns", player=player.name)
+        if winner:
+            self._score_game(winner, self.game_state.cube_value)
+
+    # ==========================================================================
+    # Scoring & game end
+    # ==========================================================================
+
+    def _win_game(self, winner: BackgammonPlayer) -> None:
+        """Handle a player bearing off all checkers."""
+        gs = self.game_state
+        loser_color = opponent_color(winner.color)
+        multiplier = game_multiplier(gs, loser_color)
+        points = gs.cube_value * multiplier
+        self._score_game(winner, points)
+
+    def _score_game(self, winner: BackgammonPlayer, points: int) -> None:
+        """Award points and check match end."""
+        gs = self.game_state
+        if winner.color == "red":
+            gs.score_red += points
+        else:
+            gs.score_white += points
+
+        self.broadcast_l(
+            "backgammon-wins-game",
+            player=winner.name,
+            points=points,
+        )
+
+        # Check match end
+        if gs.score_red >= gs.match_length:
+            self._finish_match(self._get_player_by_color("red"))
+        elif gs.score_white >= gs.match_length:
+            self._finish_match(self._get_player_by_color("white"))
+        else:
+            # Crawford rule check
+            if not gs.crawford_used:
+                if gs.score_red == gs.match_length - 1 or gs.score_white == gs.match_length - 1:
+                    gs.is_crawford = True
+                    gs.crawford_used = True
+                    self.broadcast_l("backgammon-crawford")
+            elif gs.is_crawford:
+                gs.is_crawford = False
+
+            # Start new game
+            gs.game_number += 1
+            self._start_new_game()
+
+    def _start_new_game(self) -> None:
+        """Reset board for a new game within the match."""
+        gs = self.game_state
+        gs.board = BackgammonBoardState(points=list(INITIAL_BOARD))
+        gs.dice = []
+        gs.dice_used = []
+        gs.turn_phase = "pre_roll"
+        gs.selected_source = None
+        gs.moves_this_turn = []
+        gs.cube_value = 1
+        gs.cube_owner = ""
+        self._forced_dice = None
+
+        self.broadcast_l("backgammon-new-game", number=gs.game_number)
+        self._do_opening_roll()
+
+    def _finish_match(self, winner: BackgammonPlayer | None) -> None:
+        """End the match."""
+        self.game_active = False
+        self.status = "finished"
+        cleanup_gnubg(self)
+        if winner:
+            self.broadcast_l("backgammon-match-winner", player=winner.name)
+        self.rebuild_all_menus()
+
+    # ==========================================================================
+    # Leave handling
+    # ==========================================================================
+
+    def _perform_leave_game(self, player: Player) -> None:
+        if self.status == "playing" and not player.is_bot:
+            player.is_bot = True
+            self._users.pop(player.id, None)
+            bot_user = Bot(player.name, uuid=player.id)
+            self.attach_user(player.id, bot_user)
+            self.broadcast_l("player-replaced-by-bot", player=player.name)
+
+            has_humans = any(not p.is_bot for p in self.players)
+            if not has_humans:
+                self.destroy()
+                return
+
+            self.rebuild_all_menus()
+            return
+
+        self.players = [p for p in self.players if p.id != player.id]
+        self.player_action_sets.pop(player.id, None)
+        self._users.pop(player.id, None)
+        self.broadcast_l("table-left", player=player.name)
+
+        has_humans = any(not p.is_bot for p in self.players)
+        if not has_humans:
+            self.destroy()
+            return
+
+        if self.status == "waiting":
+            if player.name == self.host and self.players:
+                for p in self.players:
+                    if not p.is_bot:
+                        self.host = p.name
+                        self.broadcast_l("new-host", player=p.name)
+                        break
+            self.rebuild_all_menus()
+
+    # ==========================================================================
+    # Sound helpers
+    # ==========================================================================
+
+    def _play_dice_sound(self) -> None:
+        self.play_sound(f"game_squares/diceroll{random.randint(1, 3)}.ogg")  # nosec B311
+
+    # ==========================================================================
+    # Commentary / announcements
+    # ==========================================================================
+
+    def _announce_sub_move(self, player: BackgammonPlayer, move: BackgammonMove) -> None:
+        """Announce a sub-move to all players with reflected point numbers."""
+        gs = self.game_state
+        color = player.color
+
+        for p in self.players:
+            if not isinstance(p, BackgammonPlayer):
+                continue
+            user = self.get_user(p)
+            if not user:
+                continue
+            viewer_color = p.color
+            self._speak_move(user, move, color, viewer_color)
+
+    def _speak_move(
+        self, user: User, move: BackgammonMove, mover_color: str, viewer_color: str
+    ) -> None:
+        """Speak a single sub-move to a user with point numbers in their perspective."""
+        gs = self.game_state
+        mover_name = "Red" if mover_color == "red" else "White"
+        player = self._get_player_by_color(mover_color)
+        if player:
+            mover_name = player.name
+
+        if move.source == -1:
+            # Bar entry
+            dest_pn = point_number_for_player(move.destination, viewer_color)
+            dest_count = point_count(gs, move.destination)
+            if move.is_hit:
+                user.speak_l(
+                    "backgammon-move-bar-hit",
+                    player=mover_name,
+                    dest=dest_pn,
+                    count=dest_count,
+                )
+            else:
+                user.speak_l(
+                    "backgammon-move-bar",
+                    player=mover_name,
+                    dest=dest_pn,
+                    count=dest_count,
+                )
+        elif move.is_bear_off:
+            src_pn = point_number_for_player(move.source, viewer_color)
+            remain = point_count(gs, move.source)
+            user.speak_l(
+                "backgammon-move-bearoff",
+                player=mover_name,
+                src=src_pn,
+                remain=remain,
+            )
+        elif move.is_hit:
+            src_pn = point_number_for_player(move.source, viewer_color)
+            dest_pn = point_number_for_player(move.destination, viewer_color)
+            src_remain = point_count(gs, move.source)
+            user.speak_l(
+                "backgammon-move-hit",
+                player=mover_name,
+                src=src_pn,
+                dest=dest_pn,
+                remain=src_remain,
+            )
+        else:
+            src_pn = point_number_for_player(move.source, viewer_color)
+            dest_pn = point_number_for_player(move.destination, viewer_color)
+            src_remain = point_count(gs, move.source)
+            dest_count = point_count(gs, move.destination)
+            if src_remain == 0:
+                user.speak_l(
+                    "backgammon-move-emptying",
+                    player=mover_name,
+                    src=src_pn,
+                    dest=dest_pn,
+                    count=dest_count,
+                )
+            else:
+                user.speak_l(
+                    "backgammon-move-normal",
+                    player=mover_name,
+                    src=src_pn,
+                    dest=dest_pn,
+                    remain=src_remain,
+                    count=dest_count,
+                )
+
+    # ==========================================================================
+    # Action visibility / enable callbacks
+    # ==========================================================================
+
+    def _is_point_enabled(self, player: Player, action_id: str) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        if not isinstance(player, BackgammonPlayer):
+            return "action-not-available"
+        gs = self.game_state
+        if gs.turn_phase == "doubling" and player.color != gs.current_color:
+            return "action-not-available"
+        if gs.turn_phase in ("pre_roll", "moving") and player.color != gs.current_color:
+            return "action-not-your-turn"
+        return None
+
+    def _is_point_hidden(self, player: Player, action_id: str) -> Visibility:
+        if self.status != "playing":
+            return Visibility.HIDDEN
+        gs = self.game_state
+        if gs.turn_phase == "doubling":
+            return Visibility.HIDDEN
+        return Visibility.VISIBLE
+
+    def _get_point_label(self, player: Player, action_id: str) -> str:
+        """Get label for a board point."""
+        try:
+            point_idx = int(action_id.split("_")[1])
+        except (ValueError, IndexError):
+            return ""
+
+        gs = self.game_state
+        color = player.color if isinstance(player, BackgammonPlayer) else "red"
+        pn = point_number_for_player(point_idx, color)
+        val = gs.board.points[point_idx]
+        selected = gs.selected_source
+
+        if val > 0:
+            cnt = val
+            owner = "red"
+        elif val < 0:
+            cnt = -val
+            owner = "white"
+        else:
+            if selected == point_idx:
+                return f"[{pn} empty]"
+            return f"{pn} empty"
+
+        owner_name = Localization.get(self._player_locale(player), f"backgammon-color-{owner}")
+        label = f"{pn} {owner_name}, {cnt}"
+
+        if selected == point_idx:
+            label = f"[{label}]"
+
+        return label
+
+    def _get_point_sound(self, player: Player, action_id: str) -> str | None:
+        """Get navigation sound for a board point based on its contents.
+
+        Sounds are perspective-relative: "mine" vs "theirs" rather than
+        fixed colors, so Red and White each hear their own checkers as
+        the same sound.
+        """
+        try:
+            point_idx = int(action_id.split("_")[1])
+        except (ValueError, IndexError):
+            return None
+
+        val = self.game_state.board.points[point_idx]
+        if val == 0:
+            return None
+
+        # Determine if this point belongs to the viewing player
+        is_own = (
+            (isinstance(player, BackgammonPlayer) and player.color == "red" and val > 0)
+            or (isinstance(player, BackgammonPlayer) and player.color == "white" and val < 0)
+        )
+        count = abs(val)
+
+        if is_own:
+            return "game_squares/token1.ogg" if count == 1 else "game_squares/token3.ogg"
+        else:
+            return "game_squares/token7.ogg" if count == 1 else "game_squares/token4.ogg"
+
+    def _is_offer_double_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        if not isinstance(player, BackgammonPlayer):
+            return "action-not-available"
+        if not self._can_double(player):
+            return "action-not-available"
+        return None
+
+    def _is_undo_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        if not isinstance(player, BackgammonPlayer):
+            return "action-not-available"
+        gs = self.game_state
+        if gs.turn_phase != "moving":
+            return "action-not-available"
+        if player.color != gs.current_color:
+            return "action-not-your-turn"
+        if not gs.moves_this_turn:
+            return "action-not-available"
+        return None
+
+    def _is_hint_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        gs = self.game_state
+        if gs.turn_phase != "moving":
+            return "action-not-available"
+        return None
+
+    def _is_accept_double_enabled(self, player: Player, action_id: str = "") -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        gs = self.game_state
+        if gs.turn_phase != "doubling":
+            return "action-not-available"
+        if not isinstance(player, BackgammonPlayer):
+            return "action-not-available"
+        if player.color == gs.current_color:
+            return "action-not-available"
+        return None
+
+    def _is_accept_double_hidden(self, player: Player, action_id: str = "") -> Visibility:
+        if self._is_accept_double_enabled(player) is not None:
+            return Visibility.HIDDEN
+        return Visibility.VISIBLE
+
+    def _is_drop_double_enabled(self, player: Player, action_id: str = "") -> str | None:
+        return self._is_accept_double_enabled(player)
+
+    def _is_drop_double_hidden(self, player: Player, action_id: str = "") -> Visibility:
+        return self._is_accept_double_hidden(player)
+
+    def _is_resign_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        return None
+
+    def _is_resign_hidden(self, player: Player) -> Visibility:
+        if self.status != "playing":
+            return Visibility.HIDDEN
+        if isinstance(player, BackgammonPlayer) and player.is_spectator:
+            return Visibility.HIDDEN
+        return Visibility.HIDDEN  # Actions menu only
+
+    def _is_info_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        return None
+
+    def _is_always_hidden(self, player: Player) -> Visibility:
+        return Visibility.HIDDEN
