@@ -1437,9 +1437,8 @@ class MileByMileGame(Game):
         """Validate game configuration before starting."""
         errors = super().prestart_validate()
 
-        # Set up teams first if not already done (needed for karma rule validation)
-        if not self._team_manager.teams:
-            self._setup_teams()
+        # Always (re)set up teams so validation uses current player list
+        self._setup_teams()
 
         # Validate team mode for current player count
         team_mode_error = self._validate_team_mode(self.options.team_mode)
@@ -1456,9 +1455,8 @@ class MileByMileGame(Game):
 
     def on_start(self) -> None:
         """Called when the game starts."""
-        # Ensure teams are set up (normally done in prestart_validate, but handle direct calls)
-        if not self._team_manager.teams:
-            self._setup_teams()
+        # Always set up teams with current player list
+        self._setup_teams()
         self.status = "playing"
         self.game_active = True
         self.current_race = 0

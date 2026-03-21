@@ -698,7 +698,6 @@ class RollingBallsGame(ActionGuardMixin, Game):
     def on_tick(self) -> None:
         """Called every tick. Handle bot AI, ball reveals, and scheduled sounds."""
         super().on_tick()
-        self.process_scheduled_sounds()
 
         if not self.game_active:
             return

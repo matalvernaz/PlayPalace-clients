@@ -673,7 +673,6 @@ class HoldemGame(Game):
 
     def on_tick(self) -> None:
         super().on_tick()
-        self.process_scheduled_sounds()
         if not self.game_active:
             return
         if getattr(self, "_next_hand_wait_ticks", 0) > 0:

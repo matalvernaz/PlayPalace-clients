@@ -943,7 +943,6 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     def on_tick(self) -> None:
         """Called every tick. Handle bot AI and scheduled sounds."""
         super().on_tick()
-        self.process_scheduled_sounds()
 
         if not self.game_active:
             return

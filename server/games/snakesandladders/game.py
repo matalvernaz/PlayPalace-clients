@@ -436,7 +436,6 @@ class SnakesAndLaddersGame(Game):
 
     def on_tick(self) -> None:
         super().on_tick()
-        self.process_scheduled_sounds()
         self.process_scheduled_events()
 
         if self.status == "playing":

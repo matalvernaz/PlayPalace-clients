@@ -332,7 +332,6 @@ class LeftRightCenterGame(ActionGuardMixin, Game):
 
     def on_tick(self) -> None:
         super().on_tick()
-        self.process_scheduled_sounds()
         if self._roll_delay_ticks > 0:
             self._roll_delay_ticks -= 1
             if self._roll_delay_ticks == 0:

@@ -389,7 +389,6 @@ class ChaosBearGame(Game):
     def on_tick(self) -> None:
         """Called every game tick."""
         super().on_tick()
-        self.process_scheduled_sounds()
         self.process_scheduled_events()
 
         if self.status != "playing":

@@ -83,7 +83,7 @@ Some mixins are not built into `Game` and are added only by games that need them
 
 Current examples:
 - `ActionGuardMixin`
-  - used by [MonopolyGame](/home/jjm/code/PlayPalace11/server/games/monopoly/game.py#L595), [RollingBallsGame](/home/jjm/code/PlayPalace11/server/games/rollingballs/game.py#L131), [LeftRightCenterGame](/home/jjm/code/PlayPalace11/server/games/leftrightcenter/game.py#L53)
+  - used by [RollingBallsGame](/home/jjm/code/PlayPalace11/server/games/rollingballs/game.py#L131), [LeftRightCenterGame](/home/jjm/code/PlayPalace11/server/games/leftrightcenter/game.py#L53)
 - `RoundBasedGameMixin`
   - used by [PigGame](/home/jjm/code/PlayPalace11/server/games/pig/game.py#L87), [TossUpGame](/home/jjm/code/PlayPalace11/server/games/tossup/game.py#L81), [MidnightGame](/home/jjm/code/PlayPalace11/server/games/midnight/game.py#L55)
 - `PushYourLuckBotMixin`
@@ -356,7 +356,6 @@ Representative consumers:
 - event-heavy or animation-heavy games
 - examples:
   - [AgeOfHeroesGame](/home/jjm/code/PlayPalace11/server/games/ageofheroes/game.py)
-  - [MonopolyGame](/home/jjm/code/PlayPalace11/server/games/monopoly/game.py)
 
 ### `ActionSetCreationMixin`
 File: [server/game_utils/action_set_creation_mixin.py](/home/jjm/code/PlayPalace11/server/game_utils/action_set_creation_mixin.py)
@@ -433,7 +432,6 @@ Use when:
 - guard code benefits from a common pattern
 
 Representative consumers:
-- [MonopolyGame](/home/jjm/code/PlayPalace11/server/games/monopoly/game.py#L595)
 - [RollingBallsGame](/home/jjm/code/PlayPalace11/server/games/rollingballs/game.py#L131)
 - [FarkleGame](/home/jjm/code/PlayPalace11/server/games/farkle/game.py#L288)
 
@@ -717,8 +715,6 @@ If you are trying to understand the shared system through real games:
   - [FiveCardDrawGame](/home/jjm/code/PlayPalace11/server/games/fivecarddraw/game.py)
 - Dice-game shared helpers:
   - [YahtzeeGame](/home/jjm/code/PlayPalace11/server/games/yahtzee/game.py)
-- Heavy custom action guards:
-  - [MonopolyGame](/home/jjm/code/PlayPalace11/server/games/monopoly/game.py)
 - Grid/menu customization:
   - [ChessGame](/home/jjm/code/PlayPalace11/server/games/chess/game.py)
 

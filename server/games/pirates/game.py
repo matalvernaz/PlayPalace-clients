@@ -566,7 +566,6 @@ class PiratesGame(Game):
     def on_tick(self) -> None:
         """Called every game tick."""
         super().on_tick()
-        self.process_scheduled_sounds()
 
         if self.status != "playing":
             return

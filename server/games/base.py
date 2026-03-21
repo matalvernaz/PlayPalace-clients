@@ -307,6 +307,7 @@ class Game(
 
         Subclasses should call super().on_tick() to ensure base functionality runs.
         """
+        self.process_scheduled_sounds()
         # Check if duration estimation has completed
         self.check_estimate_completion()
 

@@ -439,6 +439,19 @@ documents-sort-changed = Sort method updated.
 documents-delete-category-confirm = Delete this category? Documents will not be deleted, but will lose this category association.
 documents-category-deleted = Category deleted.
 
+# Document infrastructure (sync, export, promote)
+documents-sync = Sync shared documents
+documents-sync-success = Shared documents synced successfully.
+documents-sync-failed = Sync failed: { $reason }
+documents-sync-pending-warning = Warning: { $count } pending changes exist. Export them before syncing to avoid losing local edits.
+documents-export-pending = Export pending changes ({ $count })
+documents-export-success = Exported { $count } changes to { $path }.
+documents-export-no-changes = No pending changes to export.
+documents-promote-to-shared = Promote to shared
+documents-promoted-to-shared = Document promoted to shared scope.
+documents-promote-failed = Failed to promote document. It may already be shared or a conflict exists.
+documents-based-on-stale = Upstream source changed: { $source }
+
 # Transcriber management
 transcribers-by-language = View transcribers by language
 transcribers-by-user = View transcribers by user

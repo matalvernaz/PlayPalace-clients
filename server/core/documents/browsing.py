@@ -1,6 +1,7 @@
 """Document browsing menus for the PlayPalace server."""
 
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -8,7 +9,7 @@ from ..users.network_user import NetworkUser
 from ..users.base import MenuItem, EscapeBehavior, TrustLevel
 from ...messages.localization import Localization
 from server.core.ui.common_flows import show_yes_no_menu
-from .manager import DocumentManager
+from .manager import DocumentManager, SCOPE_SHARED, SCOPE_INDEPENDENT
 
 if TYPE_CHECKING:
     from ...persistence.database import Database
@@ -191,6 +192,21 @@ class DocumentBrowsingMixin:
                     id="new_category",
                 )
             )
+            # Sync and export admin actions
+            items.append(
+                MenuItem(
+                    text=Localization.get(user.locale, "documents-sync"),
+                    id="sync_documents",
+                )
+            )
+            pending_count = self._documents.get_pending_change_count()
+            export_label = Localization.get(
+                user.locale, "documents-export-pending",
+                count=str(pending_count),
+            )
+            items.append(
+                MenuItem(text=export_label, id="export_pending")
+            )
         items.append(
             MenuItem(
                 text=Localization.get(user.locale, "transcribers-by-language"),
@@ -228,6 +244,10 @@ class DocumentBrowsingMixin:
             self._show_new_document_categories(user)
         elif selection_id == "new_category":
             self._show_new_category_slug_editbox(user)
+        elif selection_id == "sync_documents":
+            await self._handle_sync_documents(user)
+        elif selection_id == "export_pending":
+            await self._handle_export_pending(user)
         elif selection_id == "transcribers_by_language":
             self._show_transcribers_by_language(user)
         elif selection_id == "transcribers_by_user":
@@ -235,6 +255,47 @@ class DocumentBrowsingMixin:
         elif selection_id.startswith("cat_"):
             slug = selection_id[4:]
             self._show_documents_list(user, slug)
+
+    # ------------------------------------------------------------------
+    # Sync and export
+    # ------------------------------------------------------------------
+
+    async def _handle_sync_documents(self, user: NetworkUser) -> None:
+        """Sync shared documents from the git repository."""
+        pending = self._documents.get_pending_change_count()
+        if pending > 0:
+            user.speak_l("documents-sync-pending-warning", count=str(pending))
+        success, message = self._documents.sync_shared_documents()
+        if success:
+            user.speak_l("documents-sync-success")
+        else:
+            user.speak_l("documents-sync-failed", reason=message)
+        self._show_documents_menu(user)
+
+    async def _handle_export_pending(self, user: NetworkUser) -> None:
+        """Export pending shared document changes as a ZIP file."""
+        pending_count = self._documents.get_pending_change_count()
+        if pending_count == 0:
+            user.speak_l("documents-export-no-changes")
+            self._show_documents_menu(user)
+            return
+
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        export_dir = _DOCUMENTS_DIR / "_exports"
+        export_dir.mkdir(exist_ok=True)
+        output_path = export_dir / f"document_changes_{timestamp}.zip"
+
+        count = self._documents.export_pending_changes(output_path)
+        if count > 0:
+            user.speak_l(
+                "documents-export-success",
+                count=str(count),
+                path=str(output_path),
+            )
+            self._documents.clear_pending_changes()
+        else:
+            user.speak_l("documents-export-no-changes")
+        self._show_documents_menu(user)
 
     def _show_documents_list(self, user: NetworkUser, category_slug: str | None) -> None:
         """Show the list of documents in a category."""
@@ -448,6 +509,29 @@ class DocumentBrowsingMixin:
                     id="delete_document",
                 )
             )
+            # Promote to shared (only for independent documents)
+            scope = self._documents.get_document_scope(folder_name)
+            if scope == SCOPE_INDEPENDENT:
+                items.append(
+                    MenuItem(
+                        text=Localization.get(user.locale, "documents-promote-to-shared"),
+                        id="promote_to_shared",
+                    )
+                )
+
+        # Based-on staleness indicator for independent documents
+        if meta:
+            stale = self._documents.check_based_on_stale(folder_name)
+            if stale is True:
+                based_on = meta.get("based_on", {})
+                source_slug = based_on.get("slug", "")
+                items.insert(-1, MenuItem(
+                    text=Localization.get(
+                        user.locale, "documents-based-on-stale",
+                        source=source_slug,
+                    ),
+                    id="based_on_stale_notice",
+                ))
 
         items.append(
             MenuItem(text=Localization.get(user.locale, "back"), id="back")
@@ -483,6 +567,22 @@ class DocumentBrowsingMixin:
             self._show_remove_translation_languages(user, folder_name, state)
         elif selection_id == "delete_document":
             self._show_delete_document_confirm(user, folder_name, state)
+        elif selection_id == "promote_to_shared":
+            await self._handle_promote_to_shared(user, folder_name, state)
+        elif selection_id == "based_on_stale_notice":
+            # Informational item — just refresh the settings menu
+            self._show_document_settings(user, folder_name, state)
+
+    async def _handle_promote_to_shared(
+        self, user: NetworkUser, folder_name: str, state: dict
+    ) -> None:
+        """Promote an independent document to shared scope."""
+        result = self._documents.promote_to_shared(folder_name)
+        if result:
+            user.speak_l("documents-promoted-to-shared")
+        else:
+            user.speak_l("documents-promote-failed")
+        self._show_document_settings(user, folder_name, state)
 
     # ------------------------------------------------------------------
     # Change title
