@@ -55,6 +55,7 @@ class CoupGame(Game):
     player_claims: dict[str, set[str]] = field(default_factory=dict)
     _losing_player_id: str = ""            # player currently choosing which influence to lose
     _next_action_after_lose: str = "end_turn"  # what to do after influence loss resolves
+    _steal_block_claimed_role: str | None = None  # "captain" or "ambassador" when blocking a steal
 
     # Audio sequence timing and state locking
     is_resolving: bool = False
@@ -198,6 +199,7 @@ class CoupGame(Game):
         self.original_claimer_id = None
         self.interrupt_timer_ticks = 0
         self.passed_players = set()
+        self._steal_block_claimed_role = None
 
         if player.is_bot:
             BotHelper.jolt_bot(player, ticks=random.randint(20, 50))
@@ -282,7 +284,28 @@ class CoupGame(Game):
                 label=Localization.get(locale, "coup-action-block"),
                 handler="_action_block",
                 is_enabled="_is_block_enabled",
-                is_hidden="_is_interrupt_hidden",
+                is_hidden="_is_block_hidden",
+                get_label="_get_block_label",
+                show_in_actions_menu=False,
+            )
+        )
+        action_set.add(
+            Action(
+                id="block_captain",
+                label=Localization.get(locale, "coup-action-block-captain"),
+                handler="_action_block",
+                is_enabled="_is_block_steal_enabled",
+                is_hidden="_is_block_steal_hidden",
+                show_in_actions_menu=False,
+            )
+        )
+        action_set.add(
+            Action(
+                id="block_ambassador",
+                label=Localization.get(locale, "coup-action-block-ambassador"),
+                handler="_action_block",
+                is_enabled="_is_block_steal_enabled",
+                is_hidden="_is_block_steal_hidden",
                 show_in_actions_menu=False,
             )
         )
@@ -494,9 +517,17 @@ class CoupGame(Game):
             return "action-spectator"
         return None
 
-    def _is_lose_influence_hidden(self, player: Player) -> Visibility:
+    def _is_lose_influence_hidden(self, player: Player, action_id: str | None = None) -> Visibility:
         if self.turn_phase != "losing_influence" or player.id != self._losing_player_id:
             return Visibility.HIDDEN
+        if action_id:
+            coup_player: CoupPlayer = player  # type: ignore
+            try:
+                idx = int(action_id.split("_")[-1])
+            except ValueError:
+                return Visibility.HIDDEN
+            if idx < 0 or idx >= len(coup_player.live_influences):
+                return Visibility.HIDDEN
         return Visibility.VISIBLE
 
     def _is_lose_influence_enabled(self, player: Player, action_id: str | None = None) -> str | None:
@@ -613,6 +644,12 @@ class CoupGame(Game):
             return None
         return "coup-no-active-claim"
 
+    def _is_block_hidden(self, player: Player) -> Visibility:
+        """Hide generic block during steal (use block_captain/block_ambassador instead)."""
+        if self.active_action == "steal" and self.turn_phase == "action_declared":
+            return Visibility.HIDDEN
+        return self._is_interrupt_hidden(player)
+
     def _is_block_enabled(self, player: Player) -> str | None:
         if self.is_resolving:
             return "action-game-in-progress"
@@ -634,12 +671,45 @@ class CoupGame(Game):
                 return "coup-only-target-can-block"
             return None
 
-        if self.active_action == "steal":
-            if player.id != self.active_target_id:
-                return "coup-only-target-can-block"
-            return None
-
+        # Steal uses block_captain / block_ambassador instead
         return "coup-cannot-block-action"
+
+    def _is_block_steal_hidden(self, player: Player) -> Visibility:
+        """Only show block_captain/block_ambassador during steal interrupt window."""
+        if self.active_action != "steal" or self.turn_phase != "action_declared":
+            return Visibility.HIDDEN
+        return self._is_interrupt_hidden(player)
+
+    def _is_block_steal_enabled(self, player: Player) -> str | None:
+        if self.is_resolving:
+            return "action-game-in-progress"
+        if player.is_dead:
+            return "coup-you-are-eliminated"
+        if player.is_spectator:
+            return "action-not-playing"
+        if player.id == self.active_claimer_id:
+            return "action-not-available"
+        if self.turn_phase != "action_declared":
+            return "coup-cannot-block-now"
+        if self.active_action != "steal":
+            return "coup-cannot-block-action"
+        if player.id != self.active_target_id:
+            return "coup-only-target-can-block"
+        return None
+
+    def _get_block_label(self, player: Player, action_id: str) -> str:
+        """Dynamic label showing which role the block claims."""
+        user = self.get_user(player)
+        locale = user.locale if user else "en"
+        role_key = {
+            "foreign_aid": "coup-card-duke",
+            "assassinate": "coup-card-contessa",
+        }.get(self.active_action or "")
+        if role_key:
+            role = Localization.get(locale, role_key)
+            return Localization.get(locale, "coup-action-block-with", role=role)
+        # Steal uses separate block_captain/block_ambassador actions
+        return Localization.get(locale, "coup-action-block")
 
     def _is_pass_enabled(self, player: Player) -> str | None:
         if self.is_resolving:
@@ -936,26 +1006,37 @@ class CoupGame(Game):
 
         self.interrupt_timer_ticks = 0
         claimer = self.get_player_by_id(self.active_claimer_id)
+        if not claimer:
+            return
 
         # Depends on what is blocked
         if self.active_action == "foreign_aid":
-            self.play_sound("game_coup/claim_duke.ogg") # Claiming Duke to block
+            self.play_sound("game_coup/claim_duke.ogg")
             self.broadcast_l("coup-blocks-foreign-aid", blocker=player.name, target=claimer.name)
             if player.id in self.player_claims:
                 self.player_claims[player.id].add("duke")
         elif self.active_action == "assassinate":
-            self.play_sound("game_coup/claim_contessa.ogg") # Claiming Contessa
+            self.play_sound("game_coup/claim_contessa.ogg")
             self.broadcast_l("coup-blocks-assassinate", blocker=player.name, target=claimer.name)
             if player.id in self.player_claims:
                 self.player_claims[player.id].add("contessa")
         elif self.active_action == "steal":
-            # For steal, might be Captain or Ambassador. For simplicity, just use Ambassador claim sound
-            # or Captain claim sound randomly, or let's just say they claim to block.
-            self.play_sound("game_coup/claim_ambassador.ogg")
-            self.broadcast_l("coup-blocks-steal", blocker=player.name, target=claimer.name)
+            # action_id tells us which role: block_captain or block_ambassador
+            if action_id == "block_captain":
+                claimed_role = "captain"
+                self.play_sound("game_coup/claim_captain.ogg")
+                self.broadcast_l("coup-blocks-steal-captain", blocker=player.name, target=claimer.name)
+            elif action_id == "block_ambassador":
+                claimed_role = "ambassador"
+                self.play_sound("game_coup/claim_ambassador.ogg")
+                self.broadcast_l("coup-blocks-steal-ambassador", blocker=player.name, target=claimer.name)
+            else:
+                return  # Unknown block variant; ignore
             if player.id in self.player_claims:
-                # Add a generic 'ambassador' claim for UI/Bot tracking purposes when stealing is blocked.
-                self.player_claims[player.id].add("ambassador")
+                self.player_claims[player.id].add(claimed_role)
+            self._steal_block_claimed_role = claimed_role
+        else:
+            return  # Unblockable action; should not reach here
 
         # Enter "waiting_block" phase where the BLOCK can be challenged
         self.turn_phase = "waiting_block"
@@ -1087,7 +1168,11 @@ class CoupGame(Game):
 
         required_char = self._get_required_character_for_action(self.active_action)
         if self.turn_phase == "waiting_block":
-            required_char = self._get_required_character_for_block(self.active_action)
+            # For steal blocks, use the specific role the blocker claimed
+            if self.active_action == "steal" and self._steal_block_claimed_role:
+                required_char = self._steal_block_claimed_role
+            else:
+                required_char = self._get_required_character_for_block(self.active_action)
 
         has_character = False
         revealed_char = None

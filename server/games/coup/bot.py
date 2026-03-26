@@ -151,7 +151,8 @@ class CoupBot(BotHelper):
                 return None
 
             claimer = game.get_player_by_id(game.active_claimer_id)
-            if not claimer: return None
+            if not claimer:
+                return None
 
             # Challenge evaluation
             challenge_decision = cls._decide_challenge(game, player, claimer)
@@ -159,10 +160,10 @@ class CoupBot(BotHelper):
                 return "challenge"
 
             # Blocking logic
-            if game.turn_phase == "action_declared" and game._is_block_enabled(player) is None:
+            if game.turn_phase == "action_declared":
                 block_decision = cls._decide_block(game, player)
                 if block_decision:
-                    return "block"
+                    return block_decision
 
             return "pass"
 
@@ -177,7 +178,10 @@ class CoupBot(BotHelper):
         """Smart logic for challenging."""
         required_char = game._get_required_character_for_action(game.active_action)
         if game.turn_phase == "waiting_block":
-            required_char = game._get_required_character_for_block(game.active_action)
+            if game.active_action == "steal" and game._steal_block_claimed_role:
+                required_char = game._steal_block_claimed_role
+            else:
+                required_char = game._get_required_character_for_block(game.active_action)
 
         if not required_char:
             return False
@@ -243,43 +247,43 @@ class CoupBot(BotHelper):
         return random.random() < challenge_chance
 
     @classmethod
-    def _decide_block(cls, game: "CoupGame", bot: "CoupPlayer") -> bool:
-        """Smart logic for blocking actions targeting the bot or the table."""
-        # Decide if we should block.
+    def _decide_block(cls, game: "CoupGame", bot: "CoupPlayer") -> str | None:
+        """Smart logic for blocking actions targeting the bot or the table.
+
+        Returns the action ID to execute, or None if not blocking.
+        """
         if game.active_action == "steal" and game.active_target_id == bot.id:
+            should_block = False
             if bot.has_influence("captain") or bot.has_influence("ambassador"):
-                return True # Always block if we actually have the card
-            # Bluff block steal?
-            if random.random() < 0.25:
-                return True
+                should_block = True
+            elif random.random() < 0.25:
+                should_block = True
+            if should_block:
+                # Pick the role to claim: prefer the one we actually have
+                if bot.has_influence("captain"):
+                    return "block_captain"
+                elif bot.has_influence("ambassador"):
+                    return "block_ambassador"
+                else:
+                    # Bluffing — pick randomly
+                    return random.choice(["block_captain", "block_ambassador"])
         elif game.active_action == "assassinate" and game.active_target_id == bot.id:
             if bot.has_influence("contessa"):
-                return True
-            # Bluff block assassinate? High desperation
+                return "block"
             if random.random() < 0.35:
-                return True
+                return "block"
         elif game.active_action == "foreign_aid":
             if bot.has_influence("duke"):
-                # Usually block, but sometimes let it slide to not reveal role instantly every time
                 if random.random() < 0.85:
-                    return True
+                    return "block"
             else:
-                # Bluff block foreign aid?
-                # Check consistency
                 past_claims = game.player_claims.get(bot.id, set())
                 if "duke" in past_claims:
-                    # Maintain the bluff
                     if random.random() < 0.60:
-                        return True
+                        return "block"
                 else:
                     if random.random() < 0.10:
-                        return True
-
-        return False
-
-        # Main turn actions
-        if game.turn_phase == "main" and game.current_player == player:
-            return cls._decide_main_action(game, player)
+                        return "block"
 
         return None
 

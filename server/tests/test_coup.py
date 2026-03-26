@@ -136,10 +136,11 @@ def test_steal_block_and_failed_challenge(game):
     assert game.turn_phase == "action_declared"
 
     # Bob blocks with Ambassador
-    game._action_block(bob, "block")
+    game._action_block(bob, "block_ambassador")
     assert game.turn_phase == "waiting_block"
     assert game.active_claimer_id == bob.id
     assert game.original_claimer_id == alice.id
+    assert game._steal_block_claimed_role == "ambassador"
 
     # Alice challenges Bob's block
     game._action_challenge(alice, "challenge")

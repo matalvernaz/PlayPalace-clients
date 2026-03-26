@@ -10,6 +10,9 @@ coup-action-exchange = Exchange (Ambassador)
 
 coup-action-challenge = Challenge!
 coup-action-block = Block!
+coup-action-block-with = Block with { $role }
+coup-action-block-captain = Block with Captain
+coup-action-block-ambassador = Block with Ambassador
 coup-action-pass = Pass
 
 coup-action-lose-influence = Lose Influence
@@ -65,7 +68,8 @@ coup-challenge-succeeded = { $player } was caught bluffing!
 coup-challenge-failed = { $player } was telling the truth, they revealed a { $character }!
 coup-blocks-foreign-aid = { $blocker } claims the Duke to block { $target }'s Foreign Aid.
 coup-blocks-assassinate = { $blocker } claims the Contessa to block { $target }'s Assassination.
-coup-blocks-steal = { $blocker } claims the Captain/Ambassador to block { $target }'s Steal.
+coup-blocks-steal-captain = { $blocker } claims the Captain to block { $target }'s Steal.
+coup-blocks-steal-ambassador = { $blocker } claims the Ambassador to block { $target }'s Steal.
 
 coup-loses-influence = { $player } loses their { $character }!
 coup-must-lose-influence = You must choose an influence to lose.
