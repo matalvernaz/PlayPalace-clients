@@ -645,8 +645,9 @@ class CoupGame(Game):
         return "coup-no-active-claim"
 
     def _is_block_hidden(self, player: Player) -> Visibility:
-        """Hide generic block during steal (use block_captain/block_ambassador instead)."""
-        if self.active_action == "steal" and self.turn_phase == "action_declared":
+        """Hide generic block during steal (use block_captain/block_ambassador instead)
+        and during actions that cannot be blocked at all."""
+        if self.active_action not in ("foreign_aid", "assassinate"):
             return Visibility.HIDDEN
         return self._is_interrupt_hidden(player)
 
