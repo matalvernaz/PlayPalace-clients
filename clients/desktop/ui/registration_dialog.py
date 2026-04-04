@@ -25,12 +25,13 @@ LOG = logging.getLogger(__name__)
 class RegistrationDialog(wx.Dialog):
     """Registration dialog for creating new accounts."""
 
-    def __init__(self, parent, server_url, server_id=None):
+    def __init__(self, parent, server_url, server_id=None, config_manager=None):
         """Initialize the registration dialog."""
         super().__init__(parent, title="Create Play Palace Account", size=(500, 450))
 
         self.server_url = server_url
         self.server_id = server_id
+        self.config_manager = config_manager
         self._registered_account_id = None
         self._create_ui()
         self.CenterOnScreen()
@@ -463,9 +464,8 @@ class RegistrationDialog(wx.Dialog):
         # Check if it was successful
         if "successfully" in message.lower() or "approval" in message.lower():
             # Auto-save the registered account to config
-            config_manager = getattr(self.GetParent(), "config_manager", None)
-            if config_manager and self.server_id:
-                self._registered_account_id = config_manager.add_account(
+            if self.config_manager and self.server_id:
+                self._registered_account_id = self.config_manager.add_account(
                     self.server_id,
                     username=self.username_input.GetValue().strip(),
                     password=self.password_input.GetValue(),

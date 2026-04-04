@@ -99,7 +99,7 @@ class LoginDialog(wx.Dialog):
         self.login_btn.SetDefault()
         action_sizer.Add(self.login_btn, 0, wx.RIGHT, 5)
 
-        cancel_btn = wx.Button(self.panel, wx.ID_CANCEL, "Cancel")
+        cancel_btn = wx.Button(self.panel, wx.ID_CANCEL, "&Cancel")
         action_sizer.Add(cancel_btn, 0)
 
         sizer.Add(action_sizer, 0, wx.ALL | wx.CENTER, 10)
@@ -365,9 +365,9 @@ class LoginDialog(wx.Dialog):
 
         from .registration_dialog import RegistrationDialog
 
-        dlg = RegistrationDialog(self, server_url, server_id=server_id)
+        dlg = RegistrationDialog(self, server_url, server_id=server_id, config_manager=self.config_manager)
         result = dlg.ShowModal()
-        registered_account_id = getattr(dlg, "_registered_account_id", None)
+        registered_account_id = dlg.get_registered_account_id()
         dlg.Destroy()
 
         if result == wx.ID_OK and registered_account_id:
@@ -411,13 +411,8 @@ class LoginDialog(wx.Dialog):
                 wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
             )
             if result == wx.YES:
-                # Record siblings for selection after delete
-                prev = self.tree.GetPrevSibling(sel)
-                next_sib = self.tree.GetNextSibling(sel)
-                parent = self.tree.GetItemParent(sel)
                 self.config_manager.delete_server(server_id)
                 self._populate_tree()
-                self.tree.select_after_delete(parent, prev, next_sib)
 
         elif item_type == "account":
             server_name = self._get_server_name_for_selection()
@@ -428,12 +423,8 @@ class LoginDialog(wx.Dialog):
                 wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING,
             )
             if result == wx.YES:
-                prev = self.tree.GetPrevSibling(sel)
-                next_sib = self.tree.GetNextSibling(sel)
-                parent = self.tree.GetItemParent(sel)
                 self.config_manager.delete_account(server_id, account_id)
                 self._populate_tree(select_server_id=server_id)
-                self.tree.select_after_delete(parent, prev, next_sib)
 
         self.tree.SetFocus()
 
