@@ -1,49 +1,41 @@
+import AVFoundation
 import AppKit
 import Foundation
 
 /// Manages text-to-speech output and VoiceOver integration.
 @MainActor
 final class SpeechManager: ObservableObject {
-    private let synth = NSSpeechSynthesizer()
-
-    init() {
-        synth.rate = 200
-    }
+    private let synth = AVSpeechSynthesizer()
 
     /// Speak text aloud. If interrupt is true, stop any current speech first.
     func speak(_ text: String, interrupt: Bool = true) {
         if interrupt {
-            synth.stopSpeaking()
+            synth.stopSpeaking(at: .immediate)
         }
-        synth.startSpeaking(text)
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        synth.speak(utterance)
 
         // Also post VoiceOver announcement so VO users hear it
         // through their preferred output
-        NSAccessibility.post(
-            element: NSApp as Any,
-            notification: .announcementRequested,
-            userInfo: [
-                .announcementKey: text,
-                .priorityKey: NSAccessibilityPriorityLevel.high.rawValue,
-            ]
-        )
+        postAnnouncement(text, priority: .high)
     }
 
     /// Stop any current speech.
     func stop() {
-        synth.stopSpeaking()
+        synth.stopSpeaking(at: .immediate)
     }
 
-    /// Post a VoiceOver announcement without NSSpeechSynthesizer
-    /// (useful when VoiceOver is handling output already).
+    /// Post a VoiceOver announcement.
     func postAnnouncement(_ text: String, priority: NSAccessibilityPriorityLevel = .high) {
+        let userInfo: [NSAccessibility.NotificationUserInfoKey: Any] = [
+            NSAccessibility.NotificationUserInfoKey(rawValue: NSAccessibility.NotificationUserInfoKey.announcement.rawValue): text,
+            NSAccessibility.NotificationUserInfoKey(rawValue: NSAccessibility.NotificationUserInfoKey.priority.rawValue): priority.rawValue,
+        ]
         NSAccessibility.post(
             element: NSApp as Any,
             notification: .announcementRequested,
-            userInfo: [
-                .announcementKey: text,
-                .priorityKey: priority.rawValue,
-            ]
+            userInfo: userInfo
         )
     }
 }

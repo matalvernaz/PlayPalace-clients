@@ -25,7 +25,12 @@
       {
         "from": "../web",
         "to": "web",
-        "filter": ["**/*", "!config.js"]
+        "filter": ["**/*", "!config.js", "!sounds"]
+      },
+      {
+        "from": "../desktop/sounds",
+        "to": "web/sounds",
+        "filter": ["**/*"]
       }
     ],
     "mac": {

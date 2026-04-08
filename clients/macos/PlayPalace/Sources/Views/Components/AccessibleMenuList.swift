@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// An accessible list control for server-driven menus.
@@ -24,13 +25,14 @@ struct AccessibleMenuList: View {
             if let idx = newValue, idx >= 0, idx < items.count {
                 soundManager.playMenuClick()
                 // Announce to VoiceOver
+                let userInfo: [NSAccessibility.NotificationUserInfoKey: Any] = [
+                    NSAccessibility.NotificationUserInfoKey(rawValue: NSAccessibility.NotificationUserInfoKey.announcement.rawValue): items[idx].text,
+                    NSAccessibility.NotificationUserInfoKey(rawValue: NSAccessibility.NotificationUserInfoKey.priority.rawValue): NSAccessibilityPriorityLevel.medium.rawValue,
+                ]
                 NSAccessibility.post(
                     element: NSApp as Any,
                     notification: .announcementRequested,
-                    userInfo: [
-                        .announcementKey: items[idx].text,
-                        .priorityKey: NSAccessibilityPriorityLevel.medium.rawValue,
-                    ]
+                    userInfo: userInfo
                 )
             }
         }

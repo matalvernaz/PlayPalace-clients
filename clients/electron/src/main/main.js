@@ -17,9 +17,13 @@ function createWindow() {
         },
     });
 
-    // Load the existing web client directly.
-    // The web client lives at clients/web/ relative to this repo.
-    const webClientPath = path.resolve(__dirname, '..', '..', '..', 'web', 'index.html');
+    // Load the existing web client.
+    // In development: clients/web/ relative to this repo.
+    // When packaged: extraResources/web/ inside the app bundle.
+    const fs = require('fs');
+    const devPath = path.resolve(__dirname, '..', '..', '..', 'web', 'index.html');
+    const packagedPath = path.join(process.resourcesPath, 'web', 'index.html');
+    const webClientPath = fs.existsSync(devPath) ? devPath : packagedPath;
     mainWindow.loadFile(webClientPath);
 
     // Open DevTools in development
