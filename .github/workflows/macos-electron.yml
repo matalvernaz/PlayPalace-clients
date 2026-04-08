@@ -28,19 +28,57 @@ jobs:
         working-directory: clients/macos/PlayPalace
         run: swift test || echo "No tests yet — skipping"
 
-      - name: Locate binary
-        id: binary
+      - name: Assemble .app bundle
         working-directory: clients/macos/PlayPalace
         run: |
-          BIN=$(swift build -c release --show-bin-path)/PlayPalace
-          echo "path=$BIN" >> "$GITHUB_OUTPUT"
-          ls -lh "$BIN"
+          BIN_DIR=$(swift build -c release --show-bin-path)
+          APP="PlayPalace.app"
+          mkdir -p "$APP/Contents/MacOS"
+          mkdir -p "$APP/Contents/Resources"
+          cp "$BIN_DIR/PlayPalace" "$APP/Contents/MacOS/PlayPalace"
+          chmod +x "$APP/Contents/MacOS/PlayPalace"
 
-      - name: Upload macOS binary
+          cat > "$APP/Contents/Info.plist" << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+            "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>CFBundleName</key>
+            <string>PlayPalace</string>
+            <key>CFBundleDisplayName</key>
+            <string>PlayPalace</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.playpalace.macos</string>
+            <key>CFBundleVersion</key>
+            <string>11.0.0</string>
+            <key>CFBundleShortVersionString</key>
+            <string>11.0.0</string>
+            <key>CFBundleExecutable</key>
+            <string>PlayPalace</string>
+            <key>CFBundlePackageType</key>
+            <string>APPL</string>
+            <key>LSMinimumSystemVersion</key>
+            <string>14.0</string>
+            <key>NSHighResolutionCapable</key>
+            <true/>
+            <key>CFBundleInfoDictionaryVersion</key>
+            <string>6.0</string>
+            <key>NSAccessibilityUsageDescription</key>
+            <string>PlayPalace uses accessibility features to support VoiceOver and screen readers.</string>
+          </dict>
+          </plist>
+          PLIST
+
+          # Zip the .app for upload
+          ditto -c -k --keepParent "$APP" PlayPalace.app.zip
+          ls -lh PlayPalace.app.zip
+
+      - name: Upload macOS app
         uses: actions/upload-artifact@v4
         with:
           name: playpalace-macos-swift
-          path: ${{ steps.binary.outputs.path }}
+          path: clients/macos/PlayPalace/PlayPalace.app.zip
 
   # ── Electron – macOS ──────────────────────────────────────────
   electron-mac:
@@ -122,3 +160,39 @@ jobs:
         with:
           name: playpalace-electron-linux
           path: clients/electron/dist/*.AppImage
+
+  # ── Create Release ────────────────────────────────────────────
+  release:
+    name: Create Release
+    needs: [swift-macos, electron-mac, electron-windows, electron-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: List artifacts
+        run: find artifacts -type f | head -20
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="v11.0.0-build.${{ github.run_number }}"
+          gh release create "$TAG" \
+            --repo "${{ github.repository }}" \
+            --title "PlayPalace $TAG" \
+            --notes "Automated build from commit ${{ github.sha }}.
+
+          **Downloads:**
+          - **PlayPalace.app.zip** — Native Swift macOS app (requires macOS 14+)
+          - **PlayPalace-*.dmg** — Electron macOS app
+          - **PlayPalace-Setup-*.exe** — Electron Windows installer
+          - **PlayPalace-*.AppImage** — Electron Linux app" \
+            artifacts/playpalace-macos-swift/* \
+            artifacts/playpalace-electron-macos/* \
+            artifacts/playpalace-electron-windows/* \
+            artifacts/playpalace-electron-linux/*
