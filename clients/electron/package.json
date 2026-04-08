@@ -1,0 +1,42 @@
+{
+  "name": "playpalace-electron",
+  "version": "11.0.0",
+  "description": "PlayPalace desktop wrapper — wraps the web client in a native window",
+  "main": "src/main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win",
+    "build:linux": "electron-builder --linux"
+  },
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.9.0"
+  },
+  "build": {
+    "appId": "com.playpalace.client",
+    "productName": "PlayPalace",
+    "files": [
+      "src/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "../web",
+        "to": "web",
+        "filter": ["**/*", "!config.js"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.games",
+      "target": "dmg"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}

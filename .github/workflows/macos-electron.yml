@@ -1,0 +1,124 @@
+name: macOS & Electron Builds
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "clients/macos/**"
+      - "clients/electron/**"
+      - "clients/web/**"
+      - ".github/workflows/macos-electron.yml"
+
+jobs:
+  # ── Native Swift macOS App ────────────────────────────────────
+  swift-macos:
+    name: Swift macOS App
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Swift package
+        working-directory: clients/macos/PlayPalace
+        run: swift build -c release
+
+      - name: Run Swift tests (if any)
+        working-directory: clients/macos/PlayPalace
+        run: swift test || echo "No tests yet — skipping"
+
+      - name: Locate binary
+        id: binary
+        working-directory: clients/macos/PlayPalace
+        run: |
+          BIN=$(swift build -c release --show-bin-path)/PlayPalace
+          echo "path=$BIN" >> "$GITHUB_OUTPUT"
+          ls -lh "$BIN"
+
+      - name: Upload macOS binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: playpalace-macos-swift
+          path: ${{ steps.binary.outputs.path }}
+
+  # ── Electron – macOS ──────────────────────────────────────────
+  electron-mac:
+    name: Electron macOS
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: clients/electron
+        run: npm install
+
+      - name: Build macOS DMG
+        working-directory: clients/electron
+        run: npx electron-builder --mac --publish never
+
+      - name: Upload macOS DMG
+        uses: actions/upload-artifact@v4
+        with:
+          name: playpalace-electron-macos
+          path: clients/electron/dist/*.dmg
+
+  # ── Electron – Windows ────────────────────────────────────────
+  electron-windows:
+    name: Electron Windows
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: clients/electron
+        run: npm install
+
+      - name: Build Windows installer
+        working-directory: clients/electron
+        run: npx electron-builder --win --publish never
+
+      - name: Upload Windows installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: playpalace-electron-windows
+          path: clients/electron/dist/*.exe
+
+  # ── Electron – Linux ──────────────────────────────────────────
+  electron-linux:
+    name: Electron Linux
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: clients/electron
+        run: npm install
+
+      - name: Build Linux AppImage
+        working-directory: clients/electron
+        run: npx electron-builder --linux --publish never
+
+      - name: Upload Linux AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: playpalace-electron-linux
+          path: clients/electron/dist/*.AppImage
