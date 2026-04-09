@@ -1,437 +1,744 @@
 #if os(iOS)
+import AVFoundation
 import SwiftUI
 import UIKit
 
+// MARK: - Main View
+
 /// The main game view for iOS.
-/// Layout from top to bottom: status bar, menu/edit area, action bar, chat bar.
-/// Provides toolbar buttons for buffer navigation, volume, and ping.
+/// Self-voicing audiogame pattern: handles all speech and touch directly.
 struct MainView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = MainViewModel()
-    @FocusState private var chatFieldFocused: Bool
-    @FocusState private var editFieldFocused: Bool
-    @State private var showingVolumeControls = false
-    @State private var showingBufferBrowser = false
+    @State private var showingChat = false
+    @State private var showingControls = false
+    @State private var showingHelp = false
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                statusBar
-                Divider()
-                gameArea
-                Divider()
-                ActionBar { key in
-                    if key == "escape" {
-                        viewModel.sendEscape()
-                    } else {
-                        viewModel.sendKeybind(key)
-                    }
-                }
-                Divider()
-                chatBar
-            }
-            .navigationTitle("PlayPalace")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItemGroup(placement: .topBarLeading) {
-                    Button {
-                        viewModel.previousBuffer()
-                    } label: {
-                        Label("Previous buffer", systemImage: "chevron.left.square")
-                    }
-                    .accessibilityLabel("Previous buffer")
-                    .accessibilityHint("Switch to the previous message buffer")
-
-                    Button {
-                        viewModel.nextBuffer()
-                    } label: {
-                        Label("Next buffer", systemImage: "chevron.right.square")
-                    }
-                    .accessibilityLabel("Next buffer")
-                    .accessibilityHint("Switch to the next message buffer")
-                }
-
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button {
-                        showingVolumeControls = true
-                    } label: {
-                        Label("Volume", systemImage: "speaker.wave.2")
-                    }
-                    .accessibilityLabel("Volume controls")
-                    .accessibilityHint("Adjust music and ambience volume")
-
-                    Button {
-                        viewModel.sendPing()
-                    } label: {
-                        Label("Ping", systemImage: "antenna.radiowaves.left.and.right")
-                    }
-                    .accessibilityLabel("Ping server")
-                    .accessibilityHint("Check the connection latency to the server")
-
-                    Button {
-                        viewModel.disconnect()
-                        appState.returnToLogin()
-                    } label: {
-                        Label("Disconnect", systemImage: "xmark.circle")
-                    }
-                    .accessibilityLabel("Disconnect")
-                    .accessibilityHint("Disconnect from the server and return to login")
-                }
-            }
-            .sheet(isPresented: $showingVolumeControls) {
-                VolumeControlSheet_iOS(viewModel: viewModel)
-            }
-        }
-        .onAppear {
-            viewModel.setup(appState: appState)
-        }
-        .onDisappear {
-            viewModel.disconnect()
-        }
-    }
-
-    // MARK: - Status Bar
-
-    private var statusBar: some View {
-        HStack(spacing: 8) {
-            // Connection indicator
-            HStack(spacing: 4) {
-                Circle()
-                    .fill(viewModel.isConnected ? Color.green : Color.red)
-                    .frame(width: 10, height: 10)
-                Text(viewModel.isConnected ? "Connected" : "Disconnected")
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.secondary)
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(viewModel.isConnected ? "Connected to server" : "Disconnected from server")
-
-            Spacer()
-
-            // Buffer info
-            if let bufferInfo = viewModel.currentBufferInfo {
-                Text(bufferInfo)
-                    .font(.caption)
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .accessibilityLabel("Current buffer: \(bufferInfo)")
-            }
-
-            // Buffer mute toggle
-            Button {
-                viewModel.toggleBufferMute()
-            } label: {
-                Image(systemName: "speaker.slash")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            .accessibilityLabel("Toggle buffer mute")
-            .accessibilityHint("Mute or unmute the current message buffer")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 6)
-        .background(Color(.secondarySystemBackground))
-    }
-
-    // MARK: - Game Area (Menu or Edit)
-
-    private var gameArea: some View {
-        VStack(spacing: 0) {
+        ZStack {
             if viewModel.isEditMode {
-                editPanel
+                EditOverlay(viewModel: viewModel)
             } else {
-                menuArea
+                DirectTouchGameView(viewModel: viewModel)
+                    .ignoresSafeArea()
             }
-        }
-        .frame(maxHeight: .infinity)
-    }
 
-    // MARK: - Menu Area
-
-    private var menuArea: some View {
-        VStack(spacing: 0) {
-            // History messages (scrolling area)
-            historyView
-
-            Divider()
-
-            // Menu list
-            MenuList_iOS(
-                items: viewModel.menuItems,
-                selection: $viewModel.menuSelection,
-                onActivate: { index in
-                    viewModel.activateMenuItem(index)
+            // Floating toolbar
+            VStack {
+                HStack(spacing: 10) {
+                    toolbarButton("bubble.left.fill", "Chat") { showingChat = true }
+                    toolbarButton("arrow.backward", "Back") { viewModel.sendEscape() }
+                    Spacer()
+                    toolbarButton("slider.horizontal.3", "Controls") { showingControls = true }
+                    toolbarButton("questionmark.circle", "Help") { showingHelp = true }
                 }
-            )
-            .frame(maxHeight: .infinity)
-        }
-    }
-
-    // MARK: - History View
-
-    private var historyView: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Text("History")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .accessibilityAddTraits(.isHeader)
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
                 Spacer()
-
-                // Older/newer message navigation
-                Button {
-                    viewModel.olderMessage()
-                } label: {
-                    Image(systemName: "chevron.up")
-                        .font(.caption)
-                }
-                .accessibilityLabel("Older message")
-                .accessibilityHint("Read the previous message in the current buffer")
-
-                Button {
-                    viewModel.newerMessage()
-                } label: {
-                    Image(systemName: "chevron.down")
-                        .font(.caption)
-                }
-                .accessibilityLabel("Newer message")
-                .accessibilityHint("Read the next message in the current buffer")
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 4)
+        }
+        .sheet(isPresented: $showingChat) {
+            ChatSheet(viewModel: viewModel)
+        }
+        .sheet(isPresented: $showingControls) {
+            ControlsSheet(viewModel: viewModel, appState: appState)
+        }
+        .sheet(isPresented: $showingHelp) {
+            HelpSheet()
+        }
+        .onAppear { viewModel.setup(appState: appState) }
+        .onDisappear { viewModel.disconnect() }
+    }
 
-            ScrollViewReader { proxy in
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 2) {
-                        ForEach(viewModel.historyItems) { item in
-                            Text(item.text)
-                                .font(.system(.caption, design: .default))
-                                .textSelection(.enabled)
-                                .id(item.id)
-                                .accessibilityLabel(item.text)
-                        }
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 2)
-                }
-                .onChange(of: viewModel.historyItems.count) { _, _ in
-                    if let last = viewModel.historyItems.last {
-                        withAnimation(.easeOut(duration: 0.15)) {
-                            proxy.scrollTo(last.id, anchor: .bottom)
-                        }
-                    }
-                }
+    private func toolbarButton(_ icon: String, _ label: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .medium))
+                .padding(10)
+                .background(.ultraThinMaterial, in: Circle())
+        }
+        .accessibilityLabel(label)
+    }
+}
+
+// MARK: - UIViewRepresentable Bridge
+
+private struct DirectTouchGameView: UIViewRepresentable {
+    @ObservedObject var viewModel: MainViewModel
+
+    func makeUIView(context: Context) -> GameTouchView {
+        let view = GameTouchView()
+        view.viewModel = viewModel
+        return view
+    }
+
+    func updateUIView(_ uiView: GameTouchView, context: Context) {
+        uiView.viewModel = viewModel
+        uiView.onMenuUpdate()
+    }
+}
+
+// MARK: - Game Touch View
+
+/// Self-voicing touch view.
+///
+/// Gesture scheme (consistent finger grouping):
+///
+/// ONE FINGER — menu navigation:
+///   Swipe left/right  — browse items
+///   Double-tap         — activate selected item
+///   Single tap         — repeat current item
+///   Long press         — detailed status
+///
+/// TWO FINGERS — game actions:
+///   Scrub (zig-zag)    — go back / escape
+///   Double-tap         — primary action (roll, draw, etc.)
+///   Swipe up           — check score
+///   Swipe down         — add bot (lobby only)
+///
+/// THREE FINGERS — buffer system:
+///   Swipe left/right   — previous/next buffer
+///   Swipe up/down      — older/newer message
+///   Tap                — announce help
+final class GameTouchView: UIView {
+    var viewModel: MainViewModel?
+
+    private let speech = SpeechQueue()
+    private let selectionFeedback = UISelectionFeedbackGenerator()
+    private let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+    private let notificationFeedback = UINotificationFeedbackGenerator()
+
+    private var currentIndex = 0
+    private var lastMenuItemCount = -1
+    private var idleTimer: Timer?
+    private let idleTimeout: TimeInterval = 8
+
+    // For two-finger scrub detection
+    private var twoFingerTouchHistory: [CGPoint] = []
+    private var twoFingerScrubRecognized = false
+
+    // MARK: - Init
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        backgroundColor = .systemBackground
+        isMultipleTouchEnabled = true
+        setupGestures()
+        setupAccessibility()
+        selectionFeedback.prepare()
+        impactFeedback.prepare()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        isMultipleTouchEnabled = true
+        setupGestures()
+        setupAccessibility()
+    }
+
+    private func setupAccessibility() {
+        isAccessibilityElement = true
+        accessibilityTraits = .allowsDirectInteraction
+        accessibilityLabel = "Game area"
+        accessibilityHint = "Swipe left and right to browse. Double-tap to select."
+    }
+
+    // MARK: - Gesture Setup
+
+    private func setupGestures() {
+        // === ONE FINGER — menu navigation ===
+
+        let doubleTap = UITapGestureRecognizer(target: self, action: #selector(onDoubleTap))
+        doubleTap.numberOfTapsRequired = 2
+        doubleTap.numberOfTouchesRequired = 1
+        addGestureRecognizer(doubleTap)
+
+        let singleTap = UITapGestureRecognizer(target: self, action: #selector(onSingleTap))
+        singleTap.numberOfTapsRequired = 1
+        singleTap.numberOfTouchesRequired = 1
+        singleTap.require(toFail: doubleTap)
+        addGestureRecognizer(singleTap)
+
+        let swipeRight = UISwipeGestureRecognizer(target: self, action: #selector(onSwipeRight))
+        swipeRight.direction = .right
+        swipeRight.numberOfTouchesRequired = 1
+        addGestureRecognizer(swipeRight)
+
+        let swipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(onSwipeLeft))
+        swipeLeft.direction = .left
+        swipeLeft.numberOfTouchesRequired = 1
+        addGestureRecognizer(swipeLeft)
+
+        let longPress = UILongPressGestureRecognizer(target: self, action: #selector(onLongPress))
+        longPress.minimumPressDuration = 0.6
+        longPress.numberOfTouchesRequired = 1
+        addGestureRecognizer(longPress)
+
+        // === TWO FINGERS — game actions ===
+        // (Two-finger scrub is handled via touch events below)
+
+        let twoDoubleTap = UITapGestureRecognizer(target: self, action: #selector(onTwoFingerDoubleTap))
+        twoDoubleTap.numberOfTouchesRequired = 2
+        twoDoubleTap.numberOfTapsRequired = 2
+        addGestureRecognizer(twoDoubleTap)
+
+        let twoSwipeUp = UISwipeGestureRecognizer(target: self, action: #selector(onTwoFingerSwipeUp))
+        twoSwipeUp.direction = .up
+        twoSwipeUp.numberOfTouchesRequired = 2
+        addGestureRecognizer(twoSwipeUp)
+
+        let twoSwipeDown = UISwipeGestureRecognizer(target: self, action: #selector(onTwoFingerSwipeDown))
+        twoSwipeDown.direction = .down
+        twoSwipeDown.numberOfTouchesRequired = 2
+        addGestureRecognizer(twoSwipeDown)
+
+        // === THREE FINGERS — buffer system ===
+
+        let threeSwipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(onThreeFingerSwipeLeft))
+        threeSwipeLeft.direction = .left
+        threeSwipeLeft.numberOfTouchesRequired = 3
+        addGestureRecognizer(threeSwipeLeft)
+
+        let threeSwipeRight = UISwipeGestureRecognizer(target: self, action: #selector(onThreeFingerSwipeRight))
+        threeSwipeRight.direction = .right
+        threeSwipeRight.numberOfTouchesRequired = 3
+        addGestureRecognizer(threeSwipeRight)
+
+        let threeSwipeUp = UISwipeGestureRecognizer(target: self, action: #selector(onThreeFingerSwipeUp))
+        threeSwipeUp.direction = .up
+        threeSwipeUp.numberOfTouchesRequired = 3
+        addGestureRecognizer(threeSwipeUp)
+
+        let threeSwipeDown = UISwipeGestureRecognizer(target: self, action: #selector(onThreeFingerSwipeDown))
+        threeSwipeDown.direction = .down
+        threeSwipeDown.numberOfTouchesRequired = 3
+        addGestureRecognizer(threeSwipeDown)
+
+        let threeTap = UITapGestureRecognizer(target: self, action: #selector(onThreeFingerTap))
+        threeTap.numberOfTouchesRequired = 3
+        addGestureRecognizer(threeTap)
+    }
+
+    // MARK: - Two-Finger Scrub Detection (zig-zag)
+
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesBegan(touches, with: event)
+        if let allTouches = event?.allTouches, allTouches.count == 2 {
+            twoFingerTouchHistory.removeAll()
+            twoFingerScrubRecognized = false
+            if let touch = touches.first {
+                twoFingerTouchHistory.append(touch.location(in: self))
             }
-            .frame(maxHeight: 160)
-            .accessibilityLabel("Message history")
         }
     }
 
-    // MARK: - Edit Panel
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesMoved(touches, with: event)
+        guard let allTouches = event?.allTouches, allTouches.count == 2,
+              !twoFingerScrubRecognized else { return }
+        if let touch = touches.first {
+            twoFingerTouchHistory.append(touch.location(in: self))
+        }
+        // Detect scrub: 3+ direction changes in horizontal movement
+        if twoFingerTouchHistory.count >= 4 {
+            var directionChanges = 0
+            for i in 2..<twoFingerTouchHistory.count {
+                let prev = twoFingerTouchHistory[i-1].x - twoFingerTouchHistory[i-2].x
+                let curr = twoFingerTouchHistory[i].x - twoFingerTouchHistory[i-1].x
+                if prev * curr < 0 && abs(curr) > 5 {
+                    directionChanges += 1
+                }
+            }
+            if directionChanges >= 2 {
+                twoFingerScrubRecognized = true
+                onScrub()
+            }
+        }
+    }
 
-    private var editPanel: some View {
-        VStack(spacing: 12) {
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesEnded(touches, with: event)
+        twoFingerTouchHistory.removeAll()
+        twoFingerScrubRecognized = false
+    }
+
+    override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
+        super.touchesCancelled(touches, with: event)
+        twoFingerTouchHistory.removeAll()
+        twoFingerScrubRecognized = false
+    }
+
+    // MARK: - VoiceOver Support
+
+    override func accessibilityActivate() -> Bool {
+        onDoubleTap()
+        return true
+    }
+
+    override var accessibilityCustomActions: [UIAccessibilityCustomAction]? {
+        get {
+            [
+                UIAccessibilityCustomAction(name: "Primary action") { [weak self] _ in
+                    self?.onTwoFingerDoubleTap(); return true
+                },
+                UIAccessibilityCustomAction(name: "Go back") { [weak self] _ in
+                    self?.onScrub(); return true
+                },
+                UIAccessibilityCustomAction(name: "Check score") { [weak self] _ in
+                    self?.viewModel?.sendKeybind("s"); return true
+                },
+                UIAccessibilityCustomAction(name: "Add bot") { [weak self] _ in
+                    self?.viewModel?.sendKeybind("b"); return true
+                },
+                UIAccessibilityCustomAction(name: "Remove bot") { [weak self] _ in
+                    self?.viewModel?.sendKeybind("shift+b"); return true
+                },
+                UIAccessibilityCustomAction(name: "Status") { [weak self] _ in
+                    self?.announceStatus(); return true
+                },
+                UIAccessibilityCustomAction(name: "Previous buffer") { [weak self] _ in
+                    self?.viewModel?.previousBuffer(); return true
+                },
+                UIAccessibilityCustomAction(name: "Next buffer") { [weak self] _ in
+                    self?.viewModel?.nextBuffer(); return true
+                },
+                UIAccessibilityCustomAction(name: "Older message") { [weak self] _ in
+                    self?.viewModel?.olderMessage(); return true
+                },
+                UIAccessibilityCustomAction(name: "Newer message") { [weak self] _ in
+                    self?.viewModel?.newerMessage(); return true
+                },
+            ]
+        }
+        set {}
+    }
+
+    // MARK: - One Finger: Menu Navigation
+
+    @objc private func onSwipeRight() {
+        guard let vm = viewModel, !vm.menuItems.isEmpty else { return }
+        if currentIndex < vm.menuItems.count - 1 {
+            currentIndex += 1
+        } else {
+            speech.speak("End of list")
+            return
+        }
+        vm.menuSelection = currentIndex
+        selectionFeedback.selectionChanged()
+        announceCurrentItem()
+        resetIdleTimer()
+    }
+
+    @objc private func onSwipeLeft() {
+        guard let vm = viewModel, !vm.menuItems.isEmpty else { return }
+        if currentIndex > 0 {
+            currentIndex -= 1
+        } else {
+            speech.speak("Beginning of list")
+            return
+        }
+        vm.menuSelection = currentIndex
+        selectionFeedback.selectionChanged()
+        announceCurrentItem()
+        resetIdleTimer()
+    }
+
+    @objc private func onDoubleTap() {
+        guard let vm = viewModel, !vm.menuItems.isEmpty,
+              currentIndex >= 0, currentIndex < vm.menuItems.count else {
+            speech.speak("Nothing to select")
+            notificationFeedback.notificationOccurred(.error)
+            return
+        }
+        let item = vm.menuItems[currentIndex]
+        impactFeedback.impactOccurred()
+        vm.activateMenuItem(currentIndex)
+        speech.speak(item.text)
+        resetIdleTimer()
+    }
+
+    @objc private func onSingleTap() {
+        announceCurrentItem()
+        resetIdleTimer()
+    }
+
+    @objc private func onLongPress(_ gesture: UILongPressGestureRecognizer) {
+        guard gesture.state == .began else { return }
+        announceStatus()
+        resetIdleTimer()
+    }
+
+    // MARK: - Two Fingers: Game Actions
+
+    private func onScrub() {
+        guard let vm = viewModel else { return }
+        impactFeedback.impactOccurred()
+        vm.sendEscape()
+        speech.speak("Back")
+        resetIdleTimer()
+    }
+
+    @objc private func onTwoFingerDoubleTap() {
+        guard let vm = viewModel else { return }
+        impactFeedback.impactOccurred()
+        vm.sendKeybind("space")
+        resetIdleTimer()
+    }
+
+    @objc private func onTwoFingerSwipeUp() {
+        guard let vm = viewModel else { return }
+        vm.sendKeybind("s")
+        resetIdleTimer()
+    }
+
+    @objc private func onTwoFingerSwipeDown() {
+        guard let vm = viewModel else { return }
+        vm.sendKeybind("b")
+        resetIdleTimer()
+    }
+
+    // MARK: - Three Fingers: Buffer System
+
+    @objc private func onThreeFingerSwipeLeft() {
+        viewModel?.previousBuffer()
+        resetIdleTimer()
+    }
+
+    @objc private func onThreeFingerSwipeRight() {
+        viewModel?.nextBuffer()
+        resetIdleTimer()
+    }
+
+    @objc private func onThreeFingerSwipeUp() {
+        viewModel?.olderMessage()
+        resetIdleTimer()
+    }
+
+    @objc private func onThreeFingerSwipeDown() {
+        viewModel?.newerMessage()
+        resetIdleTimer()
+    }
+
+    @objc private func onThreeFingerTap() {
+        announceHelp()
+        resetIdleTimer()
+    }
+
+    // MARK: - Menu Updates
+
+    func onMenuUpdate() {
+        guard let vm = viewModel else { return }
+
+        // Clamp index
+        if vm.menuItems.isEmpty {
+            currentIndex = 0
+        } else if currentIndex >= vm.menuItems.count {
+            currentIndex = vm.menuItems.count - 1
+        }
+
+        // Sync selection from viewModel
+        if let sel = vm.menuSelection, sel >= 0, sel < vm.menuItems.count {
+            currentIndex = sel
+        }
+
+        // Announce when menu content changes
+        let count = vm.menuItems.count
+        if count != lastMenuItemCount {
+            lastMenuItemCount = count
+            if count > 0 {
+                let first = vm.menuItems[currentIndex].text
+                speech.speak("\(count) items. \(first)")
+            }
+        }
+
+        resetIdleTimer()
+    }
+
+    // MARK: - Speech Helpers
+
+    private func announceCurrentItem() {
+        guard let vm = viewModel, !vm.menuItems.isEmpty else {
+            speech.speak("No items")
+            return
+        }
+        let item = vm.menuItems[currentIndex]
+        speech.speak("\(item.text). \(currentIndex + 1) of \(vm.menuItems.count)")
+    }
+
+    private func announceStatus() {
+        guard let vm = viewModel else { return }
+        let connected = vm.isConnected ? "Connected" : "Disconnected"
+        let count = vm.menuItems.count
+        if count == 0 {
+            speech.speak("\(connected). No menu items.")
+        } else {
+            let item = vm.menuItems[currentIndex].text
+            speech.speak("\(connected). Item \(currentIndex + 1) of \(count): \(item)")
+        }
+    }
+
+    private func announceHelp() {
+        speech.speak(
+            "One finger: swipe left or right to browse, double-tap to select, tap to repeat, long press for status. " +
+            "Two fingers: scrub to go back, double-tap for primary action, swipe up for score, swipe down to add bot. " +
+            "Three fingers: swipe left or right for buffers, swipe up or down for messages, tap for this help."
+        )
+    }
+
+    // MARK: - Idle Timer
+
+    private func resetIdleTimer() {
+        idleTimer?.invalidate()
+        idleTimer = Timer.scheduledTimer(withTimeInterval: idleTimeout, repeats: false) { [weak self] _ in
+            self?.onIdle()
+        }
+    }
+
+    private func onIdle() {
+        guard let vm = viewModel, !vm.menuItems.isEmpty else { return }
+        announceCurrentItem()
+    }
+
+    deinit {
+        idleTimer?.invalidate()
+    }
+}
+
+// MARK: - Speech Queue
+
+/// Interruptible speech. New speech immediately cancels current utterance.
+private final class SpeechQueue: NSObject, AVSpeechSynthesizerDelegate {
+    private let synth = AVSpeechSynthesizer()
+
+    override init() {
+        super.init()
+        synth.delegate = self
+    }
+
+    func speak(_ text: String) {
+        synth.stopSpeaking(at: .immediate)
+        let utterance = AVSpeechUtterance(string: text)
+        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+        synth.speak(utterance)
+    }
+
+    func stop() {
+        synth.stopSpeaking(at: .immediate)
+    }
+}
+
+// MARK: - Edit Overlay
+
+private struct EditOverlay: View {
+    @ObservedObject var viewModel: MainViewModel
+    @FocusState private var editFocused: Bool
+
+    var body: some View {
+        VStack(spacing: 16) {
             Spacer()
-
             Text(viewModel.editPrompt)
                 .font(.headline)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
-                .accessibilityAddTraits(.isHeader)
-
             if viewModel.editMultiline {
                 TextEditor(text: $viewModel.editText)
                     .font(.body)
                     .frame(minHeight: 120)
                     .padding(4)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(Color(.separator), lineWidth: 1)
-                    )
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color(.separator)))
                     .padding(.horizontal, 16)
                     .disabled(viewModel.editReadOnly)
-                    .focused($editFieldFocused)
-                    .accessibilityLabel(viewModel.editPrompt)
-                    .accessibilityValue(viewModel.editText)
-                    .accessibilityHint(viewModel.editReadOnly ? "Read only" : "Enter your text")
+                    .focused($editFocused)
             } else {
                 TextField(viewModel.editPrompt, text: $viewModel.editText)
                     .textFieldStyle(.roundedBorder)
                     .padding(.horizontal, 16)
                     .disabled(viewModel.editReadOnly)
-                    .focused($editFieldFocused)
+                    .focused($editFocused)
                     .onSubmit { viewModel.submitEdit() }
-                    .accessibilityLabel(viewModel.editPrompt)
-                    .accessibilityHint(viewModel.editReadOnly ? "Read only" : "Enter your text and tap Submit")
             }
-
             HStack(spacing: 16) {
-                Button(role: .cancel) {
-                    viewModel.cancelEdit()
-                } label: {
-                    Text("Cancel")
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Cancel editing")
-                .accessibilityHint("Discard changes and go back")
-
+                Button("Cancel") { viewModel.cancelEdit() }
+                    .buttonStyle(.bordered)
                 if !viewModel.editReadOnly {
-                    Button {
-                        viewModel.submitEdit()
-                    } label: {
-                        Text("Submit")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityLabel("Submit text")
-                    .accessibilityHint("Send your entered text to the server")
+                    Button("Submit") { viewModel.submitEdit() }
+                        .buttonStyle(.borderedProminent)
                 }
             }
             .padding(.horizontal, 16)
-
             Spacer()
         }
-        .onAppear {
-            editFieldFocused = true
-        }
-    }
-
-    // MARK: - Chat Bar
-
-    private var chatBar: some View {
-        HStack(spacing: 8) {
-            Image(systemName: viewModel.chatMode == .table ? "bubble.left.fill" : "globe")
-                .foregroundStyle(.secondary)
-                .font(.system(size: 16))
-                .accessibilityLabel(viewModel.chatMode == .table ? "Table chat mode" : "Global chat mode")
-
-            TextField("Type a message", text: $viewModel.chatText)
-                .textFieldStyle(.roundedBorder)
-                .focused($chatFieldFocused)
-                .onSubmit { viewModel.sendChat() }
-                .submitLabel(.send)
-                .accessibilityLabel("Chat message")
-                .accessibilityHint(
-                    "Type a message and tap Send. Start with slash for commands, dot for global chat. Currently in \(viewModel.chatMode == .table ? "table" : "global") chat mode."
-                )
-
-            Button(action: {
-                viewModel.sendChat()
-                chatFieldFocused = false
-            }) {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 16))
-            }
-            .disabled(viewModel.chatText.trimmingCharacters(in: .whitespaces).isEmpty)
-            .accessibilityLabel("Send message")
-            .accessibilityHint(viewModel.chatText.isEmpty ? "Type a message first" : "Send the current message")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(Color(.systemBackground))
+        .onAppear { editFocused = true }
     }
 }
 
-// MARK: - Volume Control Sheet
+// MARK: - Chat Sheet
 
-/// A sheet providing music and ambience volume controls.
-private struct VolumeControlSheet_iOS: View {
+private struct ChatSheet: View {
     @ObservedObject var viewModel: MainViewModel
+    @Environment(\.dismiss) private var dismiss
+    @FocusState private var chatFocused: Bool
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                List(viewModel.historyItems.suffix(30)) { item in
+                    Text(item.text).font(.body)
+                }
+                .listStyle(.plain)
+                Divider()
+                HStack(spacing: 8) {
+                    TextField("Type a message", text: $viewModel.chatText)
+                        .textFieldStyle(.roundedBorder)
+                        .focused($chatFocused)
+                        .onSubmit { viewModel.sendChat() }
+                        .submitLabel(.send)
+                        .accessibilityLabel("Chat message")
+                        .accessibilityHint("Slash for commands, dot for global chat")
+                    Button { viewModel.sendChat() } label: {
+                        Image(systemName: "paperplane.fill")
+                    }
+                    .disabled(viewModel.chatText.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .accessibilityLabel("Send")
+                }
+                .padding(12)
+            }
+            .navigationTitle("Chat")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .onAppear { chatFocused = true }
+        .presentationDetents([.medium, .large])
+    }
+}
+
+// MARK: - Controls Sheet
+
+private struct ControlsSheet: View {
+    @ObservedObject var viewModel: MainViewModel
+    var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             List {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Music Volume: \(Int(viewModel.soundManager.musicVolume * 100))%")
-                            .font(.body)
-                            .accessibilityHidden(true)
-                        HStack(spacing: 16) {
-                            Button {
-                                viewModel.adjustMusicVolume(delta: -0.1)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.title2)
-                            }
-                            .accessibilityLabel("Decrease music volume")
-                            .accessibilityHint("Reduce music volume by 10 percent")
-
-                            ProgressView(value: viewModel.soundManager.musicVolume)
-                                .accessibilityLabel("Music volume \(Int(viewModel.soundManager.musicVolume * 100)) percent")
-
-                            Button {
-                                viewModel.adjustMusicVolume(delta: 0.1)
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                            }
-                            .accessibilityLabel("Increase music volume")
-                            .accessibilityHint("Increase music volume by 10 percent")
-                        }
+                Section("Buffers") {
+                    if let info = viewModel.currentBufferInfo {
+                        Text(info).foregroundStyle(.secondary)
                     }
-                    .padding(.vertical, 4)
-                } header: {
-                    Label("Music", systemImage: "music.note")
-                        .accessibilityAddTraits(.isHeader)
+                    Button("Previous buffer") { viewModel.previousBuffer() }
+                    Button("Next buffer") { viewModel.nextBuffer() }
+                    Button("Older message") { viewModel.olderMessage() }
+                    Button("Newer message") { viewModel.newerMessage() }
+                    Button("Toggle mute") { viewModel.toggleBufferMute() }
                 }
-
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Ambience Volume: \(Int(viewModel.soundManager.ambienceVolume * 100))%")
-                            .font(.body)
-                            .accessibilityHidden(true)
-                        HStack(spacing: 16) {
-                            Button {
-                                viewModel.adjustAmbienceVolume(delta: -0.1)
-                            } label: {
-                                Image(systemName: "minus.circle.fill")
-                                    .font(.title2)
-                            }
-                            .accessibilityLabel("Decrease ambience volume")
-                            .accessibilityHint("Reduce ambience volume by 10 percent")
-
-                            ProgressView(value: viewModel.soundManager.ambienceVolume)
-                                .accessibilityLabel("Ambience volume \(Int(viewModel.soundManager.ambienceVolume * 100)) percent")
-
-                            Button {
-                                viewModel.adjustAmbienceVolume(delta: 0.1)
-                            } label: {
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title2)
-                            }
-                            .accessibilityLabel("Increase ambience volume")
-                            .accessibilityHint("Increase ambience volume by 10 percent")
-                        }
+                Section("Volume") {
+                    volumeRow("Music", viewModel.soundManager.musicVolume,
+                              down: { viewModel.adjustMusicVolume(delta: -0.1) },
+                              up: { viewModel.adjustMusicVolume(delta: 0.1) })
+                    volumeRow("Ambience", viewModel.soundManager.ambienceVolume,
+                              down: { viewModel.adjustAmbienceVolume(delta: -0.1) },
+                              up: { viewModel.adjustAmbienceVolume(delta: 0.1) })
+                }
+                Section("Connection") {
+                    Button("Ping server") { viewModel.sendPing() }
+                    Button("Online users") { viewModel.requestOnlineUsers() }
+                    Button(role: .destructive) {
+                        viewModel.disconnect()
+                        appState.returnToLogin()
+                        dismiss()
+                    } label: {
+                        Text("Disconnect")
                     }
-                    .padding(.vertical, 4)
-                } header: {
-                    Label("Ambience", systemImage: "leaf")
-                        .accessibilityAddTraits(.isHeader)
                 }
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Volume Controls")
+            .navigationTitle("Controls")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
-                        .accessibilityLabel("Close volume controls")
                 }
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
+    }
+
+    private func volumeRow(_ label: String, _ value: Float, down: @escaping () -> Void, up: @escaping () -> Void) -> some View {
+        HStack {
+            Text("\(label): \(Int(value * 100))%")
+            Spacer()
+            Button { down() } label: { Image(systemName: "minus.circle") }
+                .accessibilityLabel("\(label) down")
+            Button { up() } label: { Image(systemName: "plus.circle") }
+                .accessibilityLabel("\(label) up")
+        }
     }
 }
 
-#if DEBUG
-struct MainView_Previews: PreviewProvider {
-    static var previews: some View {
-        MainView()
-            .environmentObject(AppState())
+// MARK: - Help Sheet
+
+private struct HelpSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                Section("One Finger — Menu") {
+                    helpRow("Swipe right", "Next item")
+                    helpRow("Swipe left", "Previous item")
+                    helpRow("Double-tap", "Select current item")
+                    helpRow("Single tap", "Repeat current item")
+                    helpRow("Long press", "Detailed status")
+                }
+                Section("Two Fingers — Game Actions") {
+                    helpRow("Scrub (zig-zag)", "Go back / escape")
+                    helpRow("Double-tap", "Primary action (roll, draw)")
+                    helpRow("Swipe up", "Check score")
+                    helpRow("Swipe down", "Add bot (lobby)")
+                }
+                Section("Three Fingers — Buffers") {
+                    helpRow("Swipe left", "Previous buffer")
+                    helpRow("Swipe right", "Next buffer")
+                    helpRow("Swipe up", "Older message")
+                    helpRow("Swipe down", "Newer message")
+                    helpRow("Tap", "Announce help")
+                }
+                Section("On-screen Buttons") {
+                    helpRow("Chat", "Send messages to players")
+                    helpRow("Back", "Go back (same as two-finger scrub)")
+                    helpRow("Controls", "Volume, buffers, connection")
+                    helpRow("Help", "This screen")
+                }
+                Section("Tips") {
+                    Text("The app speaks everything itself. VoiceOver is optional but supported.")
+                        .font(.callout).foregroundStyle(.secondary)
+                    Text("After 8 seconds idle, the current item repeats.")
+                        .font(.callout).foregroundStyle(.secondary)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("How to Play")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func helpRow(_ gesture: String, _ description: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(gesture).fontWeight(.medium)
+            Text(description).font(.callout).foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
-#endif
 
 #endif
