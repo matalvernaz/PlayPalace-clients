@@ -1,0 +1,157 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 56;
+	objects = {
+		A000003E8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Accessibility/SpeechManager.swift"; sourceTree = "<group>"; };
+		A000003E9 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/App/AppState.swift"; sourceTree = "<group>"; };
+		A000003EA = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/App/PlayPalaceApp.swift"; sourceTree = "<group>"; };
+		A000003EB = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Audio/SoundManager.swift"; sourceTree = "<group>"; };
+		A000003EC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/BufferSystem.swift"; sourceTree = "<group>"; };
+		A000003ED = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/ConfigManager.swift"; sourceTree = "<group>"; };
+		A000003EE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/Credentials.swift"; sourceTree = "<group>"; };
+		A000003EF = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/Packets.swift"; sourceTree = "<group>"; };
+		A000003F0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Network/WebSocketClient.swift"; sourceTree = "<group>"; };
+		A000003F1 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/AccessibleMenuList.swift"; sourceTree = "<group>"; };
+		A000003F2 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/ActionBar.swift"; sourceTree = "<group>"; };
+		A000003F3 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/KeyboardShortcutHandler.swift"; sourceTree = "<group>"; };
+		A000003F4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/MenuList_iOS.swift"; sourceTree = "<group>"; };
+		A000003F5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/LoginView.swift"; sourceTree = "<group>"; };
+		A000003F6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/LoginView_iOS.swift"; sourceTree = "<group>"; };
+		A000003F7 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/RegistrationView.swift"; sourceTree = "<group>"; };
+		A000003F8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/ServerManagerView.swift"; sourceTree = "<group>"; };
+		A000003F9 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/ServerManagerView_iOS.swift"; sourceTree = "<group>"; };
+		A000003FA = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainView.swift"; sourceTree = "<group>"; };
+		A000003FB = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainViewModel.swift"; sourceTree = "<group>"; };
+		A000003FC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainView_iOS.swift"; sourceTree = "<group>"; };
+		B000003E8 = {isa = PBXBuildFile; fileRef = A000003E8; };
+		B000003E9 = {isa = PBXBuildFile; fileRef = A000003E9; };
+		B000003EA = {isa = PBXBuildFile; fileRef = A000003EA; };
+		B000003EB = {isa = PBXBuildFile; fileRef = A000003EB; };
+		B000003EC = {isa = PBXBuildFile; fileRef = A000003EC; };
+		B000003ED = {isa = PBXBuildFile; fileRef = A000003ED; };
+		B000003EE = {isa = PBXBuildFile; fileRef = A000003EE; };
+		B000003EF = {isa = PBXBuildFile; fileRef = A000003EF; };
+		B000003F0 = {isa = PBXBuildFile; fileRef = A000003F0; };
+		B000003F1 = {isa = PBXBuildFile; fileRef = A000003F1; };
+		B000003F2 = {isa = PBXBuildFile; fileRef = A000003F2; };
+		B000003F3 = {isa = PBXBuildFile; fileRef = A000003F3; };
+		B000003F4 = {isa = PBXBuildFile; fileRef = A000003F4; };
+		B000003F5 = {isa = PBXBuildFile; fileRef = A000003F5; };
+		B000003F6 = {isa = PBXBuildFile; fileRef = A000003F6; };
+		B000003F7 = {isa = PBXBuildFile; fileRef = A000003F7; };
+		B000003F8 = {isa = PBXBuildFile; fileRef = A000003F8; };
+		B000003F9 = {isa = PBXBuildFile; fileRef = A000003F9; };
+		B000003FA = {isa = PBXBuildFile; fileRef = A000003FA; };
+		B000003FB = {isa = PBXBuildFile; fileRef = A000003FB; };
+		B000003FC = {isa = PBXBuildFile; fileRef = A000003FC; };
+		C0000001 = {isa = PBXGroup; children = (
+				A000003E8,
+				A000003E9,
+				A000003EA,
+				A000003EB,
+				A000003EC,
+				A000003ED,
+				A000003EE,
+				A000003EF,
+				A000003F0,
+				A000003F1,
+				A000003F2,
+				A000003F3,
+				A000003F4,
+				A000003F5,
+				A000003F6,
+				A000003F7,
+				A000003F8,
+				A000003F9,
+				A000003FA,
+				A000003FB,
+				A000003FC,
+			); sourceTree = "<group>"; };
+		C0000002 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
+				B000003E8,
+				B000003E9,
+				B000003EA,
+				B000003EB,
+				B000003EC,
+				B000003ED,
+				B000003EE,
+				B000003EF,
+				B000003F0,
+				B000003F1,
+				B000003F2,
+				B000003F3,
+				B000003F4,
+				B000003F5,
+				B000003F6,
+				B000003F7,
+				B000003F8,
+				B000003F9,
+				B000003FA,
+				B000003FB,
+				B000003FC,
+			); runOnlyForDeploymentPostprocessing = 0; };
+		C0000003 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		C0000004 = {isa = PBXNativeTarget; buildConfigurationList = C0000008; buildPhases = (C0000002, C0000003); buildRules = (); dependencies = (); name = PlayPalace; productName = PlayPalace; productReference = C0000005; productType = "com.apple.product-type.application"; };
+		C0000005 = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlayPalace.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0000006 = {isa = PBXGroup; children = (C0000005); name = Products; sourceTree = "<group>"; };
+		C0000007 = {isa = PBXGroup; children = (C0000001, C0000006); sourceTree = "<group>"; };
+		C0000008 = {isa = XCConfigurationList; buildConfigurations = (C0000009, C000000A); defaultConfigurationName = Debug; };
+		C0000009 = {isa = XCBuildConfiguration; buildSettings = {
+			CODE_SIGN_STYLE = Automatic;
+			CURRENT_PROJECT_VERSION = 1;
+			DEVELOPMENT_TEAM = 3PH6T3BPS3;
+			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+			INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+			IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+			MARKETING_VERSION = 11.0.0;
+			PRODUCT_BUNDLE_IDENTIFIER = com.playpalace.ios;
+			PRODUCT_NAME = PlayPalace;
+			SDKROOT = iphoneos;
+			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+			SWIFT_VERSION = 5.0;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Debug; };
+		C000000A = {isa = XCBuildConfiguration; buildSettings = {
+			CODE_SIGN_STYLE = Automatic;
+			CURRENT_PROJECT_VERSION = 1;
+			DEVELOPMENT_TEAM = 3PH6T3BPS3;
+			GENERATE_INFOPLIST_FILE = YES;
+			INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+			INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+			INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+			INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+			IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+			MARKETING_VERSION = 11.0.0;
+			PRODUCT_BUNDLE_IDENTIFIER = com.playpalace.ios;
+			PRODUCT_NAME = PlayPalace;
+			SDKROOT = iphoneos;
+			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+			SWIFT_VERSION = 5.0;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Release; };
+		C000000B = {isa = XCConfigurationList; buildConfigurations = (C000000C, C000000D); defaultConfigurationName = Debug; };
+		C000000C = {isa = XCBuildConfiguration; buildSettings = {
+			ALWAYS_SEARCH_USER_PATHS = NO;
+			CLANG_ENABLE_MODULES = YES;
+			ENABLE_STRICT_OBJC_MSGSEND = YES;
+			GCC_NO_COMMON_BLOCKS = YES;
+			ONLY_ACTIVE_ARCH = YES;
+			SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+			SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+		}; name = Debug; };
+		C000000D = {isa = XCBuildConfiguration; buildSettings = {
+			ALWAYS_SEARCH_USER_PATHS = NO;
+			CLANG_ENABLE_MODULES = YES;
+			ENABLE_STRICT_OBJC_MSGSEND = YES;
+			GCC_NO_COMMON_BLOCKS = YES;
+			SWIFT_OPTIMIZATION_LEVEL = "-O";
+		}; name = Release; };
+		C000000E = {isa = PBXProject; buildConfigurationList = C000000B; compatibilityVersion = "Xcode 14.0"; developmentRegion = en; hasScannedForEncodings = 0; mainGroup = C0000007; productRefGroup = C0000006; projectDirPath = ""; projectRoot = ""; targets = (C0000004); };
+	};
+	rootObject = C000000E;
+}

@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if os(macOS)
 struct RegistrationView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
@@ -94,3 +95,4 @@ struct RegistrationView: View {
         }
     }
 }
+#endif

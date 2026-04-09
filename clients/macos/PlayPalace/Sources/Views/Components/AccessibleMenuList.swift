@@ -1,5 +1,7 @@
-import AppKit
 import SwiftUI
+
+#if os(macOS)
+import AppKit
 
 /// An accessible list control for server-driven menus.
 /// Fully supports VoiceOver and keyboard navigation.
@@ -113,3 +115,4 @@ struct MenuItemRow: View {
         .contentShape(Rectangle())
     }
 }
+#endif

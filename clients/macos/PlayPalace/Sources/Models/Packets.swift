@@ -1,4 +1,7 @@
 import Foundation
+#if os(iOS)
+import UIKit
+#endif
 
 // MARK: - Client → Server Packets
 
@@ -174,8 +177,13 @@ enum ClientPacket {
     }
 
     private static func platformString() -> String {
+        #if os(iOS)
+        let device = UIDevice.current
+        return "iOS \(device.systemVersion) \(device.model)"
+        #else
         let info = ProcessInfo.processInfo
         return "macOS \(info.operatingSystemVersionString) \(Self.machineArch())"
+        #endif
     }
 
     private static func machineArch() -> String {

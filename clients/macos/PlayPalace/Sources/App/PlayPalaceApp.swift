@@ -5,6 +5,7 @@ struct PlayPalaceApp: App {
     @StateObject private var appState = AppState()
 
     var body: some Scene {
+        #if os(macOS)
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
@@ -14,6 +15,12 @@ struct PlayPalaceApp: App {
         .commands {
             CommandGroup(replacing: .newItem) {}
         }
+        #else
+        WindowGroup {
+            ContentView()
+                .environmentObject(appState)
+        }
+        #endif
     }
 }
 

@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if os(macOS)
 struct MainView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = MainViewModel()
@@ -208,3 +209,4 @@ extension FocusedValues {
         set { self[MainViewModelKey.self] = newValue }
     }
 }
+#endif

@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if os(macOS)
 struct ServerManagerView: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
@@ -281,3 +282,4 @@ struct ServerManagerView: View {
         }
     }
 }
+#endif

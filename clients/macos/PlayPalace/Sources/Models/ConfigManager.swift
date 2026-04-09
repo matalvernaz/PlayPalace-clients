@@ -67,8 +67,13 @@ final class ConfigManager: ObservableObject {
     private let basePath: URL
 
     init() {
+        #if os(macOS)
         let home = FileManager.default.homeDirectoryForCurrentUser
         basePath = home.appendingPathComponent(".playpalace")
+        #else
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        basePath = appSupport.appendingPathComponent("PlayPalace")
+        #endif
         loadIdentities()
     }
 

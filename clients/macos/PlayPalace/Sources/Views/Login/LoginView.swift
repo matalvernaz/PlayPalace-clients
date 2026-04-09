@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if os(macOS)
 struct LoginView: View {
     @EnvironmentObject var appState: AppState
     @State private var showingServerManager = false
@@ -252,3 +253,4 @@ struct LoginView: View {
         appState.loginAndConnect(credentials: creds)
     }
 }
+#endif

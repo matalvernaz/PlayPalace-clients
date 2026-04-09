@@ -538,6 +538,29 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         }
     }
 
+    // MARK: - iOS Keybind Helpers
+
+    /// Sends a keybind packet for the given key name (e.g. "r", "space", "enter", "up").
+    /// Used by the iOS ActionBar and other touch-based controls.
+    func sendKeybind(_ key: String) {
+        guard isConnected else { return }
+        let sel = menuSelection
+        var packet = ClientPacket.keybind(
+            key: key,
+            menuID: currentMenuID,
+            menuIndex: sel != nil ? sel! + 1 : nil
+        )
+        if let sel, sel < currentMenuItemIDs.count, let id = currentMenuItemIDs[sel] {
+            packet["menu_item_id"] = id
+        }
+        webSocket?.send(packet)
+    }
+
+    /// Sends an escape action, respecting the current escape behavior set by the server.
+    func sendEscape() {
+        _ = handleEscapeKey()
+    }
+
     // MARK: - Edit Mode
 
     func switchToEditMode(prompt: String, defaultValue: String, multiline: Bool, readOnly: Bool, callback: @escaping (String) -> Void) {

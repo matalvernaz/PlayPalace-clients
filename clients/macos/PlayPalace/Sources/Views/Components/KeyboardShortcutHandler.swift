@@ -1,5 +1,6 @@
 import SwiftUI
 
+#if os(macOS)
 /// Invisible view that captures global keyboard shortcuts for the main game window.
 /// Maps keyboard shortcuts to match the Python client's accelerator table.
 struct KeyboardShortcutHandler: View {
@@ -120,3 +121,4 @@ private enum ShortcutID: String {
         }
     }
 }
+#endif
