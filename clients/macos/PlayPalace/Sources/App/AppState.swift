@@ -12,6 +12,14 @@ final class AppState: ObservableObject {
     @Published var credentials: Credentials?
     @Published var configManager = ConfigManager()
 
+    private var configCancellable: AnyCancellable?
+
+    init() {
+        configCancellable = configManager.objectWillChange.sink { [weak self] _ in
+            self?.objectWillChange.send()
+        }
+    }
+
     func loginAndConnect(credentials: Credentials) {
         self.credentials = credentials
         screen = .main

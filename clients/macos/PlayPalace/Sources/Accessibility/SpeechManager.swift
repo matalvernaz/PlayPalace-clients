@@ -7,18 +7,19 @@ import Foundation
 final class SpeechManager: ObservableObject {
     private let synth = AVSpeechSynthesizer()
 
-    /// Speak text aloud. If interrupt is true, stop any current speech first.
+    /// Speak text aloud. Uses VoiceOver if running, otherwise AVSpeechSynthesizer.
     func speak(_ text: String, interrupt: Bool = true) {
-        if interrupt {
-            synth.stopSpeaking(at: .immediate)
+        if NSWorkspace.shared.isVoiceOverEnabled {
+            // VoiceOver is active — use it exclusively
+            if interrupt { synth.stopSpeaking(at: .immediate) }
+            postAnnouncement(text, priority: .high)
+        } else {
+            // No VoiceOver — use built-in TTS
+            if interrupt { synth.stopSpeaking(at: .immediate) }
+            let utterance = AVSpeechUtterance(string: text)
+            utterance.rate = AVSpeechUtteranceDefaultSpeechRate
+            synth.speak(utterance)
         }
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        synth.speak(utterance)
-
-        // Also post VoiceOver announcement so VO users hear it
-        // through their preferred output
-        postAnnouncement(text, priority: .high)
     }
 
     /// Stop any current speech.

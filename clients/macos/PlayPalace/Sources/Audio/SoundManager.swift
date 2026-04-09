@@ -21,22 +21,16 @@ final class SoundManager: ObservableObject {
     private let soundsDirectory: URL
 
     init() {
-        // Try to find sounds directory relative to the desktop client
-        let desktopSounds = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()  // Audio/
-            .deletingLastPathComponent()  // Sources/
-            .deletingLastPathComponent()  // PlayPalace/
-            .deletingLastPathComponent()  // macos/
-            .deletingLastPathComponent()  // clients/
-            .appendingPathComponent("desktop")
+        // Look for sounds in the app bundle's Resources directory
+        let bundleSounds = Bundle.main.resourceURL?
             .appendingPathComponent("sounds")
 
-        if FileManager.default.fileExists(atPath: desktopSounds.path) {
-            soundsDirectory = desktopSounds
+        if let bundleSounds, FileManager.default.fileExists(atPath: bundleSounds.path) {
+            soundsDirectory = bundleSounds
         } else {
-            // Fallback: sounds folder next to the executable
-            soundsDirectory = Bundle.main.resourceURL?
-                .appendingPathComponent("sounds") ?? desktopSounds
+            // Fallback: sounds folder next to the app bundle
+            let appDir = Bundle.main.bundleURL.deletingLastPathComponent()
+            soundsDirectory = appDir.appendingPathComponent("sounds")
         }
     }
 
@@ -196,8 +190,9 @@ final class SoundManager: ObservableObject {
     // MARK: - Helpers
 
     private func resolveSound(_ name: String) -> URL? {
-        // Try the exact name first, then common audio extensions
-        let candidates = [name, name.replacingOccurrences(of: ".ogg", with: ".wav"),
+        // Try the exact name first, then macOS-native formats
+        let candidates = [name, name.replacingOccurrences(of: ".ogg", with: ".caf"),
+                          name.replacingOccurrences(of: ".ogg", with: ".wav"),
                           name.replacingOccurrences(of: ".ogg", with: ".mp3")]
         for candidate in candidates {
             let url = soundsDirectory.appendingPathComponent(candidate)

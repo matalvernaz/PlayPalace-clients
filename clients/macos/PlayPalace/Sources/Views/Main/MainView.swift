@@ -3,6 +3,7 @@ import SwiftUI
 struct MainView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = MainViewModel()
+    @State private var menuFocusRequest = false
 
     var body: some View {
         HSplitView {
@@ -57,8 +58,12 @@ struct MainView: View {
                 selection: $viewModel.menuSelection,
                 onActivate: viewModel.activateMenuItem,
                 onKeyEvent: viewModel.handleMenuKeyEvent,
-                soundManager: viewModel.soundManager
+                soundManager: viewModel.soundManager,
+                requestFocus: menuFocusRequest
             )
+            .onChange(of: viewModel.menuItems) {
+                menuFocusRequest.toggle()
+            }
         }
     }
 

@@ -9,6 +9,9 @@ struct AccessibleMenuList: View {
     let onActivate: (Int) -> Void
     let onKeyEvent: (KeyEquivalent, EventModifiers) -> Bool
     let soundManager: SoundManager
+    var requestFocus: Bool = false
+
+    @FocusState private var listFocused: Bool
 
     var body: some View {
         List(selection: $selection) {
@@ -40,17 +43,59 @@ struct AccessibleMenuList: View {
             if let sel = selection { onActivate(sel) }
             return .handled
         }
-        .onKeyPress(.space) {
-            if onKeyEvent(.space, []) { return .handled }
+        .onKeyPress(keys: [.space, .escape, .delete,
+                           .upArrow, .downArrow, .leftArrow, .rightArrow,
+                           .init(.init(UnicodeScalar(NSF1FunctionKey)!)),
+                           .init(.init(UnicodeScalar(NSF3FunctionKey)!)),
+                           .init(.init(UnicodeScalar(NSF5FunctionKey)!))]) { press in
+            let equiv = keyEquivalent(for: press)
+            let mods = eventModifiers(for: press)
+            if onKeyEvent(equiv, mods) { return .handled }
             return .ignored
         }
-        .onKeyPress(.escape) {
-            if onKeyEvent(.escape, []) { return .handled }
+        .onKeyPress(characters: .alphanumerics) { press in
+            let char = press.characters.lowercased()
+            if let first = char.first {
+                let equiv = KeyEquivalent(first)
+                let mods = eventModifiers(for: press)
+                if onKeyEvent(equiv, mods) { return .handled }
+            }
             return .ignored
         }
+        .focused($listFocused)
         .accessibilityLabel("Game menu, \(items.count) items")
         .accessibilityElement(children: .contain)
+        .onChange(of: requestFocus) { _, shouldFocus in
+            if shouldFocus { listFocused = true }
+        }
+        .onAppear { listFocused = true }
     }
+}
+
+private func keyEquivalent(for press: KeyPress) -> KeyEquivalent {
+    switch press.key {
+    case .space: return .space
+    case .escape: return .escape
+    case .delete: return .delete
+    case .upArrow: return .upArrow
+    case .downArrow: return .downArrow
+    case .leftArrow: return .leftArrow
+    case .rightArrow: return .rightArrow
+    default:
+        if let first = press.characters.first {
+            return KeyEquivalent(first)
+        }
+        return .escape
+    }
+}
+
+private func eventModifiers(for press: KeyPress) -> EventModifiers {
+    var mods: EventModifiers = []
+    if press.modifiers.contains(.command) { mods.insert(.command) }
+    if press.modifiers.contains(.option) { mods.insert(.option) }
+    if press.modifiers.contains(.shift) { mods.insert(.shift) }
+    if press.modifiers.contains(.control) { mods.insert(.control) }
+    return mods
 }
 
 struct MenuItemRow: View {
