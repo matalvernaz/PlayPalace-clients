@@ -28,15 +28,25 @@ jobs:
         working-directory: clients/macos/PlayPalace
         run: swift test || echo "No tests yet — skipping"
 
+      - name: Install ffmpeg
+        run: brew install ffmpeg
+
       - name: Assemble .app bundle
         working-directory: clients/macos/PlayPalace
         run: |
           BIN_DIR=$(swift build -c release --show-bin-path)
           APP="PlayPalace.app"
           mkdir -p "$APP/Contents/MacOS"
-          mkdir -p "$APP/Contents/Resources"
+          mkdir -p "$APP/Contents/Resources/sounds"
           cp "$BIN_DIR/PlayPalace" "$APP/Contents/MacOS/PlayPalace"
           chmod +x "$APP/Contents/MacOS/PlayPalace"
+
+          # Bundle sounds, converting OGG to CAF for AVAudioPlayer
+          cp -R ../../../clients/desktop/sounds/* "$APP/Contents/Resources/sounds/"
+          find "$APP/Contents/Resources/sounds" -name '*.ogg' | while IFS= read -r f; do
+            out="${f%.ogg}.caf"
+            ffmpeg -y -loglevel error -i "$f" -c pcm_s16le "$out" && rm "$f"
+          done
 
           cat > "$APP/Contents/Info.plist" << 'PLIST'
           <?xml version="1.0" encoding="UTF-8"?>
