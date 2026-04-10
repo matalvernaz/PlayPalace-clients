@@ -11,6 +11,7 @@ struct LoginView: View {
     @State private var errorMessage: String?
     @State private var showingServerManager = false
     @State private var showingRegistration = false
+    @State private var showingGestureSettings = false
 
     private var configManager: ConfigManager { appState.configManager }
 
@@ -44,6 +45,15 @@ struct LoginView: View {
             }
             .navigationTitle("PlayPalace")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingGestureSettings = true
+                    } label: {
+                        Label("Gesture Settings", systemImage: "hand.draw")
+                    }
+                    .accessibilityLabel("Gesture settings")
+                    .accessibilityHint("Customize touch gestures for gameplay")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         showingServerManager = true
@@ -53,6 +63,9 @@ struct LoginView: View {
                     .accessibilityLabel("Open server manager")
                     .accessibilityHint("Add, edit, or remove servers and accounts")
                 }
+            }
+            .sheet(isPresented: $showingGestureSettings) {
+                GestureSettingsView(settings: GestureSettings.load())
             }
             .sheet(isPresented: $showingServerManager) {
                 ServerManagerView_iOS()

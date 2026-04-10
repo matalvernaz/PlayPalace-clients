@@ -17,27 +17,18 @@ struct MainView: View {
     @State private var showingGestureSettings = false
 
     var body: some View {
-        ZStack {
+        Group {
             if viewModel.isEditMode {
                 EditOverlay(viewModel: viewModel)
             } else {
-                DirectTouchGameView(viewModel: viewModel, gestureSettings: gestureSettings)
-                    .ignoresSafeArea()
-            }
-
-            // Floating toolbar
-            VStack {
-                HStack(spacing: 10) {
-                    toolbarButton("bubble.left.fill", "Chat") { showingChat = true }
-                    toolbarButton("arrow.backward", "Back") { viewModel.sendEscape() }
-                    Spacer()
-                    toolbarButton("hand.draw", "Gestures") { showingGestureSettings = true }
-                    toolbarButton("slider.horizontal.3", "Controls") { showingControls = true }
-                    toolbarButton("questionmark.circle", "Help") { showingHelp = true }
-                }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-                Spacer()
+                DirectTouchGameView(
+                    viewModel: viewModel,
+                    gestureSettings: gestureSettings,
+                    onOpenChat: { showingChat = true },
+                    onOpenControls: { showingControls = true },
+                    onOpenHelp: { showingHelp = true }
+                )
+                .ignoresSafeArea()
             }
         }
         .sheet(isPresented: $showingChat) {
@@ -49,21 +40,8 @@ struct MainView: View {
         .sheet(isPresented: $showingHelp) {
             HelpSheet(gestureSettings: gestureSettings)
         }
-        .sheet(isPresented: $showingGestureSettings) {
-            GestureSettingsView(settings: gestureSettings)
-        }
         .onAppear { viewModel.setup(appState: appState) }
         .onDisappear { viewModel.disconnect() }
-    }
-
-    private func toolbarButton(_ icon: String, _ label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 18, weight: .medium))
-                .padding(10)
-                .background(.ultraThinMaterial, in: Circle())
-        }
-        .accessibilityLabel(label)
     }
 }
 
@@ -72,17 +50,26 @@ struct MainView: View {
 private struct DirectTouchGameView: UIViewRepresentable {
     @ObservedObject var viewModel: MainViewModel
     @ObservedObject var gestureSettings: GestureSettings
+    var onOpenChat: () -> Void
+    var onOpenControls: () -> Void
+    var onOpenHelp: () -> Void
 
     func makeUIView(context: Context) -> GameTouchView {
         let view = GameTouchView()
         view.viewModel = viewModel
         view.gestureSettings = gestureSettings
+        view.onOpenChat = onOpenChat
+        view.onOpenControls = onOpenControls
+        view.onOpenHelp = onOpenHelp
         return view
     }
 
     func updateUIView(_ uiView: GameTouchView, context: Context) {
         uiView.viewModel = viewModel
         uiView.gestureSettings = gestureSettings
+        uiView.onOpenChat = onOpenChat
+        uiView.onOpenControls = onOpenControls
+        uiView.onOpenHelp = onOpenHelp
         uiView.onMenuUpdate()
     }
 }
@@ -112,6 +99,9 @@ private struct DirectTouchGameView: UIViewRepresentable {
 final class GameTouchView: UIView {
     var viewModel: MainViewModel?
     var gestureSettings: GestureSettings?
+    var onOpenChat: (() -> Void)?
+    var onOpenControls: (() -> Void)?
+    var onOpenHelp: (() -> Void)?
 
     private let selectionFeedback = UISelectionFeedbackGenerator()
     private let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
@@ -287,35 +277,44 @@ final class GameTouchView: UIView {
     override var accessibilityCustomActions: [UIAccessibilityCustomAction]? {
         get {
             [
+                // Game actions
                 UIAccessibilityCustomAction(name: "Primary action") { [weak self] _ in
-                    self?.onTwoFingerDoubleTap(); return true
+                    self?.perform(.primaryAction); return true
                 },
                 UIAccessibilityCustomAction(name: "Go back") { [weak self] _ in
-                    self?.onScrub(); return true
+                    self?.perform(.goBack); return true
                 },
                 UIAccessibilityCustomAction(name: "Check score") { [weak self] _ in
-                    self?.viewModel?.sendKeybind("s"); return true
+                    self?.perform(.checkScore); return true
                 },
                 UIAccessibilityCustomAction(name: "Add bot") { [weak self] _ in
-                    self?.viewModel?.sendKeybind("b"); return true
-                },
-                UIAccessibilityCustomAction(name: "Remove bot") { [weak self] _ in
-                    self?.viewModel?.sendKeybind("shift+b"); return true
+                    self?.perform(.addBot); return true
                 },
                 UIAccessibilityCustomAction(name: "Status") { [weak self] _ in
-                    self?.announceStatus(); return true
+                    self?.perform(.status); return true
                 },
+                // Buffers
                 UIAccessibilityCustomAction(name: "Previous buffer") { [weak self] _ in
-                    self?.viewModel?.previousBuffer(); return true
+                    self?.perform(.previousBuffer); return true
                 },
                 UIAccessibilityCustomAction(name: "Next buffer") { [weak self] _ in
-                    self?.viewModel?.nextBuffer(); return true
+                    self?.perform(.nextBuffer); return true
                 },
                 UIAccessibilityCustomAction(name: "Older message") { [weak self] _ in
-                    self?.viewModel?.olderMessage(); return true
+                    self?.perform(.olderMessage); return true
                 },
                 UIAccessibilityCustomAction(name: "Newer message") { [weak self] _ in
-                    self?.viewModel?.newerMessage(); return true
+                    self?.perform(.newerMessage); return true
+                },
+                // Screens
+                UIAccessibilityCustomAction(name: "Open chat") { [weak self] _ in
+                    self?.onOpenChat?(); return true
+                },
+                UIAccessibilityCustomAction(name: "Open controls") { [weak self] _ in
+                    self?.onOpenControls?(); return true
+                },
+                UIAccessibilityCustomAction(name: "Help") { [weak self] _ in
+                    self?.onOpenHelp?(); return true
                 },
             ]
         }
