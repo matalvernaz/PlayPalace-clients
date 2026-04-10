@@ -37,15 +37,15 @@ struct LoginView: View {
     var body: some View {
         NavigationStack {
             Form {
-                serverPickerSection
-                accountPickerSection
-                passwordSection
-                connectSection
-                registrationSection
-            }
-            .navigationTitle("PlayPalace")
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                Section {
+                    Button {
+                        showingServerManager = true
+                    } label: {
+                        Label("Server Manager", systemImage: "server.rack")
+                    }
+                    .accessibilityLabel("Server manager")
+                    .accessibilityHint("Add, edit, or remove servers and accounts")
+
                     Button {
                         showingGestureSettings = true
                     } label: {
@@ -54,16 +54,14 @@ struct LoginView: View {
                     .accessibilityLabel("Gesture settings")
                     .accessibilityHint("Customize touch gestures for gameplay")
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        showingServerManager = true
-                    } label: {
-                        Label("Server Manager", systemImage: "server.rack")
-                    }
-                    .accessibilityLabel("Open server manager")
-                    .accessibilityHint("Add, edit, or remove servers and accounts")
-                }
+
+                serverPickerSection
+                accountPickerSection
+                passwordSection
+                connectSection
+                registrationSection
             }
+            .navigationTitle("PlayPalace")
             .sheet(isPresented: $showingGestureSettings) {
                 GestureSettingsView(settings: GestureSettings.load())
             }
