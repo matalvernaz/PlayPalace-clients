@@ -25,7 +25,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     // MARK: - Internal State
 
     private(set) var soundManager = SoundManager()
-    private var speechManager = SpeechManager()
+    private(set) var speechManager = SpeechManager()
     private var bufferSystem = BufferSystem()
     private var webSocket: WebSocketClient?
     private var appState: AppState?

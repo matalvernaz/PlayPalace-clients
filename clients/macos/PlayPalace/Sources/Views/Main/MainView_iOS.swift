@@ -10,16 +10,18 @@ import UIKit
 struct MainView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = MainViewModel()
+    @StateObject private var gestureSettings = GestureSettings.load()
     @State private var showingChat = false
     @State private var showingControls = false
     @State private var showingHelp = false
+    @State private var showingGestureSettings = false
 
     var body: some View {
         ZStack {
             if viewModel.isEditMode {
                 EditOverlay(viewModel: viewModel)
             } else {
-                DirectTouchGameView(viewModel: viewModel)
+                DirectTouchGameView(viewModel: viewModel, gestureSettings: gestureSettings)
                     .ignoresSafeArea()
             }
 
@@ -29,6 +31,7 @@ struct MainView: View {
                     toolbarButton("bubble.left.fill", "Chat") { showingChat = true }
                     toolbarButton("arrow.backward", "Back") { viewModel.sendEscape() }
                     Spacer()
+                    toolbarButton("hand.draw", "Gestures") { showingGestureSettings = true }
                     toolbarButton("slider.horizontal.3", "Controls") { showingControls = true }
                     toolbarButton("questionmark.circle", "Help") { showingHelp = true }
                 }
@@ -44,7 +47,10 @@ struct MainView: View {
             ControlsSheet(viewModel: viewModel, appState: appState)
         }
         .sheet(isPresented: $showingHelp) {
-            HelpSheet()
+            HelpSheet(gestureSettings: gestureSettings)
+        }
+        .sheet(isPresented: $showingGestureSettings) {
+            GestureSettingsView(settings: gestureSettings)
         }
         .onAppear { viewModel.setup(appState: appState) }
         .onDisappear { viewModel.disconnect() }
@@ -65,15 +71,18 @@ struct MainView: View {
 
 private struct DirectTouchGameView: UIViewRepresentable {
     @ObservedObject var viewModel: MainViewModel
+    @ObservedObject var gestureSettings: GestureSettings
 
     func makeUIView(context: Context) -> GameTouchView {
         let view = GameTouchView()
         view.viewModel = viewModel
+        view.gestureSettings = gestureSettings
         return view
     }
 
     func updateUIView(_ uiView: GameTouchView, context: Context) {
         uiView.viewModel = viewModel
+        uiView.gestureSettings = gestureSettings
         uiView.onMenuUpdate()
     }
 }
@@ -102,8 +111,8 @@ private struct DirectTouchGameView: UIViewRepresentable {
 ///   Tap                — announce help
 final class GameTouchView: UIView {
     var viewModel: MainViewModel?
+    var gestureSettings: GestureSettings?
 
-    private let speech = SpeechQueue()
     private let selectionFeedback = UISelectionFeedbackGenerator()
     private let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
     private let notificationFeedback = UINotificationFeedbackGenerator()
@@ -313,116 +322,97 @@ final class GameTouchView: UIView {
         set {}
     }
 
-    // MARK: - One Finger: Menu Navigation
+    // MARK: - Gesture Dispatch
 
-    @objc private func onSwipeRight() {
-        guard let vm = viewModel, !vm.menuItems.isEmpty else { return }
-        if currentIndex < vm.menuItems.count - 1 {
-            currentIndex += 1
-        } else {
-            speech.speak("End of list")
-            return
+    /// Central dispatch: looks up the action for a gesture type and executes it.
+    private func dispatch(_ gestureType: GestureType) {
+        let action = gestureSettings?.action(for: gestureType) ?? GestureSettings.defaultMapping[gestureType] ?? .none
+        perform(action)
+        resetIdleTimer()
+    }
+
+    /// Execute a gesture action.
+    private func perform(_ action: GestureAction) {
+        guard let vm = viewModel else { return }
+        switch action {
+        case .nextItem:
+            guard !vm.menuItems.isEmpty else { return }
+            if currentIndex < vm.menuItems.count - 1 {
+                currentIndex += 1
+                vm.menuSelection = currentIndex
+                selectionFeedback.selectionChanged()
+            }
+            announceCurrentItem()
+        case .previousItem:
+            guard !vm.menuItems.isEmpty else { return }
+            if currentIndex > 0 {
+                currentIndex -= 1
+                vm.menuSelection = currentIndex
+                selectionFeedback.selectionChanged()
+            }
+            announceCurrentItem()
+        case .activateItem:
+            guard !vm.menuItems.isEmpty,
+                  currentIndex >= 0, currentIndex < vm.menuItems.count else {
+                speak("Nothing to select")
+                notificationFeedback.notificationOccurred(.error)
+                return
+            }
+            impactFeedback.impactOccurred()
+            vm.activateMenuItem(currentIndex)
+        case .repeatItem:
+            announceCurrentItem()
+        case .goBack:
+            impactFeedback.impactOccurred()
+            vm.sendEscape()
+            speak("Back")
+        case .primaryAction:
+            impactFeedback.impactOccurred()
+            vm.sendKeybind("space")
+        case .checkScore:
+            vm.sendKeybind("s")
+        case .addBot:
+            vm.sendKeybind("b")
+        case .status:
+            announceStatus()
+        case .help:
+            announceHelp()
+        case .previousBuffer:
+            vm.previousBuffer()
+        case .nextBuffer:
+            vm.nextBuffer()
+        case .olderMessage:
+            vm.olderMessage()
+        case .newerMessage:
+            vm.newerMessage()
+        case .none:
+            break
         }
-        vm.menuSelection = currentIndex
-        selectionFeedback.selectionChanged()
-        announceCurrentItem()
-        resetIdleTimer()
     }
 
-    @objc private func onSwipeLeft() {
-        guard let vm = viewModel, !vm.menuItems.isEmpty else { return }
-        if currentIndex > 0 {
-            currentIndex -= 1
-        } else {
-            speech.speak("Beginning of list")
-            return
-        }
-        vm.menuSelection = currentIndex
-        selectionFeedback.selectionChanged()
-        announceCurrentItem()
-        resetIdleTimer()
-    }
+    // MARK: - Gesture Handlers
 
-    @objc private func onDoubleTap() {
-        guard let vm = viewModel, !vm.menuItems.isEmpty,
-              currentIndex >= 0, currentIndex < vm.menuItems.count else {
-            speech.speak("Nothing to select")
-            notificationFeedback.notificationOccurred(.error)
-            return
-        }
-        let item = vm.menuItems[currentIndex]
-        impactFeedback.impactOccurred()
-        vm.activateMenuItem(currentIndex)
-        speech.speak(item.text)
-        resetIdleTimer()
-    }
+    @objc private func onSwipeRight() { dispatch(.oneFingerSwipeRight) }
+    @objc private func onSwipeLeft() { dispatch(.oneFingerSwipeLeft) }
+    @objc private func onSingleTap() { dispatch(.oneFingerSingleTap) }
 
-    @objc private func onSingleTap() {
-        announceCurrentItem()
-        resetIdleTimer()
-    }
+    @objc private func onDoubleTap() { dispatch(.oneFingerDoubleTap) }
 
     @objc private func onLongPress(_ gesture: UILongPressGestureRecognizer) {
         guard gesture.state == .began else { return }
-        announceStatus()
-        resetIdleTimer()
+        dispatch(.oneFingerLongPress)
     }
 
-    // MARK: - Two Fingers: Game Actions
+    private func onScrub() { dispatch(.twoFingerScrub) }
+    @objc private func onTwoFingerDoubleTap() { dispatch(.twoFingerDoubleTap) }
+    @objc private func onTwoFingerSwipeUp() { dispatch(.twoFingerSwipeUp) }
+    @objc private func onTwoFingerSwipeDown() { dispatch(.twoFingerSwipeDown) }
 
-    private func onScrub() {
-        guard let vm = viewModel else { return }
-        impactFeedback.impactOccurred()
-        vm.sendEscape()
-        speech.speak("Back")
-        resetIdleTimer()
-    }
-
-    @objc private func onTwoFingerDoubleTap() {
-        guard let vm = viewModel else { return }
-        impactFeedback.impactOccurred()
-        vm.sendKeybind("space")
-        resetIdleTimer()
-    }
-
-    @objc private func onTwoFingerSwipeUp() {
-        guard let vm = viewModel else { return }
-        vm.sendKeybind("s")
-        resetIdleTimer()
-    }
-
-    @objc private func onTwoFingerSwipeDown() {
-        guard let vm = viewModel else { return }
-        vm.sendKeybind("b")
-        resetIdleTimer()
-    }
-
-    // MARK: - Three Fingers: Buffer System
-
-    @objc private func onThreeFingerSwipeLeft() {
-        viewModel?.previousBuffer()
-        resetIdleTimer()
-    }
-
-    @objc private func onThreeFingerSwipeRight() {
-        viewModel?.nextBuffer()
-        resetIdleTimer()
-    }
-
-    @objc private func onThreeFingerSwipeUp() {
-        viewModel?.olderMessage()
-        resetIdleTimer()
-    }
-
-    @objc private func onThreeFingerSwipeDown() {
-        viewModel?.newerMessage()
-        resetIdleTimer()
-    }
-
-    @objc private func onThreeFingerTap() {
-        announceHelp()
-        resetIdleTimer()
-    }
+    @objc private func onThreeFingerSwipeLeft() { dispatch(.threeFingerSwipeLeft) }
+    @objc private func onThreeFingerSwipeRight() { dispatch(.threeFingerSwipeRight) }
+    @objc private func onThreeFingerSwipeUp() { dispatch(.threeFingerSwipeUp) }
+    @objc private func onThreeFingerSwipeDown() { dispatch(.threeFingerSwipeDown) }
+    @objc private func onThreeFingerTap() { dispatch(.threeFingerTap) }
 
     // MARK: - Menu Updates
 
@@ -441,28 +431,50 @@ final class GameTouchView: UIView {
             currentIndex = sel
         }
 
-        // Announce when menu content changes
         let count = vm.menuItems.count
-        if count != lastMenuItemCount {
+
+        // Auto-activate single-item menus (e.g., "Roll" or "Draw"
+        // presented after a primary action). This makes two-finger
+        // double-tap feel like one action instead of two.
+        if count == 1 && count != lastMenuItemCount {
             lastMenuItemCount = count
-            if count > 0 {
-                let first = vm.menuItems[currentIndex].text
-                speech.speak("\(count) items. \(first)")
-            }
+            impactFeedback.impactOccurred()
+            vm.activateMenuItem(0)
+            return
         }
 
+        lastMenuItemCount = count
+
+        // Don't auto-announce on menu change — let server speech
+        // (draw results, dice rolls, game announcements) come through
+        // uninterrupted. The idle timer will announce if the user
+        // doesn't interact within 8 seconds.
         resetIdleTimer()
     }
 
     // MARK: - Speech Helpers
 
+    /// Speak with interrupt — for user-initiated navigation.
+    private func speak(_ text: String) {
+        Task { @MainActor in
+            viewModel?.speechManager.speak(text, interrupt: true)
+        }
+    }
+
+    /// Speak without interrupt — for queued announcements.
+    private func speakQueued(_ text: String) {
+        Task { @MainActor in
+            viewModel?.speechManager.speak(text, interrupt: false)
+        }
+    }
+
     private func announceCurrentItem() {
         guard let vm = viewModel, !vm.menuItems.isEmpty else {
-            speech.speak("No items")
+            speak("No items")
             return
         }
         let item = vm.menuItems[currentIndex]
-        speech.speak("\(item.text). \(currentIndex + 1) of \(vm.menuItems.count)")
+        speak("\(item.text). \(currentIndex + 1) of \(vm.menuItems.count)")
     }
 
     private func announceStatus() {
@@ -470,19 +482,58 @@ final class GameTouchView: UIView {
         let connected = vm.isConnected ? "Connected" : "Disconnected"
         let count = vm.menuItems.count
         if count == 0 {
-            speech.speak("\(connected). No menu items.")
+            speak("\(connected). No menu items.")
         } else {
             let item = vm.menuItems[currentIndex].text
-            speech.speak("\(connected). Item \(currentIndex + 1) of \(count): \(item)")
+            speak("\(connected). Item \(currentIndex + 1) of \(count): \(item)")
         }
     }
 
     private func announceHelp() {
-        speech.speak(
-            "One finger: swipe left or right to browse, double-tap to select, tap to repeat, long press for status. " +
-            "Two fingers: scrub to go back, double-tap for primary action, swipe up for score, swipe down to add bot. " +
-            "Three fingers: swipe left or right for buffers, swipe up or down for messages, tap for this help."
-        )
+        guard let vm = viewModel else {
+            speak("Not connected.")
+            return
+        }
+        let count = vm.menuItems.count
+        if count == 0 {
+            speak("Waiting for menu. Swipe left or right when items appear.")
+            return
+        }
+
+        // Build context-sensitive hint from what's in the menu
+        let itemTexts = vm.menuItems.map { $0.text.lowercased() }
+        var hints: [String] = []
+
+        // Check for lobby indicators
+        let isLobby = itemTexts.contains(where: { $0.contains("start") })
+        if isLobby {
+            hints.append("Double-tap to start game")
+            hints.append("Two-finger swipe down to add bot")
+        }
+
+        // Check for card/game items
+        let hasCards = itemTexts.contains(where: { $0.contains("of ") }) // "Ace of Spades"
+        if hasCards {
+            hints.append("Swipe to browse cards, double-tap to play")
+            hints.append("Two-finger double-tap to draw")
+        }
+
+        // Check for dice games
+        let hasDice = itemTexts.contains(where: { $0.contains("roll") || $0.contains("dice") })
+        if hasDice {
+            hints.append("Two-finger double-tap to roll")
+        }
+
+        // Always available
+        hints.append("Two-finger scrub to go back")
+        hints.append("Two-finger swipe up for score")
+
+        // Fallback if nothing specific detected
+        if hints.count <= 2 {
+            hints.insert("\(count) items. Swipe to browse, double-tap to select", at: 0)
+        }
+
+        speak(hints.joined(separator: ". "))
     }
 
     // MARK: - Idle Timer
@@ -501,29 +552,6 @@ final class GameTouchView: UIView {
 
     deinit {
         idleTimer?.invalidate()
-    }
-}
-
-// MARK: - Speech Queue
-
-/// Interruptible speech. New speech immediately cancels current utterance.
-private final class SpeechQueue: NSObject, AVSpeechSynthesizerDelegate {
-    private let synth = AVSpeechSynthesizer()
-
-    override init() {
-        super.init()
-        synth.delegate = self
-    }
-
-    func speak(_ text: String) {
-        synth.stopSpeaking(at: .immediate)
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = AVSpeechUtteranceDefaultSpeechRate
-        synth.speak(utterance)
-    }
-
-    func stop() {
-        synth.stopSpeaking(at: .immediate)
     }
 }
 
@@ -683,34 +711,27 @@ private struct ControlsSheet: View {
 // MARK: - Help Sheet
 
 private struct HelpSheet: View {
+    @ObservedObject var gestureSettings: GestureSettings
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             List {
-                Section("One Finger — Menu") {
-                    helpRow("Swipe right", "Next item")
-                    helpRow("Swipe left", "Previous item")
-                    helpRow("Double-tap", "Select current item")
-                    helpRow("Single tap", "Repeat current item")
-                    helpRow("Long press", "Detailed status")
-                }
-                Section("Two Fingers — Game Actions") {
-                    helpRow("Scrub (zig-zag)", "Go back / escape")
-                    helpRow("Double-tap", "Primary action (roll, draw)")
-                    helpRow("Swipe up", "Check score")
-                    helpRow("Swipe down", "Add bot (lobby)")
-                }
-                Section("Three Fingers — Buffers") {
-                    helpRow("Swipe left", "Previous buffer")
-                    helpRow("Swipe right", "Next buffer")
-                    helpRow("Swipe up", "Older message")
-                    helpRow("Swipe down", "Newer message")
-                    helpRow("Tap", "Announce help")
+                ForEach([1, 2, 3], id: \.self) { fingerCount in
+                    let label = fingerCount == 1 ? "One Finger" : fingerCount == 2 ? "Two Fingers" : "Three Fingers"
+                    Section(label) {
+                        ForEach(GestureType.allCases.filter { $0.fingerCount == fingerCount }) { gesture in
+                            let action = gestureSettings.action(for: gesture)
+                            if action != .none {
+                                helpRow(gesture.displayName, action.displayName)
+                            }
+                        }
+                    }
                 }
                 Section("On-screen Buttons") {
                     helpRow("Chat", "Send messages to players")
-                    helpRow("Back", "Go back (same as two-finger scrub)")
+                    helpRow("Back", "Go back")
+                    helpRow("Gestures", "Customize gesture mappings")
                     helpRow("Controls", "Volume, buffers, connection")
                     helpRow("Help", "This screen")
                 }
@@ -718,6 +739,8 @@ private struct HelpSheet: View {
                     Text("The app speaks everything itself. VoiceOver is optional but supported.")
                         .font(.callout).foregroundStyle(.secondary)
                     Text("After 8 seconds idle, the current item repeats.")
+                        .font(.callout).foregroundStyle(.secondary)
+                    Text("Customize gestures with the Gestures button in the toolbar.")
                         .font(.callout).foregroundStyle(.secondary)
                 }
             }

@@ -11,20 +11,22 @@
 		A000003EC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/BufferSystem.swift"; sourceTree = "<group>"; };
 		A000003ED = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/ConfigManager.swift"; sourceTree = "<group>"; };
 		A000003EE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/Credentials.swift"; sourceTree = "<group>"; };
-		A000003EF = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/Packets.swift"; sourceTree = "<group>"; };
-		A000003F0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Network/WebSocketClient.swift"; sourceTree = "<group>"; };
-		A000003F1 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/AccessibleMenuList.swift"; sourceTree = "<group>"; };
-		A000003F2 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/ActionBar.swift"; sourceTree = "<group>"; };
-		A000003F3 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/KeyboardShortcutHandler.swift"; sourceTree = "<group>"; };
-		A000003F4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/MenuList_iOS.swift"; sourceTree = "<group>"; };
-		A000003F5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/LoginView.swift"; sourceTree = "<group>"; };
-		A000003F6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/LoginView_iOS.swift"; sourceTree = "<group>"; };
-		A000003F7 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/RegistrationView.swift"; sourceTree = "<group>"; };
-		A000003F8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/ServerManagerView.swift"; sourceTree = "<group>"; };
-		A000003F9 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/ServerManagerView_iOS.swift"; sourceTree = "<group>"; };
-		A000003FA = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainView.swift"; sourceTree = "<group>"; };
-		A000003FB = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainViewModel.swift"; sourceTree = "<group>"; };
-		A000003FC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainView_iOS.swift"; sourceTree = "<group>"; };
+		A000003EF = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/GestureSettings.swift"; sourceTree = "<group>"; };
+		A000003F0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Models/Packets.swift"; sourceTree = "<group>"; };
+		A000003F1 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Network/WebSocketClient.swift"; sourceTree = "<group>"; };
+		A000003F2 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/AccessibleMenuList.swift"; sourceTree = "<group>"; };
+		A000003F3 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/ActionBar.swift"; sourceTree = "<group>"; };
+		A000003F4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/GestureSettingsView.swift"; sourceTree = "<group>"; };
+		A000003F5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/KeyboardShortcutHandler.swift"; sourceTree = "<group>"; };
+		A000003F6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Components/MenuList_iOS.swift"; sourceTree = "<group>"; };
+		A000003F7 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/LoginView.swift"; sourceTree = "<group>"; };
+		A000003F8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/LoginView_iOS.swift"; sourceTree = "<group>"; };
+		A000003F9 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/RegistrationView.swift"; sourceTree = "<group>"; };
+		A000003FA = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/ServerManagerView.swift"; sourceTree = "<group>"; };
+		A000003FB = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Login/ServerManagerView_iOS.swift"; sourceTree = "<group>"; };
+		A000003FC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainView.swift"; sourceTree = "<group>"; };
+		A000003FD = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainViewModel.swift"; sourceTree = "<group>"; };
+		A000003FE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Sources/Views/Main/MainView_iOS.swift"; sourceTree = "<group>"; };
 		B000003E8 = {isa = PBXBuildFile; fileRef = A000003E8; };
 		B000003E9 = {isa = PBXBuildFile; fileRef = A000003E9; };
 		B000003EA = {isa = PBXBuildFile; fileRef = A000003EA; };
@@ -46,6 +48,8 @@
 		B000003FA = {isa = PBXBuildFile; fileRef = A000003FA; };
 		B000003FB = {isa = PBXBuildFile; fileRef = A000003FB; };
 		B000003FC = {isa = PBXBuildFile; fileRef = A000003FC; };
+		B000003FD = {isa = PBXBuildFile; fileRef = A000003FD; };
+		B000003FE = {isa = PBXBuildFile; fileRef = A000003FE; };
 		C0000001 = {isa = PBXGroup; children = (
 				A000003E8,
 				A000003E9,
@@ -68,6 +72,8 @@
 				A000003FA,
 				A000003FB,
 				A000003FC,
+				A000003FD,
+				A000003FE,
 			); sourceTree = "<group>"; };
 		C0000002 = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (
 				B000003E8,
@@ -91,6 +97,8 @@
 				B000003FA,
 				B000003FB,
 				B000003FC,
+				B000003FD,
+				B000003FE,
 			); runOnlyForDeploymentPostprocessing = 0; };
 		C0000003 = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 		C0000004 = {isa = PBXNativeTarget; buildConfigurationList = C0000008; buildPhases = (C0000002, C0000003); buildRules = (); dependencies = (); name = PlayPalace; productName = PlayPalace; productReference = C0000005; productType = "com.apple.product-type.application"; };

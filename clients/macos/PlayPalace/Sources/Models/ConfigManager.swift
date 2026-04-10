@@ -75,6 +75,7 @@ final class ConfigManager: ObservableObject {
         basePath = appSupport.appendingPathComponent("PlayPalace")
         #endif
         loadIdentities()
+        seedDefaultServerIfNeeded()
     }
 
     var identitiesPath: URL { basePath.appendingPathComponent("identities.json") }
@@ -126,6 +127,23 @@ final class ConfigManager: ObservableObject {
         if let notes { server.notes = notes }
         servers[id] = server
         saveIdentities()
+    }
+
+    private func seedDefaultServerIfNeeded() {
+        let defaultHost = "wss://rmichie.com"
+        let defaultPort = 8000
+        // Don't add if any server already points to this host
+        let alreadyExists = servers.values.contains { $0.host == defaultHost && $0.port == defaultPort }
+        if !alreadyExists {
+            let id = UUID().uuidString
+            let server = ServerEntry(
+                serverID: id, name: "Default", host: defaultHost,
+                port: defaultPort, notes: "", accounts: [:]
+            )
+            servers[id] = server
+            if lastServerID == nil { lastServerID = id }
+            saveIdentities()
+        }
     }
 
     func deleteServer(_ id: String) {
