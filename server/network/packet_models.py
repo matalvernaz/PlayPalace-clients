@@ -179,6 +179,13 @@ class CheckTablePasswordCommandPacket(BasePacket):
     type: Literal["check_table_pw_cmd"] = "check_table_pw_cmd"
 
 
+class SetPreferencePacket(BasePacket):
+    type: Literal["set_preference"] = "set_preference"
+    key: str
+    value: Any = None
+    game_type: str | None = None
+
+
 ClientToServerPacket = Annotated[
     Union[
         AuthorizePacket,
@@ -203,6 +210,7 @@ ClientToServerPacket = Annotated[
         SetTablePasswordCommandPacket,
         RemoveTablePasswordCommandPacket,
         CheckTablePasswordCommandPacket,
+        SetPreferencePacket,
     ],
     Field(discriminator="type"),
 ]

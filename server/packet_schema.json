@@ -661,6 +661,42 @@
         "title": "RemoveTablePasswordCommandPacket",
         "type": "object"
       },
+      "SetPreferencePacket": {
+        "additionalProperties": false,
+        "properties": {
+          "game_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Game Type"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "type": {
+            "const": "set_preference",
+            "default": "set_preference",
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "default": null,
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "SetPreferencePacket",
+        "type": "object"
+      },
       "SetTablePasswordCommandPacket": {
         "additionalProperties": false,
         "properties": {
@@ -753,6 +789,7 @@
         "refresh_session": "#/$defs/RefreshSessionPacket",
         "register": "#/$defs/RegisterPacket",
         "remove_table_pw_cmd": "#/$defs/RemoveTablePasswordCommandPacket",
+        "set_preference": "#/$defs/SetPreferencePacket",
         "set_table_pw_cmd": "#/$defs/SetTablePasswordCommandPacket",
         "set_table_visibility_cmd": "#/$defs/SetTableVisibilityCommandPacket",
         "slash_command": "#/$defs/SlashCommandPacket"
@@ -825,6 +862,9 @@
       },
       {
         "$ref": "#/$defs/CheckTablePasswordCommandPacket"
+      },
+      {
+        "$ref": "#/$defs/SetPreferencePacket"
       }
     ]
   },

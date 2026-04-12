@@ -201,6 +201,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         self._registration_attempts_ip: dict[str, deque[float]] = {}
         self._refresh_attempts_ip: dict[str, deque[float]] = {}
         self._pending_disconnects: dict[str, asyncio.Task] = {}
+        self._chat_tokens: dict[str, float] = {}  # username -> available tokens
+        self._chat_last_refill: dict[str, float] = {}  # username -> last refill timestamp
         self._lifecycle = ServerLifecycleState()
         self._lifecycle.add_gate(STARTUP_GATE_ID, message="Server is starting up.")
         self._localization_gate_registered = False
@@ -1120,6 +1122,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 await self._handle_editbox(client, packet)
             elif packet_type == "chat":
                 await self._handle_chat(client, packet)
+            elif packet_type == "set_preference":
+                await self._handle_set_preference(client, packet)
             elif packet_type == "list_online":
                 await self._handle_list_online(client)
             elif packet_type == "list_online_with_games":
@@ -2622,6 +2626,41 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         """Save user preferences to database."""
         prefs_json = json.dumps(user.preferences.to_dict())
         self._db.update_user_preferences(user.username, prefs_json)
+
+    async def _handle_set_preference(self, client: ClientConnection, packet: dict) -> None:
+        """Handle direct preference updates from native clients (mobile/macOS).
+
+        This allows clients with their own settings UI to set preferences
+        by key without navigating server menus.
+        """
+        user = self._users.get(client.username)
+        if not user:
+            return
+
+        key = packet.get("key", "")
+        value = packet.get("value")
+        game_type = packet.get("game_type")
+
+        meta = UserPreferences.get_pref_meta(key)
+        if meta is None:
+            return
+
+        # Coerce value to the expected type
+        if meta.kind == "bool":
+            value = bool(value)
+        elif meta.enum_class:
+            try:
+                value = meta.enum_class(value)
+            except (ValueError, KeyError):
+                return
+
+        prefs = user.preferences
+        if game_type:
+            prefs.set_game_override(key, game_type, value)
+        else:
+            setattr(prefs, key, value)
+
+        self._save_user_preferences(user)
 
     async def _handle_categories_selection(
         self, user: NetworkUser, selection_id: str, state: dict
@@ -4195,10 +4234,37 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                     table.remove_member(username)
                     self._show_main_menu(user, reset_history=True)
 
+    # Chat rate limit: 5 tokens, refills at 0.5/sec (1 msg every 2s sustained)
+    _CHAT_MAX_TOKENS = 5.0
+    _CHAT_REFILL_RATE = 0.5
+
+    def _check_chat_rate(self, username: str) -> bool:
+        """Return True if the user is allowed to send a chat message (token bucket)."""
+        now = time.monotonic()
+        last = self._chat_last_refill.get(username, now)
+        tokens = self._chat_tokens.get(username, self._CHAT_MAX_TOKENS)
+
+        # Refill tokens based on elapsed time
+        tokens = min(self._CHAT_MAX_TOKENS, tokens + (now - last) * self._CHAT_REFILL_RATE)
+        self._chat_last_refill[username] = now
+
+        if tokens < 1.0:
+            self._chat_tokens[username] = tokens
+            return False
+
+        self._chat_tokens[username] = tokens - 1.0
+        return True
+
     async def _handle_chat(self, client: ClientConnection, packet: dict) -> None:
         """Handle chat message."""
         username = client.username
         if not username:
+            return
+
+        if not self._check_chat_rate(username):
+            user = self._users.get(username)
+            if user:
+                user.speak_l("chat-rate-limited")
             return
 
         convo = packet.get("convo", "local")

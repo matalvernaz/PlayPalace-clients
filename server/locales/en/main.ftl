@@ -569,3 +569,4 @@ localization-in-progress-try-again = Localization in progress. Please try again 
 
 # Errors
 internal-error = Something went wrong. Please try again.
+chat-rate-limited = You are sending messages too quickly. Please wait a moment.
