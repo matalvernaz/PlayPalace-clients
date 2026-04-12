@@ -58,3 +58,27 @@ Multiplayer game platform for blind users. Python 3.13+, uv, dataclass-driven st
 - TeamManager: if your game uses the global score system, you MUST initialize and update TeamManager, even in individual mode. If your game tracks scores on player objects instead, you MUST override _action_check_scores, _action_check_scores_detailed, _is_check_scores_enabled, and _is_check_scores_detailed_enabled — otherwise the S key will always say "no scores available."
 - Menu focus bug: when turn-specific actions appear/disappear, persistent actions shift position and the cursor gets stuck. Fix: consider whether those actions are actually useful in the turn menu or could live in the context menu. If they are indeed useful in the turn menu, jump focus up top at the start of user turns.
 - spinning: this is when agents use fallback approaches to get things working ASAP. Python is often used for throwaway scripts, but such practices are very harmful for a large codebase; worse still, any fallback approaches may "infect" other agents working on code, progressively rotting the codebase.
+
+## Server Deployment (Matt's instance)
+
+A live server runs at `wss://playpalace.thealvernaz.space` (port 443). It is deployed as a Docker stack on an Incus container (`dockge`) behind Cloudflare + Traefik. TLS is terminated at Traefik; the server runs plain WS internally. Owner account: `matt`.
+
+To update the server from the homelab machine: `incus exec dockge -- bash -c "cd /opt/stacks/playpalace/repo && git pull && cd /opt/stacks/playpalace && docker compose build && docker compose up -d --force-recreate"`
+
+## Server Optimizations (already applied)
+
+The server has been optimized for multi-client support (iOS, macOS, desktop, web):
+
+1. **Real IP extraction** — `X-Forwarded-For` / `X-Real-IP` header parsing in `websocket_server.py` so rate limiting works behind reverse proxies.
+2. **O(1) username index** — `_username_to_client` dict in `WebSocketServer` replaces O(n) linear scans in `send_to_user()` and `get_client_by_username()`.
+3. **Disconnect debounce** — 2-second grace period before broadcasting "user offline" or cleaning up game state, so mobile reconnects (Wi-Fi/cellular handoff) don't cause presence flap or lose games.
+4. **Connection identity check** — Stale disconnect handlers verify they're still the current connection before cleaning up, preventing race conditions.
+5. **`set_preference` packet** — Lets native clients (iOS/macOS) update preferences directly by key instead of navigating server menus. Supports global and per-game overrides.
+6. **Chat rate limiting** — Token bucket (5 tokens, 0.5/sec refill) prevents spam.
+7. **`client_types.py`** — Helper functions: `is_mobile_client_type()`, `is_touch_client_type()`, `uses_self_voicing()` in `server/game_utils/`.
+
+## iOS Client (`clients/macos/`)
+
+The Swift/SwiftUI client targets macOS 14+ and iOS 17+. It connects via WebSocket to the server and supports VoiceOver, custom touch gestures, and sound. The server at `wss://playpalace.thealvernaz.space` is ready for testing.
+
+Key files: `WebSocketClient.swift` (networking), `Packets.swift` (protocol), `MainViewModel.swift` (logic), `MainView_iOS.swift` (touch UI), `GestureSettings.swift` (customizable gestures).
