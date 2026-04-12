@@ -200,6 +200,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         self._login_attempts_user: dict[str, deque[float]] = {}
         self._registration_attempts_ip: dict[str, deque[float]] = {}
         self._refresh_attempts_ip: dict[str, deque[float]] = {}
+        self._pending_disconnects: dict[str, asyncio.Task] = {}
         self._lifecycle = ServerLifecycleState()
         self._lifecycle.add_gate(STARTUP_GATE_ID, message="Server is starting up.")
         self._localization_gate_registered = False
@@ -474,7 +475,10 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
 
     @staticmethod
     def _get_client_ip(client: ClientConnection) -> str:
-        """Return the client IP string (or "unknown")."""
+        """Return the real client IP, preferring the proxy-extracted address."""
+        ip = getattr(client, "ip_address", "")
+        if ip:
+            return ip
         if not client.address:
             return "unknown"
         return client.address.split(":")[0]
@@ -964,35 +968,66 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         print(f"Client connected: {client.address}")
 
     async def _on_client_disconnect(self, client: ClientConnection) -> None:
-        """Handle client disconnection."""
+        """Handle client disconnection with a grace period for mobile reconnects."""
         username = client.username or "unknown"
         print(f"Client disconnected: {username}@{client.address}")
         if getattr(client, "replaced", False):
             return
-        if client.username:
-            username = client.username
-            table = self._tables.find_user_table(username)
-            # Check user status before cleanup
-            user = self._users.get(username)
+        if not client.username:
+            return
 
-            if table and user:
-                if table.game:
-                    player = table.game.get_player_by_id(user.uuid)
-                    if player:
-                        table.game._perform_leave_game(player)
-                # Keep membership for rejoin unless this was the last member
-                if len(table.members) <= 1:
-                    table.remove_member(username)
+        username = client.username
+        user = self._users.get(username)
 
-            # Only broadcast offline if user was approved and not banned
-            if user and user.approved and user.trust_level != TrustLevel.BANNED:
-                is_admin = user.trust_level.value >= TrustLevel.ADMIN.value
-                offline_sound = "offlineadmin.ogg" if is_admin else "offline.ogg"
-                self._broadcast_presence_l("user-offline", username, offline_sound)
+        # Connection identity check: if the user already reconnected on a new
+        # connection, this stale disconnect should not clean up their session.
+        if user and user.connection is not client:
+            return
 
-            # Clean up user state
-            self._users.pop(username, None)
-            self._user_states.pop(username, None)
+        # Debounce: delay cleanup by 2 seconds to let mobile clients reconnect
+        # without broadcasting presence flap or losing game state.
+        task = asyncio.create_task(
+            self._delayed_disconnect_cleanup(client, username, user)
+        )
+        self._pending_disconnects[username] = task
+
+    async def _delayed_disconnect_cleanup(
+        self, client: ClientConnection, username: str, user: NetworkUser | None
+    ) -> None:
+        """Run the actual disconnect cleanup after a grace period."""
+        try:
+            await asyncio.sleep(2.0)
+        except asyncio.CancelledError:
+            # User reconnected within the grace period — no cleanup needed.
+            return
+
+        self._pending_disconnects.pop(username, None)
+
+        # Re-check identity: another login may have occurred during the sleep.
+        current_user = self._users.get(username)
+        if current_user and current_user.connection is not client:
+            return
+
+        table = self._tables.find_user_table(username)
+
+        if table and user:
+            if table.game:
+                player = table.game.get_player_by_id(user.uuid)
+                if player:
+                    table.game._perform_leave_game(player)
+            # Keep membership for rejoin unless this was the last member
+            if len(table.members) <= 1:
+                table.remove_member(username)
+
+        # Only broadcast offline if user was approved and not banned
+        if user and user.approved and user.trust_level != TrustLevel.BANNED:
+            is_admin = user.trust_level.value >= TrustLevel.ADMIN.value
+            offline_sound = "offlineadmin.ogg" if is_admin else "offline.ogg"
+            self._broadcast_presence_l("user-offline", username, offline_sound)
+
+        # Clean up user state
+        self._users.pop(username, None)
+        self._user_states.pop(username, None)
 
     def _broadcast_presence_l(self, message_id: str, player_name: str, sound: str) -> None:
         """Broadcast a localized presence announcement to all approved online users with sound."""
@@ -1174,6 +1209,11 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         trust_level = user_record.trust_level or TrustLevel.USER
         is_approved = user_record.approved
 
+        # Cancel any pending disconnect debounce for this user (mobile reconnect)
+        pending_task = self._pending_disconnects.pop(username, None)
+        if pending_task:
+            pending_task.cancel()
+
         existing_user = self._users.get(username)
         if existing_user:
             await self._handoff_existing_session(existing_user, client)
@@ -1184,6 +1224,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             existing_user.set_client_type(client.client_type)
             existing_user.set_platform(client.platform)
             existing_user.set_fluent_languages(user_record.fluent_languages)
+            if self._ws_server:
+                self._ws_server.register_client_username(client, username)
             return existing_user, False
 
         client.username = username
@@ -1201,6 +1243,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         user.set_client_type(client.client_type)
         user.set_platform(client.platform)
         self._users[username] = user
+        if self._ws_server:
+            self._ws_server.register_client_username(client, username)
         return user, True
 
     async def _send_login_success(

@@ -29,6 +29,7 @@ class ClientConnection:
     replaced: bool = False
     client_type: str = ""
     platform: str = ""
+    ip_address: str = ""
 
     async def send(self, packet: dict) -> None:
         """Send a packet to this client."""
@@ -88,6 +89,7 @@ class WebSocketServer:
         self._on_disconnect = on_disconnect
         self._on_message = on_message
         self._clients: dict[str, ClientConnection] = {}
+        self._username_to_client: dict[str, ClientConnection] = {}
         self._server = None
         self._running = False
         self._ssl_context = None
@@ -156,10 +158,29 @@ class WebSocketServer:
             await client.close()
         self._clients.clear()
 
+    @staticmethod
+    def _extract_real_ip(websocket: ServerConnection) -> str:
+        """Extract the real client IP from proxy headers, falling back to the socket address."""
+        socket_ip = websocket.remote_address[0] if websocket.remote_address else "unknown"
+        headers = getattr(websocket, "request", None)
+        if headers is None:
+            return socket_ip
+        request_headers = getattr(headers, "headers", None)
+        if request_headers is None:
+            return socket_ip
+        forwarded_for = request_headers.get("X-Forwarded-For")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        real_ip = request_headers.get("X-Real-IP")
+        if real_ip:
+            return real_ip.strip()
+        return socket_ip
+
     async def _handle_client(self, websocket: ServerConnection) -> None:
         """Handle a client connection."""
         address = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
-        client = ClientConnection(websocket=websocket, address=address)
+        real_ip = self._extract_real_ip(websocket)
+        client = ClientConnection(websocket=websocket, address=address, ip_address=real_ip)
         self._clients[address] = client
 
         try:
@@ -188,6 +209,8 @@ class WebSocketServer:
         finally:
             if address in self._clients:
                 del self._clients[address]
+            if client.username and self._username_to_client.get(client.username) is client:
+                del self._username_to_client[client.username]
             if self._on_disconnect:
                 await self._on_disconnect(client)
 
@@ -197,17 +220,18 @@ class WebSocketServer:
             if client.authenticated and client != exclude:
                 await client.send(packet)
 
+    def register_client_username(self, client: ClientConnection, username: str) -> None:
+        """Register a username-to-client mapping for O(1) lookups."""
+        self._username_to_client[username] = client
+
     async def send_to_user(self, username: str, packet: dict) -> bool:
         """Send a packet to a specific user."""
-        for client in self._clients.values():
-            if client.username == username:
-                await client.send(packet)
-                return True
+        client = self._username_to_client.get(username)
+        if client:
+            await client.send(packet)
+            return True
         return False
 
     def get_client_by_username(self, username: str) -> ClientConnection | None:
         """Get a client by username."""
-        for client in self._clients.values():
-            if client.username == username:
-                return client
-        return None
+        return self._username_to_client.get(username)
