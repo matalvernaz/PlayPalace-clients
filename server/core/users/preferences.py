@@ -129,6 +129,54 @@ class UserPreferences:
             default=True,
         )
     )
+    music_volume: str = pref_field(
+        PrefMeta(
+            category="sounds",
+            label="pref-set-music-volume",
+            change_msg="pref-changed-music-volume",
+            description="pref-desc-music-volume",
+            prompt="pref-select-music-volume",
+            kind="menu",
+            default="20",
+            choices=[
+                ("0", "pref-volume-0"),
+                ("10", "pref-volume-10"),
+                ("20", "pref-volume-20"),
+                ("30", "pref-volume-30"),
+                ("40", "pref-volume-40"),
+                ("50", "pref-volume-50"),
+                ("60", "pref-volume-60"),
+                ("70", "pref-volume-70"),
+                ("80", "pref-volume-80"),
+                ("90", "pref-volume-90"),
+                ("100", "pref-volume-100"),
+            ],
+        )
+    )
+    ambience_volume: str = pref_field(
+        PrefMeta(
+            category="sounds",
+            label="pref-set-ambience-volume",
+            change_msg="pref-changed-ambience-volume",
+            description="pref-desc-ambience-volume",
+            prompt="pref-select-ambience-volume",
+            kind="menu",
+            default="20",
+            choices=[
+                ("0", "pref-volume-0"),
+                ("10", "pref-volume-10"),
+                ("20", "pref-volume-20"),
+                ("30", "pref-volume-30"),
+                ("40", "pref-volume-40"),
+                ("50", "pref-volume-50"),
+                ("60", "pref-volume-60"),
+                ("70", "pref-volume-70"),
+                ("80", "pref-volume-80"),
+                ("90", "pref-volume-90"),
+                ("100", "pref-volume-100"),
+            ],
+        )
+    )
 
     # --- Gameplay category ---
     confirm_destructive_actions: bool = pref_field(

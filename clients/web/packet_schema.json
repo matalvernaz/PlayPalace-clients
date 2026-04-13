@@ -661,6 +661,42 @@
         "title": "RemoveTablePasswordCommandPacket",
         "type": "object"
       },
+      "SetPreferencePacket": {
+        "additionalProperties": false,
+        "properties": {
+          "game_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Game Type"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "type": {
+            "const": "set_preference",
+            "default": "set_preference",
+            "title": "Type",
+            "type": "string"
+          },
+          "value": {
+            "default": null,
+            "title": "Value"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "SetPreferencePacket",
+        "type": "object"
+      },
       "SetTablePasswordCommandPacket": {
         "additionalProperties": false,
         "properties": {
@@ -753,6 +789,7 @@
         "refresh_session": "#/$defs/RefreshSessionPacket",
         "register": "#/$defs/RegisterPacket",
         "remove_table_pw_cmd": "#/$defs/RemoveTablePasswordCommandPacket",
+        "set_preference": "#/$defs/SetPreferencePacket",
         "set_table_pw_cmd": "#/$defs/SetTablePasswordCommandPacket",
         "set_table_visibility_cmd": "#/$defs/SetTableVisibilityCommandPacket",
         "slash_command": "#/$defs/SlashCommandPacket"
@@ -825,6 +862,9 @@
       },
       {
         "$ref": "#/$defs/CheckTablePasswordCommandPacket"
+      },
+      {
+        "$ref": "#/$defs/SetPreferencePacket"
       }
     ]
   },
@@ -1345,6 +1385,18 @@
             "default": null,
             "title": "Grid Width"
           },
+          "help_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Help Text"
+          },
           "items": {
             "items": {
               "anyOf": [
@@ -1375,6 +1427,18 @@
             "default": null,
             "title": "Multiletter Enabled"
           },
+          "play_selection_sound": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Play Selection Sound"
+          },
           "position": {
             "anyOf": [
               {
@@ -1386,6 +1450,18 @@
             ],
             "default": null,
             "title": "Position"
+          },
+          "primary_action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Primary Action Id"
           },
           "selection_id": {
             "anyOf": [
@@ -1570,6 +1646,25 @@
           }
         },
         "title": "PongPacket",
+        "type": "object"
+      },
+      "PreferencesPacket": {
+        "additionalProperties": false,
+        "description": "Server-pushed snapshot of the user's preferences.\n\nSent after authorize_success and again whenever a preference changes\n(server-side menu or set_preference packet). Clients can mirror these\ninto local state so things like volume sync across devices.",
+        "properties": {
+          "preferences": {
+            "additionalProperties": true,
+            "title": "Preferences",
+            "type": "object"
+          },
+          "type": {
+            "const": "preferences",
+            "default": "preferences",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "PreferencesPacket",
         "type": "object"
       },
       "RefreshSessionFailurePacket": {
@@ -1929,6 +2024,7 @@
         "play_music": "#/$defs/PlayMusicPacket",
         "play_sound": "#/$defs/PlaySoundPacket",
         "pong": "#/$defs/PongPacket",
+        "preferences": "#/$defs/PreferencesPacket",
         "refresh_session_failure": "#/$defs/RefreshSessionFailurePacket",
         "refresh_session_success": "#/$defs/RefreshSessionSuccessPacket",
         "remove_playlist": "#/$defs/RemovePlaylistPacket",
@@ -2021,6 +2117,9 @@
       },
       {
         "$ref": "#/$defs/OpenServerOptionsPacket"
+      },
+      {
+        "$ref": "#/$defs/PreferencesPacket"
       }
     ]
   }

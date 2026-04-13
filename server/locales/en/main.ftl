@@ -114,6 +114,28 @@ pref-set-play-turn-sound = Turn sound: { $status }
 pref-desc-play-turn-sound = Play a sound when it becomes your turn
 pref-changed-play-turn-sound = Turn sound { $status }.
 
+pref-set-music-volume = Music volume: { $choice } percent
+pref-desc-music-volume = How loud background music plays. Setting this here syncs across all your clients (iOS, desktop, web) and persists across sessions.
+pref-select-music-volume = Select music volume
+pref-changed-music-volume = Music volume set to { $choice } percent.
+
+pref-set-ambience-volume = Ambience volume: { $choice } percent
+pref-desc-ambience-volume = How loud ambient sound loops play. Setting this here syncs across all your clients.
+pref-select-ambience-volume = Select ambience volume
+pref-changed-ambience-volume = Ambience volume set to { $choice } percent.
+
+pref-volume-0 = 0
+pref-volume-10 = 10
+pref-volume-20 = 20
+pref-volume-30 = 30
+pref-volume-40 = 40
+pref-volume-50 = 50
+pref-volume-60 = 60
+pref-volume-70 = 70
+pref-volume-80 = 80
+pref-volume-90 = 90
+pref-volume-100 = 100
+
 pref-set-brief-announcements = Brief announcements: { $status }
 pref-desc-brief-announcements = Use shorter announcements during gameplay instead of detailed commentary
 pref-changed-brief-announcements = Brief announcements { $status }.

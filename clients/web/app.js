@@ -1373,10 +1373,33 @@ function handlePacket(packet) {
       });
       break;
     }
+    case "preferences": {
+      // Server-pushed user preferences. Currently only mirrors audio
+      // volume into the audio module so the lobby's volume settings
+      // sync across clients. Other fields are ignored.
+      const prefs = packet.preferences || {};
+      const music = coerceVolumePercent(prefs.music_volume);
+      if (music !== null) {
+        audio.setMusicVolumePercent(music);
+      }
+      const ambience = coerceVolumePercent(prefs.ambience_volume);
+      if (ambience !== null) {
+        audio.setAmbienceVolumePercent(ambience);
+      }
+      break;
+    }
     default: {
       break;
     }
   }
+}
+
+function coerceVolumePercent(value) {
+  if (value === null || value === undefined) return null;
+  const n = typeof value === "string" ? Number(value) : value;
+  if (typeof n !== "number" || Number.isNaN(n)) return null;
+  if (n < 0 || n > 100) return null;
+  return Math.round(n);
 }
 
 function installAudioUnlock() {

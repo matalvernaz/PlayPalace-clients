@@ -160,9 +160,54 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             handleUpdateOptionsLists(packet)
         case "open_client_options", "open_server_options":
             break // Options dialogs not yet implemented
+        case "preferences":
+            handlePreferences(packet)
         default:
             break
         }
+    }
+
+    /// Apply server-pushed user preferences. Currently only mirrors the
+    /// audio volume prefs into our SoundManager + ConfigManager so that
+    /// changing volume in the server lobby actually changes what plays.
+    /// Other prefs are still consumed via existing per-feature paths.
+    private func handlePreferences(_ packet: [String: Any]) {
+        guard let prefs = packet["preferences"] as? [String: Any] else { return }
+        var didChangeVolume = false
+        if let percent = preferenceVolumePercent(prefs["music_volume"]) {
+            let fractional = Float(percent) / 100.0
+            soundManager.setMusicVolume(fractional)
+            didChangeVolume = true
+        }
+        if let percent = preferenceVolumePercent(prefs["ambience_volume"]) {
+            let fractional = Float(percent) / 100.0
+            soundManager.setAmbienceVolume(fractional)
+            didChangeVolume = true
+        }
+        if didChangeVolume {
+            // Mirror back to the local ConfigManager so the value survives
+            // disconnects and is the source of truth on the next launch
+            // until the server re-pushes.
+            appState?.configManager.saveVolumes(
+                music: soundManager.musicVolume,
+                ambience: soundManager.ambienceVolume,
+            )
+        }
+    }
+
+    /// Server pushes volume as a stringy percent ("0".."100"). Accept both
+    /// strings and numbers to be tolerant of older / newer encodings.
+    private func preferenceVolumePercent(_ value: Any?) -> Int? {
+        if let s = value as? String, let n = Int(s), (0...100).contains(n) {
+            return n
+        }
+        if let n = value as? Int, (0...100).contains(n) {
+            return n
+        }
+        if let d = value as? Double, (0...100).contains(Int(d)) {
+            return Int(d)
+        }
+        return nil
     }
 
     // MARK: - Packet Handlers
@@ -641,6 +686,20 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             music: soundManager.musicVolume,
             ambience: soundManager.ambienceVolume
         )
+        // Also push to the server so the value syncs across clients. The
+        // server-side pref is stored as a percent string in 10% steps —
+        // round to the nearest step before sending.
+        guard isConnected else { return }
+        let musicStep = volumeFractionToServerPercent(soundManager.musicVolume)
+        let ambienceStep = volumeFractionToServerPercent(soundManager.ambienceVolume)
+        webSocket?.send(ClientPacket.setPreference(key: "music_volume", value: musicStep))
+        webSocket?.send(ClientPacket.setPreference(key: "ambience_volume", value: ambienceStep))
+    }
+
+    private func volumeFractionToServerPercent(_ fraction: Float) -> String {
+        let pct = Int((fraction * 10).rounded()) * 10
+        let clamped = max(0, min(100, pct))
+        return String(clamped)
     }
 
     // MARK: - Buffer Navigation

@@ -1742,6 +1742,38 @@ class MainWindow(wx.Frame):
         """Handle stop_ambience packet from server."""
         self.sound_manager.stop_ambience()
 
+    def on_server_preferences(self, packet):
+        """Handle preferences packet — apply server-pushed audio volumes.
+
+        Backward-compat: older servers don't send this packet, so this
+        handler is a no-op until the user is on a server that supports it.
+        Volume values come down as percent strings ("0".."100"); convert
+        to fractional 0.0-1.0 before applying.
+        """
+        prefs = packet.get("preferences") or {}
+        music = self._coerce_volume_percent(prefs.get("music_volume"))
+        if music is not None:
+            self.sound_manager.set_music_volume(music / 100.0)
+        ambience = self._coerce_volume_percent(prefs.get("ambience_volume"))
+        if ambience is not None:
+            self.sound_manager.set_ambience_volume(ambience / 100.0)
+
+    @staticmethod
+    def _coerce_volume_percent(value):
+        """Server sends '0'..'100' as a string; accept ints/floats too."""
+        if value is None:
+            return None
+        try:
+            n = int(value)
+        except (TypeError, ValueError):
+            try:
+                n = int(float(value))
+            except (TypeError, ValueError):
+                return None
+        if 0 <= n <= 100:
+            return n
+        return None
+
     def on_server_add_playlist(self, packet):
         """Handle add_playlist packet from server."""
         playlist_id = packet.get(

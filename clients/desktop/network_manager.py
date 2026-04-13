@@ -620,4 +620,5 @@ _PACKET_DISPATCH = {
     "pong": lambda window, pkt: window.on_server_pong(pkt),
     "chat": lambda window, pkt: window.on_receive_chat(pkt),
     "server_status": lambda window, pkt: window.on_server_status(pkt),
+    "preferences": lambda window, pkt: window.on_server_preferences(pkt),
 }

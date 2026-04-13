@@ -1648,6 +1648,25 @@
         "title": "PongPacket",
         "type": "object"
       },
+      "PreferencesPacket": {
+        "additionalProperties": false,
+        "description": "Server-pushed snapshot of the user's preferences.\n\nSent after authorize_success and again whenever a preference changes\n(server-side menu or set_preference packet). Clients can mirror these\ninto local state so things like volume sync across devices.",
+        "properties": {
+          "preferences": {
+            "additionalProperties": true,
+            "title": "Preferences",
+            "type": "object"
+          },
+          "type": {
+            "const": "preferences",
+            "default": "preferences",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "PreferencesPacket",
+        "type": "object"
+      },
       "RefreshSessionFailurePacket": {
         "additionalProperties": false,
         "properties": {
@@ -2005,6 +2024,7 @@
         "play_music": "#/$defs/PlayMusicPacket",
         "play_sound": "#/$defs/PlaySoundPacket",
         "pong": "#/$defs/PongPacket",
+        "preferences": "#/$defs/PreferencesPacket",
         "refresh_session_failure": "#/$defs/RefreshSessionFailurePacket",
         "refresh_session_success": "#/$defs/RefreshSessionSuccessPacket",
         "remove_playlist": "#/$defs/RemovePlaylistPacket",
@@ -2097,6 +2117,9 @@
       },
       {
         "$ref": "#/$defs/OpenServerOptionsPacket"
+      },
+      {
+        "$ref": "#/$defs/PreferencesPacket"
       }
     ]
   }

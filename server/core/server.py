@@ -1164,6 +1164,11 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             success_type=success_type,
         )
 
+        # Push the user's saved preferences down so clients can mirror
+        # server-side settings (volume, etc.). Older clients ignore the
+        # packet — see _send_preferences.
+        await self._send_preferences(user)
+
         # Send game list
         await self._send_game_list(client)
 
@@ -2623,9 +2628,29 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 self._show_pref_category_menu(user, category)
 
     def _save_user_preferences(self, user: NetworkUser) -> None:
-        """Save user preferences to database."""
+        """Save user preferences to database and push them to the client."""
         prefs_json = json.dumps(user.preferences.to_dict())
         self._db.update_user_preferences(user.username, prefs_json)
+        # Schedule a push so the client mirrors the change. Fire-and-forget
+        # since we don't want pref saves to block on slow sends.
+        asyncio.create_task(self._send_preferences(user))
+
+    async def _send_preferences(self, user: NetworkUser) -> None:
+        """Send the user's full preferences dict to their client.
+
+        Older clients that don't recognize the "preferences" packet type will
+        ignore it (standard packet-router behavior). Newer clients can use
+        this to keep client-side audio settings, etc., in sync with server
+        state across devices.
+        """
+        try:
+            payload = {
+                "type": "preferences",
+                "preferences": user.preferences.to_dict(),
+            }
+            await user.connection.send(payload)
+        except Exception as exc:  # pragma: no cover — best-effort push
+            LOG.debug("Failed to push preferences to %s: %s", user.username, exc)
 
     async def _handle_set_preference(self, client: ClientConnection, packet: dict) -> None:
         """Handle direct preference updates from native clients (mobile/macOS).
@@ -2653,6 +2678,14 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 value = meta.enum_class(value)
             except (ValueError, KeyError):
                 return
+        elif meta.kind == "menu":
+            # Validate against the declared choices so clients can't push
+            # arbitrary strings into a menu pref.
+            value_str = str(value)
+            valid = {choice for choice, _label in (meta.choices or [])}
+            if valid and value_str not in valid:
+                return
+            value = value_str
 
         prefs = user.preferences
         if game_type:

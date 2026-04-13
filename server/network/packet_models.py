@@ -420,6 +420,18 @@ class OpenServerOptionsPacket(BasePacket):
     options: dict[str, Any] = Field(default_factory=dict)
 
 
+class PreferencesPacket(BasePacket):
+    """Server-pushed snapshot of the user's preferences.
+
+    Sent after authorize_success and again whenever a preference changes
+    (server-side menu or set_preference packet). Clients can mirror these
+    into local state so things like volume sync across devices.
+    """
+
+    type: Literal["preferences"] = "preferences"
+    preferences: dict[str, Any] = Field(default_factory=dict)
+
+
 ServerToClientPacket = Annotated[
     Union[
         AuthorizeSuccessPacket,
@@ -448,6 +460,7 @@ ServerToClientPacket = Annotated[
         GetPlaylistDurationPacket,
         OpenClientOptionsPacket,
         OpenServerOptionsPacket,
+        PreferencesPacket,
     ],
     Field(discriminator="type"),
 ]
