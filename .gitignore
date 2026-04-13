@@ -28,6 +28,10 @@ clients/web/config.js
 clients/macos/PlayPalace/Sources/sounds/
 clients/macos/PlayPalace/.build/
 
+# Xcode user-specific state (per-developer, never shared)
+**/xcuserdata/
+**/*.xcuserstate
+
 # Documents infrastructure (server-local and runtime data)
 server/documents/independent/
 server/documents/_attribution.json
