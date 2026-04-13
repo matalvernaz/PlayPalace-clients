@@ -24,6 +24,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     @Published var gridEnabled = false
     @Published var gridWidth = 1
     @Published var helpText: String?
+    @Published var primaryActionId: String?
 
     // MARK: - Internal State
 
@@ -199,6 +200,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         gridEnabled = data.gridEnabled
         gridWidth = max(1, data.gridWidth)
         helpText = data.helpText
+        primaryActionId = data.primaryActionId
 
         // Exit edit mode if needed
         if isEditMode { cancelEdit() }
@@ -274,6 +276,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         gridEnabled = false
         gridWidth = 1
         helpText = nil
+        primaryActionId = nil
         if isEditMode { cancelEdit() }
         soundManager.removeAllPlaylists()
         soundManager.stopMusic(fade: true)

@@ -1451,6 +1451,18 @@
             "default": null,
             "title": "Position"
           },
+          "primary_action_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Primary Action Id"
+          },
           "selection_id": {
             "anyOf": [
               {

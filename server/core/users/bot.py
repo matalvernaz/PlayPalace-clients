@@ -89,6 +89,7 @@ class Bot(User):
         grid_width: int = 1,
         play_selection_sound: bool = False,
         help_text: str | None = None,
+        primary_action_id: str | None = None,
     ) -> None:
         """No-op: bots do not render menus."""
         pass

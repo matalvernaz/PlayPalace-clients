@@ -451,7 +451,14 @@ final class GameTouchView: UIView {
             speak("Back")
         case .primaryAction:
             impactFeedback.impactOccurred()
-            vm.sendKeybind("space")
+            // Prefer activating the server-provided primary action by menu ID
+            if let actionId = vm.primaryActionId,
+               let index = vm.menuItems.firstIndex(where: { $0.id == actionId }) {
+                vm.activateMenuItem(index)
+            } else {
+                // Fallback: send space keybind for games without a declared primary
+                vm.sendKeybind("space")
+            }
         case .checkScore:
             vm.sendKeybind("s")
         case .addBot:

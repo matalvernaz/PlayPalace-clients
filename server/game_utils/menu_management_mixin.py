@@ -57,6 +57,9 @@ class MenuManagementMixin:
         help_text = None
         if hasattr(self, "get_help_text"):
             help_text = self.get_help_text(user.locale)
+        primary_action_id = None
+        if hasattr(self, "get_primary_action_id"):
+            primary_action_id = self.get_primary_action_id(player)
 
         user.show_menu(
             "turn_menu",
@@ -65,6 +68,7 @@ class MenuManagementMixin:
             escape_behavior=EscapeBehavior.KEYBIND,
             position=position,
             help_text=help_text,
+            primary_action_id=primary_action_id,
         )
 
     def rebuild_all_menus(self) -> None:

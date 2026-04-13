@@ -170,6 +170,7 @@ class User(ABC):
         grid_width: int = 1,
         play_selection_sound: bool = False,
         help_text: str | None = None,
+        primary_action_id: str | None = None,
     ) -> None:
         """
         Display a menu to the user.

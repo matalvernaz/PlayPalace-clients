@@ -227,6 +227,29 @@ class Game(
         """Return maximum number of players."""
         return 4
 
+    # Common primary action IDs — first match in the action set wins.
+    # Games can override ``get_primary_action_id`` to return something else.
+    PRIMARY_ACTION_CANDIDATES = (
+        "roll", "draw", "draw_card", "hit", "shoot", "play",
+        "attack", "deal", "bid", "spin",
+    )
+
+    def get_primary_action_id(self, player: "Player") -> str | None:
+        """Return the primary action ID for this turn, or None.
+
+        The primary action is what two-finger double-tap (or equivalent
+        client "primary action" gesture) activates.  Default heuristic
+        scans the player's action set for well-known action IDs.
+        Games should override if their primary action has a non-standard
+        ID or varies by phase.
+        """
+        action_sets = self.player_action_sets.get(player.id, [])
+        for action_set in action_sets:
+            for candidate in self.PRIMARY_ACTION_CANDIDATES:
+                if candidate in action_set._actions:
+                    return candidate
+        return None
+
     def get_help_text(self, locale: str) -> str | None:
         """Return game rules/help text for the given locale.
 
