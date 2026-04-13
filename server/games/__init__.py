@@ -37,6 +37,7 @@ from .backgammon.game import BackgammonGame
 from .senet.game import SenetGame
 from .mancala.game import MancalaGame
 from .risk.game import RiskGame
+from .trouble.game import TroubleGame
 
 # PlayAural games
 from .battleship.game import BattleshipGame
@@ -82,6 +83,7 @@ __all__ = [
     "SenetGame",
     "MancalaGame",
     "RiskGame",
+    "TroubleGame",
     "BattleshipGame",
     "CoupGame",
     "DominosGame",
