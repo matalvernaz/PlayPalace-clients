@@ -451,14 +451,25 @@ final class GameTouchView: UIView {
             speak("Back")
         case .primaryAction:
             impactFeedback.impactOccurred()
-            // Prefer activating the server-provided primary action by menu ID
+            // 1. Prefer server-declared primary action (newer servers)
             if let actionId = vm.primaryActionId,
                let index = vm.menuItems.firstIndex(where: { $0.id == actionId }) {
                 vm.activateMenuItem(index)
-            } else {
-                // Fallback: send space keybind for games without a declared primary
-                vm.sendKeybind("space")
+                return
             }
+            // 2. Fallback: scan for common primary-action IDs (works with any server)
+            let commonPrimaryIDs = [
+                "roll", "draw", "draw_card", "hit", "shoot", "play",
+                "attack", "deal", "bid", "spin",
+            ]
+            for id in commonPrimaryIDs {
+                if let index = vm.menuItems.firstIndex(where: { $0.id == id }) {
+                    vm.activateMenuItem(index)
+                    return
+                }
+            }
+            // 3. Last resort: send space keybind
+            vm.sendKeybind("space")
         case .checkScore:
             vm.sendKeybind("s")
         case .addBot:
