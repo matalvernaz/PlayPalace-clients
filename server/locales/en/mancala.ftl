@@ -9,16 +9,22 @@ mancala-pit-label = Pit { $pit }: { $stones } stones
 mancala-check-board = Check board
 
 # Game events
-mancala-sow = { $player } sows { $stones } stones from pit { $pit }
-mancala-capture = { $player } captures { $captured } stones!
-mancala-extra-turn = Last stone in store! { $player } gets another turn.
+mancala-sow =
+    { $player } sows { $stones } stones from pit { $pit }. Last stone lands in { $landed_in ->
+        [own_store] { $player }'s store.
+        [own_pit] { $player }'s pit { $landed_pit }.
+        [opp_pit] { $opponent }'s pit { $landed_pit }.
+       *[other] the board.
+    }
+mancala-capture = { $player }'s pit { $own_pit } captures { $captured } stones from { $opponent }'s pit { $opp_pit }.
+mancala-extra-turn = { $player } gets another turn.
 mancala-winner = { $player } wins with { $score } stones!
 mancala-draw = It's a draw! Both players have { $score } stones.
 
-# Board status
+# Board status (used by Check Board action and automatic turn-start announcement)
 mancala-board-status =
-    Your pits: { $own_pits }. Your store: { $own_store }.
-    Opponent's pits: { $opp_pits }. Opponent's store: { $opp_store }.
+    Your store: { $own_store }. Opponent's store: { $opp_store }.
+    Your pits: { $own_pits }. Opponent's pits: { $opp_pits }.
 
 # Options
 mancala-set-stones = Stones per pit: { $stones }

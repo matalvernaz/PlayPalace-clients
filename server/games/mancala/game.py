@@ -7,6 +7,7 @@ Two players, six pits each, sow and capture stones.
 
 from dataclasses import dataclass, field
 from datetime import datetime
+from typing import NamedTuple
 import random
 
 from ..base import Game, Player, GameOptions
@@ -34,6 +35,17 @@ from server.core.ui.keybinds import KeybindState
 P0_STORE = 6
 P1_STORE = 13
 NUM_PITS = 6
+
+
+class SowResult(NamedTuple):
+    """Result of sowing from a pit, with all the context needed for speech output."""
+
+    extra_turn: bool
+    captured: int
+    final_idx: int
+    # Board indices of the pits that were emptied by capture, or None.
+    capture_own_idx: int | None
+    capture_opp_idx: int | None
 
 
 @dataclass
@@ -134,8 +146,8 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     # Sowing logic
     # ==========================================================================
 
-    def _sow(self, player_idx: int, pit: int) -> tuple[bool, int]:
-        """Sow stones from the given pit. Returns (extra_turn, captured)."""
+    def _sow(self, player_idx: int, pit: int) -> SowResult:
+        """Sow stones from the given pit. Returns a SowResult."""
         board_idx = self._pit_board_idx(player_idx, pit)
         stones = self.board[board_idx]
         self.board[board_idx] = 0
@@ -154,6 +166,8 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         extra_turn = current == own_store
 
         captured = 0
+        capture_own_idx: int | None = None
+        capture_opp_idx: int | None = None
         if current in own_pits and self.board[current] == 1:
             opposite = 12 - current
             if self.board[opposite] > 0:
@@ -161,15 +175,45 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 self.board[own_store] += captured
                 self.board[current] = 0
                 self.board[opposite] = 0
+                capture_own_idx = current
+                capture_opp_idx = opposite
 
-        return extra_turn, captured
+        return SowResult(
+            extra_turn=extra_turn,
+            captured=captured,
+            final_idx=current,
+            capture_own_idx=capture_own_idx,
+            capture_opp_idx=capture_opp_idx,
+        )
 
-    def _simulate_sow(self, player_idx: int, pit: int) -> tuple[bool, int]:
+    def _simulate_sow(self, player_idx: int, pit: int) -> SowResult:
         """Simulate sowing without modifying the board."""
         saved = self.board[:]
         result = self._sow(player_idx, pit)
         self.board = saved
         return result
+
+    # ==========================================================================
+    # Pit / landing helpers (for speech)
+    # ==========================================================================
+
+    def _pit_number_from_idx(self, player_idx: int, board_idx: int) -> int:
+        """Convert a board index on a player's side to 1-based pit number."""
+        return (board_idx - player_idx * 7) + 1
+
+    def _landing_description(self, sower_idx: int, final_idx: int) -> tuple[str, int]:
+        """Describe where a sow's final stone landed.
+
+        Returns (landed_in, landed_pit) where landed_in is one of
+        "own_store", "own_pit", "opp_pit" (relative to the sower), and
+        landed_pit is the 1-based pit number on whichever side was landed
+        on (0 for stores, since the number is unused in that case).
+        """
+        if final_idx == self._store_idx(sower_idx):
+            return ("own_store", 0)
+        if final_idx in self._own_pits(sower_idx):
+            return ("own_pit", self._pit_number_from_idx(sower_idx, final_idx))
+        return ("opp_pit", self._pit_number_from_idx(1 - sower_idx, final_idx))
 
     def _collect_remaining(self) -> None:
         """Move all remaining pit stones to respective stores (game end)."""
@@ -233,6 +277,19 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         # Mancala has no rounds — turns continue until the board empties.
         # Just start a new cycle through the turn order.
         self._start_round()
+
+    def _start_turn(self) -> None:
+        """Announce whose turn it is, then send each player a personal
+        board summary so they hear the current state of the board at the
+        start of every turn (including during extra-turn chains)."""
+        super()._start_turn()
+        if self.status != "playing":
+            return
+        for p in self.get_active_players():
+            user = self.get_user(p)
+            if user is None:
+                continue
+            user.speak(self._describe_board(p, user.locale), buffer="game")
 
     # ==========================================================================
     # Actions — pit selection
@@ -329,17 +386,33 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     def _action_sow(self, player: Player, action_id: str) -> None:
         pit = int(action_id.split("_")[1])
         player_idx = self._player_index(player)
+        opp_idx = 1 - player_idx
         stones = self.board[self._pit_board_idx(player_idx, pit)]
 
+        active = self.get_active_players()
+        opponent_name = active[opp_idx].name if len(active) > opp_idx else ""
+
+        result = self._sow(player_idx, pit)
+        landed_in, landed_pit = self._landing_description(player_idx, result.final_idx)
+
         self.broadcast_l(
-            "mancala-sow", player=player.name, pit=pit + 1, stones=stones
+            "mancala-sow",
+            player=player.name,
+            opponent=opponent_name,
+            pit=pit + 1,
+            stones=stones,
+            landed_in=landed_in,
+            landed_pit=landed_pit,
         )
 
-        extra_turn, captured = self._sow(player_idx, pit)
-
-        if captured > 0:
+        if result.captured > 0 and result.capture_own_idx is not None:
             self.broadcast_l(
-                "mancala-capture", player=player.name, captured=captured
+                "mancala-capture",
+                player=player.name,
+                opponent=opponent_name,
+                own_pit=self._pit_number_from_idx(player_idx, result.capture_own_idx),
+                opp_pit=self._pit_number_from_idx(opp_idx, result.capture_opp_idx),
+                captured=result.captured,
             )
 
         # Check game end
@@ -348,7 +421,7 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             self._end_game()
             return
 
-        if extra_turn:
+        if result.extra_turn:
             self.broadcast_l("mancala-extra-turn", player=player.name)
             BotHelper.jolt_bots(self, ticks=random.randint(15, 25))  # nosec B311
             self._start_turn()
@@ -375,10 +448,10 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             if self.board[board_idx] == 0:
                 continue
 
-            extra_turn, captured = self._simulate_sow(player_idx, pit)
+            sim = self._simulate_sow(player_idx, pit)
 
-            score = float(captured)
-            if extra_turn:
+            score = float(sim.captured)
+            if sim.extra_turn:
                 score += 10.0
             # Slight preference for rightmost pits (closer to store)
             score += pit * 0.1

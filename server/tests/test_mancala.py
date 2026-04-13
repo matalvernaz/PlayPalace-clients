@@ -84,68 +84,71 @@ class TestMancalaSowing:
     def test_basic_sow(self):
         game = MancalaGame()
         game.board = [4] * 6 + [0] + [4] * 6 + [0]
-        extra, captured = game._sow(0, 0)
+        result = game._sow(0, 0)
         assert game.board[0] == 0
         assert game.board[1] == 5
         assert game.board[2] == 5
         assert game.board[3] == 5
         assert game.board[4] == 5
-        assert not extra
-        assert captured == 0
+        assert not result.extra_turn
+        assert result.captured == 0
 
     def test_extra_turn_landing_in_store(self):
         # Pit 5 with 1 stone -> lands in store (index 6)
         game = MancalaGame()
         game.board = [4, 4, 4, 4, 4, 1] + [0] + [4] * 6 + [0]
-        extra, captured = game._sow(0, 5)
-        assert extra
+        result = game._sow(0, 5)
+        assert result.extra_turn
         assert game.board[P0_STORE] == 1
 
     def test_extra_turn_from_pit_4(self):
         game = MancalaGame()
         game.board = [4, 4, 4, 4, 2, 4] + [0] + [4] * 6 + [0]
-        extra, captured = game._sow(0, 4)
-        assert extra
+        result = game._sow(0, 4)
+        assert result.extra_turn
 
     def test_capture(self):
         # Pit 0 has 3 stones -> lands in pit 3 (empty), opposite is index 9
         game = MancalaGame()
         game.board = [3, 4, 4, 0, 4, 4] + [0] + [4, 4, 4, 4, 4, 4] + [0]
-        extra, captured = game._sow(0, 0)
-        assert captured == 5  # 4 from opposite + 1 landing stone
+        result = game._sow(0, 0)
+        assert result.captured == 5  # 4 from opposite + 1 landing stone
         assert game.board[P0_STORE] == 5
         assert game.board[3] == 0
         assert game.board[9] == 0
+        assert result.capture_own_idx == 3
+        assert result.capture_opp_idx == 9
 
     def test_no_capture_on_opponent_side(self):
         # Landing in empty pit on opponent's side should NOT capture
         game = MancalaGame()
         game.board = [0, 0, 0, 0, 0, 5] + [0] + [0, 4, 4, 4, 4, 4] + [0]
-        extra, captured = game._sow(0, 5)
+        result = game._sow(0, 5)
         # 5 stones from pit 5: store(6), 7, 8, 9, 10
         # Lands at index 10 (opponent's pit) - no capture even if empty
-        assert captured == 0
+        assert result.captured == 0
+        assert result.capture_own_idx is None
 
     def test_no_capture_on_nonempty_own_pit(self):
         # Landing in non-empty own pit should NOT capture
         game = MancalaGame()
         game.board = [3, 4, 4, 1, 4, 4] + [0] + [4, 4, 4, 4, 4, 4] + [0]
-        extra, captured = game._sow(0, 0)
+        result = game._sow(0, 0)
         # Pit 3 already has 1, after sowing has 2 -> not a capture
-        assert captured == 0
+        assert result.captured == 0
 
     def test_skip_opponent_store_p0(self):
         # Player 0 should skip player 1's store (index 13)
         game = MancalaGame()
         game.board = [0, 0, 0, 0, 0, 10] + [0] + [0] * 6 + [0]
-        extra, captured = game._sow(0, 5)
+        game._sow(0, 5)
         # 10 stones: 6(store), 7, 8, 9, 10, 11, 12, skip 13, 0, 1
         assert game.board[P1_STORE] == 0
 
     def test_skip_opponent_store_p1(self):
         game = MancalaGame()
         game.board = [0] * 6 + [0] + [0, 0, 0, 0, 0, 10] + [0]
-        extra, captured = game._sow(1, 5)
+        game._sow(1, 5)
         # Player 1 pit 5 is board index 12, 10 stones
         # 13(P1 store), 0, 1, 2, 3, 4, 5, skip 6(P0 store), 7, 8, 9
         # Last stone at index 9 (P1's pit, was empty) -> captures opposite (index 3)
@@ -154,7 +157,7 @@ class TestMancalaSowing:
     def test_player1_basic_sow(self):
         game = MancalaGame()
         game.board = [4] * 6 + [0] + [4] * 6 + [0]
-        extra, captured = game._sow(1, 0)
+        game._sow(1, 0)
         assert game.board[7] == 0
         assert game.board[8] == 5
 
@@ -262,6 +265,99 @@ class TestMancalaActions:
         # After sowing the last stone from the only non-empty pit,
         # that side becomes empty -> game should end
         assert not self.game.game_active
+
+
+class TestMancalaSpeech:
+    """Verify that turn flow produces the speech output a blind player needs."""
+
+    def setup_method(self):
+        self.game = MancalaGame()
+        self.user1 = MockUser("Alice")
+        self.user2 = MockUser("Bob")
+        self.player1 = self.game.add_player("Alice", self.user1)
+        self.player2 = self.game.add_player("Bob", self.user2)
+        self.game.on_start()
+
+    def _clear(self):
+        self.user1.messages.clear()
+        self.user2.messages.clear()
+
+    def test_turn_start_announces_board_state(self):
+        """Every turn-start should push a personal board summary to each player."""
+        # on_start in setup_method already ran _start_turn once
+        msgs = self.user1.get_spoken_messages() + self.user2.get_spoken_messages()
+        # Each player should have heard "store" and "pits" in some message
+        assert any("store" in m.lower() and "pits" in m.lower() for m in msgs), (
+            f"No board summary found in spoken messages: {msgs}"
+        )
+
+    def test_sow_announces_landing_in_own_pit(self):
+        """mancala-sow should name the final pit."""
+        current = self.game.current_player
+        idx = self.game._player_index(current)
+        # Rig: 3 stones in pit 0, pit 3 has something so sowing lands in pit 3 (own side)
+        for i in range(NUM_PITS):
+            self.game.board[self.game._pit_board_idx(idx, i)] = 0
+            self.game.board[self.game._pit_board_idx(1 - idx, i)] = 4
+        self.game.board[self.game._pit_board_idx(idx, 0)] = 3
+        self.game.board[self.game._pit_board_idx(idx, 3)] = 1  # non-empty so no capture
+        self.game.board[self.game._store_idx(idx)] = 0
+        self._clear()
+
+        self.game.execute_action(current, "pit_0")
+
+        msgs = self.user1.get_spoken_messages() + self.user2.get_spoken_messages()
+        sow_msgs = [m for m in msgs if "sows" in m.lower()]
+        assert sow_msgs, f"No sow announcement found: {msgs}"
+        # Should mention "lands in" and reference pit 4 (1-based from pit 3)
+        assert any("lands in" in m.lower() for m in sow_msgs), (
+            f"Sow did not include landing info: {sow_msgs}"
+        )
+        assert any("pit 4" in m for m in sow_msgs), (
+            f"Sow did not name landing pit 4: {sow_msgs}"
+        )
+
+    def test_sow_announces_landing_in_own_store(self):
+        """Landing in the store should be described and grant an extra turn."""
+        current = self.game.current_player
+        idx = self.game._player_index(current)
+        # Pit 5 with 1 stone -> lands exactly in own store
+        for i in range(NUM_PITS):
+            self.game.board[self.game._pit_board_idx(idx, i)] = 0
+        self.game.board[self.game._pit_board_idx(idx, 5)] = 1
+        self._clear()
+
+        self.game.execute_action(current, "pit_5")
+
+        msgs = self.user1.get_spoken_messages() + self.user2.get_spoken_messages()
+        assert any("store" in m.lower() and "lands" in m.lower() for m in msgs), (
+            f"Sow did not describe landing in store: {msgs}"
+        )
+        assert any("another turn" in m.lower() for m in msgs), (
+            f"No extra-turn announcement: {msgs}"
+        )
+
+    def test_capture_names_both_pits(self):
+        """mancala-capture should name the capturing own pit and the emptied opp pit."""
+        current = self.game.current_player
+        idx = self.game._player_index(current)
+        # Setup: sower has 3 in pit 0, empty pit 3; opponent has 4 in pit-opposite-to-3
+        for i in range(NUM_PITS):
+            self.game.board[self.game._pit_board_idx(idx, i)] = 0
+            self.game.board[self.game._pit_board_idx(1 - idx, i)] = 4
+        self.game.board[self.game._pit_board_idx(idx, 0)] = 3
+        self.game.board[self.game._store_idx(idx)] = 0
+        self._clear()
+
+        self.game.execute_action(current, "pit_0")
+
+        msgs = self.user1.get_spoken_messages() + self.user2.get_spoken_messages()
+        cap_msgs = [m for m in msgs if "captures" in m.lower()]
+        assert cap_msgs, f"No capture announcement: {msgs}"
+        # Sower landed in own pit 4 (1-based from pit 3). Opposite is opp pit 3.
+        assert any("pit 4" in m and "pit 3" in m for m in cap_msgs), (
+            f"Capture did not name both pits: {cap_msgs}"
+        )
 
 
 class TestMancalaBotAI:
