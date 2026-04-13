@@ -20,7 +20,7 @@ risk-combat-result =
     Attacker loses { $att_losses }, defender loses { $def_losses }.
 risk-conquered = { $player } conquers { $territory }! { $moved } troops move in.
 risk-eliminated = { $player } has been eliminated!
-risk-skip-attack = Skip attack
+risk-skip-attack = End attack phase
 risk-cancel-attack = Cancel attack
 
 # Fortify
@@ -70,10 +70,10 @@ risk-rules =
     The board has 42 territories across 6 continents.
     Each turn has 3 phases: reinforce, attack, and fortify.
     Reinforce: Place armies on your territories. You receive armies based on territories owned plus continent bonuses.
-    Attack: Select a territory with 2 or more troops, then select an adjacent enemy territory. Dice are rolled to resolve combat.
+    Attack: Select a territory with 2 or more troops, then select an adjacent enemy territory. Dice are rolled to resolve combat. You may attack as many times as you want per turn — choose "End attack phase" when you're done.
     The attacker rolls up to 3 dice, the defender up to 2. Highest dice are compared: higher wins, ties go to defender.
     If you eliminate all defenders, you conquer the territory and move troops in.
-    Fortify: Move troops from one territory to an adjacent friendly territory.
+    Fortify: Move troops from one territory to an adjacent friendly territory. One move per turn, then your turn ends.
     Conquer at least one territory per turn to earn a card. Trade sets of 3 cards for bonus armies.
     Eliminate all opponents to win.
     Press E to check your status.
