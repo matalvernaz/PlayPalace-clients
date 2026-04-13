@@ -4517,6 +4517,22 @@ async def run_server(
         await server.stop()
 
 
+class _DropBenignWebsocketHandshake(logging.Filter):
+    """Drop websockets logs for benign handshake failures from non-WS probes.
+
+    Traefik, Dockge, and other HTTP-level healthchecks hit the port without
+    an Upgrade header; websockets logs the full traceback every time. Those
+    aren't actionable, so we filter them out to keep real errors visible.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        exc = record.exc_info[1] if record.exc_info else None
+        if exc is None:
+            return True
+        from websockets.exceptions import InvalidHandshake
+        return not isinstance(exc, InvalidHandshake)
+
+
 def _configure_logging() -> None:
     """Configure server error logging to both file and stderr."""
     log_dir = _ensure_var_server_dir()
@@ -4534,6 +4550,13 @@ def _configure_logging() -> None:
     root.setLevel(logging.ERROR)
     root.addHandler(file_handler)
     root.addHandler(stderr_handler)
+
+    # Silence the benign "opening handshake failed" flood from non-WS probes.
+    # InvalidUpgrade/InvalidHandshake get raised hundreds of times per minute
+    # by healthchecks and bury real tracebacks in docker logs.
+    handshake_filter = _DropBenignWebsocketHandshake()
+    for name in ("websockets.server", "websockets.asyncio.server", "websockets"):
+        logging.getLogger(name).addFilter(handshake_filter)
 
 
 def _install_exception_handlers(loop: asyncio.AbstractEventLoop) -> None:
