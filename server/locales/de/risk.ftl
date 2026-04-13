@@ -74,3 +74,4 @@ risk-rules =
     Erobere mindestens ein Territorium pro Zug für eine Karte. Tausche Sets aus 3 Karten gegen Bonus-Armeen.
     Eliminiere alle Gegner um zu gewinnen.
     Drücke E für deinen Status.
+risk-check-status = Check status

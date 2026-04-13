@@ -74,3 +74,4 @@ risk-rules =
     各ターン領地を征服するとカードを獲得。3 枚セットをボーナス軍団と交換できます。
     全員を倒せば勝利。
     E で状態を確認。
+risk-check-status = Check status

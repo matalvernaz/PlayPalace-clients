@@ -74,3 +74,4 @@ risk-rules =
     Conquer at least one territory per turn to earn a card. Trade sets of 3 cards for bonus armies.
     Eliminate all opponents to win.
     Press E to check your status.
+risk-check-status = Check status

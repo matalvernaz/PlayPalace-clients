@@ -6,6 +6,7 @@ game-name-mancala = Mancala
 
 # Actions
 mancala-pit-label = Pit { $pit }: { $stones } stones
+mancala-check-board = Check board
 
 # Game events
 mancala-sow = { $player } sows { $stones } stones from pit { $pit }

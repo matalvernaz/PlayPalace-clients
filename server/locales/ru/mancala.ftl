@@ -41,3 +41,4 @@ mancala-rules =
 
 # End screen
 mancala-final-score = { $player }: { $score } камней
+mancala-check-board = Check board

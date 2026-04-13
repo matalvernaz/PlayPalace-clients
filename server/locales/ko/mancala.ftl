@@ -41,3 +41,4 @@ mancala-rules =
 
 # End screen
 mancala-final-score = { $player }: 돌 { $score }개
+mancala-check-board = Check board

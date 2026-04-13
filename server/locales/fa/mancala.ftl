@@ -41,3 +41,4 @@ mancala-rules =
 
 # End screen
 mancala-final-score = { $player }: { $score } سنگ
+mancala-check-board = Check board

@@ -29,6 +29,9 @@ risk-fortified = { $player } moves { $moved } troops from { $source } to { $dest
 risk-skip-fortify = Skip fortify
 risk-cancel-fortify = Cancel fortify
 
+# Status
+risk-check-status = Check status
+
 # Cards
 risk-cards-traded = { $player } trades cards for { $armies } bonus armies.
 

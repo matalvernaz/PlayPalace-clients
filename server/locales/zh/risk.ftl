@@ -74,3 +74,4 @@ risk-rules =
     每回合至少征服一个领地获得一张卡。3 张同组卡牌可换取奖励军队。
     消灭所有对手即获胜。
     按 E 查看状态。
+risk-check-status = Check status

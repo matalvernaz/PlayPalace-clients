@@ -41,3 +41,4 @@ mancala-rules =
 
 # End screen
 mancala-final-score = { $player }: amatshe angu-{ $score }
+mancala-check-board = Check board

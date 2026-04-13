@@ -578,7 +578,9 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         return self.guard_game_active()
 
     def _is_check_status_hidden(self, player: Player) -> Visibility:
-        return Visibility.HIDDEN  # Keybind only
+        if self.status != "playing":
+            return Visibility.HIDDEN
+        return Visibility.VISIBLE
 
     # ==========================================================================
     # Action set and keybinds
@@ -640,15 +642,13 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 is_hidden="_is_cancel_fortify_hidden",
             )
         )
-        # Keybind-only actions
         action_set.add(
             Action(
                 id="check_status",
-                label="Status",
+                label=Localization.get(locale, "risk-check-status"),
                 handler="_action_check_status",
                 is_enabled="_is_check_status_enabled",
                 is_hidden="_is_check_status_hidden",
-                show_in_actions_menu=False,
             )
         )
         return action_set

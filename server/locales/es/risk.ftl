@@ -74,3 +74,4 @@ risk-rules =
     Conquista al menos un territorio por turno para ganar una carta. Cambia sets de 3 cartas por ejércitos extra.
     Elimina a todos los oponentes para ganar.
     Presiona E para ver tu estado.
+risk-check-status = Check status

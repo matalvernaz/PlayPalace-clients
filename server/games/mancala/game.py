@@ -272,7 +272,9 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         return self.guard_game_active()
 
     def _is_check_board_hidden(self, player: Player) -> Visibility:
-        return Visibility.HIDDEN
+        if self.status != "playing":
+            return Visibility.HIDDEN
+        return Visibility.VISIBLE
 
     # ==========================================================================
     # Action set and keybinds
@@ -299,11 +301,10 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         action_set.add(
             Action(
                 id="check_board",
-                label="Check board",
+                label=Localization.get(locale, "mancala-check-board"),
                 handler="_action_check_board",
                 is_enabled="_is_check_board_enabled",
                 is_hidden="_is_check_board_hidden",
-                show_in_actions_menu=False,
             )
         )
         return action_set
