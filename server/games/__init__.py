@@ -17,6 +17,7 @@ from .tradeoff.game import TradeoffGame
 from .tossup.game import TossUpGame
 from .midnight.game import MidnightGame
 from .leftrightcenter.game import LeftRightCenterGame
+from .liarsdice.game import LiarsDiceGame
 
 # --- Card games ---
 from .scopa.game import ScopaGame
@@ -24,6 +25,7 @@ from .crazyeights.game import CrazyEightsGame
 from .ninetynine.game import NinetyNineGame
 from .nine.game import NineGame
 from .milebymile.game import MileByMileGame
+from .explodingkittens.game import ExplodingKittensGame
 from .blackjack.game import BlackjackGame
 from .twentyone import TwentyOneGame
 
@@ -78,11 +80,13 @@ __all__ = [
     "TossUpGame",
     "MidnightGame",
     "LeftRightCenterGame",
+    "LiarsDiceGame",
     "ScopaGame",
     "CrazyEightsGame",
     "NinetyNineGame",
     "NineGame",
     "MileByMileGame",
+    "ExplodingKittensGame",
     "BlackjackGame",
     "TwentyOneGame",
     "FiveCardDrawGame",
