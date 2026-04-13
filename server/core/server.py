@@ -2644,13 +2644,20 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         state across devices.
         """
         try:
+            prefs_dict = user.preferences.to_dict()
             payload = {
                 "type": "preferences",
-                "preferences": user.preferences.to_dict(),
+                "preferences": prefs_dict,
             }
+            LOG.info(
+                "Pushing preferences to %s: music_volume=%s ambience_volume=%s",
+                user.username,
+                prefs_dict.get("music_volume"),
+                prefs_dict.get("ambience_volume"),
+            )
             await user.connection.send(payload)
         except Exception as exc:  # pragma: no cover — best-effort push
-            LOG.debug("Failed to push preferences to %s: %s", user.username, exc)
+            LOG.warning("Failed to push preferences to %s: %s", user.username, exc)
 
     async def _handle_set_preference(self, client: ClientConnection, packet: dict) -> None:
         """Handle direct preference updates from native clients (mobile/macOS).
