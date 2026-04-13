@@ -49,10 +49,10 @@ struct LoginView: View {
                     Button {
                         showingGestureSettings = true
                     } label: {
-                        Label("Gesture Settings", systemImage: "hand.draw")
+                        Label("Settings", systemImage: "slider.horizontal.3")
                     }
-                    .accessibilityLabel("Gesture settings")
-                    .accessibilityHint("Customize touch gestures for gameplay")
+                    .accessibilityLabel("Settings")
+                    .accessibilityHint("Adjust music and ambience volume, customize touch gestures")
                 }
 
                 serverPickerSection
