@@ -183,6 +183,10 @@ final class ConfigManager: ObservableObject {
         if host.contains("://") {
             let scheme = host.components(separatedBy: "://").first?.lowercased() ?? "ws"
             let hostPart = host.components(separatedBy: "://").dropFirst().joined(separator: "://")
+            let isStandardPort = (scheme == "wss" && port == 443) || (scheme == "ws" && port == 80)
+            if isStandardPort {
+                return "\(scheme)://\(hostPart)"
+            }
             return "\(scheme)://\(hostPart):\(port)"
         }
         return "ws://\(host):\(port)"
@@ -238,8 +242,17 @@ final class ConfigManager: ObservableObject {
     }
 
     func saveMutedBuffers(_ names: [String]) {
+        savePreference("muted_buffers", value: names)
+    }
+
+    func saveVolumes(music: Float, ambience: Float) {
+        savePreference("music_volume", value: music)
+        savePreference("ambience_volume", value: ambience)
+    }
+
+    private func savePreference(_ key: String, value: Any) {
         var prefs = loadPreferences()
-        prefs["muted_buffers"] = names
+        prefs[key] = value
         do {
             try FileManager.default.createDirectory(at: basePath, withIntermediateDirectories: true)
             let data = try JSONSerialization.data(withJSONObject: prefs, options: .prettyPrinted)

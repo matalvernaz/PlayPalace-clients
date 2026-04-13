@@ -24,6 +24,10 @@ server/coverage-report.txt
 # Web client local deployment config
 clients/web/config.js
 
+# iOS build artifacts (converted from desktop OGGs by scripts/convert-sounds-ios.sh)
+clients/macos/PlayPalace/Sources/sounds/
+clients/macos/PlayPalace/.build/
+
 # Documents infrastructure (server-local and runtime data)
 server/documents/independent/
 server/documents/_attribution.json

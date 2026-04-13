@@ -52,10 +52,16 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         guard let creds = appState.credentials else { return }
         self.credentials = creds
 
-        // Restore muted buffers
+        // Restore preferences
         let prefs = appState.configManager.loadPreferences()
         if let muted = prefs["muted_buffers"] as? [String] {
             bufferSystem.restoreMuted(Set(muted))
+        }
+        if let musicVol = prefs["music_volume"] as? Double {
+            soundManager.setMusicVolume(Float(musicVol))
+        }
+        if let ambienceVol = prefs["ambience_volume"] as? Double {
+            soundManager.setAmbienceVolume(Float(ambienceVol))
         }
 
         connect(creds)
@@ -227,9 +233,10 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             }
         }
 
-        // Announce new menu to VoiceOver
+        // Announce new menu without interrupting server speech
+        // (score results, turn changes, etc. may still be queued)
         if !isSameMenu, let sel = menuSelection, sel < data.items.count {
-            speechManager.speak(data.items[sel].text)
+            speechManager.speak(data.items[sel].text, interrupt: false)
         }
     }
 
@@ -610,6 +617,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         soundManager.setMusicVolume(newVol)
         let pct = Int(newVol * 100)
         speechManager.speak("Music: \(pct)%")
+        saveVolumes()
     }
 
     func adjustAmbienceVolume(delta: Float) {
@@ -617,6 +625,14 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         soundManager.setAmbienceVolume(newVol)
         let pct = Int(newVol * 100)
         speechManager.speak("Ambience: \(pct)%")
+        saveVolumes()
+    }
+
+    private func saveVolumes() {
+        appState?.configManager.saveVolumes(
+            music: soundManager.musicVolume,
+            ambience: soundManager.ambienceVolume
+        )
     }
 
     // MARK: - Buffer Navigation

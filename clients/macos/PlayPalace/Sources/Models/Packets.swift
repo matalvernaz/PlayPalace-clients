@@ -10,7 +10,7 @@ enum ClientPacket {
         username: String,
         password: String? = nil,
         sessionToken: String? = nil,
-        clientType: String = "Desktop",
+        clientType: String = Self.defaultClientType(),
         platform: String = Self.platformString()
     ) -> [String: Any] {
         var packet: [String: Any] = [
@@ -33,7 +33,7 @@ enum ClientPacket {
     static func refreshSession(
         refreshToken: String,
         username: String,
-        clientType: String = "Desktop",
+        clientType: String = Self.defaultClientType(),
         platform: String = Self.platformString()
     ) -> [String: Any] {
         [
@@ -174,6 +174,24 @@ enum ClientPacket {
             "duration_type": durationType,
             "duration": duration,
         ]
+    }
+
+    static func setPreference(key: String, value: Any, gameType: String? = nil) -> [String: Any] {
+        var packet: [String: Any] = [
+            "type": "set_preference",
+            "key": key,
+            "value": value,
+        ]
+        if let gameType { packet["game_type"] = gameType }
+        return packet
+    }
+
+    private static func defaultClientType() -> String {
+        #if os(iOS)
+        return "mobile"
+        #else
+        return "macos"
+        #endif
     }
 
     private static func platformString() -> String {
