@@ -219,6 +219,10 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             self.board[7 + i] = stones
         super().on_start()
 
+    def on_tick(self) -> None:
+        super().on_tick()
+        BotHelper.on_tick(self)
+
     def _reset_player_for_game(self, player: MancalaPlayer) -> None:
         pass
 
