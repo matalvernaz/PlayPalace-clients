@@ -224,6 +224,7 @@ struct MenuPacketData {
     let escapeBehavior: String
     let gridEnabled: Bool
     let gridWidth: Int
+    let helpText: String?
     let position: Int?
 
     init(from packet: [String: Any], previousState: MenuPacketData? = nil) {
@@ -236,6 +237,7 @@ struct MenuPacketData {
         self.escapeBehavior = packet["escape_behavior"] as? String ?? prev?.escapeBehavior ?? "keybind"
         self.gridEnabled = packet["grid_enabled"] as? Bool ?? prev?.gridEnabled ?? false
         self.gridWidth = packet["grid_width"] as? Int ?? prev?.gridWidth ?? 1
+        self.helpText = packet["help_text"] as? String ?? prev?.helpText
 
         if let pos = packet["position"] as? Int {
             self.position = pos

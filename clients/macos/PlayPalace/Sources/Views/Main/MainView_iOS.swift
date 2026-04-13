@@ -81,7 +81,9 @@ private struct DirectTouchGameView: UIViewRepresentable {
 /// Gesture scheme (consistent finger grouping):
 ///
 /// ONE FINGER — menu navigation:
-///   Swipe left/right  — browse items
+///   Swipe left/right  — browse items (column movement in grid mode)
+///   Swipe up/down      — row movement in grid mode
+///   Hold and drag       — explore by touch in grid mode
 ///   Double-tap         — activate selected item
 ///   Single tap         — repeat current item
 ///   Long press         — detailed status
@@ -115,6 +117,11 @@ final class GameTouchView: UIView {
     // For two-finger scrub detection
     private var twoFingerTouchHistory: [CGPoint] = []
     private var twoFingerScrubRecognized = false
+
+    // For grid explore-by-touch
+    private var exploreTimer: Timer?
+    private var isExploring = false
+    private var lastExploreCell: Int = -1
 
     // MARK: - Init
 
@@ -168,6 +175,16 @@ final class GameTouchView: UIView {
         swipeLeft.numberOfTouchesRequired = 1
         addGestureRecognizer(swipeLeft)
 
+        let swipeUp = UISwipeGestureRecognizer(target: self, action: #selector(onSwipeUp))
+        swipeUp.direction = .up
+        swipeUp.numberOfTouchesRequired = 1
+        addGestureRecognizer(swipeUp)
+
+        let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(onSwipeDown))
+        swipeDown.direction = .down
+        swipeDown.numberOfTouchesRequired = 1
+        addGestureRecognizer(swipeDown)
+
         let longPress = UILongPressGestureRecognizer(target: self, action: #selector(onLongPress))
         longPress.minimumPressDuration = 0.6
         longPress.numberOfTouchesRequired = 1
@@ -218,40 +235,57 @@ final class GameTouchView: UIView {
         addGestureRecognizer(threeTap)
     }
 
-    // MARK: - Two-Finger Scrub Detection (zig-zag)
+    // MARK: - Touch Tracking (scrub + grid explore)
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
-        if let allTouches = event?.allTouches, allTouches.count == 2 {
+        guard let allTouches = event?.allTouches else { return }
+
+        if allTouches.count == 2 {
+            // Two-finger scrub detection
             twoFingerTouchHistory.removeAll()
             twoFingerScrubRecognized = false
             if let touch = touches.first {
                 twoFingerTouchHistory.append(touch.location(in: self))
+            }
+        } else if allTouches.count == 1,
+                  let vm = viewModel, vm.gridEnabled, vm.gridWidth > 1 {
+            // Grid explore: start after a short delay so swipes/taps fire first
+            cancelExplore()
+            exploreTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+                guard let self, let touch = allTouches.first else { return }
+                self.isExploring = true
+                self.lastExploreCell = -1
+                self.exploreAtPosition(touch.location(in: self))
             }
         }
     }
 
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesMoved(touches, with: event)
-        guard let allTouches = event?.allTouches, allTouches.count == 2,
-              !twoFingerScrubRecognized else { return }
-        if let touch = touches.first {
-            twoFingerTouchHistory.append(touch.location(in: self))
-        }
-        // Detect scrub: 3+ direction changes in horizontal movement
-        if twoFingerTouchHistory.count >= 4 {
-            var directionChanges = 0
-            for i in 2..<twoFingerTouchHistory.count {
-                let prev = twoFingerTouchHistory[i-1].x - twoFingerTouchHistory[i-2].x
-                let curr = twoFingerTouchHistory[i].x - twoFingerTouchHistory[i-1].x
-                if prev * curr < 0 && abs(curr) > 5 {
-                    directionChanges += 1
+        guard let allTouches = event?.allTouches else { return }
+
+        if allTouches.count == 2 && !twoFingerScrubRecognized {
+            if let touch = touches.first {
+                twoFingerTouchHistory.append(touch.location(in: self))
+            }
+            // Detect scrub: 3+ direction changes in horizontal movement
+            if twoFingerTouchHistory.count >= 4 {
+                var directionChanges = 0
+                for i in 2..<twoFingerTouchHistory.count {
+                    let prev = twoFingerTouchHistory[i-1].x - twoFingerTouchHistory[i-2].x
+                    let curr = twoFingerTouchHistory[i].x - twoFingerTouchHistory[i-1].x
+                    if prev * curr < 0 && abs(curr) > 5 {
+                        directionChanges += 1
+                    }
+                }
+                if directionChanges >= 2 {
+                    twoFingerScrubRecognized = true
+                    onScrub()
                 }
             }
-            if directionChanges >= 2 {
-                twoFingerScrubRecognized = true
-                onScrub()
-            }
+        } else if allTouches.count == 1 && isExploring, let touch = touches.first {
+            exploreAtPosition(touch.location(in: self))
         }
     }
 
@@ -259,12 +293,49 @@ final class GameTouchView: UIView {
         super.touchesEnded(touches, with: event)
         twoFingerTouchHistory.removeAll()
         twoFingerScrubRecognized = false
+        cancelExplore()
     }
 
     override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesCancelled(touches, with: event)
         twoFingerTouchHistory.removeAll()
         twoFingerScrubRecognized = false
+        cancelExplore()
+    }
+
+    // MARK: - Grid Explore by Touch
+
+    private func cancelExplore() {
+        exploreTimer?.invalidate()
+        exploreTimer = nil
+        isExploring = false
+        lastExploreCell = -1
+    }
+
+    private func exploreAtPosition(_ point: CGPoint) {
+        guard let vm = viewModel, vm.gridEnabled, vm.gridWidth > 1,
+              !vm.menuItems.isEmpty else { return }
+
+        let gridWidth = vm.gridWidth
+        let gridHeight = (vm.menuItems.count + gridWidth - 1) / gridWidth
+
+        let col = Int(point.x / bounds.width * CGFloat(gridWidth))
+        let row = Int(point.y / bounds.height * CGFloat(gridHeight))
+
+        let clampedCol = max(0, min(col, gridWidth - 1))
+        let clampedRow = max(0, min(row, gridHeight - 1))
+
+        let cellIndex = clampedRow * gridWidth + clampedCol
+        guard cellIndex >= 0, cellIndex < vm.menuItems.count else { return }
+
+        if cellIndex != lastExploreCell {
+            lastExploreCell = cellIndex
+            currentIndex = cellIndex
+            vm.menuSelection = cellIndex
+            selectionFeedback.selectionChanged()
+            announceCurrentItem()
+            resetIdleTimer()
+        }
     }
 
     // MARK: - VoiceOver Support
@@ -325,6 +396,7 @@ final class GameTouchView: UIView {
 
     /// Central dispatch: looks up the action for a gesture type and executes it.
     private func dispatch(_ gestureType: GestureType) {
+        cancelExplore()
         let action = gestureSettings?.action(for: gestureType) ?? GestureSettings.defaultMapping[gestureType] ?? .none
         perform(action)
         resetIdleTimer()
@@ -336,6 +408,12 @@ final class GameTouchView: UIView {
         switch action {
         case .nextItem:
             guard !vm.menuItems.isEmpty else { return }
+            let gridWidth = vm.gridWidth
+            if vm.gridEnabled && gridWidth > 1 {
+                // In grid mode, stay within the current row
+                let col = currentIndex % gridWidth
+                guard col < gridWidth - 1, currentIndex < vm.menuItems.count - 1 else { return }
+            }
             if currentIndex < vm.menuItems.count - 1 {
                 currentIndex += 1
                 vm.menuSelection = currentIndex
@@ -344,6 +422,12 @@ final class GameTouchView: UIView {
             announceCurrentItem()
         case .previousItem:
             guard !vm.menuItems.isEmpty else { return }
+            let gridWidth = vm.gridWidth
+            if vm.gridEnabled && gridWidth > 1 {
+                // In grid mode, stay within the current row
+                let col = currentIndex % gridWidth
+                guard col > 0 else { return }
+            }
             if currentIndex > 0 {
                 currentIndex -= 1
                 vm.menuSelection = currentIndex
@@ -384,6 +468,22 @@ final class GameTouchView: UIView {
             vm.olderMessage()
         case .newerMessage:
             vm.newerMessage()
+        case .gridUp:
+            guard vm.gridEnabled, !vm.menuItems.isEmpty else { return }
+            let newIndex = currentIndex - vm.gridWidth
+            guard newIndex >= 0 else { return }
+            currentIndex = newIndex
+            vm.menuSelection = currentIndex
+            selectionFeedback.selectionChanged()
+            announceCurrentItem()
+        case .gridDown:
+            guard vm.gridEnabled, !vm.menuItems.isEmpty else { return }
+            let newIndex = currentIndex + vm.gridWidth
+            guard newIndex < vm.menuItems.count else { return }
+            currentIndex = newIndex
+            vm.menuSelection = currentIndex
+            selectionFeedback.selectionChanged()
+            announceCurrentItem()
         case .none:
             break
         }
@@ -393,6 +493,8 @@ final class GameTouchView: UIView {
 
     @objc private func onSwipeRight() { dispatch(.oneFingerSwipeRight) }
     @objc private func onSwipeLeft() { dispatch(.oneFingerSwipeLeft) }
+    @objc private func onSwipeUp() { dispatch(.oneFingerSwipeUp) }
+    @objc private func onSwipeDown() { dispatch(.oneFingerSwipeDown) }
     @objc private func onSingleTap() { dispatch(.oneFingerSingleTap) }
 
     @objc private func onDoubleTap() { dispatch(.oneFingerDoubleTap) }
@@ -473,7 +575,13 @@ final class GameTouchView: UIView {
             return
         }
         let item = vm.menuItems[currentIndex]
-        speak("\(item.text). \(currentIndex + 1) of \(vm.menuItems.count)")
+        if vm.gridEnabled && vm.gridWidth > 1 {
+            let row = currentIndex / vm.gridWidth + 1
+            let col = currentIndex % vm.gridWidth + 1
+            speak("\(item.text). Row \(row), column \(col)")
+        } else {
+            speak("\(item.text). \(currentIndex + 1) of \(vm.menuItems.count)")
+        }
     }
 
     private func announceStatus() {
@@ -503,6 +611,11 @@ final class GameTouchView: UIView {
         let itemTexts = vm.menuItems.map { $0.text.lowercased() }
         var hints: [String] = []
 
+        // Game rules from server (if available)
+        if let helpText = vm.helpText, !helpText.isEmpty {
+            hints.append(helpText)
+        }
+
         // Check for lobby indicators
         let isLobby = itemTexts.contains(where: { $0.contains("start") })
         if isLobby {
@@ -521,6 +634,14 @@ final class GameTouchView: UIView {
         let hasDice = itemTexts.contains(where: { $0.contains("roll") || $0.contains("dice") })
         if hasDice {
             hints.append("Two-finger double-tap to roll")
+        }
+
+        // Check for grid mode
+        if vm.gridEnabled && vm.gridWidth > 1 {
+            let rows = vm.menuItems.count / vm.gridWidth
+            hints.append("Grid mode: \(vm.gridWidth) columns, \(rows) rows")
+            hints.append("Swipe up or down to move between rows")
+            hints.append("Hold and drag to explore the grid by touch")
         }
 
         // Always available
@@ -551,6 +672,7 @@ final class GameTouchView: UIView {
 
     deinit {
         idleTimer?.invalidate()
+        exploreTimer?.invalidate()
     }
 }
 

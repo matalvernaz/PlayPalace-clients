@@ -137,6 +137,7 @@ class MockUser(User):
         grid_enabled: bool = False,
         grid_width: int = 1,
         play_selection_sound: bool = False,
+        help_text: str | None = None,
     ) -> None:
         """Record menu display state and message."""
         menu_data = {

@@ -169,6 +169,7 @@ class User(ABC):
         grid_enabled: bool = False,
         grid_width: int = 1,
         play_selection_sound: bool = False,
+        help_text: str | None = None,
     ) -> None:
         """
         Display a menu to the user.

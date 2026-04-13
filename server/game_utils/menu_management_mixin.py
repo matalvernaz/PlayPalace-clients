@@ -54,12 +54,17 @@ class MenuManagementMixin:
                 label = f"{label}; {unavailable}"
             items.append(MenuItem(text=label, id=resolved.action.id, sound=resolved.sound))
 
+        help_text = None
+        if hasattr(self, "get_help_text"):
+            help_text = self.get_help_text(user.locale)
+
         user.show_menu(
             "turn_menu",
             items,
             multiletter=False,
             escape_behavior=EscapeBehavior.KEYBIND,
             position=position,
+            help_text=help_text,
         )
 
     def rebuild_all_menus(self) -> None:

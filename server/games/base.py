@@ -227,6 +227,23 @@ class Game(
         """Return maximum number of players."""
         return 4
 
+    def get_help_text(self, locale: str) -> str | None:
+        """Return game rules/help text for the given locale.
+
+        Override in subclasses to provide game-specific rules that
+        clients can show in their help screens.  The default
+        implementation looks up ``{game_type}-rules`` in the
+        localization files and returns None if the key is missing.
+        """
+        from ..messages.localization import Localization
+
+        key = f"{self.get_type()}-rules"
+        text = Localization.get(locale, key)
+        # Fluent returns the key in brackets when the message is missing
+        if text in (key, f"[{key}]"):
+            return None
+        return text
+
     @classmethod
     def get_leaderboard_types(cls) -> list[dict]:
         """Return additional leaderboard types this game supports.

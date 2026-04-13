@@ -110,6 +110,7 @@ class VirtualUser(User):
         grid_enabled: bool = False,
         grid_width: int = 1,
         play_selection_sound: bool = False,
+        help_text: str | None = None,
     ) -> None:
         """Track menu state for decision-making."""
         self._current_menu_id = menu_id

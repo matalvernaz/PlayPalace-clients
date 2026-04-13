@@ -227,6 +227,7 @@ class NetworkUser(User):
         grid_enabled: bool = False,
         grid_width: int = 1,
         play_selection_sound: bool = False,
+        help_text: str | None = None,
     ) -> None:
         """Send a menu definition to the client.
 
@@ -266,6 +267,8 @@ class NetworkUser(User):
             packet["position"] = position - 1
         if play_selection_sound:
             packet["play_selection_sound"] = True
+        if help_text is not None:
+            packet["help_text"] = help_text
         self._queue_packet(packet)
 
     def update_menu(

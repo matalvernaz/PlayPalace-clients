@@ -21,6 +21,9 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     @Published var editMultiline = false
     @Published var editReadOnly = false
     @Published var currentBufferInfo: String?
+    @Published var gridEnabled = false
+    @Published var gridWidth = 1
+    @Published var helpText: String?
 
     // MARK: - Internal State
 
@@ -193,6 +196,9 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
         multiletter = data.multiletter
         escapeBehavior = data.escapeBehavior
+        gridEnabled = data.gridEnabled
+        gridWidth = max(1, data.gridWidth)
+        helpText = data.helpText
 
         // Exit edit mode if needed
         if isEditMode { cancelEdit() }
@@ -265,6 +271,9 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         menuItems = []
         currentMenuID = nil
         currentMenuItemIDs = []
+        gridEnabled = false
+        gridWidth = 1
+        helpText = nil
         if isEditMode { cancelEdit() }
         soundManager.removeAllPlaylists()
         soundManager.stopMusic(fade: true)

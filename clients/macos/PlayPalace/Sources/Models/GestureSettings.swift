@@ -6,6 +6,8 @@ enum GestureType: String, CaseIterable, Codable, Identifiable {
     // One finger
     case oneFingerSwipeRight = "one_finger_swipe_right"
     case oneFingerSwipeLeft = "one_finger_swipe_left"
+    case oneFingerSwipeUp = "one_finger_swipe_up"
+    case oneFingerSwipeDown = "one_finger_swipe_down"
     case oneFingerDoubleTap = "one_finger_double_tap"
     case oneFingerSingleTap = "one_finger_single_tap"
     case oneFingerLongPress = "one_finger_long_press"
@@ -27,6 +29,8 @@ enum GestureType: String, CaseIterable, Codable, Identifiable {
         switch self {
         case .oneFingerSwipeRight: return "One-finger swipe right"
         case .oneFingerSwipeLeft: return "One-finger swipe left"
+        case .oneFingerSwipeUp: return "One-finger swipe up"
+        case .oneFingerSwipeDown: return "One-finger swipe down"
         case .oneFingerDoubleTap: return "One-finger double-tap"
         case .oneFingerSingleTap: return "One-finger single tap"
         case .oneFingerLongPress: return "One-finger long press"
@@ -44,8 +48,9 @@ enum GestureType: String, CaseIterable, Codable, Identifiable {
 
     var fingerCount: Int {
         switch self {
-        case .oneFingerSwipeRight, .oneFingerSwipeLeft, .oneFingerDoubleTap,
-             .oneFingerSingleTap, .oneFingerLongPress:
+        case .oneFingerSwipeRight, .oneFingerSwipeLeft, .oneFingerSwipeUp,
+             .oneFingerSwipeDown, .oneFingerDoubleTap, .oneFingerSingleTap,
+             .oneFingerLongPress:
             return 1
         case .twoFingerScrub, .twoFingerDoubleTap, .twoFingerSwipeUp, .twoFingerSwipeDown:
             return 2
@@ -72,6 +77,8 @@ enum GestureAction: String, CaseIterable, Codable, Identifiable {
     case nextBuffer = "next_buffer"
     case olderMessage = "older_message"
     case newerMessage = "newer_message"
+    case gridUp = "grid_up"
+    case gridDown = "grid_down"
     case none = "none"
 
     var id: String { rawValue }
@@ -92,6 +99,8 @@ enum GestureAction: String, CaseIterable, Codable, Identifiable {
         case .nextBuffer: return "Next buffer"
         case .olderMessage: return "Older message"
         case .newerMessage: return "Newer message"
+        case .gridUp: return "Grid move up"
+        case .gridDown: return "Grid move down"
         case .none: return "Unassigned"
         }
     }
@@ -105,6 +114,8 @@ final class GestureSettings: ObservableObject, Codable {
         // One finger — menu navigation
         .oneFingerSwipeRight: .nextItem,
         .oneFingerSwipeLeft: .previousItem,
+        .oneFingerSwipeUp: .gridUp,
+        .oneFingerSwipeDown: .gridDown,
         .oneFingerDoubleTap: .activateItem,
         .oneFingerSingleTap: .repeatItem,
         .oneFingerLongPress: .status,
