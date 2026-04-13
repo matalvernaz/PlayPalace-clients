@@ -130,20 +130,44 @@ final class ConfigManager: ObservableObject {
     }
 
     private func seedDefaultServerIfNeeded() {
-        let defaultHost = "wss://rmichie.com"
-        let defaultPort = 8000
-        // Don't add if any server already points to this host
-        let alreadyExists = servers.values.contains { $0.host == defaultHost && $0.port == defaultPort }
-        if !alreadyExists {
+        var changed = false
+
+        // Primary server — PlayPalace at thealvernaz.space
+        let primaryHost = "wss://playpalace.thealvernaz.space"
+        let primaryPort = 443
+        let hasPrimary = servers.values.contains { $0.host == primaryHost && $0.port == primaryPort }
+        var primaryID: String?
+        if !hasPrimary {
             let id = UUID().uuidString
             let server = ServerEntry(
-                serverID: id, name: "Default", host: defaultHost,
-                port: defaultPort, notes: "", accounts: [:]
+                serverID: id, name: "PlayPalace", host: primaryHost,
+                port: primaryPort, notes: "", accounts: [:]
             )
             servers[id] = server
-            if lastServerID == nil { lastServerID = id }
-            saveIdentities()
+            primaryID = id
+            changed = true
         }
+
+        // Secondary server — rmichie.com
+        let secondaryHost = "wss://rmichie.com"
+        let secondaryPort = 8000
+        let hasSecondary = servers.values.contains { $0.host == secondaryHost && $0.port == secondaryPort }
+        if !hasSecondary {
+            let id = UUID().uuidString
+            let server = ServerEntry(
+                serverID: id, name: "rmichie", host: secondaryHost,
+                port: secondaryPort, notes: "", accounts: [:]
+            )
+            servers[id] = server
+            changed = true
+        }
+
+        // Default to primary server for new installs
+        if lastServerID == nil {
+            lastServerID = primaryID ?? servers.values.first(where: { $0.host == primaryHost })?.serverID
+        }
+
+        if changed { saveIdentities() }
     }
 
     func deleteServer(_ id: String) {
