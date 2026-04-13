@@ -552,6 +552,14 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         case "escape_event":
             webSocket?.send(ClientPacket.escape(menuID: currentMenuID))
             return true
+        case "keybind":
+            // In keybind mode (e.g. turn menu / table lobby) the server
+            // expects ESC to come through as a keybind — that's how the
+            // Actions menu opens on desktop, which is also where "Leave
+            // table" lives. Without this, iOS users have no way to back
+            // out of a table they created without starting the game.
+            sendKeybind("escape")
+            return true
         default:
             return false
         }
