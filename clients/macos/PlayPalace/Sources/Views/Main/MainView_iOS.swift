@@ -38,7 +38,7 @@ struct MainView: View {
             ControlsSheet(viewModel: viewModel, appState: appState)
         }
         .sheet(isPresented: $showingHelp) {
-            HelpSheet(gestureSettings: gestureSettings)
+            HelpSheet(viewModel: viewModel, gestureSettings: gestureSettings)
         }
         .onAppear { viewModel.setup(appState: appState) }
         .onDisappear { viewModel.disconnect() }
@@ -97,7 +97,7 @@ private struct DirectTouchGameView: UIViewRepresentable {
 /// THREE FINGERS — buffer system:
 ///   Swipe left/right   — previous/next buffer
 ///   Swipe up/down      — older/newer message
-///   Tap                — announce help
+///   Tap                — open help menu
 final class GameTouchView: UIView {
     var viewModel: MainViewModel?
     var gestureSettings: GestureSettings?
@@ -477,7 +477,7 @@ final class GameTouchView: UIView {
         case .status:
             announceStatus()
         case .help:
-            announceHelp()
+            onOpenHelp?()
         case .previousBuffer:
             vm.previousBuffer()
         case .nextBuffer:
@@ -612,66 +612,6 @@ final class GameTouchView: UIView {
             let item = vm.menuItems[currentIndex].text
             speak("\(connected). Item \(currentIndex + 1) of \(count): \(item)")
         }
-    }
-
-    private func announceHelp() {
-        guard let vm = viewModel else {
-            speak("Not connected.")
-            return
-        }
-        let count = vm.menuItems.count
-        if count == 0 {
-            speak("Waiting for menu. Swipe left or right when items appear.")
-            return
-        }
-
-        // Build context-sensitive hint from what's in the menu
-        let itemTexts = vm.menuItems.map { $0.text.lowercased() }
-        var hints: [String] = []
-
-        // Game rules from server (if available)
-        if let helpText = vm.helpText, !helpText.isEmpty {
-            hints.append(helpText)
-        }
-
-        // Check for lobby indicators
-        let isLobby = itemTexts.contains(where: { $0.contains("start") })
-        if isLobby {
-            hints.append("Double-tap to start game")
-            hints.append("Two-finger swipe down to add bot")
-        }
-
-        // Check for card/game items
-        let hasCards = itemTexts.contains(where: { $0.contains("of ") }) // "Ace of Spades"
-        if hasCards {
-            hints.append("Swipe to browse cards, double-tap to play")
-            hints.append("Two-finger double-tap to draw")
-        }
-
-        // Check for dice games
-        let hasDice = itemTexts.contains(where: { $0.contains("roll") || $0.contains("dice") })
-        if hasDice {
-            hints.append("Two-finger double-tap to roll")
-        }
-
-        // Check for grid mode
-        if vm.gridEnabled && vm.gridWidth > 1 {
-            let rows = vm.menuItems.count / vm.gridWidth
-            hints.append("Grid mode: \(vm.gridWidth) columns, \(rows) rows")
-            hints.append("Swipe up or down to move between rows")
-            hints.append("Hold and drag to explore the grid by touch")
-        }
-
-        // Always available
-        hints.append("Two-finger scrub to go back")
-        hints.append("Two-finger swipe up for score")
-
-        // Fallback if nothing specific detected
-        if hints.count <= 2 {
-            hints.insert("\(count) items. Swipe to browse, double-tap to select", at: 0)
-        }
-
-        speak(hints.joined(separator: ". "))
     }
 
     // MARK: - Idle Timer
@@ -850,12 +790,62 @@ private struct ControlsSheet: View {
 // MARK: - Help Sheet
 
 private struct HelpSheet: View {
+    @ObservedObject var viewModel: MainViewModel
     @ObservedObject var gestureSettings: GestureSettings
     @Environment(\.dismiss) private var dismiss
+
+    /// Game rules from the server, split into one item per line so VoiceOver
+    /// can flick through them rule-by-rule instead of reading the whole block.
+    private var gameRules: [String] {
+        guard let text = viewModel.helpText, !text.isEmpty else { return [] }
+        return text
+            .split(whereSeparator: { $0.isNewline })
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    /// Context-sensitive tips based on what's currently in the menu.
+    private var contextTips: [String] {
+        var tips: [String] = []
+        let itemTexts = viewModel.menuItems.map { $0.text.lowercased() }
+
+        if itemTexts.contains(where: { $0.contains("start") }) {
+            tips.append("Double-tap to start the game.")
+            tips.append("Two-finger swipe down to add a bot.")
+        }
+        if itemTexts.contains(where: { $0.contains("of ") }) {
+            tips.append("Swipe to browse cards, double-tap to play.")
+            tips.append("Two-finger double-tap to draw.")
+        }
+        if itemTexts.contains(where: { $0.contains("roll") || $0.contains("dice") }) {
+            tips.append("Two-finger double-tap to roll.")
+        }
+        if viewModel.gridEnabled && viewModel.gridWidth > 1 {
+            let rows = max(1, viewModel.menuItems.count / viewModel.gridWidth)
+            tips.append("Grid mode: \(viewModel.gridWidth) columns, \(rows) rows.")
+            tips.append("Swipe up or down to move between rows.")
+            tips.append("Hold and drag to explore the grid by touch.")
+        }
+        return tips
+    }
 
     var body: some View {
         NavigationStack {
             List {
+                if !gameRules.isEmpty {
+                    Section("Game Rules") {
+                        ForEach(gameRules, id: \.self) { rule in
+                            Text(rule).font(.body)
+                        }
+                    }
+                }
+                if !contextTips.isEmpty {
+                    Section("Tips for This Screen") {
+                        ForEach(contextTips, id: \.self) { tip in
+                            Text(tip).font(.body)
+                        }
+                    }
+                }
                 ForEach([1, 2, 3], id: \.self) { fingerCount in
                     let label = fingerCount == 1 ? "One Finger" : fingerCount == 2 ? "Two Fingers" : "Three Fingers"
                     Section(label) {

@@ -94,7 +94,7 @@ enum GestureAction: String, CaseIterable, Codable, Identifiable {
         case .checkScore: return "Check score"
         case .addBot: return "Add bot"
         case .status: return "Detailed status"
-        case .help: return "Announce help"
+        case .help: return "Open help menu"
         case .previousBuffer: return "Previous buffer"
         case .nextBuffer: return "Next buffer"
         case .olderMessage: return "Older message"
