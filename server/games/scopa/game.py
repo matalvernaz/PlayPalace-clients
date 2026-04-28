@@ -349,12 +349,13 @@ class ScopaGame(Game):
         return Visibility.HIDDEN
 
     def _is_card_action_enabled(self, player: Player) -> str | None:
-        """Card actions are enabled for current player during play."""
+        """Card actions are enabled for the current player during play."""
         if self.status != "playing":
             return "action-not-playing"
-        # Turn check is done in handler to allow action to appear in menu
         if player.is_spectator:
             return "action-spectator"
+        if self.current_player != player:
+            return "action-not-your-turn"
         return None
 
     def _is_card_action_hidden(self, player: Player) -> Visibility:
@@ -865,13 +866,6 @@ class ScopaGame(Game):
     def _action_play_card(self, player: Player, action_id: str) -> None:
         """Handle playing a card - extracts card ID from action_id."""
         if not isinstance(player, ScopaPlayer):
-            return
-
-        # Check if it's the player's turn
-        if self.current_player != player:
-            user = self.get_user(player)
-            if user:
-                user.speak_l("action-not-your-turn")
             return
 
         # Extract card ID from action_id (e.g., "play_card_42" -> 42)
