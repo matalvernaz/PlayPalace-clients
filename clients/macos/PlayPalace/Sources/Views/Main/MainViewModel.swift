@@ -100,7 +100,6 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             isConnected = false
             if !expectingReconnect {
                 addHistory("Connection lost!", buffer: "activity")
-                speechManager.speak("Connection lost")
             }
         }
     }
@@ -108,7 +107,6 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     nonisolated func onConnectionError(_ message: String) {
         Task { @MainActor in
             addHistory(message, buffer: "activity")
-            speechManager.speak(message)
         }
     }
 
@@ -417,7 +415,6 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             let delay = max(1, retryAfter ?? 3)
             expectingReconnect = true
             addHistory("Server is restarting. Reconnecting in \(delay) seconds...", buffer: "activity")
-            speechManager.speak("Reconnecting in \(delay) seconds")
             Task {
                 try? await Task.sleep(nanoseconds: UInt64(delay) * 1_000_000_000)
                 attemptReconnect()
@@ -425,7 +422,6 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         } else if showMessage {
             let msg = message ?? "Disconnected by server."
             addHistory(msg, buffer: "activity")
-            speechManager.speak(msg)
             if returnToLogin {
                 appState?.returnToLogin()
             }
@@ -465,7 +461,6 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private func handleServerStatus(_ packet: [String: Any]) {
         let message = packet["message"] as? String ?? "Server is temporarily unavailable."
         addHistory(message, buffer: "activity")
-        speechManager.speak(message, interrupt: false)
     }
 
     private func handleTableCreate(_ packet: [String: Any]) {

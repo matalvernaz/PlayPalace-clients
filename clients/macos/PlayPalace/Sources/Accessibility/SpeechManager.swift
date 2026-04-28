@@ -12,8 +12,20 @@ import UIKit
 final class SpeechManager: ObservableObject {
     private let synth = AVSpeechSynthesizer()
 
+    // VoiceOver double-speaks identical live-region updates fired in quick succession; drop within 700ms.
+    private var lastSpeechText: String = ""
+    private var lastSpeechTime: Date = .distantPast
+    private let dedupWindow: TimeInterval = 0.7
+
     /// Speak text aloud. Uses VoiceOver if running, otherwise AVSpeechSynthesizer.
     func speak(_ text: String, interrupt: Bool = true) {
+        let now = Date()
+        if !text.isEmpty && text == lastSpeechText && now.timeIntervalSince(lastSpeechTime) < dedupWindow {
+            return
+        }
+        lastSpeechText = text
+        lastSpeechTime = now
+
         #if os(macOS)
         if NSWorkspace.shared.isVoiceOverEnabled {
             // VoiceOver is active — use it exclusively
