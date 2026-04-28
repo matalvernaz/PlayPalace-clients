@@ -17,10 +17,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -49,7 +49,7 @@ jobs:
           ./packaging/installers/linux/scripts/build_deb.sh
 
       - name: Upload Debian packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-deb
           path: packaging/installers/dist/linux/deb
@@ -59,7 +59,7 @@ jobs:
           ./packaging/installers/linux/scripts/build_rpm.sh
 
       - name: Upload RPM packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-rpm
           path: packaging/installers/dist/linux/rpm
@@ -96,7 +96,7 @@ jobs:
           echo 'builder ALL=(ALL) NOPASSWD: ALL' >> /etc/sudoers
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up uv and Python 3.13
         run: |
@@ -118,7 +118,7 @@ jobs:
           fi
 
       - name: Upload Arch packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: linux-arch
           path: packaging/installers/dist/linux/arch
@@ -128,10 +128,10 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -163,7 +163,7 @@ jobs:
           ./build.ps1
 
       - name: Set up .NET for WiX
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: "8.0.x"
 
@@ -173,7 +173,7 @@ jobs:
           dotnet build packaging/installers/windows/wix/PlayPalace.wixproj -c Release
 
       - name: Upload MSI artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: windows-msi
           path: packaging/installers/windows/wix/bin/**/*.msi
