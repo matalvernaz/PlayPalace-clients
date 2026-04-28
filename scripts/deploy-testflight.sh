@@ -6,10 +6,8 @@ set -euo pipefail
 #
 # Requires:
 #   - Xcode with signing configured
-#   - App-specific password stored in keychain as "PLAYPALACE_TESTFLIGHT"
+#   - App Store Connect API key at $ASC_KEY_PATH (default: AuthKey_8LD279H5H9.p8)
 
-APPLE_ID="matthew@cobd.ca"
-KEYCHAIN_ITEM="PLAYPALACE_TESTFLIGHT"
 PROJECT_DIR="$(cd "$(dirname "$0")/../clients/macos/PlayPalace" && pwd)"
 PROJECT="$PROJECT_DIR/PlayPalace.xcodeproj"
 SCHEME="PlayPalace"
@@ -17,6 +15,12 @@ EXPORT_OPTIONS="$PROJECT_DIR/ExportOptions.plist"
 BUILD_DIR="$PROJECT_DIR/.build/archive"
 ARCHIVE_PATH="$BUILD_DIR/PlayPalace.xcarchive"
 EXPORT_PATH="$BUILD_DIR/export"
+
+# App Store Connect API key — used by xcodebuild -exportArchive in upload mode
+# so the upload doesn't need an Xcode-stored AppleID session (unreachable over SSH).
+ASC_KEY_ID="${ASC_KEY_ID:-8LD279H5H9}"
+ASC_ISSUER_ID="${ASC_ISSUER_ID:-4e69fbec-a077-43c2-aea0-55045fe3dddc}"
+ASC_KEY_PATH="${ASC_KEY_PATH:-$HOME/.appstoreconnect/private_keys/AuthKey_${ASC_KEY_ID}.p8}"
 
 echo "=== PlayPalace TestFlight Deploy ==="
 
@@ -54,6 +58,9 @@ xcodebuild -exportArchive \
     -exportOptionsPlist "$EXPORT_OPTIONS" \
     -exportPath "$EXPORT_PATH" \
     -allowProvisioningUpdates \
+    -authenticationKeyPath "$ASC_KEY_PATH" \
+    -authenticationKeyID "$ASC_KEY_ID" \
+    -authenticationKeyIssuerID "$ASC_ISSUER_ID" \
     -quiet
 
 echo "Export complete."
