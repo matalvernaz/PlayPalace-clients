@@ -426,7 +426,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
                 appState?.returnToLogin()
             }
         } else {
-            speechManager.speak("Disconnected")
+            speechManager.speakAnnouncement("Disconnected")
             appState?.returnToLogin()
         }
     }
@@ -637,7 +637,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         editReadOnly = readOnly
         editCallback = callback
         isEditMode = true
-        speechManager.speak(prompt)
+        speechManager.speakAnnouncement(prompt)
     }
 
     func submitEdit() {
@@ -768,7 +768,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         reconnectAttempts += 1
         if reconnectAttempts > maxReconnectAttempts {
             expectingReconnect = false
-            speechManager.speak("Failed to reconnect after multiple attempts")
+            speechManager.speakAnnouncement("Failed to reconnect after multiple attempts")
             appState?.returnToLogin()
             return
         }
