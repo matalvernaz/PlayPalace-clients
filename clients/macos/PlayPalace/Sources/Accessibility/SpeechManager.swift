@@ -44,6 +44,10 @@ final class SpeechManager: NSObject, ObservableObject {
     /// Lower bound for the fallback timer regardless of text length.
     private static let fallbackMinSeconds: TimeInterval = 4.0
 
+    /// Per-announcement retry budget when VoiceOver reports `wasSuccessful = false`
+    /// (the announcement was preempted before it could be fully spoken).
+    private static let voMaxRetries: Int = 1
+
     // MARK: - Speech channel
 
     enum Channel {
@@ -67,9 +71,22 @@ final class SpeechManager: NSObject, ObservableObject {
     private var activeText: String = ""
     private var fallbackTimer: Timer?
 
-    /// Pending utterances for the AVSpeechSynthesizer path. When VoiceOver is
-    /// running we delegate queueing to the system instead.
+    /// Pending utterances for the AVSpeechSynthesizer path.
     private var queue: [(channel: Channel, text: String)] = []
+
+    /// FIFO of attributed announcements waiting to be posted via
+    /// ``AccessibilityNotification.Announcement``. iOS priorities alone do
+    /// **not** preserve message order — multiple `.high` posts in flight will
+    /// preempt each other, dropping all but the most recent. We serialize
+    /// posts ourselves and only advance after VoiceOver fires the
+    /// `announcementDidFinishNotification` for the in-flight item.
+    private struct PendingVOAnnouncement {
+        var attributed: AttributedString
+        var retriesLeft: Int
+    }
+    private var voQueue: [PendingVOAnnouncement] = []
+    private var voInFlight: PendingVOAnnouncement?
+    private var voTimeoutTimer: Timer?
 
     /// Whether we've configured the audio session this app launch. iOS only.
     private var audioSessionConfigured = false
@@ -79,6 +96,14 @@ final class SpeechManager: NSObject, ObservableObject {
     override init() {
         super.init()
         synth.delegate = self
+        #if os(iOS)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(voiceOverAnnouncementDidFinish(_:)),
+            name: UIAccessibility.announcementDidFinishNotification,
+            object: nil
+        )
+        #endif
     }
 
     /// Legacy entry point — preserved so existing call sites keep working.
@@ -107,6 +132,9 @@ final class SpeechManager: NSObject, ObservableObject {
         activeText = ""
         queue.removeAll()
         cancelFallbackTimer()
+        voQueue.removeAll()
+        voInFlight = nil
+        cancelVoiceOverTimeout()
         if synth.isSpeaking || synth.isPaused {
             synth.stopSpeaking(at: .immediate)
         }
@@ -142,14 +170,11 @@ final class SpeechManager: NSObject, ObservableObject {
 
     // MARK: - VoiceOver path
 
-    /// Maps our two-channel model onto Apple's three-priority announcement
-    /// system and posts via ``AccessibilityNotification.Announcement``, which
-    /// is the modern (iOS 17+ / macOS 14+) replacement for
-    /// `UIAccessibility.post(.announcement, …)`.
-    ///
-    /// We post on the next runloop tick because VoiceOver processes
-    /// accessibility events asynchronously and same-tick posts can be dropped
-    /// if a focus change is also being processed.
+    /// Builds an attributed announcement with the right priority for the
+    /// channel and adds it to our serialized queue. The queue is drained by
+    /// ``pumpVoiceOverQueue()`` whenever a previous announcement finishes
+    /// (success or failure), so messages are heard in order rather than
+    /// preempting each other when posted in rapid succession.
     private func postVoiceOverAnnouncement(_ text: String, channel: Channel, interrupting: Bool) {
         var attributed = AttributedString(text)
         switch (channel, interrupting) {
@@ -161,8 +186,71 @@ final class SpeechManager: NSObject, ObservableObject {
             attributed.accessibilitySpeechAnnouncementPriority = .low
         }
 
+        voQueue.append(PendingVOAnnouncement(attributed: attributed, retriesLeft: Self.voMaxRetries))
+        pumpVoiceOverQueue()
+    }
+
+    /// Post the next queued announcement if nothing is currently in flight.
+    /// VoiceOver will fire ``UIAccessibility/announcementDidFinishNotification``
+    /// when it's done with the post; that drives the next call.
+    private func pumpVoiceOverQueue() {
+        guard voInFlight == nil, !voQueue.isEmpty else { return }
+        let next = voQueue.removeFirst()
+        voInFlight = next
+        scheduleVoiceOverTimeout(for: next.attributed)
+        // Posting via async lets any in-progress focus-change accessibility
+        // event drain first; same-tick posts are sometimes swallowed.
+        let attributed = next.attributed
         DispatchQueue.main.async {
             AccessibilityNotification.Announcement(attributed).post()
+        }
+    }
+
+    /// Safety net: if VoiceOver never fires the finish notification (the app
+    /// went to the background mid-utterance, the user toggled VoiceOver off,
+    /// etc.), advance the queue anyway so it can never wedge.
+    private func scheduleVoiceOverTimeout(for attributed: AttributedString) {
+        cancelVoiceOverTimeout()
+        let length = String(attributed.characters).count
+        let estimated = max(Self.fallbackMinSeconds,
+                            Double(length) * Self.fallbackPerCharSeconds)
+        voTimeoutTimer = Timer.scheduledTimer(withTimeInterval: estimated, repeats: false) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                guard self.voInFlight != nil else { return }
+                self.voInFlight = nil
+                self.pumpVoiceOverQueue()
+            }
+        }
+    }
+
+    private func cancelVoiceOverTimeout() {
+        voTimeoutTimer?.invalidate()
+        voTimeoutTimer = nil
+    }
+
+    /// VoiceOver tells us when our most recent announcement is done speaking.
+    /// `wasSuccessful = false` means VoiceOver started but was interrupted
+    /// before finishing; we requeue the same announcement (up to
+    /// ``voMaxRetries``) so it isn't lost.
+    @objc private nonisolated func voiceOverAnnouncementDidFinish(_ note: Notification) {
+        let userInfo = note.userInfo
+        let wasSuccessful: Bool
+        #if os(iOS)
+        wasSuccessful = (userInfo?[UIAccessibility.announcementWasSuccessfulUserInfoKey] as? Bool) ?? true
+        #else
+        wasSuccessful = true
+        #endif
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard var inflight = self.voInFlight else { return }
+            self.cancelVoiceOverTimeout()
+            if !wasSuccessful, inflight.retriesLeft > 0 {
+                inflight.retriesLeft -= 1
+                self.voQueue.insert(inflight, at: 0)
+            }
+            self.voInFlight = nil
+            self.pumpVoiceOverQueue()
         }
     }
 
