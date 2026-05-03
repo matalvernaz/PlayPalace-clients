@@ -24,12 +24,6 @@ if [[ "${1:-}" == "--force" ]]; then
     FORCE=true
 fi
 
-if ! command -v ffmpeg &>/dev/null; then
-    echo "Error: ffmpeg is required but not found."
-    echo "Install with: brew install ffmpeg"
-    exit 1
-fi
-
 if ! command -v afconvert &>/dev/null; then
     echo "Error: afconvert is required but not found (ships with macOS)."
     exit 1
@@ -37,6 +31,25 @@ fi
 
 if [[ ! -d "$SRC_DIR" ]]; then
     echo "Error: Source sounds directory not found: $SRC_DIR"
+    exit 1
+fi
+
+# ffmpeg is only needed when there are OGG files that aren't already converted
+# (or when --force is set). Scan first so a fully-up-to-date tree builds on
+# machines without ffmpeg installed.
+needs_ffmpeg=0
+while IFS= read -r -d '' ogg_file; do
+    rel_path="${ogg_file#"$SRC_DIR/"}"
+    caf_file="$DST_DIR/${rel_path%.ogg}.caf"
+    if [[ "$FORCE" == true || ! -f "$caf_file" || "$caf_file" -ot "$ogg_file" ]]; then
+        needs_ffmpeg=1
+        break
+    fi
+done < <(find "$SRC_DIR" -name "*.ogg" -print0)
+
+if [[ "$needs_ffmpeg" == 1 ]] && ! command -v ffmpeg &>/dev/null; then
+    echo "Error: ffmpeg is required to convert OGG sources but was not found."
+    echo "Install with: brew install ffmpeg"
     exit 1
 fi
 
