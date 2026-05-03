@@ -151,15 +151,15 @@ final class SpeechManager: NSObject, ObservableObject {
     /// accessibility events asynchronously and same-tick posts can be dropped
     /// if a focus change is also being processed.
     private func postVoiceOverAnnouncement(_ text: String, channel: Channel, interrupting: Bool) {
-        let priority: AccessibilityNotification.Announcement.Priority
-        switch (channel, interrupting) {
-        case (.announcement, _): priority = .high
-        case (.ui, true):        priority = .default
-        case (.ui, false):       priority = .low
-        }
-
         var attributed = AttributedString(text)
-        attributed.accessibilitySpeechAnnouncementPriority = priority
+        switch (channel, interrupting) {
+        case (.announcement, _):
+            attributed.accessibilitySpeechAnnouncementPriority = .high
+        case (.ui, true):
+            attributed.accessibilitySpeechAnnouncementPriority = .default
+        case (.ui, false):
+            attributed.accessibilitySpeechAnnouncementPriority = .low
+        }
 
         DispatchQueue.main.async {
             AccessibilityNotification.Announcement(attributed).post()
