@@ -5,6 +5,13 @@
 game-name-pig = Pig
 pig-category = Dice Games
 
+# Help text shown in the in-game rules screen
+pig-rules =
+    On each turn you roll the die over and over, adding every roll to your round score.
+    Bank at any time to add your round score to your total and pass the die.
+    Roll a one and the round is lost — your round score zeroes out and the die passes anyway.
+    First to the target score (default fifty) wins.
+
 # Actions
 pig-roll = Roll the die
 pig-bank = Bank { $points } points

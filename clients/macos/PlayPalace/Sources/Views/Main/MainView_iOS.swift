@@ -110,7 +110,6 @@ final class GameTouchView: UIView {
     private let notificationFeedback = UINotificationFeedbackGenerator()
 
     private var currentIndex = 0
-    private var lastMenuItemCount = -1
     private var idleTimer: Timer?
     private let idleTimeout: TimeInterval = 8
 
@@ -550,24 +549,20 @@ final class GameTouchView: UIView {
             currentIndex = sel
         }
 
-        let count = vm.menuItems.count
-
-        // Auto-activate single-item menus (e.g., "Roll" or "Draw"
-        // presented after a primary action). This makes two-finger
-        // double-tap feel like one action instead of two.
-        if count == 1 && count != lastMenuItemCount {
-            lastMenuItemCount = count
-            impactFeedback.impactOccurred()
-            vm.activateMenuItem(0)
-            return
-        }
-
-        lastMenuItemCount = count
-
         // Don't auto-announce on menu change — let server speech
         // (draw results, dice rolls, game announcements) come through
         // uninterrupted. The idle timer will announce if the user
         // doesn't interact within 8 seconds.
+        //
+        // We used to auto-activate single-item menus to fold "Roll" /
+        // "Draw" prompts into the gesture that triggered them. That
+        // misfired any time a regular turn menu shrank to a single
+        // option — most notably the start of every Pig/Yahtzee turn,
+        // which the server presents as just [Roll] until you've rolled
+        // once. Result: the second turn auto-rolled without the player
+        // doing anything. The right place to express "this action is
+        // implicit" is the server's primary_action_id, not a count
+        // heuristic on the client.
         resetIdleTimer()
     }
 
