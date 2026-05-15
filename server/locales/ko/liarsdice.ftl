@@ -1,140 +1,111 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — ko
+# AI-translated, native review pending — corrections welcome.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = 각 플레이어는 컵 아래에서 비밀리에 주사위를 굴립니다. 차례대로 테이블 전체에서 특정 눈의 총 개수에 대해 점점 더 높은 베팅을 하거나, 마지막 베팅을 믿지 못하면 "거짓말!"을 외칩니다. 틀리면 주사위 하나를 잃습니다. 주사위를 마지막까지 남긴 사람이 승리합니다.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice는 2~6명이 즐기는 블러핑 주사위 게임입니다.
+    각 플레이어는 컵에 주사위 5개로 시작합니다. 매 라운드 시작 시 모두 비밀리에 굴립니다.
+    차례대로 테이블의 모든 주사위 중 특정 눈의 총 개수에 베팅합니다. 예: "4가 3개"는 모든 컵을 열었을 때 4가 최소 3개 있다는 뜻입니다.
+    새 베팅은 이전보다 높아야 합니다. 같은 눈이면 수량을 늘리거나, 더 높은 눈이면 수량을 같거나 높게 합니다.
+    1은 와일드입니다. 1 자체에 대한 베팅이 아니라면 모든 베팅에 포함됩니다.
+    1에 대한 베팅으로 전환하면 수량이 절반이 됩니다(올림). 1에서 일반 눈으로 돌아갈 때는 이전 수량의 두 배 이상이 필요합니다.
+    베팅 대신 "거짓말!"을 외쳐 직전 베팅에 이의를 제기할 수 있습니다. 모든 컵을 열어 베팅이 맞으면 도전자가 주사위 하나를 잃고, 아니면 베팅한 사람이 잃습니다.
+    Spot On이 켜져 있으면 "Spot On"을 외쳐 베팅이 정확히 맞다고 걸 수 있습니다. 맞으면 다른 모두가 주사위 하나씩 잃고, 틀리면 본인이 두 개 잃습니다.
+    주사위가 0이 되면 탈락입니다. 주사위를 마지막까지 가진 사람이 승리합니다.
+    S 키로 테이블을 확인합니다.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = 플레이어별 시작 주사위: { $dice }
+ld-desc-starting-dice = 각 플레이어가 몇 개의 주사위로 시작하는지. 기본 5. 주사위가 많을수록 게임이 길고 블러핑 여지도 큽니다.
+ld-prompt-starting-dice = 시작 주사위 입력 (3~8)
+ld-option-changed-starting-dice = 시작 주사위를 { $dice }(으)로 설정했습니다.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = 1이 와일드: { $enabled }
+ld-desc-wild-ones = 켜짐: 1은 1 외의 모든 베팅에 포함됩니다. 1 자체 베팅 시 와일드가 비활성화됩니다. 꺼짐: 와일드 없이 순수 확률 게임이 됩니다.
+ld-option-changed-wild-ones = 와일드 1 { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Spot On 외침 활성화: { $enabled }
+ld-desc-spot-on = 켜짐: "거짓말" 외에도 "Spot On"을 외쳐 베팅이 정확히 맞다고 걸 수 있습니다. 맞으면 다른 모두가 주사위 하나씩 잃고, 틀리면 본인이 두 개 잃습니다. 고위험 고보상.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = 라운드 { $round } 시작. 테이블 위 총 주사위: { $total }. 모두 굴립니다.
+ld-your-roll = 이번 라운드의 당신 주사위: { $dice }.
+ld-your-counts = 당신의 개수: { $counts }.
+ld-turn-start = { $player } 님 차례. { $bid_state }
+ld-no-bid-yet = 아직 베팅 없음 — 라운드를 여세요.
+ld-current-bid = 현재 베팅: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = 베팅하기
+ld-action-call-liar = 거짓말 외치기
+ld-action-call-spot-on = Spot On 외치기
+ld-bid-prompt = 베팅을 선택하세요.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] 당신은 { $quantity } { $face }(으)로 베팅합니다.
+    *[player] { $player } 님이 { $quantity } { $face }(으)로 베팅합니다.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] 당신은 { $target } 님의 베팅 "{ $quantity } { $face }"에 거짓말을 외칩니다.
+    *[player] { $player } 님이 { $target } 님의 베팅 "{ $quantity } { $face }"에 거짓말을 외칩니다.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] 당신은 { $target } 님의 베팅 "{ $quantity } { $face }"에 Spot On을 외칩니다.
+    *[player] { $player } 님이 { $target } 님의 베팅 "{ $quantity } { $face }"에 Spot On을 외칩니다.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = 컵 공개! 테이블 위 { $face }의 개수를 셉니다.
+ld-reveal-line = { $player } 님이 굴린 결과: { $dice }.
+ld-actual-count = { $face }의 실제 개수(와일드 1 포함): { $count }. 베팅은 { $quantity }이었습니다.
+ld-actual-count-no-wild = { $face }의 실제 개수(와일드 없음): { $count }. 베팅은 { $quantity }이었습니다.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } 님이 과대 베팅 — 주사위 하나를 잃습니다.
+ld-liar-caller-loses = 베팅은 정직했습니다 — { $caller } 님이 주사위 하나를 잃습니다.
+ld-spot-on-correct = Spot on! { $caller } 님이 정확히 맞췄습니다 — 다른 모두가 주사위 하나씩 잃습니다.
+ld-spot-on-wrong = Spot on 아님. { $caller } 님이 주사위 두 개를 잃습니다.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] 당신은 주사위 하나를 잃었습니다. 현재 { $remaining } { $remaining ->
+        [one] 개
+        *[other] 개
     }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    *[player] { $player } 님이 주사위 하나를 잃었습니다. 현재 { $remaining }.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] 당신은 주사위 { $count }개를 잃었습니다. 현재 { $remaining } { $remaining ->
+        [one] 개
+        *[other] 개
     }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    *[player] { $player } 님이 주사위 { $count }개를 잃었습니다. 현재 { $remaining }.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
-
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
-ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+ld-eliminated = { $player } 님이 주사위를 모두 잃고 탈락! 남은 인원: { $remaining } { $remaining ->
+    [one] 명
+    *[other] 명
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-winner = { $player } 님이 주사위를 마지막까지 보유 — 승리!
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-status-round = 라운드 { $round }.
+ld-status-your-dice = 당신의 주사위: { $dice }.
+ld-status-your-counts = 당신의 개수: { $counts }.
+ld-status-no-dice = 주사위가 없습니다 — 탈락했습니다.
+ld-status-current-bid = 현재 베팅: { $quantity } { $face }.
+ld-status-no-bid = 이번 라운드에 베팅 없음.
+ld-status-table-total = 테이블 위 총 주사위: { $total }.
+ld-status-detailed-header = 상세 상태 — { $count }명 남음.
+ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
+    [one] 개
+    *[other] 개
+}.
+ld-status-detailed-out = { $player }: 탈락.
+ld-status-detailed-self-suffix = {" "}(나)
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-face-1 = 1
+ld-face-2 = 2
+ld-face-3 = 3
+ld-face-4 = 4
+ld-face-5 = 5
+ld-face-6 = 6
+
+ld-action-not-your-turn = 당신의 차례가 아닙니다.
+ld-action-not-playing = 게임이 진행 중이 아닙니다.
+ld-action-no-bid-to-call = 아직 도전할 베팅이 없습니다.
+ld-action-eliminated = 당신은 탈락했습니다.

@@ -1,140 +1,111 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — th
+# AI-translated with limited fluency, native review strongly recommended.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = ผู้เล่นแต่ละคนทอยลูกเต๋าใต้ถ้วยอย่างลับ ๆ สลับกันเสนอเดิมพันสูงขึ้นเรื่อย ๆ บนจำนวนรวมของหน้าหนึ่งทั่วโต๊ะ หรือร้อง "โกหก!" ถ้าไม่เชื่อเดิมพันล่าสุด ผิดจะเสียลูกเต๋า ผู้เหลือลูกเต๋าคนสุดท้ายชนะ
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice เป็นเกมลูกเต๋าบลัฟสำหรับ 2 ถึง 6 ผู้เล่น
+    ผู้เล่นแต่ละคนเริ่มด้วยลูกเต๋า 5 ลูกในถ้วย ต้นรอบทุกคนทอยอย่างลับ ๆ
+    สลับกันเดิมพันบนจำนวนรวมของหน้าหนึ่งบนลูกเต๋าทุกลูก เช่น "สาม 4" คือเมื่อเปิดถ้วยทั้งหมดมีอย่างน้อยสาม 4
+    เดิมพันใหม่ต้องสูงกว่าเดิม: หน้าเดียวกันจำนวนมากกว่า หรือหน้าสูงกว่าจำนวนเท่ากันหรือมากกว่า
+    1 เป็นไวลด์ นับในทุกเดิมพันยกเว้นเดิมพันที่ 1
+    เปลี่ยนเป็นเดิมพันที่ 1 จะลดจำนวนเป็นครึ่ง (ปัดขึ้น) กลับจาก 1 ไปหน้าปกติต้องใช้มากกว่าสองเท่าของจำนวนก่อนหน้า
+    แทนที่จะเดิมพันคุณสามารถร้อง "โกหก!" เพื่อท้าทายเดิมพันล่าสุด เปิดถ้วยทั้งหมด: ถ้าเดิมพันถูก ผู้ท้าทายเสียลูกเต๋า; ถ้าไม่ ผู้เดิมพันเสียลูกเต๋า
+    เมื่อ Spot On เปิดอยู่ คุณสามารถร้อง "Spot On" เดิมพันว่าจำนวนตรงเป๊ะ ถูก คนอื่นทุกคนเสียลูกเต๋าหนึ่งลูก; ผิด คุณเสียสองลูก
+    ตกรอบเมื่อลูกเต๋าเหลือศูนย์ ผู้เหลือลูกเต๋าคนสุดท้ายชนะ
+    กด S เพื่อตรวจสอบโต๊ะ
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = ลูกเต๋าเริ่มต้นต่อผู้เล่น: { $dice }
+ld-desc-starting-dice = ผู้เล่นแต่ละคนเริ่มด้วยลูกเต๋าเท่าไหร่ ค่าเริ่มต้น 5 ลูกเต๋ามากขึ้น = เกมยาวขึ้น พื้นที่บลัฟมากขึ้น
+ld-prompt-starting-dice = ป้อนลูกเต๋าเริ่มต้น (3 ถึง 8)
+ld-option-changed-starting-dice = ตั้งลูกเต๋าเริ่มต้นเป็น { $dice }
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = 1 เป็นไวลด์: { $enabled }
+ld-desc-wild-ones = เปิด: 1 นับในเดิมพันทุกอย่างที่ไม่ใช่ที่ 1 เดิมพันที่ 1 ปิดไวลด์สำหรับเดิมพันนั้น ปิด เกมเป็นความน่าจะเป็นล้วน ไม่มีไวลด์
+ld-option-changed-wild-ones = ไวลด์ 1 { $enabled }
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
-ld-option-changed-spot-on = Spot On { $enabled }.
+ld-toggle-spot-on = การร้อง Spot On เปิด: { $enabled }
+ld-desc-spot-on = เปิด: นอกจาก "โกหก" สามารถร้อง "Spot On" เดิมพันว่าจำนวนตรงเป๊ะ ถูก คนอื่นเสียลูกเต๋าหนึ่งคนละลูก ผิด คุณเสียสอง เสี่ยงสูง รางวัลสูง
+ld-option-changed-spot-on = Spot On { $enabled }
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = รอบ { $round } เริ่ม รวมลูกเต๋าบนโต๊ะ: { $total } ทุกคนทอย
+ld-your-roll = ลูกเต๋าของคุณรอบนี้: { $dice }
+ld-your-counts = การนับของคุณ: { $counts }
+ld-turn-start = ตา { $player } { $bid_state }
+ld-no-bid-yet = ยังไม่มีเดิมพัน เปิดรอบ
+ld-current-bid = เดิมพันปัจจุบัน: { $quantity } { $face }
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = เดิมพัน
+ld-action-call-liar = ร้องโกหก
+ld-action-call-spot-on = ร้อง Spot On
+ld-bid-prompt = เลือกเดิมพันของคุณ
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] คุณเดิมพัน { $quantity } { $face }
+    *[player] { $player } เดิมพัน { $quantity } { $face }
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] คุณร้องโกหกต่อเดิมพันของ { $target } { $quantity } { $face }
+    *[player] { $player } ร้องโกหกต่อเดิมพันของ { $target } { $quantity } { $face }
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] คุณร้อง Spot On ต่อเดิมพันของ { $target } { $quantity } { $face }
+    *[player] { $player } ร้อง Spot On ต่อเดิมพันของ { $target } { $quantity } { $face }
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = เปิดถ้วย! กำลังนับ { $face } บนโต๊ะ
+ld-reveal-line = { $player } ทอย: { $dice }
+ld-actual-count = จำนวนจริงของ { $face } (รวมไวลด์ 1): { $count } เดิมพันคือ { $quantity }
+ld-actual-count-no-wild = จำนวนจริงของ { $face } (ไม่มีไวลด์): { $count } เดิมพันคือ { $quantity }
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } เดิมพันสูงเกิน เสียลูกเต๋าหนึ่งลูก
+ld-liar-caller-loses = เดิมพันซื่อสัตย์ { $caller } เสียลูกเต๋าหนึ่งลูก
+ld-spot-on-correct = Spot on! { $caller } ทายตรงเป๊ะ คนอื่นเสียลูกเต๋าหนึ่งคนละลูก
+ld-spot-on-wrong = ไม่ใช่ spot on { $caller } เสียลูกเต๋าสองลูก
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    [you] คุณเสียลูกเต๋าหนึ่งลูก ตอนนี้มี { $remaining } { $remaining ->
+        [one] ลูก
+        *[other] ลูก
+    }
+    *[player] { $player } เสียลูกเต๋าหนึ่งลูก ตอนนี้มี { $remaining }
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    [you] คุณเสียลูกเต๋า { $count } ลูก ตอนนี้มี { $remaining } { $remaining ->
+        [one] ลูก
+        *[other] ลูก
+    }
+    *[player] { $player } เสียลูกเต๋า { $count } ลูก ตอนนี้มี { $remaining }
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
+ld-eliminated = { $player } ลูกเต๋าหมดและตกรอบ! เหลือ { $remaining } { $remaining ->
+    [one] คน
+    *[other] คน
+}
+ld-winner = { $player } เป็นคนสุดท้ายที่มีลูกเต๋า ชนะ!
 
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
+ld-status-round = รอบ { $round }
+ld-status-your-dice = ลูกเต๋าของคุณ: { $dice }
+ld-status-your-counts = การนับของคุณ: { $counts }
+ld-status-no-dice = ไม่มีลูกเต๋า ตกรอบแล้ว
+ld-status-current-bid = เดิมพันปัจจุบัน: { $quantity } { $face }
+ld-status-no-bid = ไม่มีเดิมพันในรอบนี้
+ld-status-table-total = รวมลูกเต๋าบนโต๊ะ: { $total }
+ld-status-detailed-header = สถานะละเอียด เหลือ { $count } คน
 ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
-}.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+    [one] ลูก
+    *[other] ลูก
+}
+ld-status-detailed-out = { $player }: ตกรอบ
+ld-status-detailed-self-suffix = {" "}(คุณ)
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-face-1 = หนึ่ง
+ld-face-2 = สอง
+ld-face-3 = สาม
+ld-face-4 = สี่
+ld-face-5 = ห้า
+ld-face-6 = หก
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-action-not-your-turn = ยังไม่ใช่ตาคุณ
+ld-action-not-playing = เกมไม่ได้ดำเนินอยู่
+ld-action-no-bid-to-call = ยังไม่มีเดิมพันให้ท้าทาย
+ld-action-eliminated = คุณตกรอบแล้ว

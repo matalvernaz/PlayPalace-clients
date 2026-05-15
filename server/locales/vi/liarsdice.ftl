@@ -1,140 +1,111 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — vi
+# AI-translated, native review pending — corrections welcome.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = Mỗi người chơi đổ xúc xắc bí mật dưới cốc của mình. Lần lượt đặt cược ngày càng cao về tổng số mặt nào đó trên cả bàn — hoặc hét "Nói dối!" nếu không tin lần cược cuối. Sai sẽ mất một xúc xắc. Người cuối cùng còn xúc xắc sẽ thắng.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice là trò chơi đoán-mò bằng xúc xắc cho 2 đến 6 người chơi.
+    Mỗi người bắt đầu với 5 xúc xắc trong cốc. Đầu mỗi vòng tất cả đổ bí mật.
+    Lần lượt đặt cược về tổng số mặt nào đó trên tất cả xúc xắc — ví dụ "ba con 4" nghĩa là khi mở tất cả cốc, có ít nhất ba con 4.
+    Mỗi lần cược mới phải cao hơn: cùng mặt với số lượng lớn hơn, hoặc mặt cao hơn với số lượng bằng hoặc lớn hơn.
+    1 là chủ — tính vào mọi cược trừ cược trên chính số 1.
+    Chuyển sang cược trên 1 sẽ chia đôi số lượng (làm tròn lên). Quay lại từ 1 về mặt thường cần hơn gấp đôi số lượng trước.
+    Thay vì cược bạn có thể hét "Nói dối!" để thách thức cược trước. Tất cả cốc mở ra: nếu cược đúng, người thách thức mất một xúc xắc; nếu sai, người cược mất một xúc xắc.
+    Khi Spot On bật, bạn có thể hét "Spot On" cược rằng số chính xác. Đúng — mọi người khác mất một xúc xắc; sai — bạn mất hai.
+    Bị loại khi hết xúc xắc. Người cuối cùng còn xúc xắc thắng.
+    Nhấn S để kiểm tra bàn.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = Xúc xắc khởi đầu mỗi người: { $dice }
+ld-desc-starting-dice = Mỗi người chơi bắt đầu với bao nhiêu xúc xắc. Mặc định 5. Nhiều xúc xắc = ván dài hơn, không gian đoán-mò rộng hơn.
+ld-prompt-starting-dice = Nhập số xúc xắc khởi đầu (3 đến 8)
+ld-option-changed-starting-dice = Xúc xắc khởi đầu đặt thành { $dice }.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = 1 là chủ: { $enabled }
+ld-desc-wild-ones = Bật: 1 tính vào mọi cược không phải trên 1. Cược trên 1 tắt chủ cho cược đó. Tắt — trò chơi thuần xác suất không có chủ.
+ld-option-changed-wild-ones = Chủ 1 { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Gọi Spot On bật: { $enabled }
+ld-desc-spot-on = Bật: ngoài "Nói dối" bạn có thể gọi "Spot On" cược rằng cược chính xác. Đúng — người khác mất một xúc xắc mỗi người. Sai — bạn mất hai. Rủi ro cao, phần thưởng cao.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = Vòng { $round } bắt đầu. Tổng xúc xắc trên bàn: { $total }. Tất cả đổ.
+ld-your-roll = Xúc xắc của bạn vòng này: { $dice }.
+ld-your-counts = Số đếm của bạn: { $counts }.
+ld-turn-start = Lượt của { $player }. { $bid_state }
+ld-no-bid-yet = Chưa có cược — mở vòng.
+ld-current-bid = Cược hiện tại: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = Đặt cược
+ld-action-call-liar = Gọi Nói dối
+ld-action-call-spot-on = Gọi Spot On
+ld-bid-prompt = Chọn cược của bạn.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] Bạn cược { $quantity } { $face }.
+    *[player] { $player } cược { $quantity } { $face }.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] Bạn gọi Nói dối cược của { $target } { $quantity } { $face }.
+    *[player] { $player } gọi Nói dối cược của { $target } { $quantity } { $face }.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] Bạn gọi Spot On cược của { $target } { $quantity } { $face }.
+    *[player] { $player } gọi Spot On cược của { $target } { $quantity } { $face }.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = Lật cốc! Đếm { $face } trên bàn.
+ld-reveal-line = { $player } đổ: { $dice }.
+ld-actual-count = Số { $face } thực tế (có chủ 1): { $count }. Cược là { $quantity }.
+ld-actual-count-no-wild = Số { $face } thực tế (không chủ): { $count }. Cược là { $quantity }.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } cược quá cao — mất một xúc xắc.
+ld-liar-caller-loses = Cược trung thực — { $caller } mất một xúc xắc.
+ld-spot-on-correct = Spot on! { $caller } đoán chính xác — người khác mất một xúc xắc mỗi người.
+ld-spot-on-wrong = Không phải spot on. { $caller } mất hai xúc xắc.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Bạn mất một xúc xắc. Hiện có { $remaining } { $remaining ->
+        [one] xúc xắc
+        *[other] xúc xắc
     }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    *[player] { $player } mất một xúc xắc. Hiện có { $remaining }.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Bạn mất { $count } xúc xắc. Hiện có { $remaining } { $remaining ->
+        [one] xúc xắc
+        *[other] xúc xắc
     }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    *[player] { $player } mất { $count } xúc xắc. Hiện có { $remaining }.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
-
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
-ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+ld-eliminated = { $player } hết xúc xắc và bị loại! Còn lại { $remaining } { $remaining ->
+    [one] người chơi
+    *[other] người chơi
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-winner = { $player } là người cuối còn xúc xắc — thắng!
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-status-round = Vòng { $round }.
+ld-status-your-dice = Xúc xắc của bạn: { $dice }.
+ld-status-your-counts = Số đếm của bạn: { $counts }.
+ld-status-no-dice = Bạn không còn xúc xắc — bị loại.
+ld-status-current-bid = Cược hiện tại: { $quantity } { $face }.
+ld-status-no-bid = Chưa có cược vòng này.
+ld-status-table-total = Tổng xúc xắc trên bàn: { $total }.
+ld-status-detailed-header = Trạng thái chi tiết — còn { $count } người chơi.
+ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
+    [one] xúc xắc
+    *[other] xúc xắc
+}.
+ld-status-detailed-out = { $player }: bị loại.
+ld-status-detailed-self-suffix = {" "}(bạn)
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-face-1 = 1
+ld-face-2 = 2
+ld-face-3 = 3
+ld-face-4 = 4
+ld-face-5 = 5
+ld-face-6 = 6
+
+ld-action-not-your-turn = Chưa đến lượt bạn.
+ld-action-not-playing = Trò chơi không diễn ra.
+ld-action-no-bid-to-call = Chưa có cược để thách thức.
+ld-action-eliminated = Bạn đã bị loại.

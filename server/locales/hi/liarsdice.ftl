@@ -1,140 +1,111 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — hi
+# AI-translated with limited fluency, native review strongly recommended.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = हर खिलाड़ी अपने कप के नीचे गुप्त रूप से पासे फेंकता है। बारी-बारी से पूरी मेज़ के एक चेहरे की कुल संख्या पर बढ़ती बोलियाँ लगाते हैं — या अंतिम बोली पर विश्वास न हो तो "झूठा!" चिल्लाते हैं। गलत होने पर एक पासा खोते हैं। अंतिम बचे पासे वाला जीतता है।
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice 2 से 6 खिलाड़ियों के लिए धोखे का पासा खेल है।
+    हर खिलाड़ी कप में 5 पासों से शुरू करता है। हर दौर की शुरुआत में सभी गुप्त रूप से फेंकते हैं।
+    बारी-बारी से सभी पासों पर एक चेहरे की कुल संख्या पर बोली लगाते हैं — जैसे "तीन 4" का मतलब सभी कप खोलने पर कम से कम तीन 4 हैं।
+    हर नई बोली पिछली से अधिक होनी चाहिए: वही चेहरा अधिक संख्या के साथ, या अधिक चेहरा बराबर या अधिक संख्या के साथ।
+    1 जोकर हैं — वे हर बोली में गिने जाते हैं सिवाय 1 पर बोली के।
+    1 पर बोली में बदलने से संख्या आधी हो जाती है (ऊपर पूर्णांकित)। 1 से सामान्य चेहरे पर वापस जाने के लिए पिछली संख्या से दोगुना से अधिक चाहिए।
+    बोली के बजाय "झूठा!" चिल्ला कर पिछली बोली को चुनौती दे सकते हैं। सभी कप खोले जाते हैं: यदि बोली सही थी, चुनौती देने वाला एक पासा खोता है; यदि नहीं, तो बोली लगाने वाला एक पासा खोता है।
+    Spot On सक्षम होने पर आप "Spot On" चिल्ला सकते हैं, यह दांव लगाते हुए कि बोली बिल्कुल सही है। सही — हर दूसरा खिलाड़ी एक पासा खोता है; गलत — आप दो पासे खोते हैं।
+    शून्य पासों पर समाप्त। अंतिम पासे वाला जीतता है।
+    मेज़ देखने के लिए S दबाएँ।
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = प्रति खिलाड़ी आरंभिक पासे: { $dice }
+ld-desc-starting-dice = हर खिलाड़ी कितने पासों से शुरू करता है। डिफ़ॉल्ट 5। अधिक पासे = लंबे खेल और अधिक धोखे की गुंजाइश।
+ld-prompt-starting-dice = आरंभिक पासे दर्ज करें (3 से 8)
+ld-option-changed-starting-dice = आरंभिक पासे { $dice } पर सेट किए गए।
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = 1 जोकर हैं: { $enabled }
+ld-desc-wild-ones = चालू: 1 हर गैर-1 बोली में गिने जाते हैं। 1 पर बोली उस बोली के लिए जोकर निष्क्रिय करती है। बंद — खेल बिना जोकर शुद्ध प्रायिकता बन जाता है।
+ld-option-changed-wild-ones = जोकर 1 { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Spot On कॉल सक्षम: { $enabled }
+ld-desc-spot-on = चालू: "झूठा" के अलावा आप "Spot On" चिल्ला सकते हैं, यह दांव लगाते हुए कि बोली बिल्कुल सही है। सही — अन्य लोग एक-एक पासा खोते हैं। गलत — आप दो खोते हैं। उच्च जोखिम, उच्च इनाम।
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = दौर { $round } शुरू होता है। मेज़ पर कुल पासे: { $total }। सभी फेंकते हैं।
+ld-your-roll = इस दौर में आपके पासे: { $dice }।
+ld-your-counts = आपकी गिनती: { $counts }।
+ld-turn-start = { $player } की बारी। { $bid_state }
+ld-no-bid-yet = अभी कोई बोली नहीं — दौर खोलें।
+ld-current-bid = वर्तमान बोली: { $quantity } { $face }।
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = बोली लगाएँ
+ld-action-call-liar = झूठा कहें
+ld-action-call-spot-on = Spot On कहें
+ld-bid-prompt = अपनी बोली चुनें।
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] आप { $quantity } { $face } की बोली लगाते हैं।
+    *[player] { $player } { $quantity } { $face } की बोली लगाते हैं।
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] आप { $target } की { $quantity } { $face } बोली पर झूठा कहते हैं।
+    *[player] { $player } { $target } की { $quantity } { $face } बोली पर झूठा कहते हैं।
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] आप { $target } की { $quantity } { $face } बोली पर Spot On कहते हैं।
+    *[player] { $player } { $target } की { $quantity } { $face } बोली पर Spot On कहते हैं।
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = कप ऊपर! मेज़ पर { $face } गिन रहे हैं।
+ld-reveal-line = { $player } ने फेंका: { $dice }।
+ld-actual-count = { $face } की वास्तविक संख्या (जोकर 1 सहित): { $count }। बोली { $quantity } थी।
+ld-actual-count-no-wild = { $face } की वास्तविक संख्या (बिना जोकर): { $count }। बोली { $quantity } थी।
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } ने ज़्यादा बोली लगाई — एक पासा खोते हैं।
+ld-liar-caller-loses = बोली ईमानदार थी — { $caller } एक पासा खोते हैं।
+ld-spot-on-correct = Spot on! { $caller } ने ठीक अनुमान लगाया — अन्य सभी एक पासा खोते हैं।
+ld-spot-on-wrong = Spot on नहीं। { $caller } दो पासे खोते हैं।
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    [you] आप एक पासा खो गए। अब आपके पास { $remaining } { $remaining ->
+        [one] पासा
+        *[other] पासे
+    } हैं।
+    *[player] { $player } एक पासा खो गए। अब { $remaining } हैं।
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    [you] आप { $count } पासे खो गए। अब आपके पास { $remaining } { $remaining ->
+        [one] पासा
+        *[other] पासे
+    } हैं।
+    *[player] { $player } { $count } पासे खो गए। अब { $remaining } हैं।
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
+ld-eliminated = { $player } पासों से बाहर हो गए और बाहर हो गए! { $remaining } { $remaining ->
+    [one] खिलाड़ी
+    *[other] खिलाड़ी
+} बचे।
+ld-winner = { $player } अंतिम पासों के साथ — जीतते हैं!
 
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
+ld-status-round = दौर { $round }।
+ld-status-your-dice = आपके पासे: { $dice }।
+ld-status-your-counts = आपकी गिनती: { $counts }।
+ld-status-no-dice = आपके पास पासे नहीं — आप बाहर हैं।
+ld-status-current-bid = वर्तमान बोली: { $quantity } { $face }।
+ld-status-no-bid = इस दौर में कोई बोली नहीं।
+ld-status-table-total = मेज़ पर कुल पासे: { $total }।
+ld-status-detailed-header = विस्तृत स्थिति — { $count } खिलाड़ी बचे।
 ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
-}.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+    [one] पासा
+    *[other] पासे
+}।
+ld-status-detailed-out = { $player }: बाहर।
+ld-status-detailed-self-suffix = {" "}(आप)
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-face-1 = इकाई
+ld-face-2 = दो
+ld-face-3 = तीन
+ld-face-4 = चार
+ld-face-5 = पाँच
+ld-face-6 = छह
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-action-not-your-turn = अभी आपकी बारी नहीं है।
+ld-action-not-playing = खेल चल नहीं रहा।
+ld-action-no-bid-to-call = अभी चुनौती देने के लिए कोई बोली नहीं।
+ld-action-eliminated = आप बाहर हो चुके हैं।

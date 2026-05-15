@@ -1,140 +1,111 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — ar
+# AI-translated, native review pending — corrections welcome.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = يرمي كل لاعب نرده سراً تحت الكوب. بالتناوب، تُقدَّم رهانات أعلى وأعلى على إجمالي عدد وجه معين على الطاولة كلها — أو يصرخ "كاذب!" إذا لم يصدق الرهان الأخير. خطأ يكلف نرداً. آخر من تبقى لديه نرد يفوز.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice لعبة خداع بالنرد من 2 إلى 6 لاعبين.
+    يبدأ كل لاعب بـ 5 نرود في كوب. في بداية كل جولة يرمي الجميع سراً.
+    بالتناوب يتم الرهان على إجمالي عدد وجه معين على كل النرود — مثلاً "ثلاثة 4" تعني وجود ثلاثة 4 على الأقل عند كشف الأكواب.
+    كل رهان جديد يجب أن يكون أعلى: نفس الوجه بعدد أكثر أو وجه أعلى بعدد مساوٍ أو أكثر.
+    الـ 1 جوكر — يُحتسب في أي رهان غير الرهان على الـ 1 نفسه.
+    الانتقال إلى الرهان على الـ 1 يقسم الكمية على النصف (تقريب لأعلى). العودة من الـ 1 إلى وجه عادي يتطلب أكثر من ضعف الكمية السابقة.
+    بدلاً من الرهان، يمكنك صرخ "كاذب!" لتحدي الرهان السابق. كل الأكواب تكشف: إذا كان الرهان صحيحاً يخسر المتحدي نرداً؛ وإلا يخسر صاحب الرهان نرداً.
+    عند تفعيل Spot On يمكنك صرخ "Spot On" مراهناً على أن الرهان صحيح تماماً. إذا أصبت يخسر كل لاعب آخر نرداً؛ وإلا تخسر أنت نردين.
+    تخرج عند وصول نرودك إلى صفر. آخر من تبقى لديه نرد يفوز.
+    اضغط S لفحص الطاولة.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = نرود البدء للاعب: { $dice }
+ld-desc-starting-dice = كم نرداً يبدأ به كل لاعب. الافتراضي 5. نرود أكثر = ألعاب أطول ومساحة أوسع للخداع.
+ld-prompt-starting-dice = أدخل نرود البدء (3 إلى 8)
+ld-option-changed-starting-dice = ضُبطت نرود البدء على { $dice }.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = الـ 1 جوكر: { $enabled }
+ld-desc-wild-ones = مفعّل: الـ 1 يُحتسب في كل رهان ليس على الـ 1. الرهان على الـ 1 يعطّل الجوكر لذلك الرهان. معطّل: تصبح اللعبة احتمالات صرفة بلا جوكر.
+ld-option-changed-wild-ones = جوكر الـ 1 { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = صرخة Spot On مفعّلة: { $enabled }
+ld-desc-spot-on = مفعّل: إلى جانب "كاذب" يمكنك صرخ "Spot On" مراهناً على أن الرهان صحيح تماماً. صحّ — يخسر الآخرون نرداً لكل واحد. خطأ — تخسر أنت نردين. مخاطرة عالية ومكافأة عالية.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = الجولة { $round } تبدأ. مجموع النرود على الطاولة: { $total }. الجميع يرمي.
+ld-your-roll = نرودك في هذه الجولة: { $dice }.
+ld-your-counts = أعدادك: { $counts }.
+ld-turn-start = دور { $player }. { $bid_state }
+ld-no-bid-yet = لا رهان بعد — افتح الجولة.
+ld-current-bid = الرهان الحالي: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = قدّم رهاناً
+ld-action-call-liar = اصرخ كاذب
+ld-action-call-spot-on = اصرخ Spot On
+ld-bid-prompt = اختر رهانك.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] تراهن على { $quantity } { $face }.
+    *[player] { $player } يراهن على { $quantity } { $face }.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] تصرخ كاذب على رهان { $target } { $quantity } { $face }.
+    *[player] { $player } يصرخ كاذب على رهان { $target } { $quantity } { $face }.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] تصرخ Spot On على رهان { $target } { $quantity } { $face }.
+    *[player] { $player } يصرخ Spot On على رهان { $target } { $quantity } { $face }.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = ارفعوا الأكواب! نعدّ { $face } على الطاولة.
+ld-reveal-line = { $player } رمى: { $dice }.
+ld-actual-count = العدد الفعلي للـ { $face } (مع جوكر الـ 1): { $count }. كان الرهان { $quantity }.
+ld-actual-count-no-wild = العدد الفعلي للـ { $face } (بلا جوكر): { $count }. كان الرهان { $quantity }.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } بالغ في الرهان — يخسر نرداً.
+ld-liar-caller-loses = كان الرهان صادقاً — { $caller } يخسر نرداً.
+ld-spot-on-correct = Spot on! { $caller } أصاب تماماً — كل لاعب آخر يخسر نرداً.
+ld-spot-on-wrong = ليس Spot on. { $caller } يخسر نردين.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] خسرت نرداً. لديك الآن { $remaining } { $remaining ->
+        [one] نرد
+        *[other] نردات
     }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    *[player] { $player } خسر نرداً. لديه الآن { $remaining }.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] خسرت { $count } نردات. لديك الآن { $remaining } { $remaining ->
+        [one] نرد
+        *[other] نردات
     }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    *[player] { $player } خسر { $count } نردات. لديه الآن { $remaining }.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
-
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
-ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+ld-eliminated = { $player } نفدت نروده وخرج! بقي { $remaining } { $remaining ->
+    [one] لاعب
+    *[other] لاعبين
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-winner = { $player } آخر من تبقى لديه نرد — يفوز!
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-status-round = الجولة { $round }.
+ld-status-your-dice = نرودك: { $dice }.
+ld-status-your-counts = أعدادك: { $counts }.
+ld-status-no-dice = لا نرود لك — أُقصيت.
+ld-status-current-bid = الرهان الحالي: { $quantity } { $face }.
+ld-status-no-bid = لا رهان في هذه الجولة.
+ld-status-table-total = مجموع النرود على الطاولة: { $total }.
+ld-status-detailed-header = حالة مفصّلة — تبقى { $count } لاعبين.
+ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
+    [one] نرد
+    *[other] نردات
+}.
+ld-status-detailed-out = { $player }: أُقصي.
+ld-status-detailed-self-suffix = {" "}(أنت)
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-face-1 = الواحدات
+ld-face-2 = الاثنينات
+ld-face-3 = الثلاثات
+ld-face-4 = الأربعات
+ld-face-5 = الخماسات
+ld-face-6 = الستات
+
+ld-action-not-your-turn = ليس دورك.
+ld-action-not-playing = اللعبة ليست جارية.
+ld-action-no-bid-to-call = لا رهان لتحدّيه بعد.
+ld-action-eliminated = أنت مُقصى.

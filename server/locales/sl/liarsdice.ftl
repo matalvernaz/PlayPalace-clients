@@ -1,140 +1,119 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — sl
+# AI-translated, native review pending — corrections welcome.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = Vsak igralec skrivaj vrže kocke pod skodelico. Izmenjaje povečujete stave na skupno število strani na celi mizi — ali zakričite "Lažnivec!", če ne verjamete zadnji stavi. Napaka stane kocko. Zadnji s kockami zmaga.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice je blefirska igra s kockami za 2 do 6 igralcev.
+    Vsak igralec začne s 5 kockami v skodelici. Na začetku vsake runde vsi skrivaj vržejo.
+    Izmenjaje stavite na skupno število strani na vseh kockah — npr. "tri 4" pomeni, da je po razkritju vseh skodelic vsaj tri 4.
+    Vsaka nova stava mora biti večja: enaka stran z večjo količino ali višja stran z enako ali večjo količino.
+    Enice so jokerji — štejejo se v vse stave razen na enice.
+    Prehod na stavo na enice prepolovi količino (zaokroženo navzgor). Vrnitev iz enic na običajno stran zahteva več kot dvojno prejšnjo količino.
+    Namesto stave lahko zakričiš "Lažnivec!" in izpodbiješ zadnjo stavo. Vse skodelice gor: če je stava bila pravilna, izpodbijajoči izgubi kocko; sicer izgubi stavitelj.
+    Z vklopljenim Spot On lahko zakričiš "Spot On" in staviš, da je stava točno pravilna. Če imaš prav, drugi izgubijo po kocko; sicer ti izgubiš dve.
+    Izločen pri nič kockah. Zadnji s kockami zmaga.
+    Pritisni S za pregled mize.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = Začetne kocke na igralca: { $dice }
+ld-desc-starting-dice = S koliko kockami vsak igralec začne. Privzeto 5. Več kock = daljše igre in več prostora za blef.
+ld-prompt-starting-dice = Vnesi začetne kocke (3 do 8)
+ld-option-changed-starting-dice = Začetne kocke nastavljene na { $dice }.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = Enice so jokerji: { $enabled }
+ld-desc-wild-ones = Vklopljeno: enice se štejejo v vsako stavo, ki ni na enice. Stava na enice izklopi jokerje za to stavo. Izklopljeno — igra je čista verjetnost brez jokerja.
+ld-option-changed-wild-ones = Joker enice { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Klic Spot On omogočen: { $enabled }
+ld-desc-spot-on = Vklopljeno: poleg "Lažnivec" lahko zakričiš "Spot On" in staviš, da je stava točno pravilna. Pravilno — drugi izgubijo po kocko. Napačno — ti izgubiš dve. Visoko tveganje, visoka nagrada.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = Runda { $round } se začne. Skupaj kock na mizi: { $total }. Vsi vržejo.
+ld-your-roll = Tvoje kocke v tej rundi: { $dice }.
+ld-your-counts = Tvoje številke: { $counts }.
+ld-turn-start = Na potezi je { $player }. { $bid_state }
+ld-no-bid-yet = Še brez stave — odpri rundo.
+ld-current-bid = Trenutna stava: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = Postavi stavo
+ld-action-call-liar = Zakliči Lažnivec
+ld-action-call-spot-on = Zakliči Spot On
+ld-bid-prompt = Izberi stavo.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] Staviš { $quantity } { $face }.
+    *[player] { $player } stavi { $quantity } { $face }.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] Zaklikneš Lažnivec na stavo { $target } { $quantity } { $face }.
+    *[player] { $player } zakliče Lažnivec na stavo { $target } { $quantity } { $face }.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] Zaklikneš Spot On na stavo { $target } { $quantity } { $face }.
+    *[player] { $player } zakliče Spot On na stavo { $target } { $quantity } { $face }.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = Skodelice gor! Štejemo { $face } na mizi.
+ld-reveal-line = { $player } je vrgel: { $dice }.
+ld-actual-count = Dejansko število { $face } (z joker enicami): { $count }. Stava je bila { $quantity }.
+ld-actual-count-no-wild = Dejansko število { $face } (brez jokerjev): { $count }. Stava je bila { $quantity }.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } je preveč stavil — izgubi kocko.
+ld-liar-caller-loses = Stava je bila poštena — { $caller } izgubi kocko.
+ld-spot-on-correct = Spot on! { $caller } je zadel točno — drugi izgubijo po kocko.
+ld-spot-on-wrong = Ni spot on. { $caller } izgubi dve kocki.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Izgubil si kocko. Imaš zdaj { $remaining } { $remaining ->
+        [one] kocko
+        [two] kocki
+        [few] kocke
+        *[other] kock
     }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    *[player] { $player } je izgubil kocko. Ima zdaj { $remaining }.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Izgubil si { $count } kock. Imaš zdaj { $remaining } { $remaining ->
+        [one] kocko
+        [two] kocki
+        [few] kocke
+        *[other] kock
     }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    *[player] { $player } je izgubil { $count } kock. Ima zdaj { $remaining }.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
-
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
-ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+ld-eliminated = { $player } je ostal brez kock in je izločen! Ostalo { $remaining } { $remaining ->
+    [one] igralec
+    [two] igralca
+    [few] igralci
+    *[other] igralcev
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-winner = { $player } je zadnji s kockami — zmaga!
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-status-round = Runda { $round }.
+ld-status-your-dice = Tvoje kocke: { $dice }.
+ld-status-your-counts = Tvoje številke: { $counts }.
+ld-status-no-dice = Nimaš kock — izločen si.
+ld-status-current-bid = Trenutna stava: { $quantity } { $face }.
+ld-status-no-bid = V tej rundi ni stave.
+ld-status-table-total = Skupaj kock na mizi: { $total }.
+ld-status-detailed-header = Podroben status — ostalo { $count } igralcev.
+ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
+    [one] kocka
+    [two] kocki
+    [few] kocke
+    *[other] kock
+}.
+ld-status-detailed-out = { $player }: izločen.
+ld-status-detailed-self-suffix = {" "}(ti)
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-face-1 = enke
+ld-face-2 = dvojke
+ld-face-3 = trojke
+ld-face-4 = štirke
+ld-face-5 = petke
+ld-face-6 = šestke
+
+ld-action-not-your-turn = Nisi na potezi.
+ld-action-not-playing = Igra ne poteka.
+ld-action-no-bid-to-call = Še ni stave za izpodbijanje.
+ld-action-eliminated = Izločen si.

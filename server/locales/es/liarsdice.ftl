@@ -1,140 +1,113 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
+# Liar's Dice — es
+# Cada jugador tiene un cubilete con dados; las apuestas se hacen sobre el total
+# de una cara en toda la mesa. Los 1 son comodines salvo cuando apuestas a 1s.
 
-# ==========================================================================
-# Game metadata
-# ==========================================================================
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = Cada jugador tira sus dados en secreto bajo el cubilete. Por turnos, las apuestas crecen sobre el total de una cara en toda la mesa — o canta "¡Mentira!" si no te crees la última apuesta. Pierdes un dado si te equivocas. Gana el último con dados.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice es un juego de farol con dados, de 2 a 6 jugadores.
+    Cada jugador empieza con 5 dados en un cubilete. Al inicio de cada ronda, todos tiran en secreto.
+    Por turnos hacéis apuestas sobre el total de una cara en toda la mesa — por ejemplo, "tres 4" significa que hay al menos tres 4 cuando se descubran los cubiletes.
+    Cada apuesta nueva debe ser más alta que la anterior: misma cara con mayor cantidad, o cara mayor con cantidad igual o mayor.
+    Los 1 son comodines — cuentan para cualquier apuesta salvo si la apuesta es sobre 1s.
+    Pasar a apostar a 1s reduce la cantidad a la mitad (redondeando hacia arriba). Volver de 1s a otra cara exige más del doble de la cantidad anterior.
+    En vez de apostar puedes cantar "¡Mentira!" para retar la apuesta anterior. Se descubren los cubiletes: si la apuesta era correcta, el retador pierde un dado; si no, el apostador pierde un dado.
+    Con Spot On activado puedes cantar "Spot On" para apostar a que la apuesta es exactamente correcta. Si aciertas, todos los demás pierden un dado; si fallas, pierdes dos dados.
+    Quedas eliminado al llegar a cero dados. Gana quien aún tenga dados.
+    Pulsa S para revisar la mesa.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = Dados iniciales por jugador: { $dice }
+ld-desc-starting-dice = Con cuántos dados empieza cada jugador. Por defecto 5. Más dados = partidas más largas y más margen para el farol.
+ld-prompt-starting-dice = Introduce los dados iniciales (3 a 8)
+ld-option-changed-starting-dice = Dados iniciales fijados en { $dice }.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = Los 1 son comodines: { $enabled }
+ld-desc-wild-ones = Cuando está activado, los 1 cuentan para cualquier apuesta que no sea de 1s. Apostar a 1s desactiva los comodines en esa apuesta. Apagado hace el juego puramente de probabilidad, sin comodín.
+ld-option-changed-wild-ones = 1 comodines { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Cantar Spot On activado: { $enabled }
+ld-desc-spot-on = Cuando está activado, además de "Mentira", puedes cantar "Spot On" apostando a que la cantidad es exactamente la apostada. Si aciertas, los demás pierden un dado. Si fallas, pierdes dos. Alto riesgo, alta recompensa.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = Empieza la ronda { $round }. Dados totales en la mesa: { $total }. Todos tiran.
+ld-your-roll = Tus dados esta ronda: { $dice }.
+ld-your-counts = Tus cuentas: { $counts }.
+ld-turn-start = Turno de { $player }. { $bid_state }
+ld-no-bid-yet = Sin apuesta — abre la ronda.
+ld-current-bid = Apuesta actual: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = Hacer una apuesta
+ld-action-call-liar = Cantar Mentira
+ld-action-call-spot-on = Cantar Spot On
+ld-bid-prompt = Elige tu apuesta.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] Apuestas { $quantity } { $face }.
+    *[player] { $player } apuesta { $quantity } { $face }.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] Cantas Mentira sobre la apuesta de { $target } de { $quantity } { $face }.
+    *[player] { $player } canta Mentira sobre la apuesta de { $target } de { $quantity } { $face }.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] Cantas Spot On a la apuesta de { $target } de { $quantity } { $face }.
+    *[player] { $player } canta Spot On a la apuesta de { $target } de { $quantity } { $face }.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = ¡Cubiletes arriba! Contando los { $face } en la mesa.
+ld-reveal-line = { $player } sacó: { $dice }.
+ld-actual-count = Cantidad real de { $face } (con 1 comodines): { $count }. La apuesta era { $quantity }.
+ld-actual-count-no-wild = Cantidad real de { $face } (sin comodines): { $count }. La apuesta era { $quantity }.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } sobreapostó — pierde un dado.
+ld-liar-caller-loses = La apuesta era honesta — { $caller } pierde un dado.
+ld-spot-on-correct = ¡Spot On! { $caller } acertó exactamente — los demás pierden un dado.
+ld-spot-on-wrong = No es spot on. { $caller } pierde dos dados.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Pierdes un dado. Ahora tienes { $remaining } { $remaining ->
+        [one] dado
+        *[other] dados
     }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    *[player] { $player } pierde un dado. Ahora tiene { $remaining }.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Pierdes { $count } dados. Ahora tienes { $remaining } { $remaining ->
+        [one] dado
+        *[other] dados
     }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    *[player] { $player } pierde { $count } dados. Ahora tiene { $remaining }.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
-
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
-ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+ld-eliminated = ¡{ $player } se queda sin dados y queda eliminado! Quedan { $remaining } { $remaining ->
+    [one] jugador
+    *[other] jugadores
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-winner = ¡{ $player } es el último con dados — gana!
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-status-round = Ronda { $round }.
+ld-status-your-dice = Tus dados: { $dice }.
+ld-status-your-counts = Tus cuentas: { $counts }.
+ld-status-no-dice = No tienes dados — estás eliminado.
+ld-status-current-bid = Apuesta actual: { $quantity } { $face }.
+ld-status-no-bid = Sin apuesta en esta ronda.
+ld-status-table-total = Dados totales en la mesa: { $total }.
+ld-status-detailed-header = Estado detallado — quedan { $count } jugadores.
+ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
+    [one] dado
+    *[other] dados
+}.
+ld-status-detailed-out = { $player }: eliminado.
+ld-status-detailed-self-suffix = {" "}(tú)
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-face-1 = unos
+ld-face-2 = doses
+ld-face-3 = treses
+ld-face-4 = cuatros
+ld-face-5 = cincos
+ld-face-6 = seises
+
+ld-action-not-your-turn = No es tu turno.
+ld-action-not-playing = La partida no está en curso.
+ld-action-no-bid-to-call = Aún no hay apuesta que retar.
+ld-action-eliminated = Estás eliminado.

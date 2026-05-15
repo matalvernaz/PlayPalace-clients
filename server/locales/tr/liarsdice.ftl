@@ -1,140 +1,111 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — tr
+# AI-translated, native review pending — corrections welcome.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = Her oyuncu, kabının altında gizlice zar atar. Sırayla masadaki belirli bir yüzün toplam sayısına gittikçe yükselen tahminler yapılır — son tahmine inanmıyorsan "Yalancı!" dersin. Yanlış tahmin bir zar kaybettirir. Elinde zar kalan son oyuncu kazanır.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice, 2-6 oyuncu için bir zarla blöf oyunudur.
+    Her oyuncu kabında 5 zarla başlar. Her turun başında herkes gizlice zar atar.
+    Sırayla tüm masadaki belirli bir yüzün toplam sayısı için tahmin yaparsınız — örneğin "üç tane 4" demek tüm kaplar açıldığında en az üç tane 4 var demektir.
+    Her yeni tahmin öncekinden yüksek olmalı: aynı yüzde daha çok sayı veya daha yüksek yüzde eşit veya daha çok sayı.
+    1'ler joker — 1 dışındaki her tahmine sayılırlar. 1'ler üzerine tahmin yaparken jokerler devre dışıdır.
+    1'ler üzerine geçince sayı yarıya iner (yukarı yuvarlama). 1'lerden normal yüze dönerken önceki sayının iki katından fazlası gerekir.
+    Tahmin yerine "Yalancı!" diyerek son tahmine itiraz edebilirsin. Tüm kaplar açılır: tahmin doğruysa itiraz eden bir zar kaybeder; değilse tahmin yapan kaybeder.
+    Spot On açıksa "Spot On" diyerek tahminin tam olarak doğru olduğuna oynayabilirsin. Doğruysa diğer herkes birer zar kaybeder; yanlışsa sen iki zar kaybedersin.
+    Zarın sıfıra inince elenirsin. Elinde zar kalan son oyuncu kazanır.
+    Masayı görmek için S'ye bas.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = Oyuncu başına başlangıç zarı: { $dice }
+ld-desc-starting-dice = Her oyuncu kaç zarla başlar. Varsayılan 5. Daha çok zar = daha uzun oyun, daha çok blöf alanı.
+ld-prompt-starting-dice = Başlangıç zarını gir (3-8)
+ld-option-changed-starting-dice = Başlangıç zarı { $dice } olarak ayarlandı.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = 1'ler joker: { $enabled }
+ld-desc-wild-ones = Açık: 1'ler 1 olmayan her tahmine sayılır. 1'ler üzerine tahmin yaparken o tahmin için jokerler devre dışı kalır. Kapalı: oyun jokersiz saf olasılık olur.
+ld-option-changed-wild-ones = Joker 1'ler { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Spot On çağrısı etkin: { $enabled }
+ld-desc-spot-on = Açık: "Yalancı" yanında "Spot On" diyebilirsin — tahminin tam doğru olduğuna oynarsın. Doğruysa diğerleri birer zar kaybeder. Yanlışsa sen iki kaybedersin. Yüksek risk, yüksek ödül.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = Tur { $round } başlıyor. Masadaki toplam zar: { $total }. Herkes atar.
+ld-your-roll = Bu turdaki zarların: { $dice }.
+ld-your-counts = Sayıların: { $counts }.
+ld-turn-start = Sıra { $player }'da. { $bid_state }
+ld-no-bid-yet = Henüz tahmin yok — turu aç.
+ld-current-bid = Şu anki tahmin: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = Tahmin yap
+ld-action-call-liar = Yalancı de
+ld-action-call-spot-on = Spot On de
+ld-bid-prompt = Tahminini seç.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] { $quantity } { $face } tahmini yapıyorsun.
+    *[player] { $player } { $quantity } { $face } tahmini yapıyor.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] { $target }'in { $quantity } { $face } tahminine Yalancı diyorsun.
+    *[player] { $player } { $target }'in { $quantity } { $face } tahminine Yalancı diyor.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] { $target }'in { $quantity } { $face } tahminine Spot On diyorsun.
+    *[player] { $player } { $target }'in { $quantity } { $face } tahminine Spot On diyor.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = Kaplar açılsın! Masadaki { $face } sayılıyor.
+ld-reveal-line = { $player } attı: { $dice }.
+ld-actual-count = { $face } gerçek sayısı (joker 1'lerle): { $count }. Tahmin { $quantity } idi.
+ld-actual-count-no-wild = { $face } gerçek sayısı (jokersiz): { $count }. Tahmin { $quantity } idi.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } fazla tahmin etti — bir zar kaybediyor.
+ld-liar-caller-loses = Tahmin dürüsttü — { $caller } bir zar kaybediyor.
+ld-spot-on-correct = Spot on! { $caller } tam isabet — diğer herkes bir zar kaybediyor.
+ld-spot-on-wrong = Spot on değil. { $caller } iki zar kaybediyor.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    [you] Bir zar kaybettin. Şimdi { $remaining } { $remaining ->
+        [one] zar
+        *[other] zar
+    }'ın var.
+    *[player] { $player } bir zar kaybetti. Şimdi { $remaining } zarı var.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    [you] { $count } zar kaybettin. Şimdi { $remaining } { $remaining ->
+        [one] zar
+        *[other] zar
+    }'ın var.
+    *[player] { $player } { $count } zar kaybetti. Şimdi { $remaining } zarı var.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
+ld-eliminated = { $player } zarı kalmadı, elendi! { $remaining } { $remaining ->
+    [one] oyuncu
+    *[other] oyuncu
+} kaldı.
+ld-winner = { $player } zarı kalan son oyuncu — kazandı!
 
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
+ld-status-round = Tur { $round }.
+ld-status-your-dice = Zarların: { $dice }.
+ld-status-your-counts = Sayıların: { $counts }.
+ld-status-no-dice = Zarın yok — elendin.
+ld-status-current-bid = Şu anki tahmin: { $quantity } { $face }.
+ld-status-no-bid = Bu turda tahmin yok.
+ld-status-table-total = Masadaki toplam zar: { $total }.
+ld-status-detailed-header = Ayrıntılı durum — { $count } oyuncu kaldı.
 ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+    [one] zar
+    *[other] zar
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-status-detailed-out = { $player }: elendi.
+ld-status-detailed-self-suffix = {" "}(sen)
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-face-1 = birler
+ld-face-2 = ikiler
+ld-face-3 = üçler
+ld-face-4 = dörtler
+ld-face-5 = beşler
+ld-face-6 = altılar
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-action-not-your-turn = Sıra sende değil.
+ld-action-not-playing = Oyun devam etmiyor.
+ld-action-no-bid-to-call = İtiraz edilecek bir tahmin yok.
+ld-action-eliminated = Elendin.

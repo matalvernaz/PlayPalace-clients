@@ -1,140 +1,110 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — nl
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = Iedere speler gooit zijn dobbelstenen in het geheim onder de beker. Om de beurt bied je hoger op het totale aantal van een ogenwaarde op de hele tafel — of roep je "Leugen!" als je het laatste bod niet gelooft. Mis gegokt = een dobbelsteen kwijt. Wie als laatste dobbelstenen heeft, wint.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice is een bluffend dobbelspel voor 2 tot 6 spelers.
+    Elke speler begint met 5 dobbelstenen in een beker. Aan het begin van elke ronde gooit iedereen in het geheim.
+    Om de beurt bied je op het totale aantal van een ogenwaarde over alle dobbelstenen — bijvoorbeeld "drie 4-en" betekent dat er minstens drie 4-en zijn als alle bekers omhoog gaan.
+    Elk nieuw bod moet hoger zijn: zelfde ogenwaarde met hogere hoeveelheid, of hogere ogenwaarde met gelijke of hogere hoeveelheid.
+    1-en zijn jokers — ze tellen voor elk bod behalve een bod op 1-en zelf.
+    Naar een bod op 1-en overschakelen halveert de hoeveelheid (naar boven afgerond). Terug van 1-en naar een normale ogenwaarde vereist meer dan het dubbele van de vorige hoeveelheid.
+    In plaats van bieden mag je "Leugen!" roepen om het laatste bod aan te vechten. Alle bekers omhoog: klopt het bod, dan verliest de uitdager een dobbelsteen; zo niet, dan verliest de bieder een dobbelsteen.
+    Met Spot On aan mag je ook "Spot On" roepen, om in te zetten dat het bod precies klopt. Heb je gelijk, dan verliest iedereen anders een dobbelsteen; zit je mis, dan verlies je er twee.
+    Uitgeschakeld bij nul dobbelstenen. Wie als laatste dobbelstenen heeft, wint.
+    Druk op S om de tafel te bekijken.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = Startdobbelstenen per speler: { $dice }
+ld-desc-starting-dice = Met hoeveel dobbelstenen elke speler begint. Standaard 5. Meer dobbelstenen = langere partijen en meer ruimte om te bluffen.
+ld-prompt-starting-dice = Voer startdobbelstenen in (3 tot 8)
+ld-option-changed-starting-dice = Startdobbelstenen ingesteld op { $dice }.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = 1-en zijn jokers: { $enabled }
+ld-desc-wild-ones = Aan: 1-en tellen voor elk bod dat niet op 1-en is. Op 1-en bieden schakelt de jokers voor dat bod uit. Uit maakt het spel puur kansrekening zonder joker.
+ld-option-changed-wild-ones = 1-jokers { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Spot On roepen aan: { $enabled }
+ld-desc-spot-on = Aan: naast "Leugen" mag je "Spot On" roepen om in te zetten dat het bod precies klopt. Goed: anderen verliezen elk één dobbelsteen. Mis: jij verliest er twee. Hoog risico, hoge beloning.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = Ronde { $round } begint. Totaal dobbelstenen op tafel: { $total }. Iedereen gooit.
+ld-your-roll = Jouw worp deze ronde: { $dice }.
+ld-your-counts = Jouw aantallen: { $counts }.
+ld-turn-start = { $player } is aan zet. { $bid_state }
+ld-no-bid-yet = Nog geen bod — open de ronde.
+ld-current-bid = Huidig bod: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = Een bod doen
+ld-action-call-liar = Leugen roepen
+ld-action-call-spot-on = Spot On roepen
+ld-bid-prompt = Kies je bod.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] Jij biedt { $quantity } { $face }.
+    *[player] { $player } biedt { $quantity } { $face }.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] Jij roept Leugen op { $target }s bod van { $quantity } { $face }.
+    *[player] { $player } roept Leugen op { $target }s bod van { $quantity } { $face }.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] Jij roept Spot On op { $target }s bod van { $quantity } { $face }.
+    *[player] { $player } roept Spot On op { $target }s bod van { $quantity } { $face }.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = Bekers omhoog! We tellen de { $face } op de tafel.
+ld-reveal-line = { $player } gooide: { $dice }.
+ld-actual-count = Echt aantal { $face } (met joker-1en): { $count }. Bod was { $quantity }.
+ld-actual-count-no-wild = Echt aantal { $face } (zonder jokers): { $count }. Bod was { $quantity }.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } heeft overdreven — verliest een dobbelsteen.
+ld-liar-caller-loses = Het bod was eerlijk — { $caller } verliest een dobbelsteen.
+ld-spot-on-correct = Spot on! { $caller } had het precies goed — alle anderen verliezen een dobbelsteen.
+ld-spot-on-wrong = Niet spot on. { $caller } verliest twee dobbelstenen.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Je verliest een dobbelsteen. Je hebt nu { $remaining } { $remaining ->
+        [one] dobbelsteen
+        *[other] dobbelstenen
     }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    *[player] { $player } verliest een dobbelsteen. Heeft nu { $remaining }.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Je verliest { $count } dobbelstenen. Je hebt nu { $remaining } { $remaining ->
+        [one] dobbelsteen
+        *[other] dobbelstenen
     }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    *[player] { $player } verliest { $count } dobbelstenen. Heeft nu { $remaining }.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
+ld-eliminated = { $player } is door zijn dobbelstenen heen en uitgeschakeld! Nog { $remaining } { $remaining ->
+    [one] speler
+    *[other] spelers
+} over.
+ld-winner = { $player } is de laatste met dobbelstenen — wint!
 
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
+ld-status-round = Ronde { $round }.
+ld-status-your-dice = Jouw dobbelstenen: { $dice }.
+ld-status-your-counts = Jouw aantallen: { $counts }.
+ld-status-no-dice = Je hebt geen dobbelstenen — je bent uitgeschakeld.
+ld-status-current-bid = Huidig bod: { $quantity } { $face }.
+ld-status-no-bid = Nog geen bod deze ronde.
+ld-status-table-total = Totaal dobbelstenen op tafel: { $total }.
+ld-status-detailed-header = Detailstatus — { $count } spelers over.
 ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+    [one] dobbelsteen
+    *[other] dobbelstenen
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-status-detailed-out = { $player }: uitgeschakeld.
+ld-status-detailed-self-suffix = {" "}(jij)
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-face-1 = enen
+ld-face-2 = tweeën
+ld-face-3 = drieën
+ld-face-4 = vieren
+ld-face-5 = vijven
+ld-face-6 = zessen
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-action-not-your-turn = Het is niet jouw beurt.
+ld-action-not-playing = De partij is niet bezig.
+ld-action-no-bid-to-call = Er is nog geen bod om aan te vechten.
+ld-action-eliminated = Je bent uitgeschakeld.

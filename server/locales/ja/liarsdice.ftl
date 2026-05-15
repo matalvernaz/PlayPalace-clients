@@ -1,140 +1,110 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — ja
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = 各プレイヤーは伏せたカップの中で密かにダイスを振ります。テーブル全体での特定の目の総数をかけて入札を続け、最後の入札を信じられなければ「ライアー!」と宣言します。間違えるとダイスを失います。最後までダイスを持っていた人の勝ちです。
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice は 2 から 6 人で遊ぶブラフのダイスゲームです。
+    各プレイヤーはカップに 5 個のダイスを持って始めます。ラウンドの最初に全員が密かに振ります。
+    順番に、テーブル全体での特定の目の総数を入札します。たとえば「3 個の 4」とは、すべてのカップを開いたとき少なくとも 4 が 3 個あるという意味です。
+    新しい入札は前より高くしなければなりません。同じ目で数を増やすか、より高い目で数を同じか増やすかです。
+    1 はワイルド扱いで、1 以外の目への入札に加算されます。1 自体への入札ではワイルドは無効です。
+    1 への入札に切り替えると数は半分（切り上げ）になります。1 から通常の目に戻る場合は前回の数の 2 倍を超える必要があります。
+    入札の代わりに「ライアー!」と宣言して直前の入札に異議を唱えられます。全カップを開け、入札が正しければ宣言者がダイスを 1 つ失い、そうでなければ入札者が 1 つ失います。
+    Spot On 有効時は「Spot On」と宣言して入札がぴったり正しいと賭けられます。当たれば他のプレイヤー全員がダイスを 1 つ失い、外れれば自分が 2 つ失います。
+    ダイスが 0 個になると脱落です。最後までダイスを持っていた人の勝ちです。
+    S を押すとテーブルを確認できます。
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = プレイヤー毎の開始ダイス数: { $dice }
+ld-desc-starting-dice = 各プレイヤーが何個のダイスで始めるか。既定値は 5。ダイスが多いほどゲームが長くブラフの余地が広がります。
+ld-prompt-starting-dice = 開始ダイス数を入力（3 から 8）
+ld-option-changed-starting-dice = 開始ダイス数を { $dice } に設定しました。
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = 1 がワイルド: { $enabled }
+ld-desc-wild-ones = 有効: 1 は 1 以外への入札に加算されます。1 への入札ではワイルドが無効になります。無効ならゲームは純粋な確率となりワイルドはありません。
+ld-option-changed-wild-ones = ワイルド 1 を { $enabled }。
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
-ld-option-changed-spot-on = Spot On { $enabled }.
+ld-toggle-spot-on = Spot On 宣言を有効: { $enabled }
+ld-desc-spot-on = 有効: 「ライアー」のほかに「Spot On」と宣言して、入札がぴったり正しいと賭けられます。当たれば他全員がダイス 1 つを失います。外れれば自分が 2 つ失います。高リスク高リターン。
+ld-option-changed-spot-on = Spot On を { $enabled }。
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = ラウンド { $round } 開始。テーブル上の総ダイス: { $total }。全員振ります。
+ld-your-roll = このラウンドのあなたのダイス: { $dice }。
+ld-your-counts = あなたの個数: { $counts }。
+ld-turn-start = { $player } の番です。{ $bid_state }
+ld-no-bid-yet = まだ入札なし — ラウンドを開いてください。
+ld-current-bid = 現在の入札: { $quantity } 個の { $face }。
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
-ld-bid-option = { $quantity } { $face }
+ld-action-bid = 入札する
+ld-action-call-liar = ライアー宣言
+ld-action-call-spot-on = Spot On 宣言
+ld-bid-prompt = 入札を選んでください。
+ld-bid-option = { $quantity } 個の { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] あなたは { $quantity } 個の { $face } に入札します。
+    *[player] { $player } が { $quantity } 個の { $face } に入札します。
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] あなたは { $target } の入札「{ $quantity } 個の { $face }」にライアーを宣言します。
+    *[player] { $player } が { $target } の入札「{ $quantity } 個の { $face }」にライアーを宣言します。
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] あなたは { $target } の入札「{ $quantity } 個の { $face }」に Spot On を宣言します。
+    *[player] { $player } が { $target } の入札「{ $quantity } 個の { $face }」に Spot On を宣言します。
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = カップを開けます! テーブル上の { $face } を数えます。
+ld-reveal-line = { $player } の出目: { $dice }。
+ld-actual-count = 実際の { $face } の数（ワイルド 1 を含む）: { $count }。入札は { $quantity } でした。
+ld-actual-count-no-wild = 実際の { $face } の数（ワイルドなし）: { $count }。入札は { $quantity } でした。
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } が過大入札 — ダイスを 1 つ失います。
+ld-liar-caller-loses = 入札は正直でした — { $caller } がダイスを 1 つ失います。
+ld-spot-on-correct = Spot on! { $caller } はぴったり正解 — 他のプレイヤー全員がダイスを 1 つ失います。
+ld-spot-on-wrong = Spot on ではありません。{ $caller } がダイスを 2 つ失います。
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    [you] あなたはダイスを 1 つ失いました。残り { $remaining } { $remaining ->
+        [one] 個
+        *[other] 個
+    }。
+    *[player] { $player } がダイスを 1 つ失いました。残り { $remaining } 個。
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    [you] あなたはダイスを { $count } 個失いました。残り { $remaining } { $remaining ->
+        [one] 個
+        *[other] 個
+    }。
+    *[player] { $player } がダイスを { $count } 個失いました。残り { $remaining } 個。
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
+ld-eliminated = { $player } がダイスを使い切り脱落しました! 残り { $remaining } { $remaining ->
+    [one] 人
+    *[other] 人
+}。
+ld-winner = { $player } が最後までダイスを持っていました — 勝利!
 
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
+ld-status-round = ラウンド { $round }。
+ld-status-your-dice = あなたのダイス: { $dice }。
+ld-status-your-counts = あなたの個数: { $counts }。
+ld-status-no-dice = ダイスがありません — 脱落しました。
+ld-status-current-bid = 現在の入札: { $quantity } 個の { $face }。
+ld-status-no-bid = このラウンドに入札はまだありません。
+ld-status-table-total = テーブル上の総ダイス: { $total }。
+ld-status-detailed-header = 詳細ステータス — 残り { $count } 人。
 ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
-}.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+    [one] 個
+    *[other] 個
+}。
+ld-status-detailed-out = { $player }: 脱落。
+ld-status-detailed-self-suffix = {" "}(あなた)
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-face-1 = 1
+ld-face-2 = 2
+ld-face-3 = 3
+ld-face-4 = 4
+ld-face-5 = 5
+ld-face-6 = 6
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-action-not-your-turn = あなたの番ではありません。
+ld-action-not-playing = ゲームは進行中ではありません。
+ld-action-no-bid-to-call = まだ異議を唱える入札がありません。
+ld-action-eliminated = あなたは脱落しています。

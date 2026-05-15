@@ -1,140 +1,111 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — hu
+# AI-translated, native review pending — corrections welcome.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = Minden játékos a poharában titokban dobja a kockákat. Felváltva egyre magasabb tétet tesznek egy adott szám összes példányának számára az asztalon — vagy "Hazudsz!"-t kiáltanak, ha nem hisznek az utolsó tétnek. Tévedés egy kockába kerül. Az utolsó, akinek van kockája, nyer.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    A Liar's Dice egy 2-6 fős blöff alapú kockajáték.
+    Minden játékos 5 kockával indul a poharában. Minden forduló elején mindenki titokban dob.
+    Felváltva tesznek tétet egy adott szám összes példányára az asztalon — például "három 4" azt jelenti, hogy minden pohár felfedésekor legalább három 4 van.
+    Minden új tétnek magasabbnak kell lennie: ugyanaz a szám nagyobb mennyiséggel, vagy magasabb szám egyenlő vagy nagyobb mennyiséggel.
+    Az 1-esek jokerek — minden, nem 1-re vonatkozó tétbe beleszámítanak.
+    Az 1-re váltás megfelezi a mennyiséget (felfelé kerekítve). Az 1-ről egy normál számra visszatéréshez az előző mennyiség kétszeresénél többre van szükség.
+    Tét helyett kiálthatod, hogy "Hazudsz!" és vitathatod az utolsó tétet. Minden pohár fel: ha a tét helyes, a vitató veszít egy kockát; ha nem, a tétet tevő veszít egy kockát.
+    Spot On-nal "Spot On"-t is kiálthatsz, fogadva, hogy a tét pontosan helyes. Ha igazad van, minden más játékos veszít egy kockát; ha nem, te veszítesz kettőt.
+    Kiestél, ha nulla kockád van. Az utolsó, akinek van kockája, nyer.
+    Nyomd meg az S-t az asztal ellenőrzéséhez.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = Kezdő kockák játékosonként: { $dice }
+ld-desc-starting-dice = Hány kockával kezd minden játékos. Alapértelmezés 5. Több kocka = hosszabb játékok és több blöff-lehetőség.
+ld-prompt-starting-dice = Add meg a kezdő kockák számát (3-8)
+ld-option-changed-starting-dice = Kezdő kockák { $dice }-ra állítva.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = 1-esek jokerek: { $enabled }
+ld-desc-wild-ones = Be: az 1-esek minden, nem 1-re vonatkozó tétbe beleszámítanak. 1-re tét esetén a jokerek inaktiválódnak. Ki — a játék tiszta valószínűség, jokerek nélkül.
+ld-option-changed-wild-ones = Joker 1-esek { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Spot On kiáltás engedélyezve: { $enabled }
+ld-desc-spot-on = Be: "Hazudsz" mellett "Spot On"-t is kiálthatsz, fogadva, hogy a tét pontosan helyes. Talált — mások veszítenek egy kockát fejenként. Tévedés — te veszítesz kettőt. Magas kockázat, magas jutalom.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = { $round }. forduló kezdődik. Összes kocka az asztalon: { $total }. Mindenki dob.
+ld-your-roll = Kockáid ebben a fordulóban: { $dice }.
+ld-your-counts = Számolásaid: { $counts }.
+ld-turn-start = { $player } következik. { $bid_state }
+ld-no-bid-yet = Még nincs tét — nyisd meg a fordulót.
+ld-current-bid = Jelenlegi tét: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = Tét tétele
+ld-action-call-liar = Mondj Hazudsz-t
+ld-action-call-spot-on = Mondj Spot On-t
+ld-bid-prompt = Válaszd ki a tétet.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] { $quantity } { $face }-ot teszel.
+    *[player] { $player } { $quantity } { $face }-ot tesz.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] Hazudsz-t mondasz { $target } { $quantity } { $face } tétjére.
+    *[player] { $player } Hazudsz-t mond { $target } { $quantity } { $face } tétjére.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] Spot On-t mondasz { $target } { $quantity } { $face } tétjére.
+    *[player] { $player } Spot On-t mond { $target } { $quantity } { $face } tétjére.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = Poharakat fel! Számoljuk a { $face }-okat az asztalon.
+ld-reveal-line = { $player } dobta: { $dice }.
+ld-actual-count = { $face } valódi száma (joker 1-esekkel): { $count }. A tét { $quantity } volt.
+ld-actual-count-no-wild = { $face } valódi száma (jokerek nélkül): { $count }. A tét { $quantity } volt.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } túl magasra tett — veszít egy kockát.
+ld-liar-caller-loses = A tét becsületes volt — { $caller } veszít egy kockát.
+ld-spot-on-correct = Spot on! { $caller } pontosan talált — mások veszítenek egy-egy kockát.
+ld-spot-on-wrong = Nem spot on. { $caller } veszít két kockát.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    [you] Elveszítettél egy kockát. Most { $remaining } { $remaining ->
+        [one] kockád
+        *[other] kockád
+    } van.
+    *[player] { $player } elveszített egy kockát. Most { $remaining } kockája van.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
-    }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    [you] Elveszítettél { $count } kockát. Most { $remaining } { $remaining ->
+        [one] kockád
+        *[other] kockád
+    } van.
+    *[player] { $player } elveszített { $count } kockát. Most { $remaining } kockája van.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
+ld-eliminated = { $player } kifogyott a kockákból és kiesett! { $remaining } { $remaining ->
+    [one] játékos
+    *[other] játékos
+} maradt.
+ld-winner = { $player } az utolsó kockákkal — nyer!
 
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
+ld-status-round = { $round }. forduló.
+ld-status-your-dice = Kockáid: { $dice }.
+ld-status-your-counts = Számolásaid: { $counts }.
+ld-status-no-dice = Nincs kockád — kiestél.
+ld-status-current-bid = Jelenlegi tét: { $quantity } { $face }.
+ld-status-no-bid = Ebben a fordulóban nincs tét.
+ld-status-table-total = Összes kocka az asztalon: { $total }.
+ld-status-detailed-header = Részletes állapot — { $count } játékos maradt.
 ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+    [one] kocka
+    *[other] kocka
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-status-detailed-out = { $player }: kiesett.
+ld-status-detailed-self-suffix = {" "}(te)
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-face-1 = egyesek
+ld-face-2 = kettesek
+ld-face-3 = hármasok
+ld-face-4 = négyesek
+ld-face-5 = ötösök
+ld-face-6 = hatosok
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-action-not-your-turn = Most nem te következel.
+ld-action-not-playing = A játék nem fut.
+ld-action-no-bid-to-call = Még nincs vitatható tét.
+ld-action-eliminated = Kiestél.

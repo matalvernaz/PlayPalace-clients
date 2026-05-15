@@ -1,140 +1,115 @@
-# Liar's Dice — localization
-#
-# Each player has a cup of dice; bids are made on the total count of a face
-# across the whole table. 1s are wild unless bidding on 1s specifically.
-
-# ==========================================================================
-# Game metadata
-# ==========================================================================
+# Liar's Dice — cs
+# AI-translated, native review pending — corrections welcome.
 game-name-liarsdice = Liar's Dice
-game-liarsdice-desc = Each player rolls dice secretly under their cup. Take turns bidding higher and higher counts of a face value across the whole table — or call "Liar!" if you don't believe the last bid. Lose a die when you guess wrong. Last with dice wins.
+game-liarsdice-desc = Každý hráč hází kostkami pod kelímkem v utajení. Postupně zvyšujete sázky na celkový počet jedné strany na celém stole — nebo zakřičíte "Lhář!", když nevěříte poslední sázce. Špatný odhad stojí jednu kostku. Vyhrává poslední, kdo má kostky.
 
 liarsdice-rules =
-    Liar's Dice is a bluffing dice game for 2 to 6 players.
-    Each player starts with 5 dice in a cup. At the start of each round, every player rolls their dice secretly.
-    Take turns making bids on the total count of a face across all dice on the table — for example, "three 4s" means at least three 4s exist when all cups are revealed.
-    Each new bid must be higher than the last: either the same face with a higher count, or a higher face with the same or higher count.
-    1s are wild — they count toward any bid except a bid on 1s themselves.
-    Switching to a bid on 1s halves the quantity (rounded up). Switching back from 1s to a regular face requires more than double the previous quantity.
-    Instead of bidding, you may call "Liar!" to challenge the previous bid. All cups reveal: if the bid is correct, the challenger loses a die; if not, the bidder loses a die.
-    With Spot On enabled, you may instead call "Spot On" to bet the bid is exactly correct. If you're right, every other player loses a die; if not, you lose two dice.
-    Eliminated when you reach zero dice. Last player with any dice wins.
-    Press S to check the table.
+    Liar's Dice je blafovací hra v kostky pro 2 až 6 hráčů.
+    Každý hráč začíná s 5 kostkami v kelímku. Na začátku každého kola všichni v utajení hází.
+    Postupně sázíte na celkový počet jedné strany na všech kostkách — například "tři 4" znamená, že po odkrytí všech kelímků je na stole alespoň tři 4.
+    Každá nová sázka musí být vyšší: stejná strana s vyšším počtem, nebo vyšší strana se stejným či vyšším počtem.
+    Jedničky jsou žolíky — počítají se do každé sázky kromě sázek na jedničky.
+    Přepnutí na sázku na jedničky půlí množství (zaokrouhleno nahoru). Návrat z jedniček na běžnou stranu vyžaduje více než dvojnásobek předchozího množství.
+    Místo sázky můžeš zakřičet "Lhář!" a zpochybnit poslední sázku. Všechny kelímky vzhůru: pokud byla sázka správná, hráč zpochybňující ztrácí kostku; jinak hráč sázející.
+    Při zapnutém Spot On můžeš místo toho zakřičet "Spot On" a vsadit, že je sázka přesně správná. Pokud máš pravdu, každý jiný hráč ztrácí kostku; pokud ne, ty ztrácíš dvě.
+    Vyřazen jsi při nule kostek. Vyhrává poslední, kdo má kostky.
+    Stiskni S pro kontrolu stolu.
 
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-ld-set-starting-dice = Starting dice per player: { $dice }
-ld-desc-starting-dice = How many dice each player starts with. Default 5. More dice = longer games and more bluffing room.
-ld-prompt-starting-dice = Enter starting dice (3 to 8)
-ld-option-changed-starting-dice = Starting dice set to { $dice }.
+ld-set-starting-dice = Počáteční kostky na hráče: { $dice }
+ld-desc-starting-dice = S kolika kostkami každý hráč začíná. Výchozí 5. Více kostek = delší hry a více prostoru pro blafování.
+ld-prompt-starting-dice = Zadej počáteční kostky (3 až 8)
+ld-option-changed-starting-dice = Počáteční kostky nastaveny na { $dice }.
 
-ld-toggle-wild-ones = 1s are wild: { $enabled }
-ld-desc-wild-ones = When on, 1s count toward any non-1 bid. Bidding on 1s themselves disables wilds for that bid. Off makes the game purely about probability with no wild card.
-ld-option-changed-wild-ones = Wild 1s { $enabled }.
+ld-toggle-wild-ones = Jedničky jsou žolíky: { $enabled }
+ld-desc-wild-ones = Zapnuto: jedničky se počítají do každé sázky, která není na jedničky. Sázka na jedničky pro tu sázku žolíky vypíná. Vypnuto — hra je čistá pravděpodobnost bez žolíku.
+ld-option-changed-wild-ones = Žolík jedničky { $enabled }.
 
-ld-toggle-spot-on = Spot On call enabled: { $enabled }
-ld-desc-spot-on = When on, in addition to "Liar", you may call "Spot On" — betting the bid is exactly the right number. If correct, every other player loses a die. If wrong, you lose two dice. High risk, high reward.
+ld-toggle-spot-on = Volání Spot On povoleno: { $enabled }
+ld-desc-spot-on = Zapnuto: kromě "Lháře" můžeš zakřičet "Spot On" a vsadit, že je sázka přesně správná. Když máš pravdu, ostatní ztrácejí po kostce. Když ne, ty ztrácíš dvě. Vysoké riziko, vysoká odměna.
 ld-option-changed-spot-on = Spot On { $enabled }.
 
-# ==========================================================================
-# Round flow
-# ==========================================================================
-ld-round-start = Round { $round } begins. Total dice on the table: { $total }. Everyone rolls.
-ld-your-roll = Your dice this round: { $dice }.
-ld-your-counts = Your counts: { $counts }.
-ld-turn-start = { $player }'s turn. { $bid_state }
-ld-no-bid-yet = No bid yet — open the round.
-ld-current-bid = Current bid: { $quantity } { $face }.
+ld-round-start = Začíná kolo { $round }. Celkem kostek na stole: { $total }. Všichni hází.
+ld-your-roll = Tvoje kostky v tomto kole: { $dice }.
+ld-your-counts = Tvoje počty: { $counts }.
+ld-turn-start = Na řadě je { $player }. { $bid_state }
+ld-no-bid-yet = Zatím bez sázky — otevři kolo.
+ld-current-bid = Současná sázka: { $quantity } { $face }.
 
-# ==========================================================================
-# Bidding
-# ==========================================================================
-ld-action-bid = Make a bid
-ld-action-call-liar = Call Liar
-ld-action-call-spot-on = Call Spot On
-ld-bid-prompt = Choose your bid.
+ld-action-bid = Sázej
+ld-action-call-liar = Zakřič Lháře
+ld-action-call-spot-on = Zakřič Spot On
+ld-bid-prompt = Vyber svou sázku.
 ld-bid-option = { $quantity } { $face }
 ld-bid-made = { $who ->
-    [you] You bid { $quantity } { $face }.
-    *[player] { $player } bids { $quantity } { $face }.
+    [you] Sázíš { $quantity } { $face }.
+    *[player] { $player } sází { $quantity } { $face }.
 }
 
-# ==========================================================================
-# Calls / reveals
-# ==========================================================================
 ld-call-liar = { $who ->
-    [you] You call Liar on { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Liar on { $target }'s bid of { $quantity } { $face }.
+    [you] Křičíš Lhář na sázku { $target } { $quantity } { $face }.
+    *[player] { $player } křičí Lhář na sázku { $target } { $quantity } { $face }.
 }
 ld-call-spot-on = { $who ->
-    [you] You call Spot On for { $target }'s bid of { $quantity } { $face }.
-    *[player] { $player } calls Spot On for { $target }'s bid of { $quantity } { $face }.
+    [you] Křičíš Spot On na sázku { $target } { $quantity } { $face }.
+    *[player] { $player } křičí Spot On na sázku { $target } { $quantity } { $face }.
 }
-ld-reveal-header = Cups up! Counting the { $face } across the table.
-ld-reveal-line = { $player } rolled: { $dice }.
-ld-actual-count = Actual count of { $face } (including wild 1s): { $count }. Bid was { $quantity }.
-ld-actual-count-no-wild = Actual count of { $face } (no wilds): { $count }. Bid was { $quantity }.
+ld-reveal-header = Kelímky vzhůru! Počítáme { $face } na stole.
+ld-reveal-line = { $player } hodil: { $dice }.
+ld-actual-count = Skutečný počet { $face } (včetně žolíkových 1): { $count }. Sázka byla { $quantity }.
+ld-actual-count-no-wild = Skutečný počet { $face } (bez žolíků): { $count }. Sázka byla { $quantity }.
 
-# Outcome
-ld-liar-bidder-loses = { $bidder } overbid — they lose a die.
-ld-liar-caller-loses = The bid was honest — { $caller } loses a die.
-ld-spot-on-correct = Spot on! { $caller } was exactly right — every other player loses a die.
-ld-spot-on-wrong = Not spot on. { $caller } loses two dice.
+ld-liar-bidder-loses = { $bidder } přesázel — ztrácí kostku.
+ld-liar-caller-loses = Sázka byla pravdivá — { $caller } ztrácí kostku.
+ld-spot-on-correct = Spot on! { $caller } trefil přesně — ostatní ztrácejí po kostce.
+ld-spot-on-wrong = Není spot on. { $caller } ztrácí dvě kostky.
 
-# Dice count changes
 ld-lost-die = { $who ->
-    [you] You lost a die. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Ztratil jsi kostku. Máš nyní { $remaining } { $remaining ->
+        [one] kostku
+        [few] kostky
+        *[other] kostek
     }.
-    *[player] { $player } lost a die. They now have { $remaining }.
+    *[player] { $player } ztratil kostku. Má nyní { $remaining }.
 }
 ld-lost-dice-multi = { $who ->
-    [you] You lost { $count } dice. You now have { $remaining } { $remaining ->
-        [one] die
-        *[other] dice
+    [you] Ztratil jsi { $count } kostek. Máš nyní { $remaining } { $remaining ->
+        [one] kostku
+        [few] kostky
+        *[other] kostek
     }.
-    *[player] { $player } lost { $count } dice. They now have { $remaining }.
+    *[player] { $player } ztratil { $count } kostek. Má nyní { $remaining }.
 }
-ld-eliminated = { $player } is out of dice and is eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ld-winner = { $player } is the last one with dice — they win!
-
-# ==========================================================================
-# Status readout
-# ==========================================================================
-ld-status-round = Round { $round }.
-ld-status-your-dice = Your dice: { $dice }.
-ld-status-your-counts = Your counts: { $counts }.
-ld-status-no-dice = You have no dice — you've been eliminated.
-ld-status-current-bid = Current bid: { $quantity } { $face }.
-ld-status-no-bid = No bid yet this round.
-ld-status-table-total = Total dice on the table: { $total }.
-ld-status-detailed-header = Detailed status — { $count } players remaining.
-ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
-    [one] die
-    *[other] dice
+ld-eliminated = { $player } už nemá kostky a je vyřazen! Zbývá { $remaining } { $remaining ->
+    [one] hráč
+    [few] hráči
+    *[other] hráčů
 }.
-ld-status-detailed-out = { $player }: eliminated.
-ld-status-detailed-self-suffix = {" "}(you)
+ld-winner = { $player } je poslední s kostkami — vyhrává!
 
-# ==========================================================================
-# Face-name helpers (for natural speech: "three sixes" not "three 6s")
-# ==========================================================================
-ld-face-1 = ones
-ld-face-2 = twos
-ld-face-3 = threes
-ld-face-4 = fours
-ld-face-5 = fives
-ld-face-6 = sixes
+ld-status-round = Kolo { $round }.
+ld-status-your-dice = Tvoje kostky: { $dice }.
+ld-status-your-counts = Tvoje počty: { $counts }.
+ld-status-no-dice = Nemáš kostky — jsi vyřazen.
+ld-status-current-bid = Současná sázka: { $quantity } { $face }.
+ld-status-no-bid = Zatím v tomto kole bez sázky.
+ld-status-table-total = Celkem kostek na stole: { $total }.
+ld-status-detailed-header = Podrobný stav — zbývá { $count } hráčů.
+ld-status-detailed-line = { $player }{ $self_suffix }: { $dice } { $dice ->
+    [one] kostka
+    [few] kostky
+    *[other] kostek
+}.
+ld-status-detailed-out = { $player }: vyřazen.
+ld-status-detailed-self-suffix = {" "}(ty)
 
-# ==========================================================================
-# Errors / disabled actions
-# ==========================================================================
-ld-action-not-your-turn = It's not your turn.
-ld-action-not-playing = The game is not in progress.
-ld-action-no-bid-to-call = There's no bid to challenge yet.
-ld-action-eliminated = You're eliminated.
+ld-face-1 = jedničky
+ld-face-2 = dvojky
+ld-face-3 = trojky
+ld-face-4 = čtyřky
+ld-face-5 = pětky
+ld-face-6 = šestky
+
+ld-action-not-your-turn = Nejsi na řadě.
+ld-action-not-playing = Hra neběží.
+ld-action-no-bid-to-call = Zatím není sázka k zpochybnění.
+ld-action-eliminated = Jsi vyřazen.
