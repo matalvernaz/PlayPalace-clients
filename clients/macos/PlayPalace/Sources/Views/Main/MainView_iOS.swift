@@ -823,8 +823,6 @@ private struct ControlsSheet: View {
     var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
-    @State private var showingLeaveConfirm = false
-
     var body: some View {
         NavigationStack {
             List {
@@ -847,12 +845,17 @@ private struct ControlsSheet: View {
                               up: { viewModel.adjustAmbienceVolume(delta: 0.1) })
                 }
                 Section("Table") {
+                    // No extra confirmation dialog: under VoiceOver every
+                    // button requires swipe-to-focus + double-tap-to-activate
+                    // already, which is the standard soft confirmation for
+                    // destructive actions in this app's interaction model.
                     Button(role: .destructive) {
-                        showingLeaveConfirm = true
+                        viewModel.requestLeaveTable()
+                        dismiss()
                     } label: {
-                        Text("Leave Table…")
+                        Text("Leave Table")
                     }
-                    .accessibilityHint("Leave the current table and return to the lobby. Confirms before leaving.")
+                    .accessibilityHint("Leave the current table and return to the lobby.")
                 }
                 Section("Connection") {
                     Button("Ping server") { viewModel.sendPing() }
@@ -873,19 +876,6 @@ private struct ControlsSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
-            }
-            .confirmationDialog(
-                "Leave the table?",
-                isPresented: $showingLeaveConfirm,
-                titleVisibility: .visible
-            ) {
-                Button("Leave Table", role: .destructive) {
-                    viewModel.requestLeaveTable()
-                    dismiss()
-                }
-                Button("Stay", role: .cancel) {}
-            } message: {
-                Text("You'll give up your spot and return to the lobby.")
             }
         }
         .onAppear { viewModel.speechManager.speakTransition("Controls opened.") }
