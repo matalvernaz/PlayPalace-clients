@@ -1,176 +1,125 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — ko
+# AI-translated, native review pending — corrections welcome.
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    Trouble은 파치시 계열의 경주 게임입니다.
+    각 플레이어는 자신의 말을 집 영역에서 시작합니다.
+    자기 차례에 주사위를 누르고 자신의 말 하나를 움직입니다.
+    기본적으로 집에서 트랙으로 말을 내보내려면 6을 굴려야 합니다.
+    기본적으로 6을 굴리면 추가 턴도 받습니다.
+    말은 공유 트랙을 시계 방향으로 이동해 결승 구역을 향합니다.
+    상대 말 위에 멈추면 그 말은 집으로 돌아갑니다(보호된 칸 제외).
+    자신의 모든 말이 결승에 도달하면 승리합니다.
+    팀 모드에서는 팀원 모두가 끝내면 팀이 승리합니다.
+    숫자 1~6으로 움직일 말을 선택하고 R로 주사위를 누릅니다.
+    언제든 E를 눌러 전체 보드 상태를 들을 수 있습니다.
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = 주사위 누르기
+trouble-action-move-token = 말 { $token } 이동
+trouble-action-check-board = 보드 확인
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = 말 { $token }: 집
+trouble-token-label-track = 말 { $token }: 트랙 { $position }번 칸
+trouble-token-label-finish-lane = 말 { $token }: 결승선 { $position }/{ $total }
+trouble-token-label-finished = 말 { $token }: 완주
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } 님이 { $roll } 을(를) 굴렸습니다.
+trouble-leave-home = { $player } 님이 말 { $token } 을(를) 트랙으로 내보냅니다.
+trouble-advance-track = { $player } 님이 말 { $token } 을(를) 트랙 { $position }번 칸으로 옮깁니다.
+trouble-enter-finish-lane = { $player } 님이 말 { $token } 을(를) 결승선에 진입시킵니다.
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } 님이 말 { $token } 을(를) 결승선 { $position }/{ $total } 위치로 진행합니다.
+trouble-token-finished = { $player } 님의 말 { $token } 이(가) 결승에 도달.
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    { $player } 님의 말 { $token } 이(가) { $opponent } 님의 말 { $opp_token } 을(를) 집으로 보냅니다.
+trouble-no-legal-move = { $player } 님은 합법적 수가 없어 차례가 넘어갑니다.
+trouble-extra-turn = { $player } 님이 6을 굴려 추가 턴을 받습니다.
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } 님 승리! 모든 말이 결승에 도달.
+trouble-team-winner = 팀 { $team } 승리! 팀원 전원 완주.
+trouble-final-standing = { $player }: { $total } 중 { $finished } 완주.
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    집에 { $own_home }, 트랙에 { $own_track }, 결승에 { $own_finished } 있습니다.
+    상대: { $opponents }.
+trouble-opponent-summary = { $name }: 집 { $home }, 트랙 { $track }, 결승 { $finished }
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    내 말: { $own_tokens }.
+    상대 말: { $opp_tokens }.
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = 먼저 주사위를 누르세요.
+trouble-reason-already-rolled = 이미 굴렸습니다. 옮길 말을 선택하세요.
+trouble-reason-no-legal-moves = 이 굴림에는 합법적 수가 없습니다.
+trouble-reason-token-home-needs-six = 이 말은 집에 있습니다. 내보내려면 6이 필요합니다.
+trouble-reason-token-home-needs-any = 이 말은 집에 있습니다. 어떤 값이든 내보낼 수 있습니다.
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    이 말은 집에 있고, 굴림이 내보내기 조건에 맞지 않습니다.
+trouble-reason-token-finished = 이 말은 이미 완주했습니다.
+trouble-reason-overshoot-wastes = 이 말은 결승을 넘지 않고 { $roll } 칸을 갈 수 없습니다.
+trouble-reason-blocked = 이 이동은 막혀 있습니다.
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = 트랙 길이: { $track_size } 칸
+trouble-option-select-track-size = 트랙 칸 수를 선택하세요.
+trouble-option-changed-track-size = 트랙을 { $track_size } 칸으로 설정.
+trouble-option-desc-track-size = 공유 트랙의 칸 수.
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = 플레이어당 말 수: { $tokens }
+trouble-option-enter-tokens-per-player = 플레이어당 말 수를 입력(2-6):
+trouble-option-changed-tokens-per-player = 플레이어당 말 수를 { $tokens } 로 설정.
+trouble-option-desc-tokens-per-player = 각 플레이어가 결승으로 보내는 말 수.
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = 6 굴림 시 추가 턴: { $enabled }
+trouble-option-changed-extra-turn-on-six = 6 굴림 시 추가 턴을 { $enabled ->
+    [on] 활성화.
+    [off] 비활성화.
+   *[other] 업데이트.
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    활성: 6을 굴리면 추가 턴(클래식 Hasbro 규칙).
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = 집에서 나가려면 6 필요: { $enabled }
+trouble-option-changed-six-to-leave-home = 집에서 나가려면 6 필요를 { $enabled ->
+    [on] 활성화.
+    [off] 비활성화.
+   *[other] 업데이트.
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    활성: 말을 집에서 내보내려면 6 필요. 비활성: 모든 굴림 가능.
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = 안전 칸: { $mode }
+trouble-option-select-safe-spaces = 안전 칸 모드를 선택.
+trouble-option-changed-safe-spaces = 안전 칸을 { $mode } 로 설정.
+trouble-option-desc-safe-spaces = 말이 충돌로부터 보호되는지 결정.
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = 없음
+trouble-safe-mode-home-stretch = 결승 직선만
+trouble-safe-mode-every-seventh = 7칸마다
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = 결승: { $mode }
+trouble-option-select-finish-behavior = 결승 동작을 선택.
+trouble-option-changed-finish-behavior = 결승 동작을 { $mode } 로 설정.
+trouble-option-desc-finish-behavior = 결승을 넘는 굴림의 처리 방식.
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = 정확한 굴림 필요
+trouble-finish-mode-bounce = 초과 시 반사
+trouble-finish-mode-allow = 초과 허용
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = 봇 난이도: { $level }
+trouble-option-select-bot-difficulty = 봇 난이도 선택.
+trouble-option-changed-bot-difficulty = 봇 난이도를 { $level } 로 설정.
+trouble-option-desc-bot-difficulty = 내장 봇의 강도.
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = 단순
+trouble-bot-difficulty-greedy = 욕심
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
-trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-preset = 프리셋: { $preset }
+trouble-option-select-preset = 변형을 선택. 호스트가 이후 개별 규칙 조정 가능.
+trouble-option-changed-preset = 프리셋 적용: { $preset }.
+trouble-option-desc-preset = 흔한 변형용 미리 묶인 옵션 세트.
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = 클래식 Hasbro
+trouble-preset-fast = 빠름
+trouble-preset-brutal = 잔혹
+trouble-preset-custom = 사용자 지정

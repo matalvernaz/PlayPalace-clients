@@ -1,176 +1,125 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — zu
+# AI-translated with limited fluency, native review strongly recommended.
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    I-Trouble ngumdlalo wokucijela owomndeni weParcheesi.
+    Umdlali ngamunye uqala namatokeni akhe endaweni yeKhaya.
+    Ekhonweni lakho, cindezela idayisi futhi uhambise elinye lamatokeni akho.
+    Ngokuzenzakalelayo kufanele uphose i-6 ukukhulula itokeni elivela eKhaya liye emzileni.
+    Ngokuzenzakalelayo, ukuphosa i-6 kunikeza nethuba elengeziwe.
+    Amatokeni anyakaza ngokulandela ihora emzileni ohlanganyelwe aya endaweni yokuphela.
+    Ukufika etokeni elimelene nawe lithumela emuva eKhaya lawo, ngaphandle uma indawo ivikelwe.
+    Lapho wonke amatokeni akho efinyelela ekupheleni, uyawina.
+    Kumodi yethimba, ithimba lakho liyawina lapho bonke abasebenzisi bephothula.
+    Izinkinobho ze-1 kuya ku-6 zikhetha itokeni, R iphose.
+    Cindezela u-E noma nini ukuze uzwe isimo esiphelele sebhodi.
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = Cindezela idayisi
+trouble-action-move-token = Hambisa itokeni { $token }
+trouble-action-check-board = Bheka ibhodi
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = Itokeni { $token }: eKhaya
+trouble-token-label-track = Itokeni { $token }: indawo { $position } yomzila
+trouble-token-label-finish-lane = Itokeni { $token }: umzila wokuphela { $position } kwa-{ $total }
+trouble-token-label-finished = Itokeni { $token }: liphothuliwe
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } uphose i-{ $roll }.
+trouble-leave-home = { $player } ukhulula itokeni { $token } emzileni.
+trouble-advance-track = { $player } uhambisa itokeni { $token } endaweni { $position }.
+trouble-enter-finish-lane = { $player } ufaka itokeni { $token } emzileni wokuphela.
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } uhambisa itokeni { $token } endaweni { $position } kwa-{ $total } yomzila wokuphela.
+trouble-token-finished = Itokeni { $token } lika-{ $player } lifinyelela ekupheleni.
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    Itokeni { $token } lika-{ $player } lithumela itokeni { $opp_token } lika-{ $opponent } emuva eKhaya.
+trouble-no-legal-move = { $player } akanazo iziphethu ezivumelekile. Ithuba liyadlula.
+trouble-extra-turn = { $player } uthola ithuba elengeziwe ngokuphosa i-6.
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } uyawina! Wonke amatokeni asekupheleni.
+trouble-team-winner = Ithimba { $team } liyawina! Bonke abasebenzisi baphothula.
+trouble-final-standing = { $player }: { $finished } kwa-{ $total } amatokeni aphothuliwe.
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    Una-{ $own_home } eKhaya, { $own_track } emzileni, { $own_finished } ekupheleni.
+    Abamelene: { $opponents }.
+trouble-opponent-summary = { $name }: { $home } ikhaya, { $track } umzila, { $finished } ekupheleni
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    Amatokeni akho: { $own_tokens }.
+    Amatokeni amelene: { $opp_tokens }.
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = Cindezela idayisi kuqala.
+trouble-reason-already-rolled = Usucindezele. Khetha itokeni ohambisa.
+trouble-reason-no-legal-moves = Akukho iziphethu ezivumelekile zalokhu kuphosa.
+trouble-reason-token-home-needs-six = Leli tokeni liseKhaya. Udinga i-6 ukulikhulula.
+trouble-reason-token-home-needs-any = Leli tokeni liseKhaya. Noma yikuphi okuphosa kukhulula.
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    Leli tokeni liseKhaya futhi ukuphosa kwakho akwanele ukulikhulula.
+trouble-reason-token-finished = Leli tokeni selingaphothuliwe.
+trouble-reason-overshoot-wastes = Leli tokeni alinakuhamba { $roll } izindawo ngaphandle kokweqa ukuphela.
+trouble-reason-blocked = Lokhu kunyakaza kuvinjelwe.
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = Ubukhulu bomzila: { $track_size } izindawo
+trouble-option-select-track-size = Khetha inombolo yezindawo zomzila.
+trouble-option-changed-track-size = Umzila usethelwe ku-{ $track_size } izindawo.
+trouble-option-desc-track-size = Inombolo yezindawo emzileni ohlanganyelwe.
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = Amatokeni ngomdlali: { $tokens }
+trouble-option-enter-tokens-per-player = Faka amatokeni ngomdlali (2-6):
+trouble-option-changed-tokens-per-player = Amatokeni ngomdlali asethelwe ku-{ $tokens }.
+trouble-option-desc-tokens-per-player = Mangaki amatokeni umdlali ngamunye awahambisa ekupheleni.
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = Ithuba elengeziwe ku-6: { $enabled }
+trouble-option-changed-extra-turn-on-six = Ithuba elengeziwe ku-6 { $enabled ->
+    [on] livulwe.
+    [off] livaliwe.
+   *[other] libuyekeziwe.
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    Kuvuliwe: i-6 inikeza ithuba elengeziwe (umthetho ovamile we-Hasbro).
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = Idinga i-6 ukuthi uphume eKhaya: { $enabled }
+trouble-option-changed-six-to-leave-home = Isithupha ukuphuma eKhaya { $enabled ->
+    [on] kuvuliwe.
+    [off] kuvaliwe.
+   *[other] kubuyekeziwe.
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    Kuvuliwe: umdlali kufanele aphose i-6 ukukhulula itokeni eKhaya. Kuvaliwe: noma yikuphi okuphosa kuyakhulula.
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = Izindawo eziphephile: { $mode }
+trouble-option-select-safe-spaces = Khetha imodi yezindawo eziphephile.
+trouble-option-changed-safe-spaces = Izindawo eziphephile zisethelwe ku-{ $mode }.
+trouble-option-desc-safe-spaces = Nquma noma amatokeni angavikelwa ekungquzukweni.
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = Lutho
+trouble-safe-mode-home-stretch = Umzila wokuphela kuphela
+trouble-safe-mode-every-seventh = Njalo 7. indawo
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = Ukuphela: { $mode }
+trouble-option-select-finish-behavior = Khetha ukuziphatha kokuphela.
+trouble-option-changed-finish-behavior = Ukuziphatha kokuphela kusethelwe ku-{ $mode }.
+trouble-option-desc-finish-behavior = Indlela yokuphatha ukuphosa okwedlula ukuphela.
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = Kudingeka ukuphosa okuqondile
+trouble-finish-mode-bounce = Ukweqa kuyabuyela
+trouble-finish-mode-allow = Ukweqa kuvunyelwe
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = Ubunzima bebhothi: { $level }
+trouble-option-select-bot-difficulty = Khetha ubunzima bebhothi.
+trouble-option-changed-bot-difficulty = Ubunzima bebhothi busethelwe ku-{ $level }.
+trouble-option-desc-bot-difficulty = Amandla amabhothi akhile ngaphakathi.
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = Okulula
+trouble-bot-difficulty-greedy = Okukhanukayo
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
-trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-preset = Isethulo: { $preset }
+trouble-option-select-preset = Khetha okuhlukile. Umsingathi angalungisa kamuva imithetho engodwa.
+trouble-option-changed-preset = Isethulo sisetshenzisiwe: { $preset }.
+trouble-option-desc-preset = Amaqembu okukhetha asongelwe ngaphambili okwehluka okuvamile.
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = Okuvamile kwe-Hasbro
+trouble-preset-fast = Okusheshayo
+trouble-preset-brutal = Okuhlukumezayo
+trouble-preset-custom = Okwezifiso

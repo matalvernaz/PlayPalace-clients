@@ -1,176 +1,124 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — it
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    Trouble è un gioco di corsa della famiglia Parcheesi.
+    Ogni giocatore inizia con i propri segnalini nella Casa.
+    Al tuo turno, fai scattare il dado e muovi uno dei tuoi segnalini.
+    Per impostazione predefinita devi ottenere un 6 per liberare un segnalino dalla Casa sul percorso.
+    Per impostazione predefinita, un 6 concede anche un turno extra.
+    I segnalini si muovono in senso orario sul percorso condiviso fino alla zona di arrivo.
+    Atterrare sul segnalino di un avversario lo rimanda nella sua Casa, a meno che lo spazio sia protetto.
+    Quando tutti i tuoi segnalini raggiungono l'arrivo, vinci.
+    In modalità squadre, la tua squadra vince quando tutti i compagni hanno finito.
+    Usa i tasti da 1 a 6 per scegliere un segnalino da muovere, o premi R per tirare.
+    Premi E per ascoltare lo stato completo del tavolo in qualsiasi momento.
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = Far scattare il dado
+trouble-action-move-token = Muovi segnalino { $token }
+trouble-action-check-board = Controlla il tavolo
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = Segnalino { $token }: in Casa
+trouble-token-label-track = Segnalino { $token }: spazio { $position } del percorso
+trouble-token-label-finish-lane = Segnalino { $token }: corsia di arrivo { $position } di { $total }
+trouble-token-label-finished = Segnalino { $token }: arrivato
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } ha tirato un { $roll }.
+trouble-leave-home = { $player } libera il segnalino { $token } sul percorso.
+trouble-advance-track = { $player } muove il segnalino { $token } allo spazio { $position }.
+trouble-enter-finish-lane = { $player } porta il segnalino { $token } nella corsia di arrivo.
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } avanza il segnalino { $token } allo spazio { $position } di { $total } della corsia di arrivo.
+trouble-token-finished = Il segnalino { $token } di { $player } raggiunge l'arrivo.
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    Il segnalino { $token } di { $player } rimanda il segnalino { $opp_token } di { $opponent } a Casa.
+trouble-no-legal-move = { $player } non ha mosse legali. Il turno passa.
+trouble-extra-turn = { $player } ottiene un turno extra per il 6.
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } vince! Tutti i segnalini all'arrivo.
+trouble-team-winner = La squadra { $team } vince! Tutti i compagni hanno finito.
+trouble-final-standing = { $player }: { $finished } segnalini all'arrivo su { $total }.
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    Hai { $own_home } in Casa, { $own_track } sul percorso, { $own_finished } all'arrivo.
+    Avversari: { $opponents }.
+trouble-opponent-summary = { $name }: { $home } casa, { $track } percorso, { $finished } arrivo
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    I tuoi segnalini: { $own_tokens }.
+    Segnalini avversari: { $opp_tokens }.
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = Prima fai scattare il dado.
+trouble-reason-already-rolled = Hai già tirato. Scegli un segnalino da muovere.
+trouble-reason-no-legal-moves = Nessuna mossa legale per questo tiro.
+trouble-reason-token-home-needs-six = Questo segnalino è in Casa. Serve un 6 per liberarlo.
+trouble-reason-token-home-needs-any = Questo segnalino è in Casa. Qualsiasi tiro lo libera.
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    Questo segnalino è in Casa e il tuo tiro non basta a liberarlo.
+trouble-reason-token-finished = Questo segnalino è già arrivato.
+trouble-reason-overshoot-wastes = Questo segnalino non può muoversi di { $roll } spazi senza superare l'arrivo.
+trouble-reason-blocked = Questa mossa è bloccata.
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = Lunghezza del percorso: { $track_size } spazi
+trouble-option-select-track-size = Seleziona il numero di spazi del percorso.
+trouble-option-changed-track-size = Percorso impostato a { $track_size } spazi.
+trouble-option-desc-track-size = Numero di spazi sul percorso condiviso.
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = Segnalini per giocatore: { $tokens }
+trouble-option-enter-tokens-per-player = Inserisci i segnalini per giocatore (2-6):
+trouble-option-changed-tokens-per-player = Segnalini per giocatore impostati a { $tokens }.
+trouble-option-desc-tokens-per-player = Numero di segnalini che ogni giocatore porta all'arrivo.
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = Turno extra al 6: { $enabled }
+trouble-option-changed-extra-turn-on-six = Turno extra al 6 { $enabled ->
+    [on] attivato.
+    [off] disattivato.
+   *[other] aggiornato.
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    Attivo: un 6 concede un turno extra (regola classica Hasbro).
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = Richiedi 6 per uscire dalla Casa: { $enabled }
+trouble-option-changed-six-to-leave-home = Sei per uscire dalla Casa { $enabled ->
+    [on] attivato.
+    [off] disattivato.
+   *[other] aggiornato.
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    Attivo: serve un 6 per liberare un segnalino dalla Casa. Disattivo: qualsiasi tiro lo libera.
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = Spazi sicuri: { $mode }
+trouble-option-select-safe-spaces = Seleziona la modalità degli spazi sicuri.
+trouble-option-changed-safe-spaces = Spazi sicuri impostati a { $mode }.
+trouble-option-desc-safe-spaces = Decidi se i segnalini possono essere protetti dagli urti.
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = Nessuno
+trouble-safe-mode-home-stretch = Solo rettilineo finale
+trouble-safe-mode-every-seventh = Ogni 7º spazio
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = Arrivo: { $mode }
+trouble-option-select-finish-behavior = Seleziona il comportamento di arrivo.
+trouble-option-changed-finish-behavior = Comportamento di arrivo impostato a { $mode }.
+trouble-option-desc-finish-behavior = Come viene gestito un tiro che supera l'arrivo.
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = Tiro esatto richiesto
+trouble-finish-mode-bounce = Rimbalzo per eccesso
+trouble-finish-mode-allow = Superamento consentito
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = Difficoltà del bot: { $level }
+trouble-option-select-bot-difficulty = Seleziona la difficoltà del bot.
+trouble-option-changed-bot-difficulty = Difficoltà del bot impostata a { $level }.
+trouble-option-desc-bot-difficulty = Forza dei bot integrati.
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = Ingenuo
+trouble-bot-difficulty-greedy = Avido
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
-trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-preset = Preimpostazione: { $preset }
+trouble-option-select-preset = Scegli una variante. L'host può modificare regole singole dopo.
+trouble-option-changed-preset = Preimpostazione applicata: { $preset }.
+trouble-option-desc-preset = Pacchetti di opzioni preconfigurati per varianti comuni.
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = Classico Hasbro
+trouble-preset-fast = Rapido
+trouble-preset-brutal = Brutale
+trouble-preset-custom = Personalizzato

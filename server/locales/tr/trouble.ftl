@@ -1,176 +1,125 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — tr
+# AI-translated, native review pending — corrections welcome.
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    Trouble, Parcheesi ailesinden bir yarış oyunudur.
+    Her oyuncu taşlarını Ev bölgesinde başlatır.
+    Sırasında zar pop edip taşlardan birini hareket ettirirsin.
+    Varsayılan olarak Ev'den taşı pistte serbest bırakmak için 6 atmalısın.
+    Varsayılan olarak 6 atmak ekstra tur da verir.
+    Taşlar paylaşılan pistte saat yönünde bitiş bölgesine doğru ilerler.
+    Rakibin taşının üzerine düşmek onu Ev'ine geri yollar, kare korunaklı değilse.
+    Tüm taşların bitişe ulaşınca kazanırsın.
+    Takım modunda tüm takım arkadaşları bittiğinde takımın kazanır.
+    1-6 tuşları taş seçimi, R zar pop.
+    İstediğin an E ile tahta durumunu dinleyebilirsin.
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = Zar pop et
+trouble-action-move-token = Taş { $token } hareket
+trouble-action-check-board = Tahtaya bak
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = Taş { $token }: Ev'de
+trouble-token-label-track = Taş { $token }: pist { $position } karesi
+trouble-token-label-finish-lane = Taş { $token }: bitiş şeridi { $position }/{ $total }
+trouble-token-label-finished = Taş { $token }: bitti
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } { $roll } attı.
+trouble-leave-home = { $player } taş { $token } 'i piste serbest bırakıyor.
+trouble-advance-track = { $player } taş { $token } 'i pistin { $position }. karesine taşıyor.
+trouble-enter-finish-lane = { $player } taş { $token } 'i bitiş şeridine sokuyor.
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } taş { $token } 'i bitiş şeridinin { $position }/{ $total } konumuna ilerletiyor.
+trouble-token-finished = { $player } 'nın taş { $token } 'i bitişe ulaştı.
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    { $player } 'nın taş { $token } 'i { $opponent } 'nin taş { $opp_token } 'ini Ev'e gönderiyor.
+trouble-no-legal-move = { $player } 'nın geçerli hamlesi yok. Sıra geçiyor.
+trouble-extra-turn = { $player } 6 atarak ekstra tur kazandı.
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } kazandı! Tüm taşlar bitişte.
+trouble-team-winner = { $team } takımı kazandı! Tüm takım arkadaşları bitirdi.
+trouble-final-standing = { $player }: { $total } taşın { $finished } 'i bitirdi.
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    Ev'de { $own_home }, pistte { $own_track }, bitişte { $own_finished } var.
+    Rakipler: { $opponents }.
+trouble-opponent-summary = { $name }: ev { $home }, pist { $track }, bitiş { $finished }
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    Senin taşların: { $own_tokens }.
+    Rakip taşlar: { $opp_tokens }.
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = Önce zarı pop et.
+trouble-reason-already-rolled = Zaten pop ettin. Hareket ettirmek için bir taş seç.
+trouble-reason-no-legal-moves = Bu atış için geçerli hamle yok.
+trouble-reason-token-home-needs-six = Bu taş Ev'de. Serbest bırakmak için 6 gerek.
+trouble-reason-token-home-needs-any = Bu taş Ev'de. Herhangi bir atış serbest bırakır.
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    Bu taş Ev'de ve atışın serbest bırakmaya yetmez.
+trouble-reason-token-finished = Bu taş zaten bitti.
+trouble-reason-overshoot-wastes = Bu taş bitişi geçmeden { $roll } kare ilerleyemez.
+trouble-reason-blocked = Bu hamle engelli.
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = Pist boyu: { $track_size } kare
+trouble-option-select-track-size = Pist kare sayısını seç.
+trouble-option-changed-track-size = Pist { $track_size } kareye ayarlandı.
+trouble-option-desc-track-size = Paylaşılan pistteki kare sayısı.
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = Oyuncu başına taş: { $tokens }
+trouble-option-enter-tokens-per-player = Oyuncu başına taş sayısını gir (2-6):
+trouble-option-changed-tokens-per-player = Oyuncu başına taş { $tokens } 'e ayarlandı.
+trouble-option-desc-tokens-per-player = Her oyuncunun bitirmek istediği taş sayısı.
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = 6'ta ekstra tur: { $enabled }
+trouble-option-changed-extra-turn-on-six = 6'ta ekstra tur { $enabled ->
+    [on] etkin.
+    [off] kapalı.
+   *[other] güncellendi.
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    Açık: 6 ekstra tur verir (klasik Hasbro kuralı).
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = Ev'den çıkmak için 6 gerekli: { $enabled }
+trouble-option-changed-six-to-leave-home = Ev'den çıkmak için altı { $enabled ->
+    [on] etkin.
+    [off] kapalı.
+   *[other] güncellendi.
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    Açık: Ev'den taş çıkarmak için 6 gerek. Kapalı: her atış çıkarır.
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = Güvenli kareler: { $mode }
+trouble-option-select-safe-spaces = Güvenli kare modunu seç.
+trouble-option-changed-safe-spaces = Güvenli kareler { $mode } 'e ayarlandı.
+trouble-option-desc-safe-spaces = Taşların çarpışmalardan korunup korunmadığını seç.
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = Yok
+trouble-safe-mode-home-stretch = Sadece bitiş düzlüğü
+trouble-safe-mode-every-seventh = Her 7. kare
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = Bitiş: { $mode }
+trouble-option-select-finish-behavior = Bitiş davranışını seç.
+trouble-option-changed-finish-behavior = Bitiş davranışı { $mode } 'e ayarlandı.
+trouble-option-desc-finish-behavior = Bitişi geçen atışın nasıl ele alınacağı.
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = Tam atış gerekli
+trouble-finish-mode-bounce = Aşma geri sekiyor
+trouble-finish-mode-allow = Aşmaya izin
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = Bot zorluğu: { $level }
+trouble-option-select-bot-difficulty = Bot zorluğunu seç.
+trouble-option-changed-bot-difficulty = Bot zorluğu { $level } 'e ayarlandı.
+trouble-option-desc-bot-difficulty = Dahili botların gücü.
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = Naif
+trouble-bot-difficulty-greedy = Açgözlü
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
-trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-preset = Hazır ayar: { $preset }
+trouble-option-select-preset = Varyantı seç. Ev sahibi sonra kuralları ayarlayabilir.
+trouble-option-changed-preset = Hazır ayar uygulandı: { $preset }.
+trouble-option-desc-preset = Yaygın varyantlar için önceden paketlenmiş seçenekler.
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = Klasik Hasbro
+trouble-preset-fast = Hızlı
+trouble-preset-brutal = Acımasız
+trouble-preset-custom = Özel

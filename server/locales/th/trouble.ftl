@@ -1,176 +1,125 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — th
+# AI-translated with limited fluency, native review strongly recommended.
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    Trouble เป็นเกมแข่งจากตระกูล Parcheesi
+    ผู้เล่นแต่ละคนเริ่มด้วยหมากของตนในพื้นที่บ้าน
+    ในตาของคุณ กดลูกเต๋าและขยับหมากของคุณหนึ่งตัว
+    โดยปกติคุณต้องทอยได้ 6 เพื่อปล่อยหมากจากบ้านไปยังทางเดิน
+    โดยปกติทอยได้ 6 ยังให้ตาเพิ่ม
+    หมากเคลื่อนตามเข็มนาฬิกาบนทางเดินร่วมไปยังพื้นที่เส้นชัย
+    ลงบนหมากของฝ่ายตรงข้ามจะส่งกลับบ้านของฝ่ายนั้น เว้นแต่ช่องจะได้รับการป้องกัน
+    เมื่อหมากทั้งหมดถึงเส้นชัย คุณชนะ
+    ในโหมดทีม ทีมของคุณชนะเมื่อเพื่อนร่วมทีมทั้งหมดเสร็จ
+    ปุ่ม 1-6 เลือกหมาก, R ทอย
+    กด E ตลอดเวลาเพื่อฟังสถานะกระดานทั้งหมด
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = กดลูกเต๋า
+trouble-action-move-token = ขยับหมาก { $token }
+trouble-action-check-board = ดูกระดาน
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = หมาก { $token }: ที่บ้าน
+trouble-token-label-track = หมาก { $token }: ช่อง { $position } ของทางเดิน
+trouble-token-label-finish-lane = หมาก { $token }: เลนเข้าเส้น { $position } จาก { $total }
+trouble-token-label-finished = หมาก { $token }: เสร็จแล้ว
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } ทอยได้ { $roll }
+trouble-leave-home = { $player } ปล่อยหมาก { $token } ลงทางเดิน
+trouble-advance-track = { $player } ขยับหมาก { $token } ไปยังช่อง { $position }
+trouble-enter-finish-lane = { $player } นำหมาก { $token } เข้าเลนเข้าเส้น
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } ขยับหมาก { $token } ไปยังช่อง { $position } จาก { $total } ของเลนเข้าเส้น
+trouble-token-finished = หมาก { $token } ของ { $player } ถึงเส้นชัย
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    หมาก { $token } ของ { $player } ส่งหมาก { $opp_token } ของ { $opponent } กลับบ้าน
+trouble-no-legal-move = { $player } ไม่มีการเดินที่ถูกต้อง ตาเปลี่ยน
+trouble-extra-turn = { $player } ได้ตาเพิ่มจากการทอย 6
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } ชนะ! หมากทั้งหมดถึงเส้นชัย
+trouble-team-winner = ทีม { $team } ชนะ! เพื่อนร่วมทีมทั้งหมดเสร็จ
+trouble-final-standing = { $player }: { $finished } จาก { $total } หมากเสร็จ
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    คุณมี { $own_home } ที่บ้าน, { $own_track } บนทางเดิน, { $own_finished } ที่เส้นชัย
+    ฝ่ายตรงข้าม: { $opponents }
+trouble-opponent-summary = { $name }: { $home } บ้าน, { $track } ทาง, { $finished } เส้นชัย
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    หมากของคุณ: { $own_tokens }
+    หมากฝ่ายตรงข้าม: { $opp_tokens }
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = กดลูกเต๋าก่อน
+trouble-reason-already-rolled = กดแล้ว เลือกหมากที่จะขยับ
+trouble-reason-no-legal-moves = ไม่มีการเดินที่ถูกต้องสำหรับการทอยนี้
+trouble-reason-token-home-needs-six = หมากนี้ที่บ้าน ต้องการ 6 เพื่อปล่อย
+trouble-reason-token-home-needs-any = หมากนี้ที่บ้าน การทอยใดๆ ก็ปล่อยได้
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    หมากนี้ที่บ้านและการทอยของคุณไม่ผ่านเงื่อนไขปล่อย
+trouble-reason-token-finished = หมากนี้เสร็จแล้ว
+trouble-reason-overshoot-wastes = หมากนี้ไม่สามารถเดิน { $roll } ช่องโดยไม่เกินเส้นชัย
+trouble-reason-blocked = การเดินนี้ถูกบล็อก
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = ขนาดทางเดิน: { $track_size } ช่อง
+trouble-option-select-track-size = เลือกจำนวนช่องของทางเดิน
+trouble-option-changed-track-size = ทางเดินตั้งเป็น { $track_size } ช่อง
+trouble-option-desc-track-size = จำนวนช่องบนทางเดินร่วม
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = หมากต่อผู้เล่น: { $tokens }
+trouble-option-enter-tokens-per-player = ป้อนหมากต่อผู้เล่น (2-6):
+trouble-option-changed-tokens-per-player = หมากต่อผู้เล่นตั้งเป็น { $tokens }
+trouble-option-desc-tokens-per-player = ผู้เล่นแต่ละคนนำหมากกี่ตัวไปเส้นชัย
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = ตาเพิ่มเมื่อทอย 6: { $enabled }
+trouble-option-changed-extra-turn-on-six = ตาเพิ่มเมื่อทอย 6 { $enabled ->
+    [on] เปิด
+    [off] ปิด
+   *[other] อัปเดต
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    เปิด: 6 ให้ตาเพิ่ม (กฎคลาสสิก Hasbro)
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = ต้องทอย 6 เพื่อออกจากบ้าน: { $enabled }
+trouble-option-changed-six-to-leave-home = หกเพื่อออกจากบ้าน { $enabled ->
+    [on] เปิด
+    [off] ปิด
+   *[other] อัปเดต
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    เปิด: ผู้เล่นต้องทอย 6 เพื่อปล่อยหมากจากบ้าน ปิด: การทอยใดๆ ก็ปล่อยได้
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = ช่องปลอดภัย: { $mode }
+trouble-option-select-safe-spaces = เลือกโหมดช่องปลอดภัย
+trouble-option-changed-safe-spaces = ช่องปลอดภัยตั้งเป็น { $mode }
+trouble-option-desc-safe-spaces = ตัดสินใจว่าหมากปลอดภัยจากการชนหรือไม่
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = ไม่มี
+trouble-safe-mode-home-stretch = เฉพาะทางตรงเข้าเส้น
+trouble-safe-mode-every-seventh = ทุก 7 ช่อง
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = เส้นชัย: { $mode }
+trouble-option-select-finish-behavior = เลือกพฤติกรรมเส้นชัย
+trouble-option-changed-finish-behavior = พฤติกรรมเส้นชัยตั้งเป็น { $mode }
+trouble-option-desc-finish-behavior = วิธีจัดการการทอยที่เกินเส้นชัย
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = ต้องการการทอยที่แน่นอน
+trouble-finish-mode-bounce = ส่วนเกินกระดอนกลับ
+trouble-finish-mode-allow = อนุญาตส่วนเกิน
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = ระดับบอท: { $level }
+trouble-option-select-bot-difficulty = เลือกระดับบอท
+trouble-option-changed-bot-difficulty = ระดับบอทตั้งเป็น { $level }
+trouble-option-desc-bot-difficulty = ความแข็งแกร่งของบอทในตัว
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = ไร้เดียงสา
+trouble-bot-difficulty-greedy = โลภ
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
-trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-preset = พรีเซ็ต: { $preset }
+trouble-option-select-preset = เลือกตัวแปร เจ้าของห้องสามารถปรับกฎเดี่ยวภายหลัง
+trouble-option-changed-preset = ใช้พรีเซ็ต: { $preset }
+trouble-option-desc-preset = ชุดตัวเลือกบรรจุไว้ล่วงหน้าสำหรับตัวแปรทั่วไป
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = คลาสสิก Hasbro
+trouble-preset-fast = เร็ว
+trouble-preset-brutal = โหดร้าย
+trouble-preset-custom = กำหนดเอง

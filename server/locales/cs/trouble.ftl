@@ -1,176 +1,125 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — cs
+# AI-translated, native review pending — corrections welcome.
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    Trouble je závodní hra z rodiny Parcheesi.
+    Každý hráč začíná s kameny ve své Domácí oblasti.
+    Při svém tahu zmáčkneš kostku a posuneš jeden ze svých kamenů.
+    Ve výchozím nastavení musíš hodit 6, aby ses dostal z Domu na dráhu.
+    Ve výchozím nastavení dává 6 také tah navíc.
+    Kameny se pohybují po směru hodinových ručiček po sdílené dráze k cílové zóně.
+    Přistání na soupeřově kameni ho pošle zpět do jeho Domu, pokud není pole chráněno.
+    Když všechny tvé kameny dorazí do cíle, vyhráváš.
+    V týmovém režimu vyhrává tým, jakmile všichni spoluhráči dokončí.
+    Tlačítka 1-6 vybírají kámen, R hází.
+    E kdykoliv přečte plný stav desky.
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = Zmáčknout kostku
+trouble-action-move-token = Posunout kámen { $token }
+trouble-action-check-board = Zkontrolovat desku
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = Kámen { $token }: v Domě
+trouble-token-label-track = Kámen { $token }: pole { $position } na dráze
+trouble-token-label-finish-lane = Kámen { $token }: cílový pruh { $position } z { $total }
+trouble-token-label-finished = Kámen { $token }: v cíli
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } hodil { $roll }.
+trouble-leave-home = { $player } pouští kámen { $token } na dráhu.
+trouble-advance-track = { $player } posouvá kámen { $token } na pole { $position }.
+trouble-enter-finish-lane = { $player } vede kámen { $token } do cílového pruhu.
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } posouvá kámen { $token } na pole { $position } z { $total } v cílovém pruhu.
+trouble-token-finished = Kámen { $token } hráče { $player } dosáhl cíle.
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    Kámen { $token } hráče { $player } posílá kámen { $opp_token } hráče { $opponent } zpět domů.
+trouble-no-legal-move = { $player } nemá legální tah. Tah pokračuje dál.
+trouble-extra-turn = { $player } dostává tah navíc za 6.
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } vyhrává! Všechny kameny v cíli.
+trouble-team-winner = Tým { $team } vyhrává! Všichni spoluhráči dokončili.
+trouble-final-standing = { $player }: { $finished } z { $total } kamenů dokončilo.
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    Máš { $own_home } doma, { $own_track } na dráze, { $own_finished } v cíli.
+    Soupeři: { $opponents }.
+trouble-opponent-summary = { $name }: { $home } domů, { $track } dráha, { $finished } cíl
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    Tvoje kameny: { $own_tokens }.
+    Soupeřovy kameny: { $opp_tokens }.
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = Nejdřív zmáčkni kostku.
+trouble-reason-already-rolled = Už jsi zmáčkl. Vyber kámen k pohybu.
+trouble-reason-no-legal-moves = Pro tento hod nejsou legální tahy.
+trouble-reason-token-home-needs-six = Tento kámen je doma. K uvolnění potřebuješ 6.
+trouble-reason-token-home-needs-any = Tento kámen je doma. Jakýkoli hod ho uvolní.
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    Tento kámen je doma a tvůj hod nestačí k uvolnění.
+trouble-reason-token-finished = Tento kámen už je v cíli.
+trouble-reason-overshoot-wastes = Tento kámen nemůže projít { $roll } polí, aniž by přesáhl cíl.
+trouble-reason-blocked = Tento tah je zablokovaný.
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = Délka dráhy: { $track_size } polí
+trouble-option-select-track-size = Vyber počet polí na dráze.
+trouble-option-changed-track-size = Dráha nastavena na { $track_size } polí.
+trouble-option-desc-track-size = Počet polí na sdílené dráze.
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = Kameny na hráče: { $tokens }
+trouble-option-enter-tokens-per-player = Zadej počet kamenů na hráče (2-6):
+trouble-option-changed-tokens-per-player = Kameny na hráče nastaveny na { $tokens }.
+trouble-option-desc-tokens-per-player = Kolik kamenů každý hráč vede do cíle.
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = Tah navíc při 6: { $enabled }
+trouble-option-changed-extra-turn-on-six = Tah navíc při 6 { $enabled ->
+    [on] zapnut.
+    [off] vypnut.
+   *[other] aktualizován.
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    Zapnuto: 6 dává tah navíc (klasické Hasbro pravidlo).
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = Vyžadovat 6 k opuštění Domu: { $enabled }
+trouble-option-changed-six-to-leave-home = Šestka k opuštění Domu { $enabled ->
+    [on] zapnuto.
+    [off] vypnuto.
+   *[other] aktualizováno.
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    Zapnuto: hráč potřebuje 6 k uvolnění kamene z Domu. Vypnuto: jakýkoli hod uvolňuje.
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = Bezpečná pole: { $mode }
+trouble-option-select-safe-spaces = Vyber režim bezpečných polí.
+trouble-option-changed-safe-spaces = Bezpečná pole nastavena na { $mode }.
+trouble-option-desc-safe-spaces = Rozhodni, zda kameny mohou být chráněny před nárazy.
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = Žádné
+trouble-safe-mode-home-stretch = Pouze cílová rovinka
+trouble-safe-mode-every-seventh = Každé 7. pole
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = Cíl: { $mode }
+trouble-option-select-finish-behavior = Vyber chování v cíli.
+trouble-option-changed-finish-behavior = Chování cíle nastaveno na { $mode }.
+trouble-option-desc-finish-behavior = Jak řešit hod, který přesáhne cíl.
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = Vyžadován přesný hod
+trouble-finish-mode-bounce = Přesah se odráží
+trouble-finish-mode-allow = Přesah povolen
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = Obtížnost bota: { $level }
+trouble-option-select-bot-difficulty = Vyber obtížnost bota.
+trouble-option-changed-bot-difficulty = Obtížnost bota nastavena na { $level }.
+trouble-option-desc-bot-difficulty = Síla vestavěných botů.
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = Naivní
+trouble-bot-difficulty-greedy = Lakomý
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
-trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-preset = Předvolba: { $preset }
+trouble-option-select-preset = Vyber variantu. Hostitel může později upravit jednotlivá pravidla.
+trouble-option-changed-preset = Předvolba aplikována: { $preset }.
+trouble-option-desc-preset = Předpřipravené sady možností pro běžné varianty.
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = Klasický Hasbro
+trouble-preset-fast = Rychlý
+trouble-preset-brutal = Brutální
+trouble-preset-custom = Vlastní

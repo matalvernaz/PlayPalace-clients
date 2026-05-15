@@ -1,176 +1,125 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — sr
+# AI-translated, native review pending — corrections welcome.
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    Trouble је тркачка игра из Парчизи фамилије.
+    Сваки играч почиње са жетонима у својој Кући.
+    У потезу притисни коцкицу и помери један жетон.
+    Подразумевано мораш да бациш 6 да пустиш жетон из Куће на стазу.
+    Подразумевано 6 даје и додатни потез.
+    Жетони се крећу у смеру казаљке на сату по заједничкој стази до циља.
+    Слетање на противнички жетон шаље га назад у његову Кућу, осим ако је поље заштићено.
+    Када сви твоји жетони стигну до циља, побеђујеш.
+    У тимском режиму твој тим побеђује кад сви саиграчи заврше.
+    Тастери 1-6 бирају жетон, R баца.
+    Притисни E за пуни статус табле у било ком тренутку.
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = Притисни коцкицу
+trouble-action-move-token = Помери жетон { $token }
+trouble-action-check-board = Провери таблу
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = Жетон { $token }: у Кући
+trouble-token-label-track = Жетон { $token }: поље { $position } стазе
+trouble-token-label-finish-lane = Жетон { $token }: циљна стаза { $position } од { $total }
+trouble-token-label-finished = Жетон { $token }: завршен
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } је бацио { $roll }.
+trouble-leave-home = { $player } пушта жетон { $token } на стазу.
+trouble-advance-track = { $player } помера жетон { $token } на поље { $position }.
+trouble-enter-finish-lane = { $player } уводи жетон { $token } у циљну стазу.
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } помера жетон { $token } на поље { $position } од { $total } у циљној стази.
+trouble-token-finished = Жетон { $token } играча { $player } стигао у циљ.
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    Жетон { $token } играча { $player } шаље жетон { $opp_token } играча { $opponent } назад у Кућу.
+trouble-no-legal-move = { $player } нема легалних потеза. Ред прелази даље.
+trouble-extra-turn = { $player } добија додатни потез за 6.
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } побеђује! Сви жетони у циљу.
+trouble-team-winner = Тим { $team } побеђује! Сви саиграчи завршили.
+trouble-final-standing = { $player }: { $finished } од { $total } жетона завршено.
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    Имаш { $own_home } у Кући, { $own_track } на стази, { $own_finished } у циљу.
+    Противници: { $opponents }.
+trouble-opponent-summary = { $name }: { $home } кућа, { $track } стаза, { $finished } циљ
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    Твоји жетони: { $own_tokens }.
+    Противнички жетони: { $opp_tokens }.
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = Прво притисни коцкицу.
+trouble-reason-already-rolled = Већ си притиснуо. Изабери жетон за померање.
+trouble-reason-no-legal-moves = Нема легалних потеза за ово бацање.
+trouble-reason-token-home-needs-six = Овај жетон је у Кући. Треба ти 6 за пуштање.
+trouble-reason-token-home-needs-any = Овај жетон је у Кући. Било које бацање пушта.
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    Овај жетон је у Кући и твоје бацање не испуњава услов.
+trouble-reason-token-finished = Овај жетон је већ завршио.
+trouble-reason-overshoot-wastes = Овај жетон не може да пређе { $roll } поља без прелажења циља.
+trouble-reason-blocked = Овај потез је блокиран.
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = Величина стазе: { $track_size } поља
+trouble-option-select-track-size = Изабери број поља на стази.
+trouble-option-changed-track-size = Стаза постављена на { $track_size } поља.
+trouble-option-desc-track-size = Број поља на заједничкој стази.
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = Жетона по играчу: { $tokens }
+trouble-option-enter-tokens-per-player = Унеси жетона по играчу (2-6):
+trouble-option-changed-tokens-per-player = Жетона по играчу постављено на { $tokens }.
+trouble-option-desc-tokens-per-player = Колико жетона сваки играч води у циљ.
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = Додатни потез на 6: { $enabled }
+trouble-option-changed-extra-turn-on-six = Додатни потез на 6 { $enabled ->
+    [on] укључен.
+    [off] искључен.
+   *[other] ажуриран.
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    Укључено: 6 даје додатни потез (класично Hasbro правило).
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = Захтевај 6 за напуштање Куће: { $enabled }
+trouble-option-changed-six-to-leave-home = Шестица за напуштање Куће { $enabled ->
+    [on] укључено.
+    [off] искључено.
+   *[other] ажурирано.
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    Укључено: играч мора бацити 6 за пуштање жетона. Искључено: било које бацање пушта.
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = Сигурна поља: { $mode }
+trouble-option-select-safe-spaces = Изабери режим сигурних поља.
+trouble-option-changed-safe-spaces = Сигурна поља постављена на { $mode }.
+trouble-option-desc-safe-spaces = Одреди да ли жетони могу бити заштићени од удара.
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = Ниједно
+trouble-safe-mode-home-stretch = Само завршна равнина
+trouble-safe-mode-every-seventh = Свако 7. поље
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = Циљ: { $mode }
+trouble-option-select-finish-behavior = Изабери понашање циља.
+trouble-option-changed-finish-behavior = Понашање циља постављено на { $mode }.
+trouble-option-desc-finish-behavior = Како се обрађује бацање које прелази циљ.
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = Тачно бацање потребно
+trouble-finish-mode-bounce = Прекорачење се одбија
+trouble-finish-mode-allow = Прекорачење дозвољено
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = Тежина бота: { $level }
+trouble-option-select-bot-difficulty = Изабери тежину бота.
+trouble-option-changed-bot-difficulty = Тежина бота постављена на { $level }.
+trouble-option-desc-bot-difficulty = Снага уграђених ботова.
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = Наиван
+trouble-bot-difficulty-greedy = Похлепан
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
-trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-preset = Шаблон: { $preset }
+trouble-option-select-preset = Изабери варијанту. Домаћин може касније променити правила.
+trouble-option-changed-preset = Шаблон примењен: { $preset }.
+trouble-option-desc-preset = Унапред припремљени скупови опција за уобичајене варијанте.
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = Класични Hasbro
+trouble-preset-fast = Брзи
+trouble-preset-brutal = Брутални
+trouble-preset-custom = Прилагођен

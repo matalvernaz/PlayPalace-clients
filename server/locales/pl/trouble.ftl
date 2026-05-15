@@ -1,176 +1,124 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — pl
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    Trouble to wyścigowa gra z rodziny Parcheesi.
+    Każdy gracz zaczyna z pionkami w swoim Domu.
+    W swojej turze uruchom kostkę i przesuń jeden z pionków.
+    Domyślnie musisz wyrzucić 6, aby uwolnić pionek z Domu na tor.
+    Domyślnie 6 daje też dodatkową turę.
+    Pionki poruszają się zgodnie z ruchem wskazówek zegara po wspólnym torze do strefy mety.
+    Wejście na pionek przeciwnika odsyła go do Domu, chyba że pole jest chronione.
+    Gdy wszystkie twoje pionki dotrą do mety, wygrywasz.
+    W trybie drużynowym twoja drużyna wygrywa, gdy wszyscy członkowie zakończą.
+    Klawisze 1-6 wybierają pionek, R rzuca.
+    E w dowolnym momencie odczyta pełny stan planszy.
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = Uruchom kostkę
+trouble-action-move-token = Przesuń pionek { $token }
+trouble-action-check-board = Sprawdź planszę
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = Pionek { $token }: w Domu
+trouble-token-label-track = Pionek { $token }: pole { $position } toru
+trouble-token-label-finish-lane = Pionek { $token }: tor mety { $position } z { $total }
+trouble-token-label-finished = Pionek { $token }: na mecie
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } wyrzucił { $roll }.
+trouble-leave-home = { $player } uwalnia pionek { $token } na tor.
+trouble-advance-track = { $player } przesuwa pionek { $token } na pole { $position }.
+trouble-enter-finish-lane = { $player } wprowadza pionek { $token } na tor mety.
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } przesuwa pionek { $token } na pole { $position } z { $total } toru mety.
+trouble-token-finished = Pionek { $token } gracza { $player } dociera do mety.
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    Pionek { $token } gracza { $player } odsyła pionek { $opp_token } gracza { $opponent } do Domu.
+trouble-no-legal-move = { $player } nie ma legalnych ruchów. Tura przechodzi.
+trouble-extra-turn = { $player } dostaje dodatkową turę za 6.
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } wygrywa! Wszystkie pionki na mecie.
+trouble-team-winner = Drużyna { $team } wygrywa! Wszyscy zakończyli.
+trouble-final-standing = { $player }: { $finished } z { $total } pionków na mecie.
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    Masz { $own_home } w Domu, { $own_track } na torze, { $own_finished } na mecie.
+    Przeciwnicy: { $opponents }.
+trouble-opponent-summary = { $name }: { $home } dom, { $track } tor, { $finished } meta
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    Twoje pionki: { $own_tokens }.
+    Pionki przeciwników: { $opp_tokens }.
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = Najpierw uruchom kostkę.
+trouble-reason-already-rolled = Już rzuciłeś. Wybierz pionek do ruchu.
+trouble-reason-no-legal-moves = Brak legalnych ruchów dla tego rzutu.
+trouble-reason-token-home-needs-six = Ten pionek jest w Domu. Potrzebujesz 6, aby go uwolnić.
+trouble-reason-token-home-needs-any = Ten pionek jest w Domu. Każdy rzut go uwolni.
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    Ten pionek jest w Domu, a twój rzut nie wystarcza, aby go uwolnić.
+trouble-reason-token-finished = Ten pionek jest już na mecie.
+trouble-reason-overshoot-wastes = Ten pionek nie może ruszyć { $roll } pól bez przekroczenia mety.
+trouble-reason-blocked = Ten ruch jest zablokowany.
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = Rozmiar toru: { $track_size } pól
+trouble-option-select-track-size = Wybierz liczbę pól toru.
+trouble-option-changed-track-size = Tor ustawiony na { $track_size } pól.
+trouble-option-desc-track-size = Liczba pól na wspólnym torze.
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = Pionki na gracza: { $tokens }
+trouble-option-enter-tokens-per-player = Wpisz pionki na gracza (2-6):
+trouble-option-changed-tokens-per-player = Pionki na gracza: { $tokens }.
+trouble-option-desc-tokens-per-player = Ile pionków każdy gracz prowadzi do mety.
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = Dodatkowa tura przy 6: { $enabled }
+trouble-option-changed-extra-turn-on-six = Dodatkowa tura przy 6 { $enabled ->
+    [on] włączona.
+    [off] wyłączona.
+   *[other] zaktualizowana.
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    Włączone: 6 daje dodatkową turę (klasyczna zasada Hasbro).
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = Wymaganie 6 do wyjścia z Domu: { $enabled }
+trouble-option-changed-six-to-leave-home = Sześć na wyjście z Domu { $enabled ->
+    [on] włączone.
+    [off] wyłączone.
+   *[other] zaktualizowane.
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    Włączone: gracz musi wyrzucić 6, aby uwolnić pionek z Domu. Wyłączone: każdy rzut uwalnia.
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = Bezpieczne pola: { $mode }
+trouble-option-select-safe-spaces = Wybierz tryb bezpiecznych pól.
+trouble-option-changed-safe-spaces = Bezpieczne pola: { $mode }.
+trouble-option-desc-safe-spaces = Wybierz, czy pionki mogą być chronione przed uderzeniami.
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = Brak
+trouble-safe-mode-home-stretch = Tylko prosta końcowa
+trouble-safe-mode-every-seventh = Co 7. pole
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = Meta: { $mode }
+trouble-option-select-finish-behavior = Wybierz zachowanie mety.
+trouble-option-changed-finish-behavior = Zachowanie mety: { $mode }.
+trouble-option-desc-finish-behavior = Jak traktować rzut przekraczający metę.
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = Wymagany dokładny rzut
+trouble-finish-mode-bounce = Nadmiar odbija się
+trouble-finish-mode-allow = Nadmiar dozwolony
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = Poziom bota: { $level }
+trouble-option-select-bot-difficulty = Wybierz poziom bota.
+trouble-option-changed-bot-difficulty = Poziom bota: { $level }.
+trouble-option-desc-bot-difficulty = Siła wbudowanych botów.
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = Naiwny
+trouble-bot-difficulty-greedy = Zachłanny
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
 trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-select-preset = Wybierz wariant. Gospodarz może potem ustawić poszczególne reguły.
+trouble-option-changed-preset = Preset zastosowany: { $preset }.
+trouble-option-desc-preset = Gotowe zestawy opcji dla popularnych wariantów.
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = Klasyczny Hasbro
+trouble-preset-fast = Szybki
+trouble-preset-brutal = Brutalny
+trouble-preset-custom = Własny

@@ -1,176 +1,125 @@
-# Trouble game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
-
-# ==========================================================================
-# Game info
-# ==========================================================================
+# Trouble — hi
+# AI-translated with limited fluency, native review strongly recommended.
 game-name-trouble = Trouble
 
-# ==========================================================================
-# Rules (displayed in the help menu — each line becomes one navigable item)
-# ==========================================================================
 trouble-rules =
-    Trouble is a Parcheesi-family race game.
-    Each player starts with their tokens in their Home area.
-    On your turn, pop the die and move one of your tokens.
-    By default you must roll a 6 to release a token from Home into the track.
-    By default, rolling a 6 also grants you an extra turn.
-    Tokens move clockwise around the shared track toward the finish area.
-    Landing on an opponent's token sends it back to their Home, unless that space is protected.
-    When all of your tokens have reached the finish, you win.
-    In team mode, your team wins when all teammates have finished.
-    Use keys 1 through 6 to pick a token to move, or press R to roll.
-    Press E to hear the full board state at any time.
+    Trouble पार्चीसी परिवार का दौड़ खेल है।
+    हर खिलाड़ी अपने घर में अपनी गोटियों के साथ शुरू करता है।
+    अपनी बारी में पासे को पॉप करें और एक गोटी चलाएँ।
+    डिफ़ॉल्ट रूप से घर से गोटी ट्रैक पर छोड़ने के लिए 6 चाहिए।
+    डिफ़ॉल्ट रूप से 6 अतिरिक्त बारी भी देता है।
+    गोटियाँ साझा ट्रैक पर घड़ी की दिशा में अंतिम क्षेत्र की ओर बढ़ती हैं।
+    विरोधी की गोटी पर उतरने से वह उसके घर लौट जाती है, जब तक स्थान सुरक्षित न हो।
+    जब आपकी सभी गोटियाँ अंतिम पर पहुँचती हैं, आप जीतते हैं।
+    टीम मोड में आपकी टीम तब जीतती है जब सभी टीममेट समाप्त कर लें।
+    1-6 गोटी चुनते हैं, R रोल करता है।
+    किसी भी समय बोर्ड की पूरी स्थिति सुनने के लिए E दबाएँ।
 
-# ==========================================================================
-# Actions and menu labels
-# ==========================================================================
-trouble-action-roll = Pop the die
-trouble-action-move-token = Move token { $token }
-trouble-action-check-board = Check board
+trouble-action-roll = पासा पॉप करें
+trouble-action-move-token = गोटी { $token } चलाएँ
+trouble-action-check-board = बोर्ड देखें
 
-# Per-token labels, rendered live from state. These show next to each numbered
-# action so a blind player can flick through their tokens and hear where each
-# one is without having to pop the die.
-trouble-token-label-home = Token { $token }: in Home
-trouble-token-label-track = Token { $token }: track space { $position }
-trouble-token-label-finish-lane = Token { $token }: finish lane { $position } of { $total }
-trouble-token-label-finished = Token { $token }: finished
+trouble-token-label-home = गोटी { $token }: घर में
+trouble-token-label-track = गोटी { $token }: ट्रैक का { $position }वाँ स्थान
+trouble-token-label-finish-lane = गोटी { $token }: अंतिम लेन { $position } में से { $total }
+trouble-token-label-finished = गोटी { $token }: समाप्त
 
-# ==========================================================================
-# Turn events (broadcast to the table buffer)
-# ==========================================================================
-trouble-rolled = { $player } popped a { $roll }.
-trouble-leave-home = { $player } releases token { $token } onto the track.
-trouble-advance-track = { $player } moves token { $token } to track space { $position }.
-trouble-enter-finish-lane = { $player } moves token { $token } into the finish lane.
+trouble-rolled = { $player } ने { $roll } निकाला।
+trouble-leave-home = { $player } गोटी { $token } को ट्रैक पर छोड़ते हैं।
+trouble-advance-track = { $player } गोटी { $token } को स्थान { $position } पर ले जाते हैं।
+trouble-enter-finish-lane = { $player } गोटी { $token } को अंतिम लेन में डालते हैं।
 trouble-advance-finish-lane =
-    { $player } advances token { $token } to finish-lane space { $position } of { $total }.
-trouble-token-finished = { $player }'s token { $token } reaches the finish.
+    { $player } गोटी { $token } को अंतिम लेन के { $position } / { $total } स्थान पर बढ़ाते हैं।
+trouble-token-finished = { $player } की गोटी { $token } अंतिम पर पहुँची।
 trouble-bump =
-    { $player }'s token { $token } bumps { $opponent }'s token { $opp_token } back to Home.
-trouble-no-legal-move = { $player } has no legal move. Turn passes.
-trouble-extra-turn = { $player } gets another turn for rolling a 6.
+    { $player } की गोटी { $token } { $opponent } की गोटी { $opp_token } को घर भेजती है।
+trouble-no-legal-move = { $player } के पास कोई मान्य चाल नहीं। बारी आगे बढ़ती है।
+trouble-extra-turn = { $player } 6 के लिए अतिरिक्त बारी पाते हैं।
 
-# ==========================================================================
-# End of game
-# ==========================================================================
-trouble-winner = { $player } wins! All tokens have reached the finish.
-trouble-team-winner = Team { $team } wins! All teammates have finished.
-trouble-final-standing = { $player }: { $finished } of { $total } tokens finished.
+trouble-winner = { $player } जीतते हैं! सभी गोटियाँ अंतिम पर।
+trouble-team-winner = टीम { $team } जीतती है! सभी टीममेट समाप्त।
+trouble-final-standing = { $player }: { $total } में से { $finished } गोटियाँ समाप्त।
 
-# ==========================================================================
-# Turn-start board summary (personal, per-perspective)
-# Short summary so blind players always hear the state as their turn begins.
-# ==========================================================================
 trouble-turn-summary =
-    You have { $own_home } in Home, { $own_track } on the track, { $own_finished } finished.
-    Opponents: { $opponents }.
-trouble-opponent-summary = { $name }: { $home } home, { $track } track, { $finished } finished
+    आपके घर में { $own_home }, ट्रैक पर { $own_track }, अंतिम पर { $own_finished } हैं।
+    विरोधी: { $opponents }।
+trouble-opponent-summary = { $name }: { $home } घर, { $track } ट्रैक, { $finished } अंतिम
 
-# Full board (check-board action output)
 trouble-board-status =
-    Your tokens: { $own_tokens }.
-    Opponent tokens: { $opp_tokens }.
+    आपकी गोटियाँ: { $own_tokens }।
+    विरोधी गोटियाँ: { $opp_tokens }।
 
-# ==========================================================================
-# Disabled-action reasons (spoken when a locked action is chosen)
-# ==========================================================================
-trouble-reason-not-rolled = Pop the die first.
-trouble-reason-already-rolled = You have already popped. Choose a token to move.
-trouble-reason-no-legal-moves = No legal moves for this roll.
-trouble-reason-token-home-needs-six = This token is in Home. You need to roll a 6 to release it.
-trouble-reason-token-home-needs-any = This token is in Home. Roll any value to release it.
+trouble-reason-not-rolled = पहले पासा पॉप करें।
+trouble-reason-already-rolled = आपने पहले से पॉप किया है। चलाने के लिए गोटी चुनें।
+trouble-reason-no-legal-moves = इस रोल के लिए कोई मान्य चाल नहीं।
+trouble-reason-token-home-needs-six = यह गोटी घर में है। छोड़ने के लिए 6 चाहिए।
+trouble-reason-token-home-needs-any = यह गोटी घर में है। कोई भी रोल छोड़ देगा।
 trouble-reason-token-home-no-qualifying-roll =
-    This token is in Home and your roll does not qualify to release it.
-trouble-reason-token-finished = This token has already finished.
-trouble-reason-overshoot-wastes = This token cannot move { $roll } spaces without overshooting the finish.
-trouble-reason-blocked = This move is blocked.
+    यह गोटी घर में है और आपका रोल छोड़ने के योग्य नहीं।
+trouble-reason-token-finished = यह गोटी पहले ही समाप्त हो चुकी।
+trouble-reason-overshoot-wastes = यह गोटी अंतिम को पार किए बिना { $roll } स्थान नहीं चल सकती।
+trouble-reason-blocked = यह चाल अवरुद्ध है।
 
-# ==========================================================================
-# Options — track size
-# ==========================================================================
-trouble-option-track-size = Track size: { $track_size } spaces
-trouble-option-select-track-size = Select the number of track spaces.
-trouble-option-changed-track-size = Track size set to { $track_size } spaces.
-trouble-option-desc-track-size = Number of spaces around the shared track.
+trouble-option-track-size = ट्रैक का आकार: { $track_size } स्थान
+trouble-option-select-track-size = ट्रैक के स्थानों की संख्या चुनें।
+trouble-option-changed-track-size = ट्रैक { $track_size } स्थानों पर सेट।
+trouble-option-desc-track-size = साझा ट्रैक पर स्थानों की संख्या।
 
-# ==========================================================================
-# Options — tokens per player
-# ==========================================================================
-trouble-option-tokens-per-player = Tokens per player: { $tokens }
-trouble-option-enter-tokens-per-player = Enter tokens per player (2 to 6):
-trouble-option-changed-tokens-per-player = Tokens per player set to { $tokens }.
-trouble-option-desc-tokens-per-player = Number of tokens each player races to the finish.
+trouble-option-tokens-per-player = प्रति खिलाड़ी गोटियाँ: { $tokens }
+trouble-option-enter-tokens-per-player = प्रति खिलाड़ी गोटियाँ दर्ज करें (2-6):
+trouble-option-changed-tokens-per-player = प्रति खिलाड़ी गोटियाँ: { $tokens }।
+trouble-option-desc-tokens-per-player = हर खिलाड़ी कितनी गोटियाँ अंतिम पर ले जाता है।
 
-# ==========================================================================
-# Options — extra turn on 6
-# ==========================================================================
-trouble-option-extra-turn-on-six = Extra turn on rolling a 6: { $enabled }
-trouble-option-changed-extra-turn-on-six = Extra turn on 6 { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-extra-turn-on-six = 6 पर अतिरिक्त बारी: { $enabled }
+trouble-option-changed-extra-turn-on-six = 6 पर अतिरिक्त बारी { $enabled ->
+    [on] सक्षम।
+    [off] अक्षम।
+   *[other] अपडेट।
 }
 trouble-option-desc-extra-turn-on-six =
-    When on, rolling a 6 grants an extra turn (classic Hasbro rule).
+    चालू: 6 अतिरिक्त बारी देता है (क्लासिक Hasbro नियम)।
 
-# ==========================================================================
-# Options — six to leave home
-# ==========================================================================
-trouble-option-six-to-leave-home = Require 6 to leave Home: { $enabled }
-trouble-option-changed-six-to-leave-home = Six-to-leave-home { $enabled ->
-    [on] enabled.
-    [off] disabled.
-   *[other] updated.
+trouble-option-six-to-leave-home = घर छोड़ने के लिए 6 चाहिए: { $enabled }
+trouble-option-changed-six-to-leave-home = घर छोड़ने के लिए छह { $enabled ->
+    [on] सक्षम।
+    [off] अक्षम।
+   *[other] अपडेट।
 }
 trouble-option-desc-six-to-leave-home =
-    When on, a player must roll 6 to release a token from Home. When off, any roll releases.
+    चालू: गोटी छोड़ने के लिए 6 चाहिए। बंद: कोई भी रोल छोड़ देगा।
 
-# ==========================================================================
-# Options — safe spaces
-# ==========================================================================
-trouble-option-safe-spaces = Safe spaces: { $mode }
-trouble-option-select-safe-spaces = Select safe-space mode.
-trouble-option-changed-safe-spaces = Safe spaces set to { $mode }.
-trouble-option-desc-safe-spaces = Choose whether tokens can be protected from bumps.
+trouble-option-safe-spaces = सुरक्षित स्थान: { $mode }
+trouble-option-select-safe-spaces = सुरक्षित स्थान मोड चुनें।
+trouble-option-changed-safe-spaces = सुरक्षित स्थान { $mode } पर सेट।
+trouble-option-desc-safe-spaces = तय करें कि गोटियाँ टकराव से सुरक्षित हो सकती हैं या नहीं।
 
-trouble-safe-mode-none = None
-trouble-safe-mode-home-stretch = Home stretch only
-trouble-safe-mode-every-seventh = Every 7th space
+trouble-safe-mode-none = कोई नहीं
+trouble-safe-mode-home-stretch = केवल अंतिम स्ट्रेच
+trouble-safe-mode-every-seventh = हर 7 वाँ स्थान
 
-# ==========================================================================
-# Options — finish behavior
-# ==========================================================================
-trouble-option-finish-behavior = Finish: { $mode }
-trouble-option-select-finish-behavior = Select finish behavior.
-trouble-option-changed-finish-behavior = Finish behavior set to { $mode }.
-trouble-option-desc-finish-behavior = How a roll that overshoots the finish is handled.
+trouble-option-finish-behavior = अंतिम: { $mode }
+trouble-option-select-finish-behavior = अंतिम व्यवहार चुनें।
+trouble-option-changed-finish-behavior = अंतिम व्यवहार { $mode } पर सेट।
+trouble-option-desc-finish-behavior = अंतिम पार करने वाले रोल को कैसे संभाला जाए।
 
-trouble-finish-mode-exact = Exact roll required
-trouble-finish-mode-bounce = Overshoot bounces back
-trouble-finish-mode-allow = Overshoot allowed
+trouble-finish-mode-exact = सटीक रोल चाहिए
+trouble-finish-mode-bounce = ज़्यादा होने पर वापस उछलता
+trouble-finish-mode-allow = अधिकता अनुमत
 
-# ==========================================================================
-# Options — bot difficulty
-# ==========================================================================
-trouble-option-bot-difficulty = Bot difficulty: { $level }
-trouble-option-select-bot-difficulty = Select bot difficulty.
-trouble-option-changed-bot-difficulty = Bot difficulty set to { $level }.
-trouble-option-desc-bot-difficulty = Strength of the built-in bots.
+trouble-option-bot-difficulty = बॉट कठिनाई: { $level }
+trouble-option-select-bot-difficulty = बॉट कठिनाई चुनें।
+trouble-option-changed-bot-difficulty = बॉट कठिनाई { $level } पर सेट।
+trouble-option-desc-bot-difficulty = अंतर्निहित बॉट की ताकत।
 
-trouble-bot-difficulty-naive = Naive
-trouble-bot-difficulty-greedy = Greedy
+trouble-bot-difficulty-naive = सरल
+trouble-bot-difficulty-greedy = लालची
 
-# ==========================================================================
-# Options — preset
-# ==========================================================================
-trouble-option-preset = Preset: { $preset }
-trouble-option-select-preset = Choose a variant preset. The host can override individual rules afterward.
-trouble-option-changed-preset = Preset applied: { $preset }.
-trouble-option-desc-preset = Pre-bundled option sets for common variants.
+trouble-option-preset = प्रीसेट: { $preset }
+trouble-option-select-preset = वेरिएंट चुनें। होस्ट बाद में अलग-अलग नियम बदल सकता है।
+trouble-option-changed-preset = प्रीसेट लागू: { $preset }।
+trouble-option-desc-preset = सामान्य वेरिएंट के लिए पूर्व-पैक किए विकल्प।
 
-trouble-preset-classic = Classic Hasbro
-trouble-preset-fast = Fast
-trouble-preset-brutal = Brutal
-trouble-preset-custom = Custom
+trouble-preset-classic = क्लासिक Hasbro
+trouble-preset-fast = तेज़
+trouble-preset-brutal = क्रूर
+trouble-preset-custom = कस्टम
