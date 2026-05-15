@@ -1762,6 +1762,15 @@
       "RequestInputPacket": {
         "additionalProperties": false,
         "properties": {
+          "content_format": {
+            "default": "text",
+            "enum": [
+              "text",
+              "markdown"
+            ],
+            "title": "Content Format",
+            "type": "string"
+          },
           "default_value": {
             "default": "",
             "title": "Default Value",

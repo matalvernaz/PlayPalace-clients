@@ -33,6 +33,7 @@ class Localization:
     _CACHE_DISABLE_ENV = "PLAYPALACE_DISABLE_LOCALE_CACHE"
     _CACHE_DIR_ENV = "PLAYPALACE_LOCALE_CACHE_DIR"
     _enabled_locales: set[str] | None = None  # None = all locales
+    _missing_key_fallback_warnings: set[tuple[str, str]] = set()
 
     @classmethod
     def set_warmup_active(cls, active: bool) -> None:
@@ -53,6 +54,7 @@ class Localization:
         """
         cls._locales_dir = Path(locales_dir)
         cls._bundles = {}
+        cls._missing_key_fallback_warnings = set()
         disable_cache = os.environ.get(cls._CACHE_DISABLE_ENV, "").strip().lower()
         cls._cache_enabled = disable_cache not in {"1", "true", "yes", "on"}
         cls._cache_dir = None
@@ -254,6 +256,20 @@ class Localization:
     _BIDI_CHARS = "\u2068\u2069"  # FIRST STRONG ISOLATE, POP DIRECTIONAL ISOLATE
 
     @classmethod
+    def _format_message(cls, locale: str, message_id: str, kwargs: dict[str, object]) -> str:
+        """Format a message from a specific locale bundle."""
+        bundle = cls._get_bundle(locale)
+        result, errors = bundle.format(message_id, kwargs)
+        if errors:
+            LOG.warning(
+                "Fluent formatting errors for '%s' [%s]: %s",
+                message_id, locale, errors,
+            )
+        for char in cls._BIDI_CHARS:
+            result = result.replace(char, "")
+        return result
+
+    @classmethod
     def get(cls, locale: str, message_id: str, **kwargs) -> str:
         """
         Get a localized message.
@@ -264,40 +280,25 @@ class Localization:
             **kwargs: Variables to substitute into the message.
 
         Returns:
-            The formatted message string. When the key is missing from the
-            requested locale (Fluent's formatter returns the bracketed key
-            or the key itself) we fall back to English so newly-added
-            shared keys don't show up as ``[pig-you-rolled]`` for users
-            on locales that haven't been re-translated yet.
+            The formatted message string.
         """
         try:
-            bundle = cls._get_bundle(locale)
-            result, errors = bundle.format(message_id, kwargs)
-            if errors:
-                LOG.warning(
-                    "Fluent formatting errors for '%s' [%s]: %s",
-                    message_id, locale, errors,
-                )
-            # Strip Unicode bidi isolation characters that Fluent adds
-            for char in cls._BIDI_CHARS:
-                result = result.replace(char, "")
-            if (
-                locale != "en"
-                and result in (message_id, f"[{message_id}]")
-            ):
-                # Missing in this locale — try English before giving up so
-                # callers get a readable string instead of a bracketed key.
+            return cls._format_message(locale, message_id, kwargs)
+        except Exception:
+            if locale != "en":
                 try:
-                    en_bundle = cls._get_bundle("en")
-                    en_result, _ = en_bundle.format(message_id, kwargs)
-                    for char in cls._BIDI_CHARS:
-                        en_result = en_result.replace(char, "")
-                    if en_result not in (message_id, f"[{message_id}]"):
-                        return en_result
+                    fallback = cls._format_message("en", message_id, kwargs)
                 except Exception:
                     pass
-            return result
-        except Exception:
+                else:
+                    warning_key = (locale, message_id)
+                    if warning_key not in cls._missing_key_fallback_warnings:
+                        cls._missing_key_fallback_warnings.add(warning_key)
+                        LOG.warning(
+                            "Missing localized message '%s' for locale '%s'; falling back to English.",
+                            message_id, locale,
+                        )
+                    return fallback
             LOG.exception(
                 "Failed to format message '%s' for locale '%s'",
                 message_id, locale,

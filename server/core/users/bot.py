@@ -117,6 +117,7 @@ class Bot(User):
         *,
         multiline: bool = False,
         read_only: bool = False,
+        content_format: str = "text",
     ) -> None:
         """No-op: bots do not show edit boxes."""
         pass
