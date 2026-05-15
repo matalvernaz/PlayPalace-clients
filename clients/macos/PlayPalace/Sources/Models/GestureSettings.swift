@@ -13,6 +13,7 @@ enum GestureType: String, CaseIterable, Codable, Identifiable {
     case oneFingerLongPress = "one_finger_long_press"
     // Two finger
     case twoFingerScrub = "two_finger_scrub"
+    case twoFingerSingleTap = "two_finger_single_tap"
     case twoFingerDoubleTap = "two_finger_double_tap"
     case twoFingerSwipeUp = "two_finger_swipe_up"
     case twoFingerSwipeDown = "two_finger_swipe_down"
@@ -22,6 +23,7 @@ enum GestureType: String, CaseIterable, Codable, Identifiable {
     case threeFingerSwipeUp = "three_finger_swipe_up"
     case threeFingerSwipeDown = "three_finger_swipe_down"
     case threeFingerTap = "three_finger_tap"
+    case threeFingerDoubleTap = "three_finger_double_tap"
 
     var id: String { rawValue }
 
@@ -35,6 +37,7 @@ enum GestureType: String, CaseIterable, Codable, Identifiable {
         case .oneFingerSingleTap: return "One-finger single tap"
         case .oneFingerLongPress: return "One-finger long press"
         case .twoFingerScrub: return "Two-finger scrub"
+        case .twoFingerSingleTap: return "Two-finger single tap"
         case .twoFingerDoubleTap: return "Two-finger double-tap"
         case .twoFingerSwipeUp: return "Two-finger swipe up"
         case .twoFingerSwipeDown: return "Two-finger swipe down"
@@ -43,6 +46,7 @@ enum GestureType: String, CaseIterable, Codable, Identifiable {
         case .threeFingerSwipeUp: return "Three-finger swipe up"
         case .threeFingerSwipeDown: return "Three-finger swipe down"
         case .threeFingerTap: return "Three-finger tap"
+        case .threeFingerDoubleTap: return "Three-finger double-tap"
         }
     }
 
@@ -52,10 +56,11 @@ enum GestureType: String, CaseIterable, Codable, Identifiable {
              .oneFingerSwipeDown, .oneFingerDoubleTap, .oneFingerSingleTap,
              .oneFingerLongPress:
             return 1
-        case .twoFingerScrub, .twoFingerDoubleTap, .twoFingerSwipeUp, .twoFingerSwipeDown:
+        case .twoFingerScrub, .twoFingerSingleTap, .twoFingerDoubleTap,
+             .twoFingerSwipeUp, .twoFingerSwipeDown:
             return 2
         case .threeFingerSwipeLeft, .threeFingerSwipeRight, .threeFingerSwipeUp,
-             .threeFingerSwipeDown, .threeFingerTap:
+             .threeFingerSwipeDown, .threeFingerTap, .threeFingerDoubleTap:
             return 3
         }
     }
@@ -79,6 +84,8 @@ enum GestureAction: String, CaseIterable, Codable, Identifiable {
     case newerMessage = "newer_message"
     case gridUp = "grid_up"
     case gridDown = "grid_down"
+    case stopSpeech = "stop_speech"
+    case repeatLastAnnouncement = "repeat_last_announcement"
     case none = "none"
 
     var id: String { rawValue }
@@ -101,6 +108,8 @@ enum GestureAction: String, CaseIterable, Codable, Identifiable {
         case .newerMessage: return "Newer message"
         case .gridUp: return "Grid move up"
         case .gridDown: return "Grid move down"
+        case .stopSpeech: return "Stop speech"
+        case .repeatLastAnnouncement: return "Repeat last announcement"
         case .none: return "Unassigned"
         }
     }
@@ -121,15 +130,17 @@ final class GestureSettings: ObservableObject, Codable {
         .oneFingerLongPress: .status,
         // Two finger — game actions
         .twoFingerScrub: .goBack,
+        .twoFingerSingleTap: .stopSpeech,
         .twoFingerDoubleTap: .primaryAction,
         .twoFingerSwipeUp: .checkScore,
         .twoFingerSwipeDown: .addBot,
-        // Three finger — buffer system
+        // Three finger — buffer system + recovery
         .threeFingerSwipeLeft: .previousBuffer,
         .threeFingerSwipeRight: .nextBuffer,
         .threeFingerSwipeUp: .olderMessage,
         .threeFingerSwipeDown: .newerMessage,
         .threeFingerTap: .help,
+        .threeFingerDoubleTap: .repeatLastAnnouncement,
     ]
 
     init() {

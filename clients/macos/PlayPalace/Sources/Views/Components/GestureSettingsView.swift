@@ -144,7 +144,8 @@ struct GestureSettingsView: View {
             case .nextItem, .previousItem, .activateItem, .repeatItem,
                  .gridUp, .gridDown:
                 menuCount += 1
-            case .primaryAction, .checkScore, .addBot, .goBack, .status:
+            case .primaryAction, .checkScore, .addBot, .goBack, .status,
+                 .stopSpeech, .repeatLastAnnouncement:
                 gameCount += 1
             case .previousBuffer, .nextBuffer, .olderMessage, .newerMessage, .help:
                 bufferCount += 1

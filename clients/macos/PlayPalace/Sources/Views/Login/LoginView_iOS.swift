@@ -506,8 +506,8 @@ struct GettingStartedSheet: View {
             Topic(title: "In-game gestures", lines: [
                 "PlayPalace games do not use on-screen buttons. The whole screen is the game area, and you interact with gestures.",
                 "One finger handles menu navigation: swipe left and right to browse, double-tap to select, single tap to repeat the current item, long press for a status read-out.",
-                "Two fingers handle game actions: scrub back and forth to go back, double-tap to perform the primary action (such as roll or draw), swipe up to check the score, swipe down to add a bot.",
-                "Three fingers handle the message history: swipe left and right between buffers, up and down between messages, tap to open the help screen.",
+                "Two fingers handle game actions: scrub back and forth to go back, double-tap to perform the primary action (such as roll or draw), swipe up to check the score, swipe down to add a bot. A single two-finger tap stops the app talking when you've heard enough of an announcement.",
+                "Three fingers handle the message history: swipe left and right between buffers, up and down between messages, tap to open the help screen, double-tap to repeat the last announcement from the server.",
                 "You can change any of these in Audio and Gesture Settings.",
             ]),
             Topic(title: "Always-available controls", lines: [

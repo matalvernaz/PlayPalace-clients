@@ -47,6 +47,18 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private var reconnectTask: Task<Void, Never>?
     private var lastStaleTapAnnounceAt: Date = .distantPast
 
+    /// Most recent narration from the server's `speak` packets. Used by the
+    /// "repeat last announcement" gesture and the enriched status read.
+    private(set) var lastServerAnnouncement: String?
+
+    /// While set, the next `handleMenu` will look for a `leave_game` item in
+    /// the incoming menu and activate it automatically — this is how the iOS
+    /// "Leave Table" button collapses the desktop's two-step (open Actions
+    /// menu, pick Leave) into one tap. Stored as a deadline so we never
+    /// auto-activate a menu that arrives long after the user gave up.
+    private var pendingLeaveTableUntil: Date?
+    private static let pendingLeaveTableWindow: TimeInterval = 2.0
+
     /// Throttle window for "Reconnecting…" announcements when the user taps a
     /// stale menu mid-disconnect — without it, rapid swiping during a wifi
     /// blip would spam the speech queue.
@@ -281,6 +293,11 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         let buffer = packet["buffer"] as? String ?? "misc"
         let muted = packet["muted"] as? Bool ?? false
         guard !text.isEmpty else { return }
+        // Remember the last server narration so the "repeat last announcement"
+        // gesture has something to say. We capture every spoken line — even
+        // muted ones — so muting a buffer doesn't strand the user without a
+        // way to review what just happened.
+        lastServerAnnouncement = text
         // Route server narration through the announcement channel — it's
         // authoritative game state and must never be eaten by the UI dedup
         // window or pre-empted by client-local chatter.
@@ -310,6 +327,27 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             menuSelection = pos
         } else if !isSameMenu {
             menuSelection = data.items.isEmpty ? nil : 0
+        }
+
+        // Honor a pending Leave Table request: when the user tapped the
+        // Leave Table button we sent `escape` which makes the server pop
+        // its Actions menu; that menu's leave option carries id="leave_game"
+        // server-side (game_utils/action_set_creation_mixin.py). Activate it
+        // here so the user gets one-tap leave instead of having to swipe
+        // through the Actions menu themselves.
+        if let deadline = pendingLeaveTableUntil, Date() < deadline {
+            pendingLeaveTableUntil = nil
+            if let idx = data.items.firstIndex(where: { ($0.id ?? "").lowercased() == "leave_game" }) {
+                activateMenuItem(idx)
+                return
+            }
+            // The Actions menu didn't surface Leave (e.g. user wasn't at a
+            // table). Fall through to normal menu handling so the user can
+            // see whatever the server did pop, and tell them what happened.
+            speechManager.speakAnnouncement("Couldn't find Leave Table here.")
+        } else if pendingLeaveTableUntil != nil {
+            // Stale — give up rather than auto-pick a now-unrelated menu.
+            pendingLeaveTableUntil = nil
         }
 
         // Play selection sound if requested
@@ -721,6 +759,66 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         _ = handleEscapeKey()
     }
 
+    // MARK: - Self-voicing control gestures
+
+    /// Cut current TTS / VoiceOver announcement. Used by the stop-speech
+    /// gesture so the user can interrupt a long server narration they
+    /// don't need (round summaries, multi-line score reports, etc.).
+    func stopSpeechNow() {
+        speechManager.stop()
+    }
+
+    /// Re-speak the last server announcement. If we haven't received one
+    /// yet, tell the user that rather than silently doing nothing.
+    func repeatLastServerAnnouncement() {
+        if let text = lastServerAnnouncement {
+            speechManager.speakAnnouncement(text)
+        } else {
+            speechManager.speakAnnouncement("No recent announcement.")
+        }
+    }
+
+    /// Status-read text. Combines current menu context (what surface you're
+    /// on, what's selected) with the most recent server narration, so the
+    /// user can re-orient with a single gesture instead of digging through
+    /// buffer history. Returns a sentence ready to hand to SpeechManager.
+    func enrichedStatusText() -> String {
+        var parts: [String] = []
+        if !isConnected {
+            parts.append(expectingReconnect ? "Disconnected. Reconnecting." : "Disconnected.")
+        } else {
+            parts.append("Connected.")
+        }
+
+        if menuItems.isEmpty {
+            parts.append("No menu items.")
+        } else if let sel = menuSelection, sel >= 0, sel < menuItems.count {
+            let item = menuItems[sel].text
+            parts.append("Menu item \(sel + 1) of \(menuItems.count): \(item).")
+        } else {
+            parts.append("\(menuItems.count) menu items.")
+        }
+
+        if let last = lastServerAnnouncement, !last.isEmpty {
+            parts.append("Last: \(last)")
+        }
+
+        return parts.joined(separator: " ")
+    }
+
+    /// Ask the server to leave the current table. Sends escape (which the
+    /// server interprets as "open the Actions menu") and arms a deadline so
+    /// the next incoming menu's Leave option gets auto-activated. See the
+    /// matching block in `handleMenu` for the receiving side.
+    func requestLeaveTable() {
+        guard isConnected else {
+            announceStaleTap()
+            return
+        }
+        pendingLeaveTableUntil = Date().addingTimeInterval(Self.pendingLeaveTableWindow)
+        _ = handleEscapeKey()
+    }
+
     // MARK: - Edit Mode
 
     func switchToEditMode(prompt: String, defaultValue: String, multiline: Bool, readOnly: Bool, callback: @escaping (String) -> Void) {
@@ -737,11 +835,15 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         let text = editText
         editCallback?(text)
         exitEditMode()
+        // VoiceOver gets a focus shift back to the game area; self-voicing
+        // users would otherwise have no cue that the input went through.
+        speechManager.speakTransition("Input submitted.")
     }
 
     func cancelEdit() {
         editCallback?("")
         exitEditMode()
+        speechManager.speakTransition("Input cancelled.")
     }
 
     private func exitEditMode() {

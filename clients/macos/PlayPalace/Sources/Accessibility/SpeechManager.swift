@@ -142,6 +142,15 @@ final class SpeechManager: NSObject, ObservableObject {
         enqueue(text, channel: .ui, interrupting: !queue)
     }
 
+    /// Speak only when self-voicing — VoiceOver users skip this. Use for
+    /// transition cues ("Chat opened.", "Help opened.") that VoiceOver
+    /// already covers by auto-focusing the new screen's title. Without the
+    /// guard we'd double-announce on every sheet open.
+    func speakTransition(_ text: String) {
+        guard !isVoiceOverRunning else { return }
+        speakUI(text, queue: true)
+    }
+
     /// Stop all current and pending speech immediately.
     func stop() {
         utteranceToken &+= 1

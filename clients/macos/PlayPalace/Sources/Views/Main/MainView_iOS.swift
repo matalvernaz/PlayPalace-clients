@@ -136,18 +136,20 @@ private struct DirectTouchGameView: UIViewRepresentable {
 ///   Hold and drag       — explore by touch in grid mode
 ///   Double-tap         — activate selected item
 ///   Single tap         — repeat current item
-///   Long press         — detailed status
+///   Long press         — enriched status (where you are + last event)
 ///
-/// TWO FINGERS — game actions:
+/// TWO FINGERS — game actions + speech control:
 ///   Scrub (zig-zag)    — go back / escape
+///   Single tap         — stop speech (interrupt in-flight narration)
 ///   Double-tap         — primary action (roll, draw, etc.)
 ///   Swipe up           — check score
 ///   Swipe down         — add bot (lobby only)
 ///
-/// THREE FINGERS — buffer system:
+/// THREE FINGERS — buffer system + recovery:
 ///   Swipe left/right   — previous/next buffer
 ///   Swipe up/down      — older/newer message
 ///   Tap                — open help menu
+///   Double-tap         — repeat last server announcement
 final class GameTouchView: UIView {
     var viewModel: MainViewModel?
     var gestureSettings: GestureSettings?
@@ -247,6 +249,15 @@ final class GameTouchView: UIView {
         twoDoubleTap.numberOfTapsRequired = 2
         addGestureRecognizer(twoDoubleTap)
 
+        // Two-finger single tap → stop speech. Must wait for the double-tap
+        // recognizer to fail so a deliberate double-tap doesn't fire stop
+        // speech first.
+        let twoSingleTap = UITapGestureRecognizer(target: self, action: #selector(onTwoFingerSingleTap))
+        twoSingleTap.numberOfTouchesRequired = 2
+        twoSingleTap.numberOfTapsRequired = 1
+        twoSingleTap.require(toFail: twoDoubleTap)
+        addGestureRecognizer(twoSingleTap)
+
         let twoSwipeUp = UISwipeGestureRecognizer(target: self, action: #selector(onTwoFingerSwipeUp))
         twoSwipeUp.direction = .up
         twoSwipeUp.numberOfTouchesRequired = 2
@@ -257,7 +268,7 @@ final class GameTouchView: UIView {
         twoSwipeDown.numberOfTouchesRequired = 2
         addGestureRecognizer(twoSwipeDown)
 
-        // === THREE FINGERS — buffer system ===
+        // === THREE FINGERS — buffer system + recovery ===
 
         let threeSwipeLeft = UISwipeGestureRecognizer(target: self, action: #selector(onThreeFingerSwipeLeft))
         threeSwipeLeft.direction = .left
@@ -279,8 +290,18 @@ final class GameTouchView: UIView {
         threeSwipeDown.numberOfTouchesRequired = 3
         addGestureRecognizer(threeSwipeDown)
 
+        // Three-finger double tap → repeat last server announcement. The
+        // single-tap recognizer (help menu) must wait for this to fail so a
+        // deliberate double-tap doesn't fire help on the first tap.
+        let threeDoubleTap = UITapGestureRecognizer(target: self, action: #selector(onThreeFingerDoubleTap))
+        threeDoubleTap.numberOfTouchesRequired = 3
+        threeDoubleTap.numberOfTapsRequired = 2
+        addGestureRecognizer(threeDoubleTap)
+
         let threeTap = UITapGestureRecognizer(target: self, action: #selector(onThreeFingerTap))
         threeTap.numberOfTouchesRequired = 3
+        threeTap.numberOfTapsRequired = 1
+        threeTap.require(toFail: threeDoubleTap)
         addGestureRecognizer(threeTap)
     }
 
@@ -412,6 +433,13 @@ final class GameTouchView: UIView {
                 },
                 UIAccessibilityCustomAction(name: "Status") { [weak self] _ in
                     self?.perform(.status); return true
+                },
+                // Self-voicing controls
+                UIAccessibilityCustomAction(name: "Stop speech") { [weak self] _ in
+                    self?.perform(.stopSpeech); return true
+                },
+                UIAccessibilityCustomAction(name: "Repeat last announcement") { [weak self] _ in
+                    self?.perform(.repeatLastAnnouncement); return true
                 },
                 // Buffers
                 UIAccessibilityCustomAction(name: "Previous buffer") { [weak self] _ in
@@ -555,6 +583,13 @@ final class GameTouchView: UIView {
             vm.menuSelection = currentIndex
             selectionFeedback.selectionChanged()
             announceCurrentItem()
+        case .stopSpeech:
+            // Soft haptic so the user knows the gesture registered even
+            // though the next thing they hear is silence.
+            selectionFeedback.selectionChanged()
+            vm.stopSpeechNow()
+        case .repeatLastAnnouncement:
+            vm.repeatLastServerAnnouncement()
         case .none:
             break
         }
@@ -576,6 +611,7 @@ final class GameTouchView: UIView {
     }
 
     private func onScrub() { dispatch(.twoFingerScrub) }
+    @objc private func onTwoFingerSingleTap() { dispatch(.twoFingerSingleTap) }
     @objc private func onTwoFingerDoubleTap() { dispatch(.twoFingerDoubleTap) }
     @objc private func onTwoFingerSwipeUp() { dispatch(.twoFingerSwipeUp) }
     @objc private func onTwoFingerSwipeDown() { dispatch(.twoFingerSwipeDown) }
@@ -585,6 +621,7 @@ final class GameTouchView: UIView {
     @objc private func onThreeFingerSwipeUp() { dispatch(.threeFingerSwipeUp) }
     @objc private func onThreeFingerSwipeDown() { dispatch(.threeFingerSwipeDown) }
     @objc private func onThreeFingerTap() { dispatch(.threeFingerTap) }
+    @objc private func onThreeFingerDoubleTap() { dispatch(.threeFingerDoubleTap) }
 
     // MARK: - Menu Updates
 
@@ -653,14 +690,10 @@ final class GameTouchView: UIView {
 
     private func announceStatus() {
         guard let vm = viewModel else { return }
-        let connected = vm.isConnected ? "Connected" : "Disconnected"
-        let count = vm.menuItems.count
-        if count == 0 {
-            speak("\(connected). No menu items.")
-        } else {
-            let item = vm.menuItems[currentIndex].text
-            speak("\(connected). Item \(currentIndex + 1) of \(count): \(item)")
-        }
+        // The view model now combines connection state, current menu surface,
+        // and the most recent server announcement into a single oriented
+        // sentence — see `enrichedStatusText` for the composition.
+        speak(vm.enrichedStatusText())
     }
 
     // MARK: - Idle Timer
@@ -774,7 +807,11 @@ private struct ChatSheet: View {
                 }
             }
         }
-        .onAppear { chatFocused = true }
+        .onAppear {
+            chatFocused = true
+            viewModel.speechManager.speakTransition("Chat opened.")
+        }
+        .onDisappear { viewModel.speechManager.speakTransition("Chat closed.") }
         .presentationDetents([.medium, .large])
     }
 }
@@ -807,6 +844,13 @@ private struct ControlsSheet: View {
                               down: { viewModel.adjustAmbienceVolume(delta: -0.1) },
                               up: { viewModel.adjustAmbienceVolume(delta: 0.1) })
                 }
+                Section("Table") {
+                    Button("Leave Table") {
+                        viewModel.requestLeaveTable()
+                        dismiss()
+                    }
+                    .accessibilityHint("Leave the current table and return to the lobby.")
+                }
                 Section("Connection") {
                     Button("Ping server") { viewModel.sendPing() }
                     Button("Online users") { viewModel.requestOnlineUsers() }
@@ -828,6 +872,8 @@ private struct ControlsSheet: View {
                 }
             }
         }
+        .onAppear { viewModel.speechManager.speakTransition("Controls opened.") }
+        .onDisappear { viewModel.speechManager.speakTransition("Controls closed.") }
         .presentationDetents([.medium, .large])
     }
 
@@ -938,6 +984,8 @@ private struct HelpSheet: View {
                 }
             }
         }
+        .onAppear { viewModel.speechManager.speakTransition("Help opened.") }
+        .onDisappear { viewModel.speechManager.speakTransition("Help closed.") }
     }
 
     private func helpRow(_ gesture: String, _ description: String) -> some View {
