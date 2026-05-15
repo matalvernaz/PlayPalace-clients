@@ -21,14 +21,29 @@ struct MainView: View {
             if viewModel.isEditMode {
                 EditOverlay(viewModel: viewModel)
             } else {
-                DirectTouchGameView(
-                    viewModel: viewModel,
-                    gestureSettings: gestureSettings,
-                    onOpenChat: { showingChat = true },
-                    onOpenControls: { showingControls = true },
-                    onOpenHelp: { showingHelp = true }
-                )
-                .ignoresSafeArea()
+                ZStack(alignment: .topTrailing) {
+                    DirectTouchGameView(
+                        viewModel: viewModel,
+                        gestureSettings: gestureSettings,
+                        onOpenChat: { showingChat = true },
+                        onOpenControls: { showingControls = true },
+                        onOpenHelp: { showingHelp = true }
+                    )
+                    .ignoresSafeArea()
+
+                    // Always-visible recovery affordance. Reachable regardless
+                    // of the user's gesture mappings — even if Help and Go
+                    // Back have been remapped to None, this button stays
+                    // available so a player can never lock themselves out
+                    // of help, controls, or leaving the table.
+                    InGameMenuButton(
+                        onOpenChat: { showingChat = true },
+                        onOpenControls: { showingControls = true },
+                        onOpenHelp: { showingHelp = true }
+                    )
+                    .padding(.top, 8)
+                    .padding(.trailing, 12)
+                }
             }
         }
         .sheet(isPresented: $showingChat) {
@@ -42,6 +57,41 @@ struct MainView: View {
         }
         .onAppear { viewModel.setup(appState: appState) }
         .onDisappear { viewModel.disconnect() }
+    }
+}
+
+// MARK: - In-game Menu Button
+
+/// Small overlay button in the top-trailing corner of the game view.
+/// Single-tap opens a confirmation dialog with Help, Controls, and Chat;
+/// guarantees a recovery path even if every gesture has been remapped to
+/// none.
+private struct InGameMenuButton: View {
+    var onOpenChat: () -> Void
+    var onOpenControls: () -> Void
+    var onOpenHelp: () -> Void
+
+    @State private var showingMenu = false
+
+    var body: some View {
+        Button {
+            showingMenu = true
+        } label: {
+            Image(systemName: "ellipsis.circle.fill")
+                .font(.system(size: 28, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.tint)
+                .frame(width: 44, height: 44)
+                .background(Color(.systemBackground).opacity(0.6), in: Circle())
+        }
+        .accessibilityLabel("Menu")
+        .accessibilityHint("Opens help, controls, and chat. Always available, no matter how gestures are configured.")
+        .confirmationDialog("Menu", isPresented: $showingMenu, titleVisibility: .visible) {
+            Button("Help") { onOpenHelp() }
+            Button("Controls") { onOpenControls() }
+            Button("Chat") { onOpenChat() }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 }
 
@@ -145,7 +195,7 @@ final class GameTouchView: UIView {
         isAccessibilityElement = true
         accessibilityTraits = .allowsDirectInteraction
         accessibilityLabel = "Game area"
-        accessibilityHint = "Swipe left and right to browse. Double-tap to select."
+        accessibilityHint = "Swipe left and right to browse. Double-tap to select. Use the VoiceOver Actions rotor for Help, Controls, Chat, and game actions. The Menu button in the top right is always available too."
     }
 
     // MARK: - Gesture Setup

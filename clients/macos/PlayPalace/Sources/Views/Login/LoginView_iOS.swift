@@ -12,6 +12,7 @@ struct LoginView: View {
     @State private var showingServerManager = false
     @State private var showingRegistration = false
     @State private var showingGestureSettings = false
+    @State private var showingGettingStarted = false
 
     private var configManager: ConfigManager { appState.configManager }
 
@@ -39,6 +40,14 @@ struct LoginView: View {
             Form {
                 Section {
                     Button {
+                        showingGettingStarted = true
+                    } label: {
+                        Label("Getting Started", systemImage: "questionmark.circle")
+                    }
+                    .accessibilityLabel("Getting started")
+                    .accessibilityHint("Read how to set up a server, register an account, and use in-game gestures. Available offline.")
+
+                    Button {
                         showingServerManager = true
                     } label: {
                         Label("Server Manager", systemImage: "server.rack")
@@ -49,9 +58,9 @@ struct LoginView: View {
                     Button {
                         showingGestureSettings = true
                     } label: {
-                        Label("Settings", systemImage: "slider.horizontal.3")
+                        Label("Audio and Gesture Settings", systemImage: "slider.horizontal.3")
                     }
-                    .accessibilityLabel("Settings")
+                    .accessibilityLabel("Audio and gesture settings")
                     .accessibilityHint("Adjust music and ambience volume, customize touch gestures")
                 }
 
@@ -64,6 +73,9 @@ struct LoginView: View {
             .navigationTitle("PlayPalace")
             .sheet(isPresented: $showingGestureSettings) {
                 GestureSettingsView(settings: GestureSettings.load())
+            }
+            .sheet(isPresented: $showingGettingStarted) {
+                GettingStartedSheet()
             }
             .sheet(isPresented: $showingServerManager) {
                 ServerManagerView_iOS()
@@ -104,10 +116,10 @@ struct LoginView: View {
     private var serverPickerSection: some View {
         Section {
             if sortedServers.isEmpty {
-                Text("No servers configured. Tap Server Manager to add one.")
+                Text("No servers configured. Choose Server Manager above to add one.")
                     .foregroundStyle(.secondary)
                     .accessibilityLabel("No servers configured")
-                    .accessibilityHint("Open the server manager from the toolbar to add a server")
+                    .accessibilityHint("Choose the Server Manager button near the top of this screen to add a server.")
             } else {
                 Picker(selection: $selectedServerID) {
                     Text("Select a server")
@@ -409,6 +421,81 @@ struct RegistrationView_iOS: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             dismiss()
         }
+    }
+}
+
+// MARK: - Getting Started Sheet (offline onboarding)
+
+/// First-run help for new players. Bundled in the app so it works
+/// before any server is configured — pulled from `gettingStartedSections`
+/// rather than the server's documents library. Each section appears as
+/// its own list row so VoiceOver users can flick through topics
+/// individually instead of being read the entire manual.
+struct GettingStartedSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(gettingStartedSections, id: \.title) { section in
+                    SwiftUI.Section(section.title) {
+                        ForEach(section.lines, id: \.self) { line in
+                            Text(line)
+                                .font(.body)
+                                .accessibilityLabel(line)
+                        }
+                    }
+                }
+            }
+            .listStyle(.insetGrouped)
+            .navigationTitle("Getting Started")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+    }
+
+    private struct Topic {
+        let title: String
+        let lines: [String]
+    }
+
+    private var gettingStartedSections: [Topic] {
+        [
+            Topic(title: "Welcome", lines: [
+                "PlayPalace is a multiplayer game room designed for VoiceOver. You can play with friends, on a public server, or against bots.",
+                "Everything in the app speaks itself. VoiceOver works too — use whichever feels best.",
+            ]),
+            Topic(title: "First steps", lines: [
+                "1. Choose Server Manager and add a server. You will need a host name or IP address and a port (typically 8000).",
+                "2. Back on the main screen, pick the server you just added.",
+                "3. Choose Register New Account to set up a new account, or use Server Manager to save the login for an account you already have.",
+                "4. Choose Connect.",
+            ]),
+            Topic(title: "In-game gestures", lines: [
+                "PlayPalace games do not use on-screen buttons. The whole screen is the game area, and you interact with gestures.",
+                "One finger handles menu navigation: swipe left and right to browse, double-tap to select, single tap to repeat the current item, long press for a status read-out.",
+                "Two fingers handle game actions: scrub back and forth to go back, double-tap to perform the primary action (such as roll or draw), swipe up to check the score, swipe down to add a bot.",
+                "Three fingers handle the message history: swipe left and right between buffers, up and down between messages, tap to open the help screen.",
+                "You can change any of these in Audio and Gesture Settings.",
+            ]),
+            Topic(title: "Always-available controls", lines: [
+                "There is a Menu button in the top-right corner of every game screen. It opens Help, Controls, and Chat. It works no matter how gestures are configured, so you can never lock yourself out.",
+                "When VoiceOver is on, you can also use the Actions rotor (flick up or down on the game area) to find Help, Controls, Chat, Status, and game actions.",
+            ]),
+            Topic(title: "Audio", lines: [
+                "Background music and ambience volume are in Audio and Gesture Settings. Music keeps playing while you are connected.",
+                "Speech rate follows your VoiceOver settings when VoiceOver is on. When it is off, you can adjust the rate inside the app.",
+            ]),
+            Topic(title: "If something goes wrong", lines: [
+                "If the connection drops, the app will automatically try to reconnect.",
+                "If gestures stop responding the way you expect, open Audio and Gesture Settings and choose Reset to defaults.",
+                "If you cannot find help while in a game, use the Menu button in the top-right of the screen — it is always there.",
+            ]),
+        ]
     }
 }
 
