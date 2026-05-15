@@ -1,13 +1,40 @@
 """Targeted tests for helper methods inside core.server.Server."""
 
 import asyncio
+from contextlib import contextmanager
 
 import pytest
 
 
 from types import SimpleNamespace
 
+import server.core.server as server_module
 from server.core.server import Server
+
+
+@contextmanager
+def fast_disconnect_grace():
+    """Short-circuit the 2-second mobile-reconnect grace period inside
+    ``_delayed_disconnect_cleanup`` so disconnect tests complete promptly.
+    Only patches the ``asyncio.sleep`` reference inside core.server."""
+    original = server_module.asyncio.sleep
+
+    async def _no_sleep(_seconds):
+        return None
+
+    server_module.asyncio.sleep = _no_sleep
+    try:
+        yield
+    finally:
+        server_module.asyncio.sleep = original
+
+
+async def _run_disconnect_with_cleanup(server, client, username):
+    """Call _on_client_disconnect and await the deferred cleanup task."""
+    await server._on_client_disconnect(client)
+    task = server._pending_disconnects.get(username)
+    if task:
+        await task
 
 
 class DummyNetworkUser:
@@ -17,6 +44,10 @@ class DummyNetworkUser:
         self.spoken = []
         self.sounds = []
         self._queue = []
+        # Server._on_client_disconnect now guards against stale-disconnect
+        # races by checking ``user.connection is not client``. Tests set this
+        # after constructing the client (see test_on_client_disconnect_*).
+        self.connection = None
 
     def speak_l(self, message_id, **kwargs):
         self.spoken.append((message_id, kwargs))
@@ -102,10 +133,12 @@ def test_on_client_disconnect_broadcasts_only_for_approved(server):
     server._user_states = {"alice": {}, "bob": {}}
 
     client = SimpleNamespace(username="alice", address="addr")
+    approved.connection = client
 
     server._on_client_disconnect = Server._on_client_disconnect.__get__(server, Server)
 
-    asyncio.run(server._on_client_disconnect(client))
+    with fast_disconnect_grace():
+        asyncio.run(_run_disconnect_with_cleanup(server, client, "alice"))
     assert server._users == {"bob": banned}
     assert server._user_states == {"bob": {}}
     assert approved.sounds[-1] == "offlineadmin.ogg"
@@ -140,8 +173,10 @@ def test_on_client_disconnect_keeps_members_when_not_last(server):
     server._tables = SimpleNamespace(find_user_table=lambda username: table)
 
     client = SimpleNamespace(username="alice", address="addr")
+    user.connection = client
     server._on_client_disconnect = Server._on_client_disconnect.__get__(server, Server)
-    asyncio.run(server._on_client_disconnect(client))
+    with fast_disconnect_grace():
+        asyncio.run(_run_disconnect_with_cleanup(server, client, "alice"))
 
     assert table.game.called
     assert [m.username for m in members] == ["alice", "bob"]
@@ -176,8 +211,10 @@ def test_on_client_disconnect_removes_last_member(server):
     server._tables = SimpleNamespace(find_user_table=lambda username: table)
 
     client = SimpleNamespace(username="alice", address="addr")
+    user.connection = client
     server._on_client_disconnect = Server._on_client_disconnect.__get__(server, Server)
-    asyncio.run(server._on_client_disconnect(client))
+    with fast_disconnect_grace():
+        asyncio.run(_run_disconnect_with_cleanup(server, client, "alice"))
 
     assert table.game.called
     assert members == []

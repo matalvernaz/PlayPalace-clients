@@ -321,10 +321,14 @@ class TestMancalaSpeech:
         """Landing in the store should be described and grant an extra turn."""
         current = self.game.current_player
         idx = self.game._player_index(current)
-        # Pit 5 with 1 stone -> lands exactly in own store
+        # Pit 5 with 1 stone -> lands exactly in own store.
+        # Leave at least one other own pit non-empty so emptying pit 5
+        # doesn't trigger the end-game rule (one side fully empty) before
+        # the extra-turn announcement is emitted.
         for i in range(NUM_PITS):
             self.game.board[self.game._pit_board_idx(idx, i)] = 0
         self.game.board[self.game._pit_board_idx(idx, 5)] = 1
+        self.game.board[self.game._pit_board_idx(idx, 0)] = 1
         self._clear()
 
         self.game.execute_action(current, "pit_5")

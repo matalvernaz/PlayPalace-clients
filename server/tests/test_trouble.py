@@ -274,11 +274,18 @@ class TestTroubleOptionCustomizationAffectsPlay:
         try:
             tmodule.random.randint = lambda a, b: 6
             game.execute_action(current, "roll")
+            # Rolling a 6 surfaces a token-move menu (six-to-leave-home is
+            # on by default). The turn doesn't actually end until a token
+            # is committed, so follow up with the first legal token move
+            # before checking whose turn it is.
+            if current.legal_move_tokens:
+                token = current.legal_move_tokens[0]
+                game.execute_action(current, f"move_token_{token}")
         finally:
             tmodule.random.randint = original
         # With extra_turn_on_six off, rolling a 6 still releases a token
-        # (six-to-leave-home is on by default) but should NOT give an extra turn.
-        # current_player changed to the other player.
+        # (six-to-leave-home is on by default) but should NOT give an extra
+        # turn — current_player should advance to the other player.
         assert game.current_player is not current
 
 
