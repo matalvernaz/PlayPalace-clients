@@ -264,7 +264,11 @@ class Localization:
             **kwargs: Variables to substitute into the message.
 
         Returns:
-            The formatted message string.
+            The formatted message string. When the key is missing from the
+            requested locale (Fluent's formatter returns the bracketed key
+            or the key itself) we fall back to English so newly-added
+            shared keys don't show up as ``[pig-you-rolled]`` for users
+            on locales that haven't been re-translated yet.
         """
         try:
             bundle = cls._get_bundle(locale)
@@ -277,6 +281,21 @@ class Localization:
             # Strip Unicode bidi isolation characters that Fluent adds
             for char in cls._BIDI_CHARS:
                 result = result.replace(char, "")
+            if (
+                locale != "en"
+                and result in (message_id, f"[{message_id}]")
+            ):
+                # Missing in this locale — try English before giving up so
+                # callers get a readable string instead of a bracketed key.
+                try:
+                    en_bundle = cls._get_bundle("en")
+                    en_result, _ = en_bundle.format(message_id, kwargs)
+                    for char in cls._BIDI_CHARS:
+                        en_result = en_result.replace(char, "")
+                    if en_result not in (message_id, f"[{message_id}]"):
+                        return en_result
+                except Exception:
+                    pass
             return result
         except Exception:
             LOG.exception(

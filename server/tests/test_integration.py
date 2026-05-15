@@ -304,7 +304,10 @@ class TestFullGameFlow:
         # Verify messages were sent
         host_messages = host.get_spoken_messages()
         assert any("Round" in m for m in host_messages)
-        assert any("winner" in m.lower() for m in host_messages)
+        # Pig now uses the shared `game-winner = { $player } wins!` key
+        # instead of the legacy "We have a winner..." copy, so look for the
+        # canonical "wins" wording.
+        assert any("wins" in m.lower() for m in host_messages)
 
 
 if __name__ == "__main__":

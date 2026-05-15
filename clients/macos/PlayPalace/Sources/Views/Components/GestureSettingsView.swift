@@ -48,12 +48,12 @@ struct GestureSettingsView: View {
                     .accessibilityHint("Restore all gestures to their original assignments")
                 }
 
-                gestureSection("One Finger — Currently: Menu", fingerCount: 1)
-                gestureSection("Two Fingers — Currently: Game Actions", fingerCount: 2)
-                gestureSection("Three Fingers — Currently: Buffers", fingerCount: 3)
+                gestureSection("One Finger — \(roleSummary(forFingerCount: 1))", fingerCount: 1)
+                gestureSection("Two Fingers — \(roleSummary(forFingerCount: 2))", fingerCount: 2)
+                gestureSection("Three Fingers — \(roleSummary(forFingerCount: 3))", fingerCount: 3)
             }
             .listStyle(.insetGrouped)
-            .navigationTitle("Settings")
+            .navigationTitle("Audio and Gestures")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -124,6 +124,42 @@ struct GestureSettingsView: View {
                 gestureRow(gesture)
             }
         }
+    }
+
+    /// Infer the "primary role" for a finger group by tallying which kind
+    /// of action the most-bound gestures perform. Stays accurate after
+    /// `swapFingerGroups(...)` (which used to leave the static "Currently:
+    /// Game Actions" header lying about the actual mapping).
+    private func roleSummary(forFingerCount fingerCount: Int) -> String {
+        let actions = GestureType.allCases
+            .filter { $0.fingerCount == fingerCount }
+            .map { settings.action(for: $0) }
+            .filter { $0 != .none }
+
+        var menuCount = 0
+        var gameCount = 0
+        var bufferCount = 0
+        for action in actions {
+            switch action {
+            case .nextItem, .previousItem, .activateItem, .repeatItem,
+                 .gridUp, .gridDown:
+                menuCount += 1
+            case .primaryAction, .checkScore, .addBot, .goBack, .status:
+                gameCount += 1
+            case .previousBuffer, .nextBuffer, .olderMessage, .newerMessage, .help:
+                bufferCount += 1
+            case .none:
+                break
+            }
+        }
+
+        // Pick the dominant role; ties prefer Menu so the section header is
+        // never empty even when a user has assigned every gesture to .none.
+        let best = max(menuCount, gameCount, bufferCount)
+        if best == 0 { return "Unassigned" }
+        if menuCount == best { return "Menu" }
+        if gameCount == best { return "Game Actions" }
+        return "Buffers"
     }
 
     private func gestureRow(_ gesture: GestureType) -> some View {

@@ -204,7 +204,6 @@ class PigGame(PushYourLuckBotMixin, ActionGuardMixin, RoundBasedGameMixin, Game)
         """Handle roll action."""
         pig_player: PigPlayer = player  # type: ignore
 
-        self.broadcast_l("pig-rolls", player=player.name)
         self.play_sound("game_pig/roll.ogg")
 
         # Jolt the rolling player to pause before next action
@@ -215,12 +214,25 @@ class PigGame(PushYourLuckBotMixin, ActionGuardMixin, RoundBasedGameMixin, Game)
         if roll == 1:
             # Bust!
             self.play_sound("game_pig/lose.ogg")
-            self.broadcast_l("pig-bust", player=player.name, points=pig_player.round_score)
+            # First/third person split — the roller hears "You rolled a one…",
+            # everyone else hears "{ $player } rolled a one and loses…".
+            self.broadcast_personal_l(
+                player,
+                "pig-you-bust",
+                "pig-player-bust",
+                points=pig_player.round_score,
+            )
             pig_player.round_score = 0
             self.end_turn()
         else:
             pig_player.round_score += roll
-            self.broadcast_l("pig-roll-result", roll=roll, total=pig_player.round_score)
+            self.broadcast_personal_l(
+                player,
+                "pig-you-rolled",
+                "pig-player-rolled",
+                roll=roll,
+                total=pig_player.round_score,
+            )
             # Menus will be rebuilt automatically after action execution
 
     def _action_bank(self, player: Player, action_id: str) -> None:
@@ -236,7 +248,13 @@ class PigGame(PushYourLuckBotMixin, ActionGuardMixin, RoundBasedGameMixin, Game)
         total = team.total_score if team else 0
 
         pig_player.round_score = 0
-        self.broadcast_l("pig-bank-action", player=player.name, points=banked, total=total)
+        self.broadcast_personal_l(
+            player,
+            "pig-you-bank",
+            "pig-player-bank",
+            points=banked,
+            total=total,
+        )
 
         self.end_turn()
 
@@ -357,7 +375,9 @@ class PigGame(PushYourLuckBotMixin, ActionGuardMixin, RoundBasedGameMixin, Game)
             self.play_sound("game_pig/win.ogg")
             winning_team = winning_teams[0]
             team_name = self._team_manager.get_team_name(winning_team)
-            self.broadcast_l("pig-winner", player=team_name)
+            # Use the shared winner message so every game's win announcement
+            # reads identically.
+            self.broadcast_l("game-winner", player=team_name)
             self.finish_game()
         elif len(winning_teams) > 1:
             # Tiebreaker! Start immediately (no delay)

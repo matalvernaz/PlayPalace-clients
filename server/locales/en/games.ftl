@@ -81,6 +81,15 @@ dice-locked = That die is locked and cannot be changed.
 dice-status-locked = locked
 dice-status-kept = kept
 
+# Dice games — shared roll-event keys.
+# Use these from broadcast_personal_l so the active player hears "You..."
+# and everyone else hears "{ $player }...". Both forms include the result
+# and the running total so a player who just heard one announcement has
+# all the context they need.
+dice-you-rolled = You rolled { $roll }. Round total: { $total }.
+dice-player-rolled = { $player } rolled { $roll }. Round total: { $total }.
+dice-rolls-remaining = Rolls remaining: { $remaining }.
+
 # Dealing (card games)
 game-deal-counter = Deal { $current }/{ $total }.
 game-you-deal = You deal out the cards.

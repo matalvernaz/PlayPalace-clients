@@ -4,7 +4,7 @@
 game-name-yahtzee = Yahtzee
 
 # Actions - Rolling
-yahtzee-roll = Re-roll ({ $count } left)
+yahtzee-roll = Reroll ({ $count } left)
 yahtzee-roll-all = Roll dice
 
 # Upper section scoring categories
@@ -25,21 +25,21 @@ yahtzee-score-yahtzee = Yahtzee for { $points } points
 yahtzee-score-chance = Chance for { $points } points
 
 # Game events
-yahtzee-you-rolled = You rolled: { $dice }. Rolls remaining: { $remaining }
-yahtzee-player-rolled = { $player } rolled: { $dice }. Rolls remaining: { $remaining }
+yahtzee-you-rolled = You rolled { $dice }. Rolls remaining: { $remaining }.
+yahtzee-player-rolled = { $player } rolled { $dice }. Rolls remaining: { $remaining }.
 
 # Scoring announcements
 yahtzee-you-scored = You scored { $points } points in { $category }.
-yahtzee-player-scored = { $player } scored { $points } in { $category }.
+yahtzee-player-scored = { $player } scored { $points } points in { $category }.
 
 # Yahtzee bonus
-yahtzee-you-bonus = Yahtzee bonus! +100 points
-yahtzee-player-bonus = { $player } got a Yahtzee bonus! +100 points
+yahtzee-you-bonus = Yahtzee bonus! You score 100 bonus points.
+yahtzee-player-bonus = { $player } gets a Yahtzee bonus and scores 100 bonus points.
 
 # Upper section bonus
-yahtzee-you-upper-bonus = Upper section bonus! +35 points ({ $total } in upper section)
-yahtzee-player-upper-bonus = { $player } earned the upper section bonus! +35 points
-yahtzee-you-upper-bonus-missed = You missed the upper section bonus ({ $total } in upper section, needed 63).
+yahtzee-you-upper-bonus = Upper section bonus! You score 35 bonus points. Upper section total: { $total } points.
+yahtzee-player-upper-bonus = { $player } earned the upper section bonus and scores 35 bonus points.
+yahtzee-you-upper-bonus-missed = You missed the upper section bonus. Upper section total: { $total } points, 63 needed.
 yahtzee-player-upper-bonus-missed = { $player } missed the upper section bonus.
 
 # Scoring mode
@@ -50,7 +50,7 @@ yahtzee-continuing = Continuing turn.
 yahtzee-check-scoresheet = Check scorecard
 yahtzee-view-dice = Check your dice
 yahtzee-your-dice = Your dice: { $dice }.
-yahtzee-your-dice-kept = Your dice: { $dice }. Keeping: { $kept }
+yahtzee-your-dice-kept = Your dice: { $dice }. Keeping: { $kept }.
 yahtzee-not-rolled = You haven't rolled yet.
 
 # Scoresheet display
