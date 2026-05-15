@@ -44,6 +44,25 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private let maxReconnectAttempts = 30
     private var expectingReconnect = false
     private var credentials: Credentials?
+    private var reconnectTask: Task<Void, Never>?
+    private var lastStaleTapAnnounceAt: Date = .distantPast
+
+    /// Throttle window for "Reconnecting…" announcements when the user taps a
+    /// stale menu mid-disconnect — without it, rapid swiping during a wifi
+    /// blip would spam the speech queue.
+    private static let staleTapAnnounceThrottle: TimeInterval = 4.0
+
+    /// Backoff schedule for unexpected drops (wifi blip, server crash, etc.).
+    /// Server-initiated reconnects use the `retry_after` value the server
+    /// sent and bypass this schedule. Capped — after we exhaust this we
+    /// keep retrying at the final value until `maxReconnectAttempts`.
+    private static let unexpectedReconnectBackoff: [UInt64] = [
+        1_000_000_000,   // 1s
+        2_000_000_000,   // 2s
+        4_000_000_000,   // 4s
+        8_000_000_000,   // 8s
+        16_000_000_000,  // 16s
+    ]
 
     // MARK: - Setup
 
@@ -82,6 +101,10 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     }
 
     func disconnect() {
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        expectingReconnect = false
+        reconnectAttempts = 0
         webSocket?.disconnect()
         soundManager.stopMusic(fade: false)
         soundManager.removeAllPlaylists()
@@ -97,10 +120,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
     nonisolated func onConnectionLost() {
         Task { @MainActor in
-            isConnected = false
-            if !expectingReconnect {
-                addHistory("Connection lost!", buffer: "activity")
-            }
+            handleUnexpectedDisconnect()
         }
     }
 
@@ -108,6 +128,19 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         Task { @MainActor in
             addHistory(message, buffer: "activity")
         }
+    }
+
+    /// Called when the WebSocket dies without a server-issued disconnect packet
+    /// — wifi blip, mobile backgrounding, server crash, etc. If we already
+    /// scheduled a reconnect (e.g. via server `disconnect` with reconnect=true)
+    /// or the user explicitly disconnected, do nothing. Otherwise start the
+    /// auto-reconnect loop with exponential backoff.
+    private func handleUnexpectedDisconnect() {
+        isConnected = false
+        if expectingReconnect || reconnectTask != nil { return }
+        addHistory("Connection lost. Reconnecting…", buffer: "activity")
+        expectingReconnect = true
+        scheduleReconnect(delayNanoseconds: Self.unexpectedReconnectBackoff.first ?? 1_000_000_000)
     }
 
     // MARK: - Packet Dispatch
@@ -211,15 +244,25 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     // MARK: - Packet Handlers
 
     private func handleAuthorizeSuccess(_ packet: [String: Any]) {
+        let wasReconnecting = reconnectAttempts > 0
         isConnected = true
         reconnectAttempts = 0
         expectingReconnect = false
+        reconnectTask?.cancel()
+        reconnectTask = nil
 
         let version = packet["version"] as? String ?? "unknown"
         let username = packet["username"] as? String ?? credentials?.username ?? "Guest"
         soundManager.stopMusic(fade: false)
-        soundManager.play("welcome.ogg")
-        addHistory("Connected as \(username) (server \(version))", buffer: "activity")
+        // Quieter cue on reconnect so the user notices "you're back" without
+        // hearing the full welcome fanfare every wifi blip.
+        soundManager.play(wasReconnecting ? "notify.ogg" : "welcome.ogg")
+        addHistory(
+            wasReconnecting
+                ? "Reconnected as \(username)."
+                : "Connected as \(username) (server \(version))",
+            buffer: "activity"
+        )
 
         // Save refresh token
         if let refreshToken = packet["refresh_token"] as? String,
@@ -430,21 +473,26 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         let message = packet["message"] as? String
 
         if shouldReconnect {
-            let delay = max(1, retryAfter ?? 3)
+            let delaySeconds = max(1, retryAfter ?? 3)
+            addHistory("Server is restarting. Reconnecting in \(delaySeconds) seconds…", buffer: "activity")
             expectingReconnect = true
-            addHistory("Server is restarting. Reconnecting in \(delay) seconds...", buffer: "activity")
-            Task {
-                try? await Task.sleep(nanoseconds: UInt64(delay) * 1_000_000_000)
-                attemptReconnect()
-            }
+            scheduleReconnect(delayNanoseconds: UInt64(delaySeconds) * 1_000_000_000)
         } else if showMessage {
             let msg = message ?? "Disconnected by server."
             addHistory(msg, buffer: "activity")
+            // Server-issued disconnects with a message are terminal — clear
+            // any in-flight reconnect attempts before bouncing to login.
+            reconnectTask?.cancel()
+            reconnectTask = nil
+            expectingReconnect = false
             if returnToLogin {
                 appState?.returnToLogin()
             }
         } else {
             speechManager.speakAnnouncement("Disconnected")
+            reconnectTask?.cancel()
+            reconnectTask = nil
+            expectingReconnect = false
             appState?.returnToLogin()
         }
     }
@@ -498,7 +546,11 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     // MARK: - User Actions
 
     func activateMenuItem(_ index: Int) {
-        guard index >= 0, index < menuItems.count, isConnected else { return }
+        guard index >= 0, index < menuItems.count else { return }
+        guard isConnected else {
+            announceStaleTap()
+            return
+        }
         soundManager.playMenuEnter()
         var packet = ClientPacket.menuSelection(
             selection: index + 1,
@@ -508,6 +560,22 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             packet["selection_id"] = id
         }
         webSocket?.send(packet)
+    }
+
+    /// User hit an action gesture while we're disconnected and trying to
+    /// reconnect. Tell them what's happening — without this, their swipes
+    /// and taps just silently no-op which feels broken. Throttled so rapid
+    /// input doesn't backlog the speech queue.
+    private func announceStaleTap() {
+        let now = Date()
+        if now.timeIntervalSince(lastStaleTapAnnounceAt) < Self.staleTapAnnounceThrottle {
+            return
+        }
+        lastStaleTapAnnounceAt = now
+        let message = expectingReconnect
+            ? "Disconnected. Reconnecting…"
+            : "Not connected."
+        speechManager.speakAnnouncement(message)
     }
 
     func sendChat() {
@@ -628,7 +696,10 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     /// Sends a keybind packet for the given key name (e.g. "r", "space", "enter", "up").
     /// Used by the iOS ActionBar and other touch-based controls.
     func sendKeybind(_ key: String) {
-        guard isConnected else { return }
+        guard isConnected else {
+            announceStaleTap()
+            return
+        }
         let sel = menuSelection
         var packet = ClientPacket.keybind(
             key: key,
@@ -643,6 +714,10 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
     /// Sends an escape action, respecting the current escape behavior set by the server.
     func sendEscape() {
+        guard isConnected else {
+            announceStaleTap()
+            return
+        }
         _ = handleEscapeKey()
     }
 
@@ -781,17 +856,46 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
     // MARK: - Reconnect
 
+    /// Schedule the next reconnect attempt. Cancels any previously scheduled
+    /// task so callers (server-initiated disconnect, unexpected drop, retry
+    /// after failure) can replace the schedule without racing each other.
+    private func scheduleReconnect(delayNanoseconds: UInt64) {
+        reconnectTask?.cancel()
+        reconnectTask = Task { @MainActor [weak self] in
+            try? await Task.sleep(nanoseconds: delayNanoseconds)
+            if Task.isCancelled { return }
+            guard let self else { return }
+            self.reconnectTask = nil
+            self.attemptReconnect()
+        }
+    }
+
+    /// Pick the backoff delay for the next unexpected-drop retry. Uses the
+    /// curve in `unexpectedReconnectBackoff` and stays at the final value
+    /// once we've walked off the end.
+    private func unexpectedReconnectDelay() -> UInt64 {
+        let index = min(reconnectAttempts, Self.unexpectedReconnectBackoff.count - 1)
+        return Self.unexpectedReconnectBackoff[max(0, index)]
+    }
+
     private func attemptReconnect() {
-        guard let creds = credentials else { return }
+        guard let creds = credentials else {
+            expectingReconnect = false
+            return
+        }
         reconnectAttempts += 1
         if reconnectAttempts > maxReconnectAttempts {
             expectingReconnect = false
+            reconnectAttempts = 0
             speechManager.speakAnnouncement("Failed to reconnect after multiple attempts")
             appState?.returnToLogin()
             return
         }
-        addHistory("Reconnecting... (attempt \(reconnectAttempts))", buffer: "activity")
+        addHistory("Reconnecting… (attempt \(reconnectAttempts))", buffer: "activity")
         webSocket?.disconnect()
+        // Pre-schedule the next attempt. If this one succeeds,
+        // `handleAuthorizeSuccess` resets the counter and cancels the task.
+        scheduleReconnect(delayNanoseconds: unexpectedReconnectDelay())
         connect(creds)
     }
 

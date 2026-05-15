@@ -232,15 +232,15 @@ struct LoginView: View {
             } label: {
                 HStack {
                     Spacer()
-                    Label("Register New Account", systemImage: "person.badge.plus")
+                    Label("Create New Account", systemImage: "person.badge.plus")
                     Spacer()
                 }
             }
             .disabled(selectedServerID == nil)
-            .accessibilityLabel("Register new account")
+            .accessibilityLabel("Create new account")
             .accessibilityHint(
                 selectedServerID != nil
-                    ? "Create a new account on \(selectedServer?.name ?? "this server")"
+                    ? "Create a new account on \(selectedServer?.name ?? "this server") and connect."
                     : "Select a server first"
             )
         }
@@ -290,8 +290,12 @@ struct LoginView: View {
 
 // MARK: - Registration View (iOS)
 
-/// iOS registration view presented as a sheet.
-/// Allows creating a new account on the selected server.
+/// Create-account sheet. Saves the credentials locally, then immediately hands
+/// off to the main connect flow — the server auto-creates the account during
+/// `authorize` when it doesn't already exist and reports errors (username
+/// taken with a different password, accounts blocked, rate limited) through
+/// the existing disconnect-with-show_message path, so this sheet doesn't need
+/// to round-trip with the server separately.
 struct RegistrationView_iOS: View {
     @EnvironmentObject var appState: AppState
     @Environment(\.dismiss) private var dismiss
@@ -303,32 +307,46 @@ struct RegistrationView_iOS: View {
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var email = ""
-    @State private var bio = ""
     @State private var errorMessage: String?
-    @State private var isRegistering = false
-    @State private var successMessage: String?
+
+    private static let minUsernameLength = 3
+    private static let maxUsernameLength = 32
+    private static let minPasswordLength = 8
+    private static let maxPasswordLength = 128
 
     private var isValid: Bool {
-        username.count >= 3 && username.count <= 32 &&
-        password.count >= 8 && password.count <= 128 &&
-        password == confirmPassword
+        let trimmedUsername = username.trimmingCharacters(in: .whitespaces)
+        return (Self.minUsernameLength...Self.maxUsernameLength).contains(trimmedUsername.count) &&
+            (Self.minPasswordLength...Self.maxPasswordLength).contains(password.count) &&
+            password == confirmPassword
+    }
+
+    private var serverName: String {
+        appState.configManager.servers[serverID]?.name ?? "this server"
     }
 
     var body: some View {
         NavigationStack {
             Form {
                 Section {
+                    Text("Choose a username and password. We'll connect to \(serverName) and either sign you in or create the account if it doesn't exist yet.")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Choose a username and password. The app will connect to \(serverName) and either sign you in or create the account if it doesn't exist yet.")
+                }
+
+                Section {
                     TextField("Username", text: $username)
                         .textContentType(.username)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
                         .accessibilityLabel("Choose a username")
-                        .accessibilityHint("3 to 32 characters")
+                        .accessibilityHint("Between \(Self.minUsernameLength) and \(Self.maxUsernameLength) characters")
 
                     SecureField("Password", text: $password)
                         .textContentType(.newPassword)
                         .accessibilityLabel("Choose a password")
-                        .accessibilityHint("8 to 128 characters")
+                        .accessibilityHint("Between \(Self.minPasswordLength) and \(Self.maxPasswordLength) characters")
 
                     SecureField("Confirm Password", text: $confirmPassword)
                         .textContentType(.newPassword)
@@ -346,10 +364,6 @@ struct RegistrationView_iOS: View {
                         .autocapitalization(.none)
                         .accessibilityLabel("Email address")
                         .accessibilityHint("Optional. Used for account recovery.")
-
-                    TextField("Bio", text: $bio)
-                        .accessibilityLabel("Short bio")
-                        .accessibilityHint("Optional. Tell others about yourself.")
                 } header: {
                     Text("Optional")
                         .accessibilityAddTraits(.isHeader)
@@ -363,39 +377,30 @@ struct RegistrationView_iOS: View {
                     }
                 }
 
-                if let successMessage {
-                    Section {
-                        Text(successMessage)
-                            .foregroundStyle(.green)
-                            .accessibilityLabel(successMessage)
-                    }
-                }
-
                 Section {
                     Button(action: performRegistration) {
                         HStack {
                             Spacer()
-                            if isRegistering {
-                                ProgressView()
-                                    .accessibilityLabel("Registering")
-                            } else {
-                                Text("Register")
-                                    .font(.headline)
-                            }
+                            Text("Create Account and Connect")
+                                .font(.headline)
                             Spacer()
                         }
                     }
-                    .disabled(!isValid || isRegistering)
-                    .accessibilityLabel("Register account")
-                    .accessibilityHint(isValid ? "Create your account" : "Fill in all required fields first")
+                    .disabled(!isValid)
+                    .accessibilityLabel("Create account and connect")
+                    .accessibilityHint(
+                        isValid
+                            ? "Save these credentials and connect to \(serverName). The server will create the account if it doesn't exist."
+                            : "Fill in all required fields first"
+                    )
                 }
             }
-            .navigationTitle("Register")
+            .navigationTitle("Create Account")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .accessibilityLabel("Cancel registration")
+                        .accessibilityLabel("Cancel")
                 }
             }
         }
@@ -406,21 +411,44 @@ struct RegistrationView_iOS: View {
             errorMessage = "Passwords do not match."
             return
         }
-        errorMessage = nil
-        isRegistering = true
-
-        let _ = appState.configManager.addAccount(
-            serverID: serverID,
-            username: username,
-            password: password,
-            email: email
-        )
-        successMessage = "Account saved. The server will create it on first login."
-        isRegistering = false
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            dismiss()
+        let trimmedUsername = username.trimmingCharacters(in: .whitespaces)
+        guard !trimmedUsername.isEmpty else {
+            errorMessage = "Username can't be empty."
+            return
         }
+        errorMessage = nil
+
+        guard let accountID = appState.configManager.addAccount(
+            serverID: serverID,
+            username: trimmedUsername,
+            password: password,
+            email: email.trimmingCharacters(in: .whitespaces)
+        ) else {
+            errorMessage = "Couldn't save account locally. Try again."
+            return
+        }
+
+        appState.configManager.setLastUsed(serverID: serverID, accountID: accountID)
+
+        guard let url = appState.configManager.serverURL(for: serverID) else {
+            errorMessage = "Server is missing a valid host or port. Edit it in Server Manager and try again."
+            return
+        }
+
+        let creds = Credentials(
+            username: trimmedUsername,
+            password: password,
+            serverURL: url,
+            serverID: serverID,
+            accountID: accountID,
+            refreshToken: nil,
+            refreshExpiresAt: nil
+        )
+
+        // Dismiss before flipping the app screen so the sheet's transition
+        // doesn't fight the login → main transition.
+        dismiss()
+        appState.loginAndConnect(credentials: creds)
     }
 }
 
@@ -470,9 +498,9 @@ struct GettingStartedSheet: View {
                 "Everything in the app speaks itself. VoiceOver works too — use whichever feels best.",
             ]),
             Topic(title: "First steps", lines: [
-                "1. Choose Server Manager and add a server. You will need a host name or IP address and a port (typically 8000).",
-                "2. Back on the main screen, pick the server you just added.",
-                "3. Choose Register New Account to set up a new account, or use Server Manager to save the login for an account you already have.",
+                "1. Choose Server Manager and add a server, or use one of the servers already listed. To add your own you need a host name or IP address and a port (typically 8000).",
+                "2. Back on the main screen, pick the server you want.",
+                "3. Choose Create New Account to make a new account and connect — the server creates it for you on the first connection. If you already have an account, use Server Manager to save its username and password.",
                 "4. Choose Connect.",
             ]),
             Topic(title: "In-game gestures", lines: [
