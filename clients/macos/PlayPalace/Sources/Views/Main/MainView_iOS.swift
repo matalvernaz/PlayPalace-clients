@@ -823,6 +823,8 @@ private struct ControlsSheet: View {
     var appState: AppState
     @Environment(\.dismiss) private var dismiss
 
+    @State private var showingLeaveConfirm = false
+
     var body: some View {
         NavigationStack {
             List {
@@ -845,11 +847,12 @@ private struct ControlsSheet: View {
                               up: { viewModel.adjustAmbienceVolume(delta: 0.1) })
                 }
                 Section("Table") {
-                    Button("Leave Table") {
-                        viewModel.requestLeaveTable()
-                        dismiss()
+                    Button(role: .destructive) {
+                        showingLeaveConfirm = true
+                    } label: {
+                        Text("Leave Table…")
                     }
-                    .accessibilityHint("Leave the current table and return to the lobby.")
+                    .accessibilityHint("Leave the current table and return to the lobby. Confirms before leaving.")
                 }
                 Section("Connection") {
                     Button("Ping server") { viewModel.sendPing() }
@@ -870,6 +873,19 @@ private struct ControlsSheet: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .confirmationDialog(
+                "Leave the table?",
+                isPresented: $showingLeaveConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Leave Table", role: .destructive) {
+                    viewModel.requestLeaveTable()
+                    dismiss()
+                }
+                Button("Stay", role: .cancel) {}
+            } message: {
+                Text("You'll give up your spot and return to the lobby.")
             }
         }
         .onAppear { viewModel.speechManager.speakTransition("Controls opened.") }
