@@ -1,39 +1,40 @@
-# Number Chain localization
+# Number Chain — sl
+# AI-translated, native review pending — corrections welcome.
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } je igralec 1, { $p2 } je igralec 2. Začne { $first }. Postavi 1 kjerkoli, da začneš verigo.
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = Postavljaš { $number } v vrstico { $row }, stolpec { $col }.
+numberchain-place-other = { $player } postavlja { $number } v vrstico { $row }, stolpec { $col }.
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = Ta poteza ni dovoljena.
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = Na potezi je { $current }. Naslednje število: { $required }.
+numberchain-inventory = Tvoje preostale ploščice: { $inventory }.
+numberchain-required = Naslednje število za postavitev: { $required }.
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = Vrstica { $row }, stolpec { $col }, prazno
+numberchain-sq-own = Vrstica { $row }, stolpec { $col }, { $number }, tvoje
+numberchain-sq-opponent = Vrstica { $row }, stolpec { $col }, { $number }, { $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = Stanje
+numberchain-check-inventory = Zaloga
+numberchain-check-required = Naslednje število
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } zmaga! Nasprotnik nima dovoljenih potez.
+numberchain-final = { $winner } zmaga.
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = Težavnost bota: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = Izberi težavnost bota
+numberchain-option-changed-bot-difficulty = Težavnost bota nastavljena na { $bot_difficulty }.
+numberchain-difficulty-random = Naključna
+numberchain-difficulty-simple = Preprosta

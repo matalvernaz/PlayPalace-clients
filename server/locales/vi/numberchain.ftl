@@ -1,39 +1,40 @@
-# Number Chain localization
+# Number Chain — vi
+# AI-translated, native review pending — corrections welcome.
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } là người chơi 1, { $p2 } là người chơi 2. { $first } đi trước. Đặt số 1 ở bất kỳ đâu để bắt đầu chuỗi.
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = Bạn đặt { $number } vào hàng { $row }, cột { $col }.
+numberchain-place-other = { $player } đặt { $number } vào hàng { $row }, cột { $col }.
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = Nước đi này không hợp lệ.
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = Đến lượt { $current }. Số tiếp theo: { $required }.
+numberchain-inventory = Quân còn lại của bạn: { $inventory }.
+numberchain-required = Số tiếp theo cần đặt: { $required }.
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = Hàng { $row }, cột { $col }, trống
+numberchain-sq-own = Hàng { $row }, cột { $col }, { $number }, của bạn
+numberchain-sq-opponent = Hàng { $row }, cột { $col }, { $number }, { $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = Trạng thái
+numberchain-check-inventory = Kho
+numberchain-check-required = Số tiếp theo
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } thắng! Đối thủ không còn nước đi hợp lệ.
+numberchain-final = { $winner } thắng.
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = Độ khó của bot: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = Chọn độ khó của bot
+numberchain-option-changed-bot-difficulty = Độ khó của bot được đặt thành { $bot_difficulty }.
+numberchain-difficulty-random = Ngẫu nhiên
+numberchain-difficulty-simple = Đơn giản

@@ -1,39 +1,40 @@
-# Number Chain localization
+# Number Chain — ro
+# AI-translated, native review pending — corrections welcome.
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } este jucătorul 1, { $p2 } este jucătorul 2. { $first } începe. Pune un 1 oriunde pentru a începe lanțul.
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = Pui { $number } pe rândul { $row }, coloana { $col }.
+numberchain-place-other = { $player } pune { $number } pe rândul { $row }, coloana { $col }.
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = Această mutare nu este permisă.
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = Este rândul lui { $current }. Următorul număr: { $required }.
+numberchain-inventory = Piesele tale rămase: { $inventory }.
+numberchain-required = Următorul număr de pus: { $required }.
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = Rândul { $row }, coloana { $col }, gol
+numberchain-sq-own = Rândul { $row }, coloana { $col }, { $number }, al tău
+numberchain-sq-opponent = Rândul { $row }, coloana { $col }, { $number }, { $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = Stare
+numberchain-check-inventory = Inventar
+numberchain-check-required = Următorul număr
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } câștigă! Adversarul nu mai are mutări legale.
+numberchain-final = { $winner } câștigă.
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = Dificultatea botului: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = Selectează dificultatea botului
+numberchain-option-changed-bot-difficulty = Dificultatea botului setată la { $bot_difficulty }.
+numberchain-difficulty-random = Aleatorie
+numberchain-difficulty-simple = Simplă

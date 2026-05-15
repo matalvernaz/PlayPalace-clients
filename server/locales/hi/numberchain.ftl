@@ -1,39 +1,40 @@
-# Number Chain localization
+# Number Chain — hi
+# AI-translated with limited fluency, native review strongly recommended.
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } खिलाड़ी 1 हैं, { $p2 } खिलाड़ी 2 हैं। { $first } पहले शुरू करते हैं। श्रृंखला शुरू करने के लिए कहीं भी 1 रखें।
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = आप { $number } को पंक्ति { $row }, स्तंभ { $col } पर रखते हैं।
+numberchain-place-other = { $player } { $number } को पंक्ति { $row }, स्तंभ { $col } पर रखते हैं।
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = यह चाल मान्य नहीं है।
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = { $current } की बारी। अगला अंक: { $required }।
+numberchain-inventory = आपकी शेष टाइलें: { $inventory }।
+numberchain-required = अगला रखने वाला अंक: { $required }।
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = पंक्ति { $row }, स्तंभ { $col }, खाली
+numberchain-sq-own = पंक्ति { $row }, स्तंभ { $col }, { $number }, आपका
+numberchain-sq-opponent = पंक्ति { $row }, स्तंभ { $col }, { $number }, { $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = स्थिति
+numberchain-check-inventory = सूची
+numberchain-check-required = अगला अंक
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } जीत गए! विरोधी के पास कोई मान्य चाल नहीं है।
+numberchain-final = { $winner } जीत गए।
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = बॉट कठिनाई: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = बॉट कठिनाई चुनें
+numberchain-option-changed-bot-difficulty = बॉट कठिनाई { $bot_difficulty } पर सेट की गई।
+numberchain-difficulty-random = यादृच्छिक
+numberchain-difficulty-simple = सरल

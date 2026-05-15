@@ -1,39 +1,40 @@
-# Number Chain localization
+# Number Chain — hu
+# AI-translated, native review pending — corrections welcome.
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } az 1. játékos, { $p2 } a 2. játékos. { $first } kezd. Tegyél le egy 1-est bárhová a lánc indításához.
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = Leteszed a(z) { $number } számot a(z) { $row }. sor, { $col }. oszlopra.
+numberchain-place-other = { $player } leteszi a(z) { $number } számot a(z) { $row }. sor, { $col }. oszlopra.
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = Ez a lépés nem érvényes.
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = { $current } következik. Következő szám: { $required }.
+numberchain-inventory = Hátralévő lapkáid: { $inventory }.
+numberchain-required = Következő letehető szám: { $required }.
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = { $row }. sor, { $col }. oszlop, üres
+numberchain-sq-own = { $row }. sor, { $col }. oszlop, { $number }, a tiéd
+numberchain-sq-opponent = { $row }. sor, { $col }. oszlop, { $number }, { $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = Állapot
+numberchain-check-inventory = Készlet
+numberchain-check-required = Következő szám
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } nyer! Az ellenfélnek nincs érvényes lépése.
+numberchain-final = { $winner } nyer.
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = Bot nehézsége: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = Válassz bot nehézséget
+numberchain-option-changed-bot-difficulty = Bot nehézsége { $bot_difficulty } értékre állítva.
+numberchain-difficulty-random = Véletlenszerű
+numberchain-difficulty-simple = Egyszerű

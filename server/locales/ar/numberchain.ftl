@@ -1,39 +1,40 @@
-# Number Chain localization
+# Number Chain — ar
+# AI-translated, native review pending — corrections welcome.
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } اللاعب الأول، { $p2 } اللاعب الثاني. يبدأ { $first }. ضع 1 في أي مكان لبدء السلسلة.
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = تضع { $number } في الصف { $row }، العمود { $col }.
+numberchain-place-other = { $player } يضع { $number } في الصف { $row }، العمود { $col }.
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = هذه الحركة غير مسموحة.
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = دور { $current }. الرقم التالي: { $required }.
+numberchain-inventory = قطعك المتبقية: { $inventory }.
+numberchain-required = الرقم التالي للوضع: { $required }.
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = الصف { $row }، العمود { $col }، فارغ
+numberchain-sq-own = الصف { $row }، العمود { $col }، { $number }، خاصتك
+numberchain-sq-opponent = الصف { $row }، العمود { $col }، { $number }، { $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = الحالة
+numberchain-check-inventory = المخزون
+numberchain-check-required = الرقم التالي
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } فاز! لا توجد حركات مسموحة للخصم.
+numberchain-final = { $winner } فاز.
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = صعوبة الروبوت: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = اختر صعوبة الروبوت
+numberchain-option-changed-bot-difficulty = تم ضبط صعوبة الروبوت على { $bot_difficulty }.
+numberchain-difficulty-random = عشوائي
+numberchain-difficulty-simple = بسيط

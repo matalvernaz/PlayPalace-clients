@@ -1,39 +1,40 @@
-# Number Chain localization
+# Number Chain — uk
+# AI-translated, native review pending — corrections welcome.
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } — гравець 1, { $p2 } — гравець 2. Починає { $first }. Поставте 1 будь-де, щоб розпочати ланцюг.
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = Ви ставите { $number } в рядок { $row }, колонка { $col }.
+numberchain-place-other = { $player } ставить { $number } в рядок { $row }, колонка { $col }.
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = Цей хід не дозволено.
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = Хід гравця { $current }. Наступне число: { $required }.
+numberchain-inventory = Ваші плитки, що залишилися: { $inventory }.
+numberchain-required = Наступне число для розміщення: { $required }.
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = Рядок { $row }, колонка { $col }, порожньо
+numberchain-sq-own = Рядок { $row }, колонка { $col }, { $number }, ваше
+numberchain-sq-opponent = Рядок { $row }, колонка { $col }, { $number }, { $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = Статус
+numberchain-check-inventory = Інвентар
+numberchain-check-required = Наступне число
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } перемагає! У суперника немає допустимих ходів.
+numberchain-final = { $winner } перемагає.
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = Складність бота: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = Виберіть складність бота
+numberchain-option-changed-bot-difficulty = Складність бота встановлено на { $bot_difficulty }.
+numberchain-difficulty-random = Випадкова
+numberchain-difficulty-simple = Проста

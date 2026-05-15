@@ -1,39 +1,39 @@
-# Number Chain localization
+# Number Chain — pt
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } é o jogador 1, { $p2 } é o jogador 2. { $first } começa. Coloque um 1 em qualquer lugar para iniciar a cadeia.
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = Você coloca { $number } na linha { $row }, coluna { $col }.
+numberchain-place-other = { $player } coloca { $number } na linha { $row }, coluna { $col }.
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = Jogada inválida.
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = Vez de { $current }. Próximo número: { $required }.
+numberchain-inventory = Suas peças restantes: { $inventory }.
+numberchain-required = Próximo número a colocar: { $required }.
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = Linha { $row }, coluna { $col }, vazia
+numberchain-sq-own = Linha { $row }, coluna { $col }, { $number }, sua
+numberchain-sq-opponent = Linha { $row }, coluna { $col }, { $number }, { $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = Estado
+numberchain-check-inventory = Inventário
+numberchain-check-required = Próximo número
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } vence! O oponente não tem jogadas legais.
+numberchain-final = { $winner } vence.
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = Dificuldade do bot: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = Selecionar dificuldade do bot
+numberchain-option-changed-bot-difficulty = Dificuldade do bot ajustada para { $bot_difficulty }.
+numberchain-difficulty-random = Aleatória
+numberchain-difficulty-simple = Simples

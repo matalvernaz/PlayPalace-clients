@@ -1,39 +1,39 @@
-# Number Chain localization
+# Number Chain — ja
 
 game-name-numberchain = Number Chain
 
 # Game start
-numberchain-game-started = { $p1 } is player 1, { $p2 } is player 2. { $first } goes first. Place a 1 anywhere to begin the chain.
+numberchain-game-started = { $p1 } はプレイヤー1、{ $p2 } はプレイヤー2です。{ $first } から始めます。任意の場所に1を置いて連鎖を開始してください。
 
 # Placement
-numberchain-place-you = You place { $number } at row { $row }, column { $col }.
-numberchain-place-other = { $player } places { $number } at row { $row }, column { $col }.
+numberchain-place-you = あなたは { $number } を { $row } 行 { $col } 列に置きます。
+numberchain-place-other = { $player } が { $number } を { $row } 行 { $col } 列に置きます。
 
 # Errors
-numberchain-illegal-move = That move is not legal.
+numberchain-illegal-move = その手は不正です。
 
 # Status / info
-numberchain-status = { $current } to play. Next number: { $required }.
-numberchain-inventory = Your remaining tiles: { $inventory }.
-numberchain-required = Next number to place: { $required }.
+numberchain-status = { $current } の手番です。次の数字: { $required }。
+numberchain-inventory = 残りのタイル: { $inventory }。
+numberchain-required = 次に置く数字: { $required }。
 
 # Square labels
-numberchain-sq-empty = Row { $row }, column { $col }, empty
-numberchain-sq-own = Row { $row }, column { $col }, { $number }, yours
-numberchain-sq-opponent = Row { $row }, column { $col }, { $number }, { $owner }
+numberchain-sq-empty = { $row } 行 { $col } 列、空き
+numberchain-sq-own = { $row } 行 { $col } 列、{ $number }、自分
+numberchain-sq-opponent = { $row } 行 { $col } 列、{ $number }、{ $owner }
 
-# Action labels (used by the keybind list)
-numberchain-check-status = Status
-numberchain-check-inventory = Inventory
-numberchain-check-required = Next number
+# Action labels
+numberchain-check-status = 状況
+numberchain-check-inventory = 持ち駒
+numberchain-check-required = 次の数字
 
 # Win
-numberchain-wins = { $player } wins! Opponent has no legal moves.
-numberchain-final = { $winner } wins.
+numberchain-wins = { $player } の勝ち! 相手に合法手がありません。
+numberchain-final = { $winner } の勝ち。
 
 # Options
-numberchain-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-numberchain-option-select-bot-difficulty = Select bot difficulty
-numberchain-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-numberchain-difficulty-random = Random
-numberchain-difficulty-simple = Simple
+numberchain-option-bot-difficulty = ボットの難易度: { $bot_difficulty }
+numberchain-option-select-bot-difficulty = ボットの難易度を選択
+numberchain-option-changed-bot-difficulty = ボットの難易度を { $bot_difficulty } に変更しました。
+numberchain-difficulty-random = ランダム
+numberchain-difficulty-simple = シンプル
