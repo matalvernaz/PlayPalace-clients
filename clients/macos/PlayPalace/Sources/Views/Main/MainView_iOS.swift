@@ -447,7 +447,11 @@ final class GameTouchView: UIView {
         case .goBack:
             impactFeedback.impactOccurred()
             vm.sendEscape()
-            speak("Back")
+            // The server almost always replies with a new menu and/or an
+            // explicit speak packet for the resulting state; the local
+            // "Back" announcement used to race that reply and one would
+            // talk over the other. Leave audible feedback to the server;
+            // the haptic confirms the gesture registered.
         case .primaryAction:
             impactFeedback.impactOccurred()
             // 1. Prefer server-declared primary action (newer servers)
@@ -620,6 +624,13 @@ final class GameTouchView: UIView {
 
     private func onIdle() {
         guard let vm = viewModel, !vm.menuItems.isEmpty else { return }
+        // Don't cut into in-flight narration (round summaries, win
+        // announcements, multi-line rule reads can easily run past the 8s
+        // idle window). Re-arm the timer and try again once speech drains.
+        if vm.speechManager.isSpeaking {
+            resetIdleTimer()
+            return
+        }
         announceCurrentItem()
     }
 

@@ -238,7 +238,10 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         let buffer = packet["buffer"] as? String ?? "misc"
         let muted = packet["muted"] as? Bool ?? false
         guard !text.isEmpty else { return }
-        addHistory(text, buffer: buffer, speak: !muted)
+        // Route server narration through the announcement channel — it's
+        // authoritative game state and must never be eaten by the UI dedup
+        // window or pre-empted by client-local chatter.
+        addHistory(text, buffer: buffer, speak: !muted, asAnnouncement: true)
     }
 
     private func handleMenu(_ packet: [String: Any]) {
@@ -276,9 +279,21 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             }
         }
 
-        // Announce new menu without interrupting server speech
-        // (score results, turn changes, etc. may still be queued)
-        if !isSameMenu, let sel = menuSelection, sel < data.items.count {
+        // Announce the current selection in two cases:
+        //   1. The menu_id is different — clearly a new menu state.
+        //   2. The menu_id is the same but speech is idle — the server
+        //      often re-uses a menu_id when play returns to the current
+        //      user after other turns. Without this branch the player has
+        //      no audible cue that it's their turn again (the menu just
+        //      silently re-appears). Guarding on `isSpeaking` keeps us
+        //      from piling onto narration that's mid-flight.
+        let shouldAnnounce: Bool
+        if !isSameMenu {
+            shouldAnnounce = true
+        } else {
+            shouldAnnounce = !speechManager.isSpeaking
+        }
+        if shouldAnnounce, let sel = menuSelection, sel < data.items.count {
             speechManager.speak(data.items[sel].text, interrupt: false)
         }
     }
@@ -347,7 +362,10 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
         let sound = convo == "local" ? "chatlocal.ogg" : "chat.ogg"
         soundManager.play(sound)
-        speechManager.speak(formatted)
+        // Queue (interrupt:false) so chat doesn't wipe out a mid-flight game
+        // event ("You rolled 6, for a total of 14"). Players still hear the
+        // chat sound immediately and the text plays once narration is done.
+        speechManager.speak(formatted, interrupt: false)
         addHistory(formatted, buffer: "chats", speak: false)
     }
 
@@ -779,12 +797,19 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
     // MARK: - History
 
-    func addHistory(_ text: String, buffer: String = "misc", speak: Bool = true) {
+    func addHistory(_ text: String, buffer: String = "misc", speak: Bool = true, asAnnouncement: Bool = false) {
         let item = BufferItem(text)
         historyItems.append(item)
         bufferSystem.addItem(text, buffer: buffer)
 
-        if speak && !bufferSystem.isMuted(buffer) {
+        guard speak, !bufferSystem.isMuted(buffer) else { return }
+
+        if asAnnouncement {
+            // Server-pushed authoritative narration: bypass the UI dedup
+            // window, queue in FIFO, and let it preempt routine UI chatter
+            // so important events always land.
+            speechManager.speakAnnouncement(text)
+        } else {
             speechManager.speak(text, interrupt: false)
         }
     }

@@ -106,7 +106,21 @@ final class SpeechManager: NSObject, ObservableObject {
             name: UIAccessibility.announcementDidFinishNotification,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(voiceOverStatusDidChange(_:)),
+            name: UIAccessibility.voiceOverStatusDidChangeNotification,
+            object: nil
+        )
         #endif
+    }
+
+    /// Whether anything is currently speaking or queued. Used by callers
+    /// that want to avoid stomping on in-flight speech (e.g. the idle
+    /// timer that would otherwise interrupt a long server narration just
+    /// to re-announce the current menu item).
+    var isSpeaking: Bool {
+        voInFlight != nil || !voQueue.isEmpty || activeChannel != nil || !queue.isEmpty
     }
 
     /// Legacy entry point — preserved so existing call sites keep working.
@@ -157,12 +171,21 @@ final class SpeechManager: NSObject, ObservableObject {
     private func enqueue(_ text: String, channel: Channel, interrupting: Bool) {
         guard !text.isEmpty else { return }
 
-        let now = Date()
-        if text == lastSpokenText, now.timeIntervalSince(lastSpokenAt) < Self.dedupWindow {
-            return
+        // Dedup applies only to the UI channel — rapid menu navigation can
+        // re-emit the same item text within a few hundred ms and we want
+        // to collapse that. Announcements carry server-authoritative game
+        // events (turn changes, dice results, scoring) that must never be
+        // silently dropped, even when identical to the previous one — a
+        // bot rolling the same number twice in a row would otherwise
+        // produce one announcement instead of two.
+        if channel == .ui {
+            let now = Date()
+            if text == lastSpokenText, now.timeIntervalSince(lastSpokenAt) < Self.dedupWindow {
+                return
+            }
+            lastSpokenText = text
+            lastSpokenAt = now
         }
-        lastSpokenText = text
-        lastSpokenAt = now
 
         if isVoiceOverRunning {
             postVoiceOverAnnouncement(text, channel: channel, interrupting: interrupting)
@@ -263,12 +286,44 @@ final class SpeechManager: NSObject, ObservableObject {
         #endif
         Task { @MainActor [weak self] in
             guard let self, let inflight = self.voInFlight else { return }
-            if let finishedText, finishedText != inflight.text {
+            if let finishedText, !Self.announcementsMatch(finishedText, inflight.text) {
+                // Stale didFinish for a previously-timed-out item; ignore so
+                // we don't pop the new in-flight item prematurely.
                 return
             }
             self.cancelVoiceOverTimeout()
             self.voInFlight = nil
             self.pumpVoiceOverQueue()
+        }
+    }
+
+    /// VoiceOver normalises text before reporting it back via
+    /// ``announcementStringValueUserInfoKey`` — punctuation, casing, and
+    /// some abbreviations (e.g. "1st" → "first") can differ from what we
+    /// posted. A strict equality check would mistake the same finish for a
+    /// stale one and wedge the queue for a full timeout cycle. Compare a
+    /// normalised, alphanumeric prefix so we still reject obviously-stale
+    /// finishes but tolerate iOS's text munging.
+    private static func announcementsMatch(_ a: String, _ b: String) -> Bool {
+        let normalize: (String) -> String = { s in
+            String(s.lowercased().filter { $0.isLetter || $0.isNumber }.prefix(64))
+        }
+        let na = normalize(a)
+        let nb = normalize(b)
+        if na.isEmpty || nb.isEmpty {
+            // No usable signal — assume it matches rather than wedge.
+            return true
+        }
+        return na == nb || na.hasPrefix(nb) || nb.hasPrefix(na)
+    }
+
+    /// VoiceOver toggled on or off mid-session. Both queues are now stale —
+    /// the synth queue can't reach VO and any pending VO posts won't ever
+    /// fire didFinish — so tear everything down and let the next enqueue
+    /// land on whichever path is currently active.
+    @objc private nonisolated func voiceOverStatusDidChange(_ note: Notification) {
+        Task { @MainActor [weak self] in
+            self?.stop()
         }
     }
 
