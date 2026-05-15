@@ -43,6 +43,7 @@ from .chess.game import ChessGame
 from .backgammon.game import BackgammonGame
 from .senet.game import SenetGame
 from .mancala.game import MancalaGame
+from .numberchain.game import NumberChainGame
 from .risk.game import RiskGame
 
 # --- RB Play Center ---
@@ -100,6 +101,7 @@ __all__ = [
     "BackgammonGame",
     "SenetGame",
     "MancalaGame",
+    "NumberChainGame",
     "RiskGame",
     "LightTurretGame",
     "ChaosBearGame",
