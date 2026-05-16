@@ -39,29 +39,23 @@ struct LoginView: View {
         NavigationStack {
             Form {
                 Section {
-                    Button {
-                        showingGettingStarted = true
-                    } label: {
+                    DoubleTapButton(action: { showingGettingStarted = true }) {
                         Label("Getting Started", systemImage: "questionmark.circle")
+                            .accessibilityLabel("Getting started")
+                            .accessibilityHint("Read how to set up a server, register an account, and use in-game gestures. Available offline.")
                     }
-                    .accessibilityLabel("Getting started")
-                    .accessibilityHint("Read how to set up a server, register an account, and use in-game gestures. Available offline.")
 
-                    Button {
-                        showingServerManager = true
-                    } label: {
+                    DoubleTapButton(action: { showingServerManager = true }) {
                         Label("Server Manager", systemImage: "server.rack")
+                            .accessibilityLabel("Server manager")
+                            .accessibilityHint("Add, edit, or remove servers and accounts")
                     }
-                    .accessibilityLabel("Server manager")
-                    .accessibilityHint("Add, edit, or remove servers and accounts")
 
-                    Button {
-                        showingGestureSettings = true
-                    } label: {
+                    DoubleTapButton(action: { showingGestureSettings = true }) {
                         Label("Audio and Gesture Settings", systemImage: "slider.horizontal.3")
+                            .accessibilityLabel("Audio and gesture settings")
+                            .accessibilityHint("Adjust music and ambience volume, customize touch gestures")
                     }
-                    .accessibilityLabel("Audio and gesture settings")
-                    .accessibilityHint("Adjust music and ambience volume, customize touch gestures")
                 }
 
                 serverPickerSection
@@ -207,42 +201,44 @@ struct LoginView: View {
 
     private var connectSection: some View {
         Section {
-            Button(action: performLogin) {
+            DoubleTapButton(
+                isEnabled: selectedAccount != nil && !password.isEmpty,
+                action: performLogin,
+            ) {
                 HStack {
                     Spacer()
                     Label("Connect", systemImage: "play.fill")
                         .font(.headline)
                     Spacer()
                 }
+                .accessibilityLabel("Connect to server")
+                .accessibilityHint(
+                    selectedAccount != nil
+                        ? "Connect to \(selectedServer?.name ?? "server") as \(selectedAccount?.username ?? "user")"
+                        : "Select a server and account first"
+                )
             }
-            .disabled(selectedAccount == nil || password.isEmpty)
-            .accessibilityLabel("Connect to server")
-            .accessibilityHint(
-                selectedAccount != nil
-                    ? "Connect to \(selectedServer?.name ?? "server") as \(selectedAccount?.username ?? "user")"
-                    : "Select a server and account first"
-            )
         }
     }
 
     private var registrationSection: some View {
         Section {
-            Button {
-                showingRegistration = true
-            } label: {
+            DoubleTapButton(
+                isEnabled: selectedServerID != nil,
+                action: { showingRegistration = true },
+            ) {
                 HStack {
                     Spacer()
                     Label("Create New Account", systemImage: "person.badge.plus")
                     Spacer()
                 }
+                .accessibilityLabel("Create new account")
+                .accessibilityHint(
+                    selectedServerID != nil
+                        ? "Create a new account on \(selectedServer?.name ?? "this server") and connect."
+                        : "Select a server first"
+                )
             }
-            .disabled(selectedServerID == nil)
-            .accessibilityLabel("Create new account")
-            .accessibilityHint(
-                selectedServerID != nil
-                    ? "Create a new account on \(selectedServer?.name ?? "this server") and connect."
-                    : "Select a server first"
-            )
         }
     }
 
@@ -378,21 +374,23 @@ struct RegistrationView_iOS: View {
                 }
 
                 Section {
-                    Button(action: performRegistration) {
+                    DoubleTapButton(
+                        isEnabled: isValid,
+                        action: performRegistration,
+                    ) {
                         HStack {
                             Spacer()
                             Text("Create Account and Connect")
                                 .font(.headline)
                             Spacer()
                         }
+                        .accessibilityLabel("Create account and connect")
+                        .accessibilityHint(
+                            isValid
+                                ? "Save these credentials and connect to \(serverName). The server will create the account if it doesn't exist."
+                                : "Fill in all required fields first"
+                        )
                     }
-                    .disabled(!isValid)
-                    .accessibilityLabel("Create account and connect")
-                    .accessibilityHint(
-                        isValid
-                            ? "Save these credentials and connect to \(serverName). The server will create the account if it doesn't exist."
-                            : "Fill in all required fields first"
-                    )
                 }
             }
             .navigationTitle("Create Account")

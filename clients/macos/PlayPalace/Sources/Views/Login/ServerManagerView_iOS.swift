@@ -33,15 +33,13 @@ struct ServerManagerView_iOS: View {
             List {
                 // Prominent Add Server button at top of list for VoiceOver discoverability
                 Section {
-                    Button {
-                        showingAddServer = true
-                    } label: {
+                    DoubleTapButton(action: { showingAddServer = true }) {
                         Label("Add Server", systemImage: "plus.circle.fill")
                             .font(.body.weight(.semibold))
                             .foregroundStyle(.tint)
+                            .accessibilityLabel("Add server")
+                            .accessibilityHint("Add a new game server to connect to")
                     }
-                    .accessibilityLabel("Add server")
-                    .accessibilityHint("Add a new game server to connect to")
                 }
 
                 if sortedServers.isEmpty {
@@ -157,34 +155,30 @@ struct ServerDetailView_iOS: View {
 
             // Prominent Add Account button
             Section {
-                Button {
-                    showingAddAccount = true
-                } label: {
+                DoubleTapButton(action: { showingAddAccount = true }) {
                     Label("Add Account", systemImage: "person.badge.plus")
                         .font(.body.weight(.semibold))
                         .foregroundStyle(.tint)
+                        .accessibilityLabel("Add account")
+                        .accessibilityHint("Add a new login account to this server")
                 }
-                .accessibilityLabel("Add account")
-                .accessibilityHint("Add a new login account to this server")
             }
 
             // Accounts list
             if sortedAccounts.isEmpty {
                 Section {
-                    Text("No accounts yet. Tap Add Account to create one.")
+                    Text("No accounts yet. Double-tap Add Account to create one.")
                         .foregroundStyle(.secondary)
                         .accessibilityLabel("No accounts on this server")
                 }
             } else {
                 Section {
                     ForEach(sortedAccounts) { account in
-                        Button {
-                            editingAccount = account
-                        } label: {
+                        DoubleTapButton(action: { editingAccount = account }) {
                             AccountRow_iOS(account: account)
+                                .accessibilityLabel("\(account.username)\(account.email.isEmpty ? "" : ", \(account.email)")")
+                                .accessibilityHint("Double-tap to edit this account. Swipe left to delete.")
                         }
-                        .accessibilityLabel("\(account.username)\(account.email.isEmpty ? "" : ", \(account.email)")")
-                        .accessibilityHint("Tap to edit this account. Swipe left to delete.")
                     }
                     .onDelete(perform: deleteAccounts)
                 } header: {

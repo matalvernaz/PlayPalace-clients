@@ -63,9 +63,16 @@ struct MainView: View {
 // MARK: - In-game Menu Button
 
 /// Small overlay button in the top-trailing corner of the game view.
-/// Single-tap opens a confirmation dialog with Help, Controls, and Chat;
+/// Double-tap opens a confirmation dialog with Help, Controls, and Chat;
 /// guarantees a recovery path even if every gesture has been remapped to
-/// none.
+/// none. The double-tap requirement matches the in-game touch model so a
+/// stray finger landing on the menu icon doesn't pop a sheet mid-play.
+///
+/// Note: the iOS-native confirmation dialog itself uses iOS-standard
+/// single-tap activation (VO double-tap when VO is on). Customizing the
+/// dialog's per-item activation isn't possible without replacing the
+/// system control, and the dialog is a deliberate, transient surface that
+/// the user already opted into — so keeping that part native is fine.
 private struct InGameMenuButton: View {
     var onOpenChat: () -> Void
     var onOpenControls: () -> Void
@@ -74,18 +81,17 @@ private struct InGameMenuButton: View {
     @State private var showingMenu = false
 
     var body: some View {
-        Button {
-            showingMenu = true
-        } label: {
+        DoubleTapButton(action: { showingMenu = true }) {
             Image(systemName: "ellipsis.circle.fill")
                 .font(.system(size: 28, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.tint)
                 .frame(width: 44, height: 44)
                 .background(Color(.systemBackground).opacity(0.6), in: Circle())
+                .accessibilityLabel("Menu")
+                .accessibilityHint("Opens help, controls, and chat. Always available, no matter how gestures are configured.")
         }
-        .accessibilityLabel("Menu")
-        .accessibilityHint("Opens help, controls, and chat. Always available, no matter how gestures are configured.")
+        .fixedSize()
         .confirmationDialog("Menu", isPresented: $showingMenu, titleVisibility: .visible) {
             Button("Help") { onOpenHelp() }
             Button("Controls") { onOpenControls() }
@@ -754,11 +760,22 @@ private struct EditOverlay: View {
                     .onSubmit { viewModel.submitEdit() }
             }
             HStack(spacing: 16) {
-                Button("Cancel") { viewModel.cancelEdit() }
-                    .buttonStyle(.bordered)
+                DoubleTapButton(action: { viewModel.cancelEdit() }) {
+                    Text("Cancel")
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
+                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                }
+                .fixedSize()
                 if !viewModel.editReadOnly {
-                    Button("Submit") { viewModel.submitEdit() }
-                        .buttonStyle(.borderedProminent)
+                    DoubleTapButton(action: { viewModel.submitEdit() }) {
+                        Text("Submit")
+                            .foregroundStyle(Color.white)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color.accentColor, in: RoundedRectangle(cornerRadius: 8))
+                    }
+                    .fixedSize()
                 }
             }
             .padding(.horizontal, 16)
@@ -790,12 +807,15 @@ private struct ChatSheet: View {
                         .onSubmit { viewModel.sendChat() }
                         .submitLabel(.send)
                         .accessibilityLabel("Chat message")
-                        .accessibilityHint("Slash for commands, dot for global chat")
-                    Button { viewModel.sendChat() } label: {
+                        .accessibilityHint("Slash for commands, dot for global chat. Return key sends.")
+                    DoubleTapButton(
+                        isEnabled: !viewModel.chatText.trimmingCharacters(in: .whitespaces).isEmpty,
+                        action: { viewModel.sendChat() },
+                    ) {
                         Image(systemName: "paperplane.fill")
+                            .accessibilityLabel("Send")
                     }
-                    .disabled(viewModel.chatText.trimmingCharacters(in: .whitespaces).isEmpty)
-                    .accessibilityLabel("Send")
+                    .fixedSize()
                 }
                 .padding(12)
             }
@@ -830,11 +850,11 @@ private struct ControlsSheet: View {
                     if let info = viewModel.currentBufferInfo {
                         Text(info).foregroundStyle(.secondary)
                     }
-                    Button("Previous buffer") { viewModel.previousBuffer() }
-                    Button("Next buffer") { viewModel.nextBuffer() }
-                    Button("Older message") { viewModel.olderMessage() }
-                    Button("Newer message") { viewModel.newerMessage() }
-                    Button("Toggle mute") { viewModel.toggleBufferMute() }
+                    DoubleTapButton("Previous buffer") { viewModel.previousBuffer() }
+                    DoubleTapButton("Next buffer") { viewModel.nextBuffer() }
+                    DoubleTapButton("Older message") { viewModel.olderMessage() }
+                    DoubleTapButton("Newer message") { viewModel.newerMessage() }
+                    DoubleTapButton("Toggle mute") { viewModel.toggleBufferMute() }
                 }
                 Section("Volume") {
                     volumeRow("Music", viewModel.soundManager.musicVolume,
@@ -845,27 +865,18 @@ private struct ControlsSheet: View {
                               up: { viewModel.adjustAmbienceVolume(delta: 0.1) })
                 }
                 Section("Table") {
-                    // No extra confirmation dialog: under VoiceOver every
-                    // button requires swipe-to-focus + double-tap-to-activate
-                    // already, which is the standard soft confirmation for
-                    // destructive actions in this app's interaction model.
-                    Button(role: .destructive) {
+                    DoubleTapButton("Leave Table", role: .destructive) {
                         viewModel.requestLeaveTable()
                         dismiss()
-                    } label: {
-                        Text("Leave Table")
                     }
-                    .accessibilityHint("Leave the current table and return to the lobby.")
                 }
                 Section("Connection") {
-                    Button("Ping server") { viewModel.sendPing() }
-                    Button("Online users") { viewModel.requestOnlineUsers() }
-                    Button(role: .destructive) {
+                    DoubleTapButton("Ping server") { viewModel.sendPing() }
+                    DoubleTapButton("Online users") { viewModel.requestOnlineUsers() }
+                    DoubleTapButton("Disconnect", role: .destructive) {
                         viewModel.disconnect()
                         appState.returnToLogin()
                         dismiss()
-                    } label: {
-                        Text("Disconnect")
                     }
                 }
             }
@@ -887,10 +898,25 @@ private struct ControlsSheet: View {
         HStack {
             Text("\(label): \(Int(value * 100))%")
             Spacer()
-            Button { down() } label: { Image(systemName: "minus.circle") }
-                .accessibilityLabel("\(label) down")
-            Button { up() } label: { Image(systemName: "plus.circle") }
-                .accessibilityLabel("\(label) up")
+            DoubleTapButton(action: down) {
+                Image(systemName: "minus.circle")
+                    .accessibilityLabel("\(label) down")
+            }
+            .fixedSize()
+            DoubleTapButton(action: up) {
+                Image(systemName: "plus.circle")
+                    .accessibilityLabel("\(label) up")
+            }
+            .fixedSize()
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label) volume: \(Int(value * 100)) percent")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: up()
+            case .decrement: down()
+            @unknown default: break
+            }
         }
     }
 }

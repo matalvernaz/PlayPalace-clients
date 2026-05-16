@@ -35,13 +35,13 @@ struct GestureSettingsView: View {
                 }
 
                 Section("Presets") {
-                    Button("Swap two-finger and three-finger roles") {
+                    DoubleTapButton("Swap two-finger and three-finger roles") {
                         settings.swapFingerGroups(2, 3)
                         settings.save()
                     }
                     .accessibilityHint("Makes two-finger gestures control buffers and three-finger gestures control game actions")
 
-                    Button("Reset to defaults") {
+                    DoubleTapButton("Reset to defaults") {
                         settings.resetToDefaults()
                         settings.save()
                     }
@@ -96,15 +96,25 @@ struct GestureSettingsView: View {
         return HStack {
             Text(label)
             Spacer()
-            Button("−") { down() }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Decrease \(label) volume")
+            DoubleTapButton(action: down) {
+                Text("−")
+                    .frame(minWidth: 32)
+                    .padding(.vertical, 4)
+                    .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 6))
+                    .accessibilityLabel("Decrease \(label) volume")
+            }
+            .fixedSize()
             Text("\(pct)%")
                 .frame(minWidth: 50)
                 .accessibilityHidden(true)
-            Button("+") { up() }
-                .buttonStyle(.bordered)
-                .accessibilityLabel("Increase \(label) volume")
+            DoubleTapButton(action: up) {
+                Text("+")
+                    .frame(minWidth: 32)
+                    .padding(.vertical, 4)
+                    .background(Color(.tertiarySystemBackground), in: RoundedRectangle(cornerRadius: 6))
+                    .accessibilityLabel("Increase \(label) volume")
+            }
+            .fixedSize()
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label) volume: \(pct) percent")
