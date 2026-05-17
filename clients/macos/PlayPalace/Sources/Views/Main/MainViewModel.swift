@@ -122,6 +122,22 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         soundManager.removeAllPlaylists()
     }
 
+    /// Force a fresh disconnect+reconnect. Called when the iOS scene returns
+    /// from `.background` to `.active` — iOS suspends the URLSession task on
+    /// lock and the server has almost certainly hit its idle timeout, but the
+    /// suspended `receive()` call can be slow to throw, so the auto-reconnect
+    /// loop never gets kicked. Tear down deterministically here.
+    func forceReconnect() {
+        guard let creds = credentials else { return }
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        expectingReconnect = false
+        reconnectAttempts = 0
+        webSocket?.disconnect()
+        isConnected = false
+        connect(creds)
+    }
+
     // MARK: - WebSocketDelegate
 
     nonisolated func onPacketReceived(type: String, packet: [String: Any]) {
@@ -909,12 +925,18 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     func olderMessage() {
         if let msg = bufferSystem.olderMessage() {
             speechManager.speak(msg, interrupt: true)
+        } else {
+            // Silent failure here was the original "buffer didn't work" bug —
+            // an empty buffer would eat the swipe with no feedback.
+            speechManager.speak("Buffer empty.", interrupt: true)
         }
     }
 
     func newerMessage() {
         if let msg = bufferSystem.newerMessage() {
             speechManager.speak(msg, interrupt: true)
+        } else {
+            speechManager.speak("Buffer empty.", interrupt: true)
         }
     }
 

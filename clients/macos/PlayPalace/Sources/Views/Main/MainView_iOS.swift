@@ -11,6 +11,8 @@ struct MainView: View {
     @EnvironmentObject var appState: AppState
     @StateObject private var viewModel = MainViewModel()
     @StateObject private var gestureSettings = GestureSettings.load()
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var wasBackgrounded = false
     @State private var showingChat = false
     @State private var showingControls = false
     @State private var showingHelp = false
@@ -57,6 +59,23 @@ struct MainView: View {
         }
         .onAppear { viewModel.setup(appState: appState) }
         .onDisappear { viewModel.disconnect() }
+        .onChange(of: scenePhase) { _, newPhase in
+            switch newPhase {
+            case .background:
+                wasBackgrounded = true
+            case .active:
+                // Only force a reconnect on a real background→active cycle
+                // (phone lock, app switcher). Ignore .inactive→.active blips
+                // (Control Center, banner notifications) which don't kill the
+                // socket.
+                if wasBackgrounded {
+                    wasBackgrounded = false
+                    viewModel.forceReconnect()
+                }
+            default:
+                break
+            }
+        }
     }
 }
 
