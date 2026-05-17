@@ -261,6 +261,96 @@ class TestIntrospection:
 # ---------------------------------------------------------------------------
 
 
+# ---------------------------------------------------------------------------
+# Ignored users
+# ---------------------------------------------------------------------------
+
+
+class TestIgnoredUsers:
+    def test_default_empty(self):
+        assert UserPreferences().ignored_users == []
+
+    def test_add_ignored_normalizes_case_and_whitespace(self):
+        prefs = UserPreferences()
+        assert prefs.add_ignored("  Bob  ") is True
+        assert prefs.ignored_users == ["bob"]
+
+    def test_add_ignored_empty_or_whitespace_returns_false(self):
+        prefs = UserPreferences()
+        assert prefs.add_ignored("") is False
+        assert prefs.add_ignored("   ") is False
+        assert prefs.ignored_users == []
+
+    def test_add_ignored_duplicate_case_insensitive(self):
+        prefs = UserPreferences()
+        prefs.add_ignored("Bob")
+        assert prefs.add_ignored("BOB") is False
+        assert prefs.ignored_users == ["bob"]
+
+    def test_add_ignored_keeps_list_sorted(self):
+        prefs = UserPreferences()
+        prefs.add_ignored("Charlie")
+        prefs.add_ignored("Alice")
+        prefs.add_ignored("Bob")
+        assert prefs.ignored_users == ["alice", "bob", "charlie"]
+
+    def test_remove_ignored_case_insensitive(self):
+        prefs = UserPreferences()
+        prefs.add_ignored("Bob")
+        assert prefs.remove_ignored("BOB") is True
+        assert prefs.ignored_users == []
+
+    def test_remove_ignored_missing_returns_false(self):
+        prefs = UserPreferences()
+        assert prefs.remove_ignored("Bob") is False
+
+    def test_remove_ignored_strips_whitespace(self):
+        prefs = UserPreferences()
+        prefs.add_ignored("Bob")
+        assert prefs.remove_ignored("  bob  ") is True
+        assert prefs.ignored_users == []
+
+    def test_is_ignored_case_insensitive(self):
+        prefs = UserPreferences()
+        prefs.add_ignored("Bob")
+        assert prefs.is_ignored("bob") is True
+        assert prefs.is_ignored("BOB") is True
+        assert prefs.is_ignored("Bob") is True
+        assert prefs.is_ignored("Alice") is False
+
+    def test_to_dict_omits_empty_ignored_list(self):
+        prefs = UserPreferences()
+        assert "ignored_users" not in prefs.to_dict()
+
+    def test_to_dict_includes_non_empty_ignored_list(self):
+        prefs = UserPreferences()
+        prefs.add_ignored("Bob")
+        assert prefs.to_dict()["ignored_users"] == ["bob"]
+
+    def test_ignored_users_json_round_trip(self):
+        prefs = UserPreferences()
+        prefs.add_ignored("Bob")
+        prefs.add_ignored("Alice")
+        restored = UserPreferences.from_dict(json.loads(json.dumps(prefs.to_dict())))
+        assert restored.ignored_users == ["alice", "bob"]
+
+    def test_from_dict_normalizes_legacy_data(self):
+        # Defensive: dedupe case-insensitively, drop non-strings, sort.
+        prefs = UserPreferences.from_dict({
+            "ignored_users": ["Bob", "ALICE", "bob", 42, None, "alice"]
+        })
+        assert prefs.ignored_users == ["alice", "bob"]
+
+    def test_from_dict_rejects_non_list_ignored_field(self):
+        # Malformed input shouldn't crash — silently fall back to empty.
+        prefs = UserPreferences.from_dict({"ignored_users": "not a list"})
+        assert prefs.ignored_users == []
+
+    def test_from_dict_missing_key_leaves_default(self):
+        prefs = UserPreferences.from_dict({"play_turn_sound": False})
+        assert prefs.ignored_users == []
+
+
 class TestDiceKeepingStyle:
     def test_from_str_valid(self):
         assert DiceKeepingStyle.from_str("playpalace") == DiceKeepingStyle.PLAYPALACE

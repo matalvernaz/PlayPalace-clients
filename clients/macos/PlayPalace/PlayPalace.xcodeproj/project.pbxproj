@@ -20,6 +20,7 @@
 		B000003F2 /* Sources/Views/Components/AccessibleMenuList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F2 /* Sources/Views/Components/AccessibleMenuList.swift */; };
 		B000003F3 /* Sources/Views/Components/ActionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F3 /* Sources/Views/Components/ActionBar.swift */; };
 		B00000401 /* Sources/Views/Components/DoubleTapButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000401 /* Sources/Views/Components/DoubleTapButton.swift */; };
+		B00000402 /* Sources/Models/IgnoreList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000402 /* Sources/Models/IgnoreList.swift */; };
 		B000003F4 /* Sources/Views/Components/GestureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F4 /* Sources/Views/Components/GestureSettingsView.swift */; };
 		B000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift */; };
 		B000003F6 /* Sources/Views/Components/MenuList_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F6 /* Sources/Views/Components/MenuList_iOS.swift */; };
@@ -49,6 +50,7 @@
 		A000003F2 /* Sources/Views/Components/AccessibleMenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/AccessibleMenuList.swift; sourceTree = "<group>"; };
 		A000003F3 /* Sources/Views/Components/ActionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/ActionBar.swift; sourceTree = "<group>"; };
 		A00000401 /* Sources/Views/Components/DoubleTapButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/DoubleTapButton.swift; sourceTree = "<group>"; };
+		A00000402 /* Sources/Models/IgnoreList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/IgnoreList.swift; sourceTree = "<group>"; };
 		A000003F4 /* Sources/Views/Components/GestureSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/GestureSettingsView.swift; sourceTree = "<group>"; };
 		A000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/KeyboardShortcutHandler.swift; sourceTree = "<group>"; };
 		A000003F6 /* Sources/Views/Components/MenuList_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/MenuList_iOS.swift; sourceTree = "<group>"; };
@@ -87,6 +89,7 @@
 				A000003ED /* Sources/Models/ConfigManager.swift */,
 				A000003EE /* Sources/Models/Credentials.swift */,
 				A000003EF /* Sources/Models/GestureSettings.swift */,
+				A00000402 /* Sources/Models/IgnoreList.swift */,
 				A000003F0 /* Sources/Models/Packets.swift */,
 				A000003F1 /* Sources/Network/WebSocketClient.swift */,
 				A000003F2 /* Sources/Views/Components/AccessibleMenuList.swift */,
@@ -194,6 +197,7 @@
 				B000003ED /* Sources/Models/ConfigManager.swift in Sources */,
 				B000003EE /* Sources/Models/Credentials.swift in Sources */,
 				B000003EF /* Sources/Models/GestureSettings.swift in Sources */,
+				B00000402 /* Sources/Models/IgnoreList.swift in Sources */,
 				B000003F0 /* Sources/Models/Packets.swift in Sources */,
 				B000003F1 /* Sources/Network/WebSocketClient.swift in Sources */,
 				B000003F2 /* Sources/Views/Components/AccessibleMenuList.swift in Sources */,

@@ -30,9 +30,16 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
     private(set) var soundManager = SoundManager()
     private(set) var speechManager = SpeechManager()
+    private(set) var ignoreList = IgnoreList()
     private var bufferSystem = BufferSystem()
     private var webSocket: WebSocketClient?
     private var appState: AppState?
+
+    /// Most recent local-chat sender (table or open lobby), used by the
+    /// "Ignore last chatter" Controls action. Updated only when we actually
+    /// deliver a chat message — ignored senders never set this so the
+    /// quick-ignore button can't double-fire on the same person.
+    private(set) var lastChatSender: String?
 
     private var currentMenuID: String?
     private var currentMenuItemIDs: [String?] = []
@@ -94,6 +101,10 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         if let ambienceVol = prefs["ambience_volume"] as? Double {
             soundManager.setAmbienceVolume(Float(ambienceVol))
         }
+        // Wire the ignore list to the same on-disk store so it survives
+        // launches even if the server doesn't (or hasn't yet) sent its
+        // authoritative copy.
+        ignoreList.attach(configManager: appState.configManager)
 
         connect(creds)
     }
@@ -221,9 +232,20 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             break // Options dialogs not yet implemented
         case "preferences":
             handlePreferences(packet)
+        case "ignored_list":
+            handleIgnoredList(packet)
         default:
             break
         }
+    }
+
+    /// Replace the local ignore list with the server's authoritative copy.
+    /// Local edits send `ignore_user`/`unignore_user` and the server echoes
+    /// the full list back here; this keeps the two views consistent without
+    /// the client needing to track in-flight requests itself.
+    private func handleIgnoredList(_ packet: [String: Any]) {
+        let names = packet["usernames"] as? [String] ?? []
+        ignoreList.replaceAll(names)
     }
 
     /// Apply server-pushed user preferences. Currently only mirrors the
@@ -335,14 +357,29 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
         let isSameMenu = currentMenuID == data.menuID
         currentMenuID = data.menuID
-        currentMenuItemIDs = data.items.map(\.id)
 
-        menuItems = data.items
+        // Hide menu items that reference an ignored user. Primarily targets
+        // tables_menu / online_users; menu_id is scoped so we don't risk
+        // dropping an item from an unrelated menu just because its text
+        // happens to start with an ignored name.
+        let filteredItems = filterMenuItems(data.items, menuID: data.menuID)
+        currentMenuItemIDs = filteredItems.map(\.id)
 
+        menuItems = filteredItems
+
+        // Server-supplied position indexes the *unfiltered* list. Translate
+        // it through the filter so we land on the same logical item the
+        // server intended (or clamp to a valid index if that one was
+        // removed).
         if let pos = data.position, pos >= 0, pos < data.items.count {
-            menuSelection = pos
+            let originalItem = data.items[pos]
+            if let mapped = filteredItems.firstIndex(where: { $0.id == originalItem.id && $0.text == originalItem.text }) {
+                menuSelection = mapped
+            } else if !isSameMenu {
+                menuSelection = filteredItems.isEmpty ? nil : 0
+            }
         } else if !isSameMenu {
-            menuSelection = data.items.isEmpty ? nil : 0
+            menuSelection = filteredItems.isEmpty ? nil : 0
         }
 
         // Honor a pending Leave Table request: when the user tapped the
@@ -368,8 +405,8 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
         // Play selection sound if requested
         if packet["play_selection_sound"] as? Bool == true {
-            if let pos = data.position, pos >= 0, pos < data.items.count,
-               let sound = data.items[pos].sound {
+            if let sel = menuSelection, sel >= 0, sel < filteredItems.count,
+               let sound = filteredItems[sel].sound {
                 soundManager.play(sound)
             } else {
                 soundManager.playMenuClick()
@@ -390,8 +427,44 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         } else {
             shouldAnnounce = !speechManager.isSpeaking
         }
-        if shouldAnnounce, let sel = menuSelection, sel < data.items.count {
-            speechManager.speak(data.items[sel].text, interrupt: false)
+        if shouldAnnounce, let sel = menuSelection, sel < filteredItems.count {
+            speechManager.speak(filteredItems[sel].text, interrupt: false)
+        }
+    }
+
+    /// Drop menu items whose `meta.host` or `meta.username` is in the ignore
+    /// list. On menus where the server explicitly identifies users (tables
+    /// or online lists), also apply a best-effort text-prefix fallback so
+    /// the feature still works against vanilla servers that haven't added
+    /// the meta field. The fallback is scoped to known user-listing menus
+    /// to avoid stripping unrelated items whose text happens to start with
+    /// an ignored username.
+    private func filterMenuItems(_ items: [MenuItem], menuID: String) -> [MenuItem] {
+        guard !ignoreList.usernames.isEmpty else { return items }
+        let userListingMenus: Set<String> = [
+            "tables_menu",
+            "active_tables_menu",
+            "online_users",
+        ]
+        let allowTextFallback = userListingMenus.contains(menuID)
+        return items.filter { item in
+            if let host = item.meta["host"], ignoreList.contains(host) {
+                return false
+            }
+            if let username = item.meta["username"], ignoreList.contains(username) {
+                return false
+            }
+            if allowTextFallback {
+                // Most user-listing items are formatted as
+                // `Username (1h) — Status…` or `Username is hosting Y …`.
+                // Match the first whitespace-separated token, which is the
+                // username for every locale that uses Latin word order.
+                if let first = item.text.split(whereSeparator: { $0.isWhitespace }).first,
+                   ignoreList.contains(String(first)) {
+                    return false
+                }
+            }
+            return true
         }
     }
 
@@ -450,12 +523,21 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         let sender = packet["sender"] as? String ?? ""
         let message = packet["message"] as? String ?? ""
 
+        // Drop ignored chat entirely — no sound, no speech, no buffer
+        // entry, no last-chatter update. The server already filters when
+        // it can; this is the always-on fallback for vanilla servers and
+        // for races where an in-flight chat arrives before the server has
+        // applied the new ignore.
+        if !sender.isEmpty, ignoreList.contains(sender) { return }
+
         let formatted: String
         if convo == "global" {
             formatted = "\(sender) globally: \(message)"
         } else {
             formatted = "\(sender): \(message)"
         }
+
+        if !sender.isEmpty { lastChatSender = sender }
 
         let sound = convo == "local" ? "chatlocal.ogg" : "chat.ogg"
         soundManager.play(sound)
@@ -586,6 +668,10 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private func handleTableCreate(_ packet: [String: Any]) {
         let host = packet["host"] as? String ?? ""
         let game = packet["game"] as? String ?? ""
+        // Pretend the announcement never arrived if it's about an ignored
+        // host. (PlayPalace ≥ 11.x server filters before delivery; this
+        // covers vanilla servers + cross-server defense in depth.)
+        if !host.isEmpty, ignoreList.contains(host) { return }
         soundManager.play("notify.ogg")
         addHistory("\(host) is hosting \(game).", buffer: "activity")
     }
@@ -961,6 +1047,53 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     func requestOnlineUsers() {
         guard isConnected else { return }
         webSocket?.send(ClientPacket.listOnline())
+    }
+
+    // MARK: - Ignore List
+
+    /// Ignore a user by name. Updates the local store immediately so
+    /// filtering kicks in even before the server echoes back, and sends
+    /// the update upstream so other devices stay in sync.
+    func ignoreUser(_ username: String) {
+        let trimmed = username.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        if let me = credentials?.username, trimmed.lowercased() == me.lowercased() {
+            speechManager.speakAnnouncement("Can't ignore yourself.")
+            return
+        }
+        let didAdd = ignoreList.add(trimmed)
+        if isConnected {
+            webSocket?.send(ClientPacket.ignoreUser(username: trimmed))
+        }
+        speechManager.speakAnnouncement(
+            didAdd ? "Ignoring \(trimmed)." : "\(trimmed) was already ignored."
+        )
+    }
+
+    func unignoreUser(_ username: String) {
+        let trimmed = username.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        let didRemove = ignoreList.remove(trimmed)
+        if isConnected {
+            webSocket?.send(ClientPacket.unignoreUser(username: trimmed))
+        }
+        speechManager.speakAnnouncement(
+            didRemove ? "No longer ignoring \(trimmed)." : "\(trimmed) wasn't ignored."
+        )
+    }
+
+    /// Convenience quick-action for the Controls sheet: ignore whoever
+    /// most recently sent a chat we delivered. Returns false if there's
+    /// nobody to ignore — the caller can announce that case so the user
+    /// gets feedback instead of a silent no-op.
+    @discardableResult
+    func ignoreLastChatter() -> Bool {
+        guard let sender = lastChatSender, !sender.isEmpty else {
+            speechManager.speakAnnouncement("No recent chatter to ignore.")
+            return false
+        }
+        ignoreUser(sender)
+        return true
     }
 
     func requestOnlineUsersWithGames() {

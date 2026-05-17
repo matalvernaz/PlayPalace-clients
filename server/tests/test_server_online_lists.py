@@ -8,6 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from server.core.server import Server
+from server.core.users.preferences import UserPreferences
 
 
 class DummyUser:
@@ -24,6 +25,9 @@ class DummyUser:
         self.uuid = f"uuid-{username}"
         self.client_type = ""
         self.platform = ""
+        # Real NetworkUser always carries preferences; mirror that so
+        # server paths that read `user.preferences.is_ignored(...)` work.
+        self.preferences = UserPreferences()
 
     def format_time_online(self) -> str:
         return "1m"

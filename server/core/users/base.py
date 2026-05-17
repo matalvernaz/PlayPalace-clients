@@ -36,15 +36,22 @@ class MenuItem:
     text: str
     id: str | None = None
     sound: str | None = None
+    # Structured metadata attached to this item — e.g. {"host": "Alice"} on a
+    # tables-menu entry or {"username": "Bob"} on an online-users entry. Used
+    # by clients to filter or take per-item actions without parsing the
+    # localized `text`. Unknown keys are simply ignored by older clients.
+    meta: dict[str, Any] | None = None
 
     def to_dict(self) -> dict[str, Any] | str:
         """Serialize menu item to a dict or string for client payloads."""
-        if self.id is not None or self.sound is not None:
-            data = {"text": self.text}
+        if self.id is not None or self.sound is not None or self.meta is not None:
+            data: dict[str, Any] = {"text": self.text}
             if self.id is not None:
                 data["id"] = self.id
             if self.sound is not None:
                 data["sound"] = self.sound
+            if self.meta:
+                data["meta"] = self.meta
             return data
         return self.text
 

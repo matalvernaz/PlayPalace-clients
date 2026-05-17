@@ -225,6 +225,16 @@ class UserPreferences:
         metadata={"skip_pref": True},  # not a preference itself
     )
 
+    # --- Ignored users ---
+    # Lowercase usernames the player has chosen to mute. Server uses this to
+    # filter outbound chat / table_create / online_users / tables_menu before
+    # delivery; clients also mirror it locally so the feature still works
+    # against vanilla servers that haven't implemented filtering.
+    ignored_users: list[str] = field(
+        default_factory=list,
+        metadata={"skip_pref": True},
+    )
+
     # ------------------------------------------------------------------
     # Introspection helpers
     # ------------------------------------------------------------------
@@ -334,6 +344,8 @@ class UserPreferences:
                 result[name] = value
         if self.game_overrides:
             result["game_overrides"] = self.game_overrides
+        if self.ignored_users:
+            result["ignored_users"] = self.ignored_users
         return result
 
     @classmethod
@@ -356,4 +368,33 @@ class UserPreferences:
         prefs = cls(**kwargs)
         if "game_overrides" in data and isinstance(data["game_overrides"], dict):
             prefs.game_overrides = data["game_overrides"]
+        if "ignored_users" in data and isinstance(data["ignored_users"], list):
+            # Defensive normalization — accept strings only, dedup, lowercase.
+            prefs.ignored_users = sorted({
+                str(u).lower() for u in data["ignored_users"] if isinstance(u, str)
+            })
         return prefs
+
+    # ------------------------------------------------------------------
+    # Ignored-users helpers
+    # ------------------------------------------------------------------
+
+    def is_ignored(self, username: str) -> bool:
+        """True if `username` (case-insensitive) is in the ignore list."""
+        return username.lower() in self.ignored_users
+
+    def add_ignored(self, username: str) -> bool:
+        """Add `username` to the ignore list. Returns True iff it was added."""
+        normalized = username.lower().strip()
+        if not normalized or normalized in self.ignored_users:
+            return False
+        self.ignored_users = sorted({*self.ignored_users, normalized})
+        return True
+
+    def remove_ignored(self, username: str) -> bool:
+        """Remove `username` from the ignore list. Returns True iff present."""
+        normalized = username.lower().strip()
+        if normalized not in self.ignored_users:
+            return False
+        self.ignored_users = [u for u in self.ignored_users if u != normalized]
+        return True

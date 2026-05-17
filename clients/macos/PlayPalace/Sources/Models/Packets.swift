@@ -186,6 +186,18 @@ enum ClientPacket {
         return packet
     }
 
+    static func ignoreUser(username: String) -> [String: Any] {
+        ["type": "ignore_user", "username": username]
+    }
+
+    static func unignoreUser(username: String) -> [String: Any] {
+        ["type": "unignore_user", "username": username]
+    }
+
+    static func listIgnored() -> [String: Any] {
+        ["type": "list_ignored"]
+    }
+
     private static func defaultClientType() -> String {
         #if os(iOS)
         return "mobile"
@@ -221,16 +233,27 @@ struct MenuItem: Identifiable, Equatable {
     let id: String?
     let text: String
     let sound: String?
+    /// Structured metadata the server attaches to this item. Currently used
+    /// for `host` (tables menus) and `username` (online-users menu) so the
+    /// client can filter by ignored user without parsing localized text.
+    /// Empty when the server didn't send it (vanilla / older servers).
+    let meta: [String: String]
 
     init(from raw: Any) {
         if let dict = raw as? [String: Any] {
             self.text = dict["text"] as? String ?? ""
             self.id = dict["id"] as? String
             self.sound = dict["sound"] as? String
+            if let rawMeta = dict["meta"] as? [String: Any] {
+                self.meta = rawMeta.compactMapValues { $0 as? String }
+            } else {
+                self.meta = [:]
+            }
         } else {
             self.text = String(describing: raw)
             self.id = nil
             self.sound = nil
+            self.meta = [:]
         }
     }
 }

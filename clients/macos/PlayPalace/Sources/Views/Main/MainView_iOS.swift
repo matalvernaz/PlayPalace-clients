@@ -861,6 +861,15 @@ private struct ControlsSheet: View {
     @ObservedObject var viewModel: MainViewModel
     var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    // Observe the ignore list so the "Manage list (N)" row count refreshes
+    // immediately after the user adds or removes someone in the child view.
+    @ObservedObject private var ignoreList: IgnoreList
+
+    init(viewModel: MainViewModel, appState: AppState) {
+        self.viewModel = viewModel
+        self.appState = appState
+        self._ignoreList = ObservedObject(wrappedValue: viewModel.ignoreList)
+    }
 
     var body: some View {
         NavigationStack {
@@ -882,6 +891,15 @@ private struct ControlsSheet: View {
                     volumeRow("Ambience", viewModel.soundManager.ambienceVolume,
                               down: { viewModel.adjustAmbienceVolume(delta: -0.1) },
                               up: { viewModel.adjustAmbienceVolume(delta: 0.1) })
+                }
+                Section("Ignored users") {
+                    DoubleTapButton("Ignore last chatter") {
+                        viewModel.ignoreLastChatter()
+                    }
+                    NavigationLink("Manage list (\(ignoreList.usernames.count))") {
+                        IgnoreListView(viewModel: viewModel)
+                    }
+                    .accessibilityHint("Add or remove ignored users")
                 }
                 Section("Table") {
                     DoubleTapButton("Leave Table", role: .destructive) {
@@ -937,6 +955,88 @@ private struct ControlsSheet: View {
             @unknown default: break
             }
         }
+    }
+}
+
+// MARK: - Ignore List Management
+
+private struct IgnoreListView: View {
+    @ObservedObject var viewModel: MainViewModel
+    @ObservedObject private var ignoreList: IgnoreList
+    @State private var newName: String = ""
+    @FocusState private var nameFocused: Bool
+
+    init(viewModel: MainViewModel) {
+        self.viewModel = viewModel
+        self._ignoreList = ObservedObject(wrappedValue: viewModel.ignoreList)
+    }
+
+    var body: some View {
+        List {
+            Section {
+                HStack(spacing: 8) {
+                    TextField("Username to ignore", text: $newName)
+                        .textFieldStyle(.roundedBorder)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled(true)
+                        .focused($nameFocused)
+                        .submitLabel(.done)
+                        .onSubmit(addCurrent)
+                        .accessibilityHint("Type a player's name and tap Add to ignore them.")
+                    DoubleTapButton(
+                        isEnabled: !newName.trimmingCharacters(in: .whitespaces).isEmpty,
+                        action: addCurrent,
+                    ) {
+                        Text("Add")
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                    }
+                    .fixedSize()
+                }
+            } footer: {
+                Text("Ignored players' chat, table announcements, and table listings are hidden from you. The list syncs across your devices when the server supports it.")
+                    .font(.footnote)
+            }
+
+            Section("Currently ignored") {
+                if ignoreList.usernames.isEmpty {
+                    Text("No ignored users.")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(ignoreList.usernames, id: \.self) { name in
+                        HStack {
+                            Text(name)
+                            Spacer()
+                            DoubleTapButton(action: { viewModel.unignoreUser(name) }) {
+                                Text("Unignore")
+                                    .font(.callout)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 4)
+                                    .background(Color(.secondarySystemBackground), in: Capsule())
+                            }
+                            .fixedSize()
+                            .accessibilityLabel("Unignore \(name)")
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(name), ignored")
+                        .accessibilityAction(named: "Unignore") {
+                            viewModel.unignoreUser(name)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Ignored")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { viewModel.speechManager.speakTransition("Ignored users.") }
+    }
+
+    private func addCurrent() {
+        let trimmed = newName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        viewModel.ignoreUser(trimmed)
+        newName = ""
+        nameFocused = true
     }
 }
 

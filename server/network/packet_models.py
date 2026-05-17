@@ -29,6 +29,7 @@ class MenuItemPayload(BaseModel):
     text: str
     id: str | None = None
     sound: str | None = None
+    meta: dict[str, Any] | None = None
 
 
 MenuItem = Annotated[Union[str, MenuItemPayload], Field(union_mode="left_to_right")]
@@ -186,6 +187,26 @@ class SetPreferencePacket(BasePacket):
     game_type: str | None = None
 
 
+class IgnoreUserPacket(BasePacket):
+    """Client asks the server to add `username` to the requester's ignore list."""
+
+    type: Literal["ignore_user"] = "ignore_user"
+    username: str
+
+
+class UnignoreUserPacket(BasePacket):
+    """Client asks the server to remove `username` from the requester's ignore list."""
+
+    type: Literal["unignore_user"] = "unignore_user"
+    username: str
+
+
+class ListIgnoredPacket(BasePacket):
+    """Client asks the server to re-send its current ignored-users snapshot."""
+
+    type: Literal["list_ignored"] = "list_ignored"
+
+
 ClientToServerPacket = Annotated[
     Union[
         AuthorizePacket,
@@ -211,6 +232,9 @@ ClientToServerPacket = Annotated[
         RemoveTablePasswordCommandPacket,
         CheckTablePasswordCommandPacket,
         SetPreferencePacket,
+        IgnoreUserPacket,
+        UnignoreUserPacket,
+        ListIgnoredPacket,
     ],
     Field(discriminator="type"),
 ]
@@ -433,6 +457,19 @@ class PreferencesPacket(BasePacket):
     preferences: dict[str, Any] = Field(default_factory=dict)
 
 
+class IgnoredListPacket(BasePacket):
+    """Server-pushed snapshot of the user's ignored-users list.
+
+    Sent on authorize_success and after every ignore_user/unignore_user
+    change so clients stay in sync without polling. Clients should mirror
+    this into their local store; even against vanilla servers that don't
+    send this, client-side filtering keeps working from the cached copy.
+    """
+
+    type: Literal["ignored_list"] = "ignored_list"
+    usernames: list[str] = Field(default_factory=list)
+
+
 ServerToClientPacket = Annotated[
     Union[
         AuthorizeSuccessPacket,
@@ -462,6 +499,7 @@ ServerToClientPacket = Annotated[
         OpenClientOptionsPacket,
         OpenServerOptionsPacket,
         PreferencesPacket,
+        IgnoredListPacket,
     ],
     Field(discriminator="type"),
 ]

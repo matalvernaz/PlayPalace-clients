@@ -9,6 +9,7 @@ import pytest
 
 from server.core.server import Server
 from server.core.users.base import TrustLevel
+from server.core.users.preferences import UserPreferences
 
 
 class DummyConn:
@@ -28,6 +29,9 @@ class DummyUser:
         self.connection = DummyConn()
         self.spoken: list[tuple[str, dict]] = []
         self.menus: list[str] = []
+        # Real NetworkUser always carries preferences; mirror that so
+        # server paths that read `user.preferences.is_ignored(...)` work.
+        self.preferences = UserPreferences()
 
     def speak(self, text: str, buffer: str = "misc") -> None:
         pass

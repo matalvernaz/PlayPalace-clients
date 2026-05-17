@@ -322,6 +322,27 @@
         "title": "EscapePacket",
         "type": "object"
       },
+      "IgnoreUserPacket": {
+        "additionalProperties": false,
+        "description": "Client asks the server to add `username` to the requester's ignore list.",
+        "properties": {
+          "type": {
+            "const": "ignore_user",
+            "default": "ignore_user",
+            "title": "Type",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "title": "IgnoreUserPacket",
+        "type": "object"
+      },
       "KeybindPacket": {
         "additionalProperties": false,
         "properties": {
@@ -392,6 +413,20 @@
           "key"
         ],
         "title": "KeybindPacket",
+        "type": "object"
+      },
+      "ListIgnoredPacket": {
+        "additionalProperties": false,
+        "description": "Client asks the server to re-send its current ignored-users snapshot.",
+        "properties": {
+          "type": {
+            "const": "list_ignored",
+            "default": "list_ignored",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "ListIgnoredPacket",
         "type": "object"
       },
       "ListOnlinePacket": {
@@ -766,6 +801,27 @@
         ],
         "title": "SlashCommandPacket",
         "type": "object"
+      },
+      "UnignoreUserPacket": {
+        "additionalProperties": false,
+        "description": "Client asks the server to remove `username` from the requester's ignore list.",
+        "properties": {
+          "type": {
+            "const": "unignore_user",
+            "default": "unignore_user",
+            "title": "Type",
+            "type": "string"
+          },
+          "username": {
+            "title": "Username",
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "title": "UnignoreUserPacket",
+        "type": "object"
       }
     },
     "discriminator": {
@@ -780,7 +836,9 @@
         "document_editor": "#/$defs/DocumentEditorResponsePacket",
         "editbox": "#/$defs/EditboxPacket",
         "escape": "#/$defs/EscapePacket",
+        "ignore_user": "#/$defs/IgnoreUserPacket",
         "keybind": "#/$defs/KeybindPacket",
+        "list_ignored": "#/$defs/ListIgnoredPacket",
         "list_online": "#/$defs/ListOnlinePacket",
         "list_online_with_games": "#/$defs/ListOnlineWithGamesPacket",
         "menu": "#/$defs/MenuSelectionPacket",
@@ -792,7 +850,8 @@
         "set_preference": "#/$defs/SetPreferencePacket",
         "set_table_pw_cmd": "#/$defs/SetTablePasswordCommandPacket",
         "set_table_visibility_cmd": "#/$defs/SetTableVisibilityCommandPacket",
-        "slash_command": "#/$defs/SlashCommandPacket"
+        "slash_command": "#/$defs/SlashCommandPacket",
+        "unignore_user": "#/$defs/UnignoreUserPacket"
       },
       "propertyName": "type"
     },
@@ -865,6 +924,15 @@
       },
       {
         "$ref": "#/$defs/SetPreferencePacket"
+      },
+      {
+        "$ref": "#/$defs/IgnoreUserPacket"
+      },
+      {
+        "$ref": "#/$defs/UnignoreUserPacket"
+      },
+      {
+        "$ref": "#/$defs/ListIgnoredPacket"
       }
     ]
   },
@@ -1302,6 +1370,27 @@
         "title": "GetPlaylistDurationPacket",
         "type": "object"
       },
+      "IgnoredListPacket": {
+        "additionalProperties": false,
+        "description": "Server-pushed snapshot of the user's ignored-users list.\n\nSent on authorize_success and after every ignore_user/unignore_user\nchange so clients stay in sync without polling. Clients should mirror\nthis into their local store; even against vanilla servers that don't\nsend this, client-side filtering keeps working from the cached copy.",
+        "properties": {
+          "type": {
+            "const": "ignored_list",
+            "default": "ignored_list",
+            "title": "Type",
+            "type": "string"
+          },
+          "usernames": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Usernames",
+            "type": "array"
+          }
+        },
+        "title": "IgnoredListPacket",
+        "type": "object"
+      },
       "MenuItemPayload": {
         "description": "Structured representation of a menu item.",
         "properties": {
@@ -1316,6 +1405,19 @@
             ],
             "default": null,
             "title": "Id"
+          },
+          "meta": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Meta"
           },
           "sound": {
             "anyOf": [
@@ -2026,6 +2128,7 @@
         "document_editor": "#/$defs/DocumentEditorPacket",
         "game_list": "#/$defs/GameListPacket",
         "get_playlist_duration": "#/$defs/GetPlaylistDurationPacket",
+        "ignored_list": "#/$defs/IgnoredListPacket",
         "menu": "#/$defs/MenuPacket",
         "open_client_options": "#/$defs/OpenClientOptionsPacket",
         "open_server_options": "#/$defs/OpenServerOptionsPacket",
@@ -2129,6 +2232,9 @@
       },
       {
         "$ref": "#/$defs/PreferencesPacket"
+      },
+      {
+        "$ref": "#/$defs/IgnoredListPacket"
       }
     ]
   }

@@ -250,6 +250,10 @@ final class ConfigManager: ObservableObject {
         savePreference("ambience_volume", value: ambience)
     }
 
+    func saveIgnoredUsers(_ names: [String]) {
+        savePreference("ignored_users", value: names)
+    }
+
     private func savePreference(_ key: String, value: Any) {
         var prefs = loadPreferences()
         prefs[key] = value

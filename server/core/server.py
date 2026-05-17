@@ -1065,6 +1065,12 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             state = self._user_states.get(username, {})
             if state.get("menu") == "in_game":
                 continue
+            # Don't announce tables hosted by users this recipient has
+            # ignored — the whole point of ignoring is to make that user
+            # invisible. (Skipped table_create packets to that recipient
+            # too: speak_l queues to the user's connection.)
+            if user.preferences.is_ignored(host_name):
+                continue
             game_name = Localization.get(user.locale, name_key)
             user.speak_l("table-created", buffer="activity", host=host_name, game=game_name)
             user.play_sound("table_created.ogg")
@@ -1124,6 +1130,12 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 await self._handle_chat(client, packet)
             elif packet_type == "set_preference":
                 await self._handle_set_preference(client, packet)
+            elif packet_type == "ignore_user":
+                await self._handle_ignore_user(client, packet)
+            elif packet_type == "unignore_user":
+                await self._handle_unignore_user(client, packet)
+            elif packet_type == "list_ignored":
+                await self._handle_list_ignored(client)
             elif packet_type == "list_online":
                 await self._handle_list_online(client)
             elif packet_type == "list_online_with_games":
@@ -1168,6 +1180,12 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         # server-side settings (volume, etc.). Older clients ignore the
         # packet — see _send_preferences.
         await self._send_preferences(user)
+
+        # Push the user's ignored-users list so the client can apply
+        # filtering locally too. We always send this — even empty — so
+        # clients can distinguish "server supports filtering" from
+        # "server is vanilla, fall back to local-only ignore."
+        await self._send_ignored_list(user)
 
         # Send game list
         await self._send_game_list(client)
@@ -1708,6 +1726,12 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         items = [MenuItem(text=Localization.get(user.locale, "create-table"), id="create_table")]
 
         for table in tables:
+            # Hide tables hosted by ignored users entirely so the player
+            # can't even see or join them. Client-side filtering still
+            # runs as defense in depth, but doing it server-side keeps
+            # the count accurate and works on every client.
+            if user.preferences.is_ignored(table.host):
+                continue
             member_count = len(table.members)
             member_names = [
                 member.username for member in table.members if member.username != table.host
@@ -1729,6 +1753,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                         members=members_str,
                     ),
                     id=f"table_{table.table_id}",
+                    meta={"host": table.host},
                 )
             )
 
@@ -1757,6 +1782,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             return False
         items: list[MenuItem] = []
         for table in tables:
+            if user.preferences.is_ignored(table.host):
+                continue
             game_class = get_game_class(table.game_type)
             game_name = (
                 Localization.get(user.locale, game_class.get_name_key())
@@ -1785,8 +1812,15 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                         members=members_str,
                     ),
                     id=f"table_{table.table_id}",
+                    meta={"host": table.host},
                 )
             )
+        # If every active table was filtered out, treat the menu the same as
+        # the no-tables case so the user gets feedback instead of an empty
+        # screen.
+        if not items:
+            user.speak_l("no-active-tables")
+            return False
         items.append(MenuItem(text=Localization.get(user.locale, "back"), id="back"))
         user.show_menu(
             "active_tables_menu",
@@ -2747,6 +2781,51 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             setattr(prefs, key, value)
 
         self._save_user_preferences(user)
+
+    async def _handle_ignore_user(self, client: ClientConnection, packet: dict) -> None:
+        """Add a user to the requester's ignore list and re-sync."""
+        user = self._users.get(client.username)
+        if not user:
+            return
+        target = packet.get("username", "")
+        if not isinstance(target, str) or not target.strip():
+            return
+        # Don't let users ignore themselves (silly, and would break server-side
+        # narration referencing their own actions on filtered paths).
+        if target.lower() == client.username.lower():
+            return
+        if user.preferences.add_ignored(target):
+            self._save_user_preferences(user)
+        await self._send_ignored_list(user)
+
+    async def _handle_unignore_user(self, client: ClientConnection, packet: dict) -> None:
+        """Remove a user from the requester's ignore list and re-sync."""
+        user = self._users.get(client.username)
+        if not user:
+            return
+        target = packet.get("username", "")
+        if not isinstance(target, str) or not target.strip():
+            return
+        if user.preferences.remove_ignored(target):
+            self._save_user_preferences(user)
+        await self._send_ignored_list(user)
+
+    async def _handle_list_ignored(self, client: ClientConnection) -> None:
+        """Resend the current ignored-users snapshot."""
+        user = self._users.get(client.username)
+        if not user:
+            return
+        await self._send_ignored_list(user)
+
+    async def _send_ignored_list(self, user: NetworkUser) -> None:
+        """Push the user's current ignore list to their client."""
+        try:
+            await user.connection.send({
+                "type": "ignored_list",
+                "usernames": list(user.preferences.ignored_users),
+            })
+        except Exception as exc:  # pragma: no cover — best-effort
+            LOG.error("Failed to push ignored_list to %s: %s", user.username, exc)
 
     async def _handle_categories_selection(
         self, user: NetworkUser, selection_id: str, state: dict
@@ -4371,6 +4450,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 for member_name in [m.username for m in table.members]:
                     user = self._users.get(member_name)
                     if user and user.approved:  # Only send to approved users
+                        if user.preferences.is_ignored(username):
+                            continue
                         await user.connection.send(chat_packet)
             else:
                 for user in self._users.values():
@@ -4378,25 +4459,37 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                         continue
                     if self._tables.find_user_table(user.username):
                         continue
+                    if user.preferences.is_ignored(username):
+                        continue
                     await user.connection.send(chat_packet)
         elif convo == "global":
-            # Broadcast to all approved users only
+            # Broadcast to all approved users — except those who have
+            # ignored the sender.
             for user in self._users.values():
-                if user.approved:
-                    await user.connection.send(chat_packet)
+                if not user.approved:
+                    continue
+                if user.preferences.is_ignored(username):
+                    continue
+                await user.connection.send(chat_packet)
 
     def _get_online_usernames(self) -> list[str]:
         """Return sorted list of online usernames."""
         return sorted(self._users.keys(), key=str.lower)
 
-    def _format_online_users_lines(self, user: NetworkUser) -> list[str]:
-        """Format online users with detailed info for menu display.
+    def _collect_online_users_entries(
+        self, user: NetworkUser
+    ) -> list[tuple[str | None, str]]:
+        """Build (username, formatted_line) pairs for the online-users surface.
 
-        Format: ``Username (Xh) - Status, Language LangName, ClientType (Platform)``
-        All labels are localized to the requesting *user*'s locale.
+        Skips users that `user` has ignored. The returned list is empty only
+        when no other approved users are online (after filtering); callers
+        add a "no users online" line themselves so they can decide whether
+        it deserves a menu entry or a status announcement.
         """
-        lines: list[str] = []
+        entries: list[tuple[str | None, str]] = []
         for username in self._get_online_usernames():
+            if user.preferences.is_ignored(username):
+                continue
             online_user = self._users.get(username)
 
             # Time online
@@ -4443,10 +4536,20 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 line = f"{username} ({time_str}) - {detail}"
             else:
                 line = f"{username} - {detail}"
-            lines.append(line)
-        if not lines:
-            lines.append(Localization.get(user.locale, "online-users-none"))
-        return lines
+            entries.append((username, line))
+        return entries
+
+    def _format_online_users_lines(self, user: NetworkUser) -> list[str]:
+        """Format online users with detailed info for menu display.
+
+        Format: ``Username (Xh) - Status, Language LangName, ClientType (Platform)``
+        All labels are localized to the requesting *user*'s locale. Ignored
+        users are filtered out.
+        """
+        entries = self._collect_online_users_entries(user)
+        if not entries:
+            return [Localization.get(user.locale, "online-users-none")]
+        return [line for _username, line in entries]
 
     def _show_online_users_menu(self, user: NetworkUser) -> None:
         """Show online users with games in a read-only menu."""
@@ -4457,9 +4560,19 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             current_menus = getattr(user, "_current_menus", {})
             previous_menu = current_menus.get(previous_menu_id)
 
-        items = [
-            MenuItem(text=line, id="online_user") for line in self._format_online_users_lines(user)
-        ]
+        entries = self._collect_online_users_entries(user)
+        if entries:
+            items = [
+                MenuItem(text=line, id="online_user", meta={"username": username})
+                for username, line in entries
+            ]
+        else:
+            items = [
+                MenuItem(
+                    text=Localization.get(user.locale, "online-users-none"),
+                    id="online_user",
+                )
+            ]
         user.show_menu(
             "online_users",
             items,
