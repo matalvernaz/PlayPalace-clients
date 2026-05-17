@@ -314,15 +314,32 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             buffer: "activity"
         )
 
-        // Save refresh token
-        if let refreshToken = packet["refresh_token"] as? String,
-           let serverID = credentials?.serverID,
-           let accountID = credentials?.accountID {
+        // Save refresh token. The server rotates the refresh token on every
+        // successful refresh_session, so the value we connected with is now
+        // dead. We must keep three copies in sync: the on-disk account record
+        // (survives launches), `appState.credentials` (survives view rebuilds
+        // — e.g. memory pressure tearing down MainView), and `self.credentials`
+        // (what `forceReconnect()` reads on the next scenePhase → .active
+        // transition). Failing to update the in-memory copies caused the
+        // "Session expired. Please log in again." after lock/unlock — we kept
+        // re-sending the original refresh token long after it had been
+        // rotated.
+        if let refreshToken = packet["refresh_token"] as? String {
             let refreshExpires = packet["refresh_expires_at"] as? Int
-            appState?.configManager.updateAccount(
-                serverID: serverID, accountID: accountID,
-                refreshToken: refreshToken, refreshExpiresAt: refreshExpires
-            )
+            if let serverID = credentials?.serverID,
+               let accountID = credentials?.accountID {
+                appState?.configManager.updateAccount(
+                    serverID: serverID, accountID: accountID,
+                    refreshToken: refreshToken, refreshExpiresAt: refreshExpires
+                )
+            }
+            credentials?.refreshToken = refreshToken
+            credentials?.refreshExpiresAt = refreshExpires
+            if var shared = appState?.credentials {
+                shared.refreshToken = refreshToken
+                shared.refreshExpiresAt = refreshExpires
+                appState?.credentials = shared
+            }
         }
     }
 
