@@ -152,7 +152,7 @@ async def test_handle_ban_reason_editbox_applies(server):
     assert admin.menus[-1] in {"admin_menu", "ban_user_menu"}
 
 
-def test_show_leaderboard_types_menu_with_data(server):
+def test_show_leaderboard_types_menu_with_data(server, monkeypatch):
     user = DummyUser("alice")
     server._users = {"alice": user}
     # Stub registry: return a fake game class with leaderboard types
@@ -161,14 +161,19 @@ def test_show_leaderboard_types_menu_with_data(server):
         get_leaderboard_types=lambda: [{"id": "custom_stat"}],
         get_type=lambda: "fake",
     )
-    # monkeypatch GameRegistry.get_by_category and get_game_class inline
+    # Use monkeypatch so the registry stubs are torn down after the test —
+    # leaking them poisons later tests that resolve real game classes
+    # (e.g. test_online_users_menu_formats_game_names).
     from server.games import registry
-
-    registry.GameRegistry.get_by_category = staticmethod(lambda: {"misc": [fake_game]})  # type: ignore[assignment]
-    registry.get_game_class = lambda gt: fake_game  # type: ignore[assignment]
     import server.core.server as core_server_module
 
-    core_server_module.get_game_class = registry.get_game_class  # type: ignore[assignment]
+    monkeypatch.setattr(
+        registry.GameRegistry,
+        "get_by_category",
+        staticmethod(lambda: {"misc": [fake_game]}),
+    )
+    monkeypatch.setattr(registry, "get_game_class", lambda gt: fake_game)
+    monkeypatch.setattr(core_server_module, "get_game_class", lambda gt: fake_game)
 
     server._show_leaderboard_types_menu(user, "fake")
 
