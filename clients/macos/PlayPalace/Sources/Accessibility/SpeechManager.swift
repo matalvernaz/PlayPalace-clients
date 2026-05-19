@@ -458,9 +458,22 @@ final class SpeechManager: NSObject, ObservableObject {
 
     /// Hand an utterance to the synthesizer and arm the per-utterance
     /// safety-net fallback timer.
+    ///
+    /// `prefersAssistiveTechnologySettings = true` is the Apple-documented
+    /// way to make AVSpeechSynthesizer adopt VoiceOver's selected voice,
+    /// rate, and pitch when VoiceOver is running (WWDC 2020 session 10022,
+    /// "Create a seamless speech experience in your apps"). It's why we
+    /// also stop overriding `utterance.rate` when VO is on — VO's user-
+    /// configured rate wins. Without this flag, blind testers correctly
+    /// observe that our self-voicing speech doesn't sound like their VO
+    /// voice. When VO is off the flag falls back to Spoken Content
+    /// settings, so the non-VO path is also better behaved.
     private func speakUtterance(text: String, token: Int) {
         let utterance = AVSpeechUtterance(string: text)
-        utterance.rate = rate
+        utterance.prefersAssistiveTechnologySettings = true
+        if !isVoiceOverRunning {
+            utterance.rate = rate
+        }
         synth.speak(utterance)
         scheduleFallback(for: text, token: token)
     }
