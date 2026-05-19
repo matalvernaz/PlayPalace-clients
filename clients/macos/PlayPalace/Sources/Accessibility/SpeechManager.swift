@@ -70,6 +70,27 @@ final class SpeechManager: NSObject, ObservableObject {
     /// Pending utterances for the AVSpeechSynthesizer path.
     private var queue: [(channel: Channel, text: String)] = []
 
+    /// Utterance waiting to be spoken once the synthesizer finishes cancelling
+    /// the previous one. AVSpeechSynthesizer's `stopSpeaking(at: .immediate)`
+    /// is asynchronous: if we call `speak()` before the cancel has propagated,
+    /// the new utterance is **appended** to the synth's internal queue and the
+    /// user hears the old text in full before the new one starts — the exact
+    /// symptom reported by rapid menu navigation. We defer the new speak
+    /// until `didCancel` fires (or a short safety timeout, in case the
+    /// delegate misses).
+    private struct PendingSynthStart {
+        let text: String
+        let channel: Channel
+        let token: Int
+    }
+    private var pendingStart: PendingSynthStart?
+    private var pendingStartTimeoutTimer: Timer?
+
+    /// Safety-net delay for the pending-start path. Long enough that
+    /// `didCancel` reliably wins in the common case (typically 10–30 ms),
+    /// short enough that the user can't notice it as lag.
+    private static let pendingStartTimeout: TimeInterval = 0.25
+
     /// FIFO of attributed announcements waiting to be posted via
     /// ``AccessibilityNotification.Announcement``. iOS priorities alone do
     /// **not** preserve message order — multiple `.high` posts in flight will
@@ -120,7 +141,11 @@ final class SpeechManager: NSObject, ObservableObject {
     /// timer that would otherwise interrupt a long server narration just
     /// to re-announce the current menu item).
     var isSpeaking: Bool {
-        voInFlight != nil || !voQueue.isEmpty || activeChannel != nil || !queue.isEmpty
+        voInFlight != nil
+            || !voQueue.isEmpty
+            || activeChannel != nil
+            || !queue.isEmpty
+            || pendingStart != nil
     }
 
     /// Legacy entry point — preserved so existing call sites keep working.
@@ -157,6 +182,8 @@ final class SpeechManager: NSObject, ObservableObject {
         activeChannel = nil
         activeText = ""
         queue.removeAll()
+        pendingStart = nil
+        cancelPendingStartTimeout()
         cancelFallbackTimer()
         voQueue.removeAll()
         voInFlight = nil
@@ -367,19 +394,78 @@ final class SpeechManager: NSObject, ObservableObject {
     }
 
     private func startSpeaking(text: String, channel: Channel) {
-        if synth.isSpeaking || synth.isPaused {
-            synth.stopSpeaking(at: .immediate)
-        }
         utteranceToken &+= 1
         let token = utteranceToken
         activeChannel = channel
         activeText = text
 
+        // If something is already speaking — or we're mid-cancel from a
+        // previous startSpeaking — hand the new utterance to the delegate
+        // path: stash it as pendingStart and wait for didCancel before
+        // calling speak(). Calling speak() synchronously here causes
+        // AVSpeechSynthesizer to append it to the post-cancel queue, which
+        // is why rapid menu navigation used to feel like every item read to
+        // completion before the next one started. The `pendingStart` arm
+        // covers a second startSpeaking arriving while the synth is still
+        // winding down from the previous stop (its `isSpeaking` may already
+        // read false even though the cancel hasn't propagated).
+        if synth.isSpeaking || synth.isPaused || pendingStart != nil {
+            pendingStart = PendingSynthStart(text: text, channel: channel, token: token)
+            synth.stopSpeaking(at: .immediate)
+            schedulePendingStartTimeout(for: token)
+            return
+        }
+
+        pendingStart = nil
+        cancelPendingStartTimeout()
+        speakUtterance(text: text, token: token)
+    }
+
+    /// Hand an utterance to the synthesizer and arm the per-utterance
+    /// safety-net fallback timer.
+    private func speakUtterance(text: String, token: Int) {
         let utterance = AVSpeechUtterance(string: text)
         utterance.rate = rate
         synth.speak(utterance)
-
         scheduleFallback(for: text, token: token)
+    }
+
+    /// If `didCancel` doesn't reach us within the timeout window (rare —
+    /// happens when an audio-session change or backgrounding swallows the
+    /// callback), force the pending utterance to start anyway so the user
+    /// isn't left in silence.
+    private func schedulePendingStartTimeout(for token: Int) {
+        cancelPendingStartTimeout()
+        pendingStartTimeoutTimer = Timer.scheduledTimer(
+            withTimeInterval: Self.pendingStartTimeout, repeats: false
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                self.flushPendingStart(expectedToken: token)
+            }
+        }
+    }
+
+    private func cancelPendingStartTimeout() {
+        pendingStartTimeoutTimer?.invalidate()
+        pendingStartTimeoutTimer = nil
+    }
+
+    /// Start whatever's in `pendingStart`, but only if it's still the most
+    /// recent intent (token-gated) so we never stomp on a stop() or a newer
+    /// utterance request. Idempotent — safe to call from didCancel and the
+    /// safety-net timer.
+    private func flushPendingStart(expectedToken: Int) {
+        guard let pending = pendingStart else { return }
+        guard pending.token == utteranceToken else {
+            pendingStart = nil
+            cancelPendingStartTimeout()
+            return
+        }
+        guard pending.token == expectedToken else { return }
+        pendingStart = nil
+        cancelPendingStartTimeout()
+        speakUtterance(text: pending.text, token: pending.token)
     }
 
     private func advanceQueue() {
@@ -480,8 +566,16 @@ extension SpeechManager: AVSpeechSynthesizerDelegate {
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didCancel utterance: AVSpeechUtterance) {
-        // We only cancel deliberately (replacement utterance) or via stop().
-        // In the replacement case, the new utterance is already in flight; in
-        // the stop() case the queue is already empty — either way, no work.
+        // We cancel deliberately in two cases: stop() (clears pendingStart),
+        // and startSpeaking() when interrupting an in-flight utterance
+        // (stashes the new text as pendingStart). In the latter case we want
+        // to start the replacement *now* — calling synth.speak() before the
+        // cancel had propagated would append the new utterance to the
+        // synth's internal queue instead of preempting.
+        Task { @MainActor [weak self] in
+            guard let self else { return }
+            guard let pending = self.pendingStart else { return }
+            self.flushPendingStart(expectedToken: pending.token)
+        }
     }
 }
