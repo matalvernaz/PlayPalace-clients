@@ -285,11 +285,16 @@ final class SpeechManager: NSObject, ObservableObject {
         scheduleVoiceOverTimeout(for: next.id)
         speechLog.debug("VO post text=\(next.text, privacy: .public) channel=\(String(describing: next.channel), privacy: .public)")
         #if os(iOS)
-        let priority: UIAccessibilityPriority = next.channel == .announcement ? .high : .default
+        // Apple's documented priority values are integer constants — high=75,
+        // default=50. The Swift-shaped `UIAccessibilityPriority` symbol
+        // collides with the `Accessibility`-framework enum we also import for
+        // AttributedString accessors, so we pass NSNumber(Int) directly to
+        // avoid the resolution ambiguity.
+        let priorityValue = next.channel == .announcement ? 75 : 50
         let attributed = NSMutableAttributedString(string: next.text)
         attributed.addAttribute(
             .accessibilitySpeechAnnouncementPriority,
-            value: NSNumber(value: priority.rawValue),
+            value: NSNumber(value: priorityValue),
             range: NSRange(location: 0, length: attributed.length)
         )
         UIAccessibility.post(notification: .announcement, argument: attributed)
