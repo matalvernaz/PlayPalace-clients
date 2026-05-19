@@ -1,12 +1,15 @@
 import AVFoundation
 import Accessibility
 import Foundation
+import os
 
 #if os(macOS)
 import AppKit
 #elseif os(iOS)
 import UIKit
 #endif
+
+private let speechLog = Logger(subsystem: "ca.cobd.playpalace.ios", category: "speech")
 
 /// Manages spoken output for the client, routing to VoiceOver when present and
 /// to ``AVSpeechSynthesizer`` otherwise.
@@ -91,11 +94,10 @@ final class SpeechManager: NSObject, ObservableObject {
     /// short enough that the user can't notice it as lag.
     private static let pendingStartTimeout: TimeInterval = 0.25
 
-    /// FIFO of attributed announcements waiting to be posted via
-    /// ``AccessibilityNotification.Announcement``. iOS priorities alone do
-    /// **not** preserve message order — multiple `.high` posts in flight will
-    /// preempt each other, dropping all but the most recent. We serialize
-    /// posts ourselves and only advance after VoiceOver fires the
+    /// FIFO of attributed announcements waiting to be posted. iOS priorities
+    /// alone do **not** preserve message order — multiple `.high` posts in
+    /// flight will preempt each other, dropping all but the most recent. We
+    /// serialize posts ourselves and only advance after VoiceOver fires the
     /// `announcementDidFinishNotification` for the in-flight item.
     ///
     /// Each entry carries a UUID so the timeout closure and the finish-
@@ -106,7 +108,6 @@ final class SpeechManager: NSObject, ObservableObject {
         let id: UUID = UUID()
         var channel: Channel
         var text: String
-        var attributed: AttributedString
     }
     private var voQueue: [PendingVOAnnouncement] = []
     private var voInFlight: PendingVOAnnouncement?
@@ -223,7 +224,9 @@ final class SpeechManager: NSObject, ObservableObject {
             lastSpokenAt = now
         }
 
-        if isVoiceOverRunning {
+        let voOn = isVoiceOverRunning
+        speechLog.debug("enqueue voOn=\(voOn, privacy: .public) channel=\(String(describing: channel), privacy: .public) interrupting=\(interrupting, privacy: .public) text=\(text, privacy: .public)")
+        if voOn {
             postVoiceOverAnnouncement(text, channel: channel, interrupting: interrupting)
         } else {
             postSynthesizerSpeech(text, channel: channel, interrupting: interrupting)
@@ -245,19 +248,16 @@ final class SpeechManager: NSObject, ObservableObject {
     /// dropped so that rapid menu navigation doesn't backlog the queue.
     /// Announcements always win over UI: queued UI is dropped to make way.
     private func postVoiceOverAnnouncement(_ text: String, channel: Channel, interrupting: Bool) {
-        var attributed = AttributedString(text)
         switch channel {
         case .announcement:
-            attributed.accessibilitySpeechAnnouncementPriority = .high
             voQueue.removeAll(where: { $0.channel == .ui })
         case .ui:
-            attributed.accessibilitySpeechAnnouncementPriority = .default
             if interrupting {
                 voQueue.removeAll(where: { $0.channel == .ui })
             }
         }
 
-        let pending = PendingVOAnnouncement(channel: channel, text: text, attributed: attributed)
+        let pending = PendingVOAnnouncement(channel: channel, text: text)
         voQueue.append(pending)
         pumpVoiceOverQueue()
     }
@@ -271,12 +271,38 @@ final class SpeechManager: NSObject, ObservableObject {
     /// events drain first, but that opened a race where a stale `didFinish`
     /// notification could consume the in-flight slot before the post had
     /// even occurred — causing announcements to be silently skipped.
+    ///
+    /// On iOS we post via ``UIAccessibility/post(notification:argument:)``
+    /// rather than ``AccessibilityNotification/Announcement`` — the SwiftUI
+    /// API silently no-ops in several situations on iOS (notably when the
+    /// active accessibility element carries ``UIAccessibilityTraits/allowsDirectInteraction``,
+    /// which is exactly the trait the game touch view uses). The UIKit API
+    /// is the documented reliable path.
     private func pumpVoiceOverQueue() {
         guard voInFlight == nil, !voQueue.isEmpty else { return }
         let next = voQueue.removeFirst()
         voInFlight = next
         scheduleVoiceOverTimeout(for: next.id)
-        AccessibilityNotification.Announcement(next.attributed).post()
+        speechLog.debug("VO post text=\(next.text, privacy: .public) channel=\(String(describing: next.channel), privacy: .public)")
+        #if os(iOS)
+        let priority: UIAccessibilityPriority = next.channel == .announcement ? .high : .default
+        let attributed = NSMutableAttributedString(string: next.text)
+        attributed.addAttribute(
+            .accessibilitySpeechAnnouncementPriority,
+            value: NSNumber(value: priority.rawValue),
+            range: NSRange(location: 0, length: attributed.length)
+        )
+        UIAccessibility.post(notification: .announcement, argument: attributed)
+        #else
+        var attributed = AttributedString(next.text)
+        switch next.channel {
+        case .announcement:
+            attributed.accessibilitySpeechAnnouncementPriority = .high
+        case .ui:
+            attributed.accessibilitySpeechAnnouncementPriority = .default
+        }
+        AccessibilityNotification.Announcement(attributed).post()
+        #endif
     }
 
     /// Safety net: if VoiceOver never fires the finish notification (app
@@ -315,11 +341,15 @@ final class SpeechManager: NSObject, ObservableObject {
     /// arrived. Re-posting was the cause of the "speech announces twice" bug.
     @objc private nonisolated func voiceOverAnnouncementDidFinish(_ note: Notification) {
         let finishedText: String?
+        let wasSuccessful: Bool?
         #if os(iOS)
         finishedText = note.userInfo?[UIAccessibility.announcementStringValueUserInfoKey] as? String
+        wasSuccessful = (note.userInfo?[UIAccessibility.announcementWasSuccessfulUserInfoKey] as? Bool)
         #else
         finishedText = nil
+        wasSuccessful = nil
         #endif
+        speechLog.debug("VO didFinish text=\(finishedText ?? "<nil>", privacy: .public) success=\(wasSuccessful.map { String($0) } ?? "<nil>", privacy: .public)")
         Task { @MainActor [weak self] in
             guard let self, let inflight = self.voInFlight else { return }
             if let finishedText, !Self.announcementsMatch(finishedText, inflight.text) {
