@@ -221,6 +221,11 @@ final class GameTouchView: UIView {
     private func setupAccessibility() {
         isAccessibilityElement = true
         accessibilityTraits = .allowsDirectInteraction
+        // Suppress VO's own focus-label utterances while the user is touching
+        // this view. Without it, VoiceOver re-announces "Game area" on every
+        // flick and preempts our high-priority .announcement posts, leaving
+        // the menu-item speech silent. iOS 17+.
+        accessibilityDirectTouchOptions = .silentOnTouch
         accessibilityLabel = "Game area"
         accessibilityHint = "Swipe left and right to browse. Double-tap to select. Use the VoiceOver Actions rotor for Help, Controls, Chat, and game actions. The Menu button in the top right is always available too."
     }
