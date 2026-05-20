@@ -9,6 +9,7 @@ struct PlayPalaceApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                .installLowVisionEnvironment()
         }
         .windowStyle(.titleBar)
         .defaultSize(width: 980, height: 720)
@@ -19,6 +20,7 @@ struct PlayPalaceApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                .installLowVisionEnvironment()
         }
         #endif
     }
@@ -26,6 +28,7 @@ struct PlayPalaceApp: App {
 
 struct ContentView: View {
     @EnvironmentObject var appState: AppState
+    @Environment(\.lowVision) private var lv
 
     var body: some View {
         Group {
@@ -36,6 +39,6 @@ struct ContentView: View {
                 MainView()
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: appState.screen)
+        .animation(lv.standardAnimation, value: appState.screen)
     }
 }

@@ -34,6 +34,9 @@
 		B000003FE /* Sources/Views/Main/MainView_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FE /* Sources/Views/Main/MainView_iOS.swift */; };
 		B000003FF /* Sources/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A000003FF /* Sources/Assets.xcassets */; };
 		B0000400 /* Sources/sounds in Resources */ = {isa = PBXBuildFile; fileRef = A0000400 /* Sources/sounds */; };
+		B0000401 /* Sources/Accessibility/LowVisionEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000401 /* Sources/Accessibility/LowVisionEnvironment.swift */; };
+		B0000402 /* Sources/Accessibility/MenuItemIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000402 /* Sources/Accessibility/MenuItemIcon.swift */; };
+		B0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -64,6 +67,9 @@
 		A000003FE /* Sources/Views/Main/MainView_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Main/MainView_iOS.swift; sourceTree = "<group>"; };
 		A000003FF /* Sources/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Sources/Assets.xcassets; sourceTree = "<group>"; };
 		A0000400 /* Sources/sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sources/sounds; sourceTree = "<group>"; };
+		A0000401 /* Sources/Accessibility/LowVisionEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Accessibility/LowVisionEnvironment.swift; sourceTree = "<group>"; };
+		A0000402 /* Sources/Accessibility/MenuItemIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Accessibility/MenuItemIcon.swift; sourceTree = "<group>"; };
+		A0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/LowVisionStatusOverlay.swift; sourceTree = "<group>"; };
 		C0000005 /* PlayPalace.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlayPalace.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -82,6 +88,8 @@
 			isa = PBXGroup;
 			children = (
 				A000003E8 /* Sources/Accessibility/SpeechManager.swift */,
+				A0000401 /* Sources/Accessibility/LowVisionEnvironment.swift */,
+				A0000402 /* Sources/Accessibility/MenuItemIcon.swift */,
 				A000003E9 /* Sources/App/AppState.swift */,
 				A000003EA /* Sources/App/PlayPalaceApp.swift */,
 				A000003EB /* Sources/Audio/SoundManager.swift */,
@@ -98,6 +106,7 @@
 				A000003F4 /* Sources/Views/Components/GestureSettingsView.swift */,
 				A000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift */,
 				A000003F6 /* Sources/Views/Components/MenuList_iOS.swift */,
+				A0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift */,
 				A000003F7 /* Sources/Views/Login/LoginView.swift */,
 				A000003F8 /* Sources/Views/Login/LoginView_iOS.swift */,
 				A000003F9 /* Sources/Views/Login/RegistrationView.swift */,
@@ -190,6 +199,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				B000003E8 /* Sources/Accessibility/SpeechManager.swift in Sources */,
+				B0000401 /* Sources/Accessibility/LowVisionEnvironment.swift in Sources */,
+				B0000402 /* Sources/Accessibility/MenuItemIcon.swift in Sources */,
 				B000003E9 /* Sources/App/AppState.swift in Sources */,
 				B000003EA /* Sources/App/PlayPalaceApp.swift in Sources */,
 				B000003EB /* Sources/Audio/SoundManager.swift in Sources */,
@@ -206,6 +217,7 @@
 				B000003F4 /* Sources/Views/Components/GestureSettingsView.swift in Sources */,
 				B000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift in Sources */,
 				B000003F6 /* Sources/Views/Components/MenuList_iOS.swift in Sources */,
+				B0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift in Sources */,
 				B000003F7 /* Sources/Views/Login/LoginView.swift in Sources */,
 				B000003F8 /* Sources/Views/Login/LoginView_iOS.swift in Sources */,
 				B000003F9 /* Sources/Views/Login/RegistrationView.swift in Sources */,

@@ -4,11 +4,19 @@ import UIKit
 
 /// iOS game menu list with tap-to-activate, selection highlighting, and VoiceOver support.
 /// Replaces the macOS AccessibleMenuList with touch-friendly interactions.
+///
+/// Low-vision parity: each row gets a leading semantic icon (decorative),
+/// a leading accent stripe when selected, and bold text on the selected
+/// row. Stripe width and background opacity respond to Increase Contrast
+/// and Differentiate Without Color. At accessibility-tier Dynamic Type
+/// sizes the row flips to a vertical stack so labels can wrap without
+/// truncation.
 struct MenuList_iOS: View {
     let items: [MenuItem]
     @Binding var selection: Int?
     let onActivate: (Int) -> Void
 
+    @Environment(\.lowVision) private var lv
     @State private var scrollTarget: Int?
 
     var body: some View {
@@ -29,12 +37,13 @@ struct MenuList_iOS: View {
         VStack(spacing: 12) {
             Spacer()
             Image(systemName: "hourglass")
-                .font(.system(size: 32))
-                .foregroundStyle(.tertiary)
+                .font(.largeTitle)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
                 .accessibilityHidden(true)
             Text("Waiting for server...")
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
                 .accessibilityLabel("Waiting for server to send menu options")
             Spacer()
         }
@@ -72,9 +81,13 @@ struct MenuList_iOS: View {
             .onChange(of: items.count) { _, _ in
                 scrollToSelection(proxy: proxy)
             }
-            .onChange(of: selection) { oldValue, newValue in
+            .onChange(of: selection) { _, newValue in
                 if let idx = newValue {
-                    withAnimation(.easeInOut(duration: 0.2)) {
+                    if let animation = lv.standardAnimation {
+                        withAnimation(animation) {
+                            proxy.scrollTo(idx, anchor: .center)
+                        }
+                    } else {
                         proxy.scrollTo(idx, anchor: .center)
                     }
                 }
@@ -90,7 +103,11 @@ struct MenuList_iOS: View {
     private func scrollToSelection(proxy: ScrollViewProxy) {
         if let sel = selection, sel >= 0, sel < items.count {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                withAnimation(.easeInOut(duration: 0.2)) {
+                if let animation = lv.standardAnimation {
+                    withAnimation(animation) {
+                        proxy.scrollTo(sel, anchor: .center)
+                    }
+                } else {
                     proxy.scrollTo(sel, anchor: .center)
                 }
             }
@@ -110,31 +127,106 @@ struct MenuList_iOS: View {
     }
 }
 
-/// A single row in the iOS menu list with selection indicator.
+/// A single row in the iOS menu list.
+///
+/// Layout flips from horizontal (icon, text) to vertical (icon above text)
+/// when the user's Dynamic Type size reaches the accessibility tier, so
+/// long labels have the full row width to wrap into.
 private struct MenuRow_iOS: View {
     let item: MenuItem
     let isSelected: Bool
 
+    @Environment(\.lowVision) private var lv
+    @ScaledMetric(relativeTo: .body) private var stripeMinHeight: CGFloat = 24
+
+    private var iconName: String {
+        MenuItemIcon.symbolName(id: item.id, text: item.text)
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.tint)
-                    .accessibilityHidden(true)
-            }
+            // Leading accent stripe — visible only when selected. Width
+            // bumps under Increase Contrast. Color-independent: the row
+            // also bolds the text and (under Differentiate Without Color)
+            // shows a trailing checkmark.
+            stripe
 
+            // Layout flips to vertical at AX Dynamic Type sizes so the
+            // text label can wrap to multiple lines without being squashed
+            // against the icon.
+            adaptiveContent
+        }
+        .padding(.vertical, lv.isAccessibilitySize ? 8 : 4)
+        .listRowBackground(rowBackground)
+    }
+
+    // MARK: - Subviews
+
+    @ViewBuilder
+    private var stripe: some View {
+        if isSelected {
+            RoundedRectangle(cornerRadius: 2, style: .continuous)
+                .fill(Color.accentColor)
+                .frame(width: lv.selectionStripeWidth)
+                .frame(minHeight: stripeMinHeight)
+                .accessibilityHidden(true)
+        } else {
+            Color.clear
+                .frame(width: lv.selectionStripeWidth)
+                .frame(minHeight: stripeMinHeight)
+        }
+    }
+
+    @ViewBuilder
+    private var adaptiveContent: some View {
+        if lv.isAccessibilitySize {
+            VStack(alignment: .leading, spacing: 6) {
+                iconView
+                textRow
+            }
+        } else {
+            HStack(spacing: 12) {
+                iconView
+                textRow
+            }
+        }
+    }
+
+    private var iconView: some View {
+        Image(systemName: iconName)
+            .font(.body.weight(lv.iconWeight))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(isSelected ? Color.accentColor : Color.primary)
+            .accessibilityHidden(true)
+    }
+
+    private var textRow: some View {
+        HStack(spacing: 8) {
             Text(item.text)
                 .font(.body)
-                .lineLimit(2)
+                .fontWeight(isSelected ? lv.selectionEmphasisWeight : nil)
+                .fixedSize(horizontal: false, vertical: true)
                 .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Differentiate-without-color cue. Hue-independent confirmation
+            // that the row is selected, in case the accent stripe / tint
+            // can't be perceived.
+            if isSelected && lv.differentiateWithoutColor {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.body.weight(.semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .accessibilityHidden(true)
+            }
         }
-        .padding(.vertical, 4)
-        .listRowBackground(
-            isSelected
-                ? Color.accentColor.opacity(0.12)
-                : Color.clear
-        )
+    }
+
+    @ViewBuilder
+    private var rowBackground: some View {
+        if isSelected {
+            Color.accentColor.opacity(lv.selectionBackgroundOpacity)
+        } else {
+            Color.clear
+        }
     }
 }
 
@@ -143,10 +235,10 @@ struct MenuList_iOS_Previews: PreviewProvider {
     struct PreviewWrapper: View {
         @State private var selection: Int? = 1
         let items = [
-            MenuItem(from: "Start Game"),
-            MenuItem(from: "Join Table"),
-            MenuItem(from: "Settings"),
-            MenuItem(from: "Help"),
+            MenuItem(from: ["id": "start", "text": "Start Game"]),
+            MenuItem(from: ["id": "join", "text": "Join Table"]),
+            MenuItem(from: ["id": "settings", "text": "Settings"]),
+            MenuItem(from: ["id": "help", "text": "Help"]),
         ]
 
         var body: some View {
@@ -155,6 +247,7 @@ struct MenuList_iOS_Previews: PreviewProvider {
                 selection: $selection,
                 onActivate: { idx in print("Activated: \(idx)") }
             )
+            .installLowVisionEnvironment()
         }
     }
 

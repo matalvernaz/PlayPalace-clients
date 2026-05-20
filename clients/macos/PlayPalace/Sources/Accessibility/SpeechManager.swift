@@ -54,6 +54,28 @@ final class SpeechManager: NSObject, ObservableObject {
         case ui
     }
 
+    // MARK: - Visual event log
+
+    /// One recorded utterance. Used to drive the visual event log for
+    /// low-vision users — anything spoken aloud also lands here so users
+    /// who run with self-voicing at low volume, missed an announcement
+    /// while magnifying another part of the screen, or just want to
+    /// scrollback can read it instead. Bound size, FIFO eviction.
+    struct LoggedEvent: Identifiable, Equatable {
+        let id: UUID = UUID()
+        let timestamp: Date
+        let channel: Channel
+        let text: String
+    }
+
+    /// Maximum number of past utterances kept in `recentEvents`. Old
+    /// entries are dropped from the front when the buffer overflows.
+    static let recentEventsLimit = 200
+
+    /// Bounded ring of every utterance we've enqueued in this session.
+    /// `@Published` so SwiftUI views can render it live.
+    @Published private(set) var recentEvents: [LoggedEvent] = []
+
     // MARK: - State
 
     private let synth = AVSpeechSynthesizer()
@@ -249,6 +271,8 @@ final class SpeechManager: NSObject, ObservableObject {
             lastSpokenAt = now
         }
 
+        recordForLog(text: text, channel: channel)
+
         let voOn = isVoiceOverRunning
         let useVOPath = voOn && !forceSelfVoicing
         speechLog.debug("enqueue voOn=\(voOn, privacy: .public) forceSelfVoicing=\(self.forceSelfVoicing, privacy: .public) channel=\(String(describing: channel), privacy: .public) interrupting=\(interrupting, privacy: .public) text=\(text, privacy: .public)")
@@ -257,6 +281,32 @@ final class SpeechManager: NSObject, ObservableObject {
         } else {
             postSynthesizerSpeech(text, channel: channel, interrupting: interrupting)
         }
+    }
+
+    /// Append to the visual event log, evicting the oldest entry once the
+    /// buffer is full. UI channel chatter (menu focus reads) is collapsed
+    /// with the same dedup window applied to speech, so the log doesn't
+    /// fill with repeats during rapid scrubbing.
+    private func recordForLog(text: String, channel: Channel) {
+        if channel == .ui, let last = recentEvents.last,
+           last.text == text, last.channel == .ui,
+           Date().timeIntervalSince(last.timestamp) < Self.dedupWindow {
+            return
+        }
+        let event = LoggedEvent(timestamp: Date(), channel: channel, text: text)
+        recentEvents.append(event)
+        if recentEvents.count > Self.recentEventsLimit {
+            recentEvents.removeFirst(recentEvents.count - Self.recentEventsLimit)
+        }
+    }
+
+    /// Speak the most recent announcement again. Used by the visual log
+    /// sheet's "Repeat last" affordance — low-vision users who couldn't
+    /// hear or read a passing utterance can ask for it back without
+    /// hunting for the right gesture.
+    func repeatLastAnnouncement() {
+        guard let last = recentEvents.reversed().first(where: { $0.channel == .announcement }) ?? recentEvents.last else { return }
+        speakAnnouncement(last.text)
     }
 
     // MARK: - VoiceOver path

@@ -111,7 +111,7 @@ struct LoginView: View {
         Section {
             if sortedServers.isEmpty {
                 Text("No servers configured. Choose Server Manager above to add one.")
-                    .foregroundStyle(.secondary)
+                    .lowVisionSecondary()
                     .accessibilityLabel("No servers configured")
                     .accessibilityHint("Choose the Server Manager button near the top of this screen to add a server.")
             } else {
@@ -124,7 +124,7 @@ struct LoginView: View {
                             Text(server.name)
                             Text("\(server.host):\(server.port)")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .lowVisionSecondary()
                         }
                         .tag(server.serverID as String?)
                         .accessibilityLabel("\(server.name), \(server.host) port \(server.port)")
@@ -145,11 +145,11 @@ struct LoginView: View {
         Section {
             if selectedServerID == nil {
                 Text("Select a server first.")
-                    .foregroundStyle(.secondary)
+                    .lowVisionSecondary()
                     .accessibilityLabel("Select a server first to see available accounts")
             } else if sortedAccounts.isEmpty {
                 Text("No accounts on this server. Add one in Server Manager or register below.")
-                    .foregroundStyle(.secondary)
+                    .lowVisionSecondary()
                     .accessibilityLabel("No accounts found on this server")
                     .accessibilityHint("Use Server Manager or Register below to add an account")
             } else {
@@ -183,14 +183,11 @@ struct LoginView: View {
                     .accessibilityHint("Enter your password. A saved password is pre-filled if available.")
 
                 if let errorMessage {
-                    Text(errorMessage)
-                        .foregroundStyle(.red)
-                        .font(.caption)
-                        .accessibilityLabel("Error: \(errorMessage)")
+                    LowVisionStatusBanner(kind: .error, text: errorMessage)
                 }
             } else {
                 Text("Select a server and account above.")
-                    .foregroundStyle(.secondary)
+                    .lowVisionSecondary()
                     .accessibilityLabel("Select a server and account to enter your password")
             }
         } header: {
@@ -367,9 +364,7 @@ struct RegistrationView_iOS: View {
 
                 if let errorMessage {
                     Section {
-                        Text(errorMessage)
-                            .foregroundStyle(.red)
-                            .accessibilityLabel("Error: \(errorMessage)")
+                        LowVisionStatusBanner(kind: .error, text: errorMessage)
                     }
                 }
 

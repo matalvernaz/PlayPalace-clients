@@ -17,6 +17,7 @@ struct MainView: View {
     @State private var showingControls = false
     @State private var showingHelp = false
     @State private var showingGestureSettings = false
+    @State private var showingEventLog = false
 
     var body: some View {
         Group {
@@ -38,6 +39,15 @@ struct MainView: View {
                     // owns it, the user can't leave the app.
                     .ignoresSafeArea(.container, edges: [.top, .horizontal])
 
+                    // Visible game state for low-vision players. Sits at the
+                    // top, doesn't consume touches — gestures still go to
+                    // the touch view underneath. Hidden from VoiceOver
+                    // because the same info is already spoken.
+                    VStack(spacing: 0) {
+                        LowVisionStatusOverlay(viewModel: viewModel)
+                        Spacer()
+                    }
+
                     // Always-visible recovery affordance. Reachable regardless
                     // of the user's gesture mappings — even if Help and Go
                     // Back have been remapped to None, this button stays
@@ -46,7 +56,8 @@ struct MainView: View {
                     InGameMenuButton(
                         onOpenChat: { showingChat = true },
                         onOpenControls: { showingControls = true },
-                        onOpenHelp: { showingHelp = true }
+                        onOpenHelp: { showingHelp = true },
+                        onOpenEventLog: { showingEventLog = true }
                     )
                     .padding(.top, 8)
                     .padding(.trailing, 12)
@@ -61,6 +72,9 @@ struct MainView: View {
         }
         .sheet(isPresented: $showingHelp) {
             HelpSheet(viewModel: viewModel, gestureSettings: gestureSettings)
+        }
+        .sheet(isPresented: $showingEventLog) {
+            EventLogSheet(speechManager: viewModel.speechManager)
         }
         .onAppear { viewModel.setup(appState: appState) }
         .onDisappear { viewModel.disconnect() }
@@ -87,38 +101,59 @@ struct MainView: View {
 // MARK: - In-game Menu Button
 
 /// Small overlay button in the top-trailing corner of the game view.
-/// Double-tap opens a confirmation dialog with Help, Controls, and Chat;
-/// guarantees a recovery path even if every gesture has been remapped to
-/// none. The double-tap requirement matches the in-game touch model so a
-/// stray finger landing on the menu icon doesn't pop a sheet mid-play.
+/// Double-tap opens a confirmation dialog with Help, Controls, Recent
+/// events, and Chat; guarantees a recovery path even if every gesture has
+/// been remapped to none. The double-tap requirement matches the in-game
+/// touch model so a stray finger landing on the menu icon doesn't pop a
+/// sheet mid-play.
 ///
 /// Note: the iOS-native confirmation dialog itself uses iOS-standard
 /// single-tap activation (VO double-tap when VO is on). Customizing the
 /// dialog's per-item activation isn't possible without replacing the
 /// system control, and the dialog is a deliberate, transient surface that
 /// the user already opted into — so keeping that part native is fine.
+///
+/// Low-vision parity: icon size and hit target scale with Dynamic Type.
+/// Background is a near-opaque system surface (not 0.6 opacity over
+/// arbitrary game scene content) so the button is visible regardless of
+/// what's behind it; opacity bumps under Reduce Transparency / Increase
+/// Contrast.
 private struct InGameMenuButton: View {
     var onOpenChat: () -> Void
     var onOpenControls: () -> Void
     var onOpenHelp: () -> Void
+    var onOpenEventLog: () -> Void
 
     @State private var showingMenu = false
+    @Environment(\.lowVision) private var lv
+
+    @ScaledMetric(relativeTo: .title2) private var iconPointSize: CGFloat = 28
+    @ScaledMetric(relativeTo: .title2) private var hitSize: CGFloat = 48
 
     var body: some View {
         DoubleTapButton(action: { showingMenu = true }) {
             Image(systemName: "ellipsis.circle.fill")
-                .font(.system(size: 28, weight: .semibold))
+                .font(.system(size: iconPointSize, weight: lv.boldText ? .heavy : .semibold))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(.tint)
-                .frame(width: 44, height: 44)
-                .background(Color(.systemBackground).opacity(0.6), in: Circle())
+                .frame(width: max(hitSize, 44), height: max(hitSize, 44))
+                .background(
+                    Circle()
+                        .fill(Color(.systemBackground).opacity(lv.overlaySurfaceOpacity))
+                )
+                .overlay(
+                    Circle()
+                        .stroke(Color.primary.opacity(lv.overlayBorderOpacity),
+                                lineWidth: lv.increasedContrast ? 2 : 1)
+                )
                 .accessibilityLabel("Menu")
-                .accessibilityHint("Opens help, controls, and chat. Always available, no matter how gestures are configured.")
+                .accessibilityHint("Opens help, controls, chat, and the recent events log. Always available, no matter how gestures are configured.")
         }
         .fixedSize()
         .confirmationDialog("Menu", isPresented: $showingMenu, titleVisibility: .visible) {
             Button("Help") { onOpenHelp() }
             Button("Controls") { onOpenControls() }
+            Button("Recent events") { onOpenEventLog() }
             Button("Chat") { onOpenChat() }
             Button("Cancel", role: .cancel) {}
         }
@@ -212,6 +247,7 @@ final class GameTouchView: UIView {
         isMultipleTouchEnabled = true
         setupGestures()
         setupAccessibility()
+        registerTraitChangeHandlers()
         selectionFeedback.prepare()
         impactFeedback.prepare()
     }
@@ -221,6 +257,7 @@ final class GameTouchView: UIView {
         isMultipleTouchEnabled = true
         setupGestures()
         setupAccessibility()
+        registerTraitChangeHandlers()
     }
 
     private func setupAccessibility() {
@@ -228,6 +265,29 @@ final class GameTouchView: UIView {
         accessibilityTraits = .allowsDirectInteraction
         accessibilityLabel = "Game area"
         accessibilityHint = "Swipe left and right to browse. Double-tap to select. Use the VoiceOver Actions rotor for Help, Controls, Chat, and game actions. The Menu button in the top right is always available too."
+    }
+
+    // MARK: - Trait Changes (low-vision)
+
+    /// React to changes in the user's text size, contrast, or appearance
+    /// while the game view is on screen. The view itself doesn't draw
+    /// custom content (background is `.systemBackground`, gestures only),
+    /// but the system background and any future visual additions should
+    /// repaint when the user toggles dark mode or Increase Contrast mid
+    /// session.
+    private func registerTraitChangeHandlers() {
+        let traits: [any UITrait] = [
+            UITraitPreferredContentSizeCategory.self,
+            UITraitAccessibilityContrast.self,
+            UITraitUserInterfaceStyle.self,
+        ]
+        registerForTraitChanges(traits) { (self: GameTouchView, _: UITraitCollection) in
+            // .systemBackground already adapts to dark/light + contrast,
+            // but trigger a redraw so any descendant custom drawing
+            // (added in the future) re-evaluates against the new traits.
+            self.setNeedsLayout()
+            self.setNeedsDisplay()
+        }
     }
 
     // MARK: - Gesture Setup
@@ -926,7 +986,7 @@ private struct ControlsSheet: View {
             List {
                 Section("Buffers") {
                     if let info = viewModel.currentBufferInfo {
-                        Text(info).foregroundStyle(.secondary)
+                        Text(info).lowVisionSecondary()
                     }
                     DoubleTapButton("Previous buffer") { viewModel.previousBuffer() }
                     DoubleTapButton("Next buffer") { viewModel.nextBuffer() }
@@ -982,22 +1042,61 @@ private struct ControlsSheet: View {
     }
 
     private func volumeRow(_ label: String, _ value: Float, down: @escaping () -> Void, up: @escaping () -> Void) -> some View {
-        HStack {
-            Text("\(label): \(Int(value * 100))%")
+        VolumeRow(label: label, value: value, down: down, up: up)
+    }
+}
+
+/// Stepper-style volume control. Uses visible text glyphs ("−" / "+") so
+/// the controls scale with Dynamic Type and stay legible for low-vision
+/// users — an icon-only minus.circle is fine for VoiceOver but barely
+/// visible if you have partial sight and a screen reader off. Adjustable
+/// via VoiceOver swipe too.
+private struct VolumeRow: View {
+    let label: String
+    let value: Float
+    let down: () -> Void
+    let up: () -> Void
+
+    @Environment(\.lowVision) private var lv
+
+    private var pct: Int { Int((value * 100).rounded()) }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.body)
+                    .fontWeight(lv.boldText ? .semibold : .regular)
+                Text("\(pct)%")
+                    .font(.callout)
+                    .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
+                    .monospacedDigit()
+                    .accessibilityHidden(true)
+            }
             Spacer()
             DoubleTapButton(action: down) {
-                Image(systemName: "minus.circle")
-                    .accessibilityLabel("\(label) down")
+                Text("−")
+                    .font(.title3)
+                    .fontWeight(lv.boldText ? .bold : .semibold)
+                    .frame(minWidth: 36, minHeight: 36)
+                    .background(Color(.tertiarySystemBackground),
+                                in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .accessibilityLabel("Decrease \(label) volume")
             }
             .fixedSize()
             DoubleTapButton(action: up) {
-                Image(systemName: "plus.circle")
-                    .accessibilityLabel("\(label) up")
+                Text("+")
+                    .font(.title3)
+                    .fontWeight(lv.boldText ? .bold : .semibold)
+                    .frame(minWidth: 36, minHeight: 36)
+                    .background(Color(.tertiarySystemBackground),
+                                in: RoundedRectangle(cornerRadius: 6, style: .continuous))
+                    .accessibilityLabel("Increase \(label) volume")
             }
             .fixedSize()
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(label) volume: \(Int(value * 100)) percent")
+        .accessibilityLabel("\(label) volume: \(pct) percent")
         .accessibilityAdjustableAction { direction in
             switch direction {
             case .increment: up()
@@ -1169,11 +1268,11 @@ private struct HelpSheet: View {
                 }
                 Section("Tips") {
                     Text("The app speaks everything itself. VoiceOver is optional but supported.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(.callout).lowVisionSecondary()
                     Text("After 8 seconds idle, the current item repeats.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(.callout).lowVisionSecondary()
                     Text("Customize gestures with the Gestures button in the toolbar.")
-                        .font(.callout).foregroundStyle(.secondary)
+                        .font(.callout).lowVisionSecondary()
                 }
             }
             .listStyle(.insetGrouped)
@@ -1192,9 +1291,121 @@ private struct HelpSheet: View {
     private func helpRow(_ gesture: String, _ description: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(gesture).fontWeight(.medium)
-            Text(description).font(.callout).foregroundStyle(.secondary)
+            Text(description).font(.callout).lowVisionSecondary()
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+// MARK: - Event Log Sheet
+
+/// Visual transcript of everything the SpeechManager has spoken in this
+/// session. The blind user gets game state through queued speech. A
+/// low-vision user with self-voicing at low volume, or who was magnifying
+/// another part of the screen when a key announcement passed, would
+/// otherwise lose that information. This sheet shows the same stream as a
+/// scrollable, navigable log.
+///
+/// Announcements (server events) are bold and prefixed with a megaphone
+/// glyph; UI chatter (menu focus reads) is regular weight and prefixed
+/// with a chevron, so the two are visually distinguishable beyond colour
+/// alone.
+private struct EventLogSheet: View {
+    @ObservedObject var speechManager: SpeechManager
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.lowVision) private var lv
+
+    private static let formatter: DateFormatter = {
+        let f = DateFormatter()
+        f.timeStyle = .medium
+        f.dateStyle = .none
+        return f
+    }()
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if speechManager.recentEvents.isEmpty {
+                    emptyState
+                } else {
+                    list
+                }
+            }
+            .navigationTitle("Recent Events")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button {
+                        speechManager.repeatLastAnnouncement()
+                    } label: {
+                        Label("Repeat last", systemImage: "speaker.wave.2.fill")
+                    }
+                    .accessibilityLabel("Repeat last announcement")
+                    .disabled(speechManager.recentEvents.isEmpty)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "text.bubble")
+                .font(.largeTitle)
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
+                .accessibilityHidden(true)
+            Text("No events yet")
+                .font(.body)
+                .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+    }
+
+    private var list: some View {
+        // Newest at the top — easier to find the thing that just
+        // happened. The reversed buffer is small (capped at 200) so a
+        // plain in-memory reverse is fine.
+        let events = Array(speechManager.recentEvents.reversed())
+        return List {
+            ForEach(events) { event in
+                row(for: event)
+            }
+        }
+        .listStyle(.plain)
+    }
+
+    private func row(for event: SpeechManager.LoggedEvent) -> some View {
+        let isAnnouncement = event.channel == .announcement
+        let iconName = isAnnouncement ? "megaphone.fill" : "chevron.right"
+        return HStack(alignment: .top, spacing: 10) {
+            Image(systemName: iconName)
+                .font(.body.weight(lv.iconWeight))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(isAnnouncement ? Color.accentColor : Color.primary)
+                .frame(width: 22, alignment: .center)
+                .accessibilityHidden(true)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.text)
+                    .font(.body)
+                    .fontWeight(isAnnouncement
+                                ? (lv.boldText ? .heavy : .semibold)
+                                : .regular)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(Self.formatter.string(from: event.timestamp))
+                    .font(.caption)
+                    .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
+                    .monospacedDigit()
+            }
+        }
+        .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(isAnnouncement ? "Announcement" : "Note"): \(event.text)"
+        )
     }
 }
 

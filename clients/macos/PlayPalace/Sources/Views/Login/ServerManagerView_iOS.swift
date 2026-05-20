@@ -45,7 +45,7 @@ struct ServerManagerView_iOS: View {
                 if sortedServers.isEmpty {
                     Section {
                         Text("No servers configured yet. Tap Add Server above to get started.")
-                            .foregroundStyle(.secondary)
+                            .lowVisionSecondary()
                             .accessibilityLabel("No servers configured")
                             .accessibilityHint("Use the Add Server button above to add your first server")
                     }
@@ -102,11 +102,11 @@ private struct ServerRow_iOS: View {
                 .font(.body.weight(.medium))
             Text("\(server.host):\(server.port)")
                 .font(.caption)
-                .foregroundStyle(.secondary)
+                .lowVisionSecondary()
             if !server.notes.isEmpty {
                 Text(server.notes)
                     .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .lowVisionSecondary()
                     .lineLimit(1)
             }
         }
@@ -168,7 +168,7 @@ struct ServerDetailView_iOS: View {
             if sortedAccounts.isEmpty {
                 Section {
                     Text("No accounts yet. Double-tap Add Account to create one.")
-                        .foregroundStyle(.secondary)
+                        .lowVisionSecondary()
                         .accessibilityLabel("No accounts on this server")
                 }
             } else {
@@ -238,7 +238,7 @@ private struct AccountRow_iOS: View {
             if !account.email.isEmpty {
                 Text(account.email)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .lowVisionSecondary()
             }
         }
         .padding(.vertical, 2)
