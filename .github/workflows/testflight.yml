@@ -1,0 +1,179 @@
+name: Deploy to TestFlight
+
+# Auto-ship every push to main to TestFlight via a self-hosted Apple Silicon
+# Mac runner. Concurrency cancels in-flight builds when a newer commit lands
+# so rapid commits don't pile up beta-review requests -- only the latest
+# commit ends up uploaded.
+#
+# Tester notes (the "What to Test" field) resolve in priority order: a
+# manual `notes` input on workflow_dispatch, a `Release-Notes:` trailer in
+# the commit body (multi-line supported), the first line of the commit
+# subject, then a generic fallback. Not enforced -- casual commits ship
+# fine; add a trailer when you want richer notes.
+#
+# Mirrors the BookPlayer TestFlight workflow (same Mac, same Apple developer
+# account, separate runner labels). Differences: PlayPalace uses the Release
+# configuration, an in-repo ExportOptions.plist, and needs an OGG-to-CAF
+# sound conversion pre-step that BookPlayer doesn't have.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "clients/macos/**"
+      - "scripts/convert-sounds-ios.sh"
+      - "clients/desktop/sounds/**"
+      - ".github/workflows/testflight.yml"
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "What-to-Test notes (overrides commit message)."
+        required: false
+        default: ""
+
+concurrency:
+  group: testflight-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    # Self-hosted macOS runner on matt's Apple Silicon Mac (192.168.31.216),
+    # registered as actions.runner.matalvernaz-PlayPalace-clients.macmini-
+    # playpalace. Signing material, the ASC .p8 key, and the keychain
+    # password all live on that Mac; nothing sensitive crosses GitHub
+    # Secrets.
+    runs-on: [self-hosted, macos, playpalace]
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Convert OGG sources to CAF
+        # The iOS bundle ships CAF sounds (AVAudioPlayer doesn't speak OGG).
+        # The source of truth is clients/desktop/sounds/*.ogg; the conversion
+        # script writes clients/macos/PlayPalace/Sources/sounds/*.caf which
+        # the Xcode project bundles as a folder reference. ffmpeg must be
+        # installed on the runner (brew install ffmpeg); afconvert ships
+        # with macOS.
+        run: ./scripts/convert-sounds-ios.sh
+
+      # Build, archive, export, and upload in one shell step so the keychain
+      # stays unlocked across xcodebuild archive and xcodebuild -exportArchive.
+      # The login keychain re-locks between separate shell sessions even with
+      # no idle auto-lock, and codesign then fails with errSecInternalComponent
+      # (see the BookPlayer testflight workflow + playpalace-deploy/deploy.sh
+      # for the original incident.)
+      - name: Archive, export, and upload to App Store Connect
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1090
+          source ~/.config/playpalace-deploy/secrets.env
+          # Mask the keychain password in log output; the `security`
+          # invocations below pass it on the command line, which GitHub's
+          # masker only redacts when explicitly told the value.
+          echo "::add-mask::${MAC_KEYCHAIN_PASSWORD}"
+
+          BUILD_NUMBER="$(date -u +%Y%m%d%H%M%S)"
+          echo "BUILD_NUMBER=${BUILD_NUMBER}" >> "${GITHUB_ENV}"
+          echo "::notice::Building CFBundleVersion=${BUILD_NUMBER}"
+
+          BUILD_DIR="${RUNNER_TEMP}/playpalace-ci"
+          rm -rf "${BUILD_DIR}"
+          mkdir -p "${BUILD_DIR}"
+
+          echo "Unlocking login keychain..."
+          security unlock-keychain -p "${MAC_KEYCHAIN_PASSWORD}" \
+            ~/Library/Keychains/login.keychain-db
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "${MAC_KEYCHAIN_PASSWORD}" \
+            ~/Library/Keychains/login.keychain-db >/dev/null
+
+          cd clients/macos/PlayPalace
+
+          echo "Archiving..."
+          # Pass ASC API credentials so -allowProvisioningUpdates can refresh
+          # the team's provisioning profile via App Store Connect instead of
+          # via Xcode's GUI-keychain "Accounts" mechanism. The latter isn't
+          # reachable from a launchd-spawned process and fails with
+          # "No Accounts: Add a new account in Accounts settings."
+          xcodebuild archive \
+            -project PlayPalace.xcodeproj \
+            -scheme PlayPalace \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "${BUILD_DIR}/PlayPalace.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${ASC_KEY_PATH}" \
+            -authenticationKeyID "${ASC_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_ISSUER_ID}" \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM="${DEVELOPMENT_TEAM}" \
+            CURRENT_PROJECT_VERSION="${BUILD_NUMBER}"
+
+          echo "Exporting + uploading..."
+          # Uses the checked-in ExportOptions.plist (app-store-connect,
+          # automatic signing, BJG744KCUJ) so signing/team/method match
+          # what the repo expects without regeneration.
+          xcodebuild -exportArchive \
+            -archivePath "${BUILD_DIR}/PlayPalace.xcarchive" \
+            -exportOptionsPlist ./ExportOptions.plist \
+            -exportPath "${BUILD_DIR}/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "${ASC_KEY_PATH}" \
+            -authenticationKeyID "${ASC_KEY_ID}" \
+            -authenticationKeyIssuerID "${ASC_ISSUER_ID}"
+
+      # Wait for processing, set release notes, submit for beta review, and
+      # attach the build to the External Testers group. Reuses the helper
+      # that the local deploy.sh flow ships -- mirrored onto the Mac at
+      # ~/playpalace-deploy/ during runner setup.
+      - name: Attach to External Testers group
+        env:
+          COMMIT_MSG: ${{ github.event.head_commit.message }}
+          MANUAL_NOTES: ${{ github.event.inputs.notes }}
+        run: |
+          set -euo pipefail
+          # shellcheck disable=SC1090
+          source ~/.config/playpalace-deploy/secrets.env
+
+          # Resolve What-to-Test notes in priority order:
+          #   1. Manual workflow_dispatch input (explicit override).
+          #   2. `Release-Notes:` trailer in the commit body. Everything
+          #      after the colon on that line through the next blank line
+          #      becomes the notes, so multi-line notes are supported.
+          #   3. First line of the commit message (the subject).
+          #   4. Generic fallback so the field is never empty.
+          notes=""
+          if [[ -n "${MANUAL_NOTES:-}" ]]; then
+            notes="${MANUAL_NOTES}"
+          fi
+          if [[ -z "${notes}" && -n "${COMMIT_MSG:-}" ]]; then
+            notes=$(printf '%s' "${COMMIT_MSG}" | awk '
+              /^[Rr]elease-[Nn]otes:/ {
+                sub(/^[Rr]elease-[Nn]otes:[[:space:]]*/, "")
+                found = 1
+                print
+                next
+              }
+              found && /^$/ { exit }
+              found { print }
+            ')
+          fi
+          if [[ -z "${notes}" ]]; then
+            notes=$(printf '%s' "${COMMIT_MSG}" | head -n1)
+          fi
+          if [[ -z "${notes}" ]]; then
+            notes="New build available."
+          fi
+          echo "::notice::Tester notes: ${notes}"
+
+          python3 ~/playpalace-deploy/testflight-add-to-group.py \
+            --build-number "${BUILD_NUMBER}" \
+            --bundle-id "${ASC_BUNDLE_ID}" \
+            --group-id "${ASC_BETA_GROUP_ID}" \
+            --notes "${notes}" \
+            --key-id "${ASC_KEY_ID}" \
+            --issuer-id "${ASC_ISSUER_ID}" \
+            --key-path "${ASC_KEY_PATH}"
