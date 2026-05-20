@@ -200,7 +200,7 @@ struct ButtonShapeBackgroundModifier: ViewModifier {
             .background {
                 if lv.showButtonShapes {
                     RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                        .fill(Color(.secondarySystemBackground))
+                        .fill(buttonShapeFill)
                 }
             }
             .overlay {
@@ -209,6 +209,14 @@ struct ButtonShapeBackgroundModifier: ViewModifier {
                         .stroke(Color.primary.opacity(0.45), lineWidth: 1)
                 }
             }
+    }
+
+    /// Cross-platform "soft surface" fill. iOS and macOS spell their named
+    /// system backgrounds differently (`secondarySystemBackground` is UIKit-
+    /// only); a `.primary` tint at low opacity gives the same visual cue on
+    /// both platforms without conditional compilation at every call site.
+    private var buttonShapeFill: Color {
+        Color.primary.opacity(0.08)
     }
 }
 
