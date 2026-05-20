@@ -826,6 +826,60 @@ class GameOfLifeGame(Game):
                     self.record_transcript_event(p, txt, "table")
                 user.speak_l(message_id, "table", who="player", player=player.name, **kwargs)
 
+    def _announce_lines(
+        self, lines: list[tuple[Player, str, dict]]
+    ) -> None:
+        """Multi-line variant of :meth:`_announce`.
+
+        Several turn outcomes in Life are described as a burst of related
+        lines fired from a single handler in one server tick — for example
+        a big spin can pass two PAYDAY spaces before landing, producing a
+        ``life-pass-payday`` × N + ``life-move`` burst. Each call to
+        :meth:`_announce` becomes one ``speak`` packet, and a client whose
+        TTS pipeline naïvely interrupts on every new utterance hears only
+        the last line. Combining the burst into a single packet lets the
+        client speak the lines as one continuous utterance.
+
+        Each entry in ``lines`` is ``(actor, message_id, kwargs)``. Per
+        recipient, every line is localized with the same you/player
+        perspective swap that :meth:`_announce` applies (``who="you"`` for
+        the actor, ``who="player"`` with ``player=<name>`` for everyone
+        else), joined with a newline, and emitted as one ``speak`` call.
+        Lines about different actors compose correctly — the spin-result
+        line is "about" the spinner, while a follow-up stock-paid line is
+        "about" the stock holder, and each recipient gets the right
+        perspective for each line.
+
+        Args:
+            lines: Ordered list of ``(actor, message_id, kwargs)`` tuples.
+                Empty list is a no-op.
+        """
+        if not lines:
+            return
+        for p in self.players:
+            user = self.get_user(p)
+            if not user:
+                continue
+            rendered: list[str] = []
+            for actor, message_id, kwargs in lines:
+                if p is actor:
+                    text = Localization.get(
+                        user.locale, message_id, who="you", **kwargs
+                    )
+                else:
+                    text = Localization.get(
+                        user.locale,
+                        message_id,
+                        who="player",
+                        player=actor.name,
+                        **kwargs,
+                    )
+                rendered.append(text)
+            combined = "\n".join(rendered)
+            if hasattr(self, "record_transcript_event"):
+                self.record_transcript_event(p, combined, "table")
+            user.speak(combined, "table")
+
     # ---------------------------------------------------------------------
     # Action handlers — spin + movement
     # ---------------------------------------------------------------------
@@ -1259,20 +1313,27 @@ class GameOfLifeGame(Game):
         if not player:
             return
         value = int(data["value"])
-        self._announce(player, "life-spin-result", value=value)
 
-        # Any opponent holding this stock number gets paid.
+        # Build the spin-result burst as a single combined announcement.
+        # Spin-result is "about" the spinner; any stock payouts are "about"
+        # the respective stock holder — _announce_lines applies the correct
+        # you/player perspective to each line per recipient.
+        lines: list[tuple[Player, str, dict]] = [
+            (player, "life-spin-result", {"value": value}),
+        ]
         if self.options.stock_market:
             for p in self.get_active_players():
                 lp: LifePlayer = p  # type: ignore
                 if lp.stock_number == value:
                     lp.cash += STOCK_PAYOUT
-                    self._announce(
-                        p,
-                        "life-stock-paid",
-                        number=value,
-                        money=_fmt_money(STOCK_PAYOUT),
+                    lines.append(
+                        (
+                            p,
+                            "life-stock-paid",
+                            {"number": value, "money": _fmt_money(STOCK_PAYOUT)},
+                        )
                     )
+        self._announce_lines(lines)
 
         # Schedule movement steps.
         self._schedule_movement(player, value)
@@ -1306,8 +1367,17 @@ class GameOfLifeGame(Game):
         old_pos = lp.position
         target = int(data["target"])
 
-        # Pass-through bonuses: if we cross a PAYDAY space between old_pos (exclusive)
-        # and target (inclusive — payouts trigger whether we pass or stop).
+        # Collect every line that should land in the same TTS burst: any
+        # passed-payday announcements, the move announcement itself, and a
+        # college-graduated announcement when the move crosses a graduation
+        # space. Emitted as a single combined packet so the client speaks
+        # the whole turn-outcome description without cancelling each line
+        # mid-utterance.
+        lines: list[tuple[Player, str, dict]] = []
+
+        # Pass-through bonuses: if we cross a PAYDAY space between old_pos
+        # (exclusive) and target (inclusive — payouts trigger whether we
+        # pass or stop).
         payday_gained = 0
         for idx in range(old_pos + 1, target + 1):
             space = self.track[idx]
@@ -1320,37 +1390,33 @@ class GameOfLifeGame(Game):
                 payday_gained += earning
                 # If this is a *passed* payday (not the final landing), announce it.
                 if idx != target:
-                    self._announce(
-                        player, "life-pass-payday", money=_fmt_money(earning)
+                    lines.append(
+                        (player, "life-pass-payday", {"money": _fmt_money(earning)}),
                     )
 
         lp.position = target
-        self._announce(player, "life-move", position=target)
+        lines.append((player, "life-move", {"position": target}))
 
         # College auto-grad: if a college-path player passes/lands on the first
-        # COLLEGE_GRAD space, draw career cards.
+        # COLLEGE_GRAD space, draw career cards. The graduation announcement
+        # rides on the same burst; the offer + pending-state side-effects
+        # don't speak, so they happen silently here.
         if lp.path == "college" and lp.career_key == "":
             for idx in range(old_pos + 1, target + 1):
                 if self.track[idx].type == SpaceType.COLLEGE_GRAD:
-                    self._college_graduate(lp)
+                    lines.append((lp, "life-college-graduated", {}))
+                    self._offer_careers(lp, self.career_pool, count=3)
+                    lp.pending = "career_pick"
                     break
             # Safety net if the track has no grad space.
             lp.turns_since_college_start += 1
+
+        self._announce_lines(lines)
 
         # Schedule landing resolution.
         self.schedule_event(
             "resolve_landing", {"player_id": player.id, "payday": payday_gained}, delay_ticks=6
         )
-
-    def _college_graduate(self, lp: LifePlayer) -> None:
-        self._announce_player(lp, "life-college-graduated")
-        self._offer_careers(lp, self.career_pool, count=3)
-        # Defer the prompt — the player will get it right after their move resolution.
-        lp.pending = "career_pick"
-
-    def _announce_player(self, lp: LifePlayer, message_id: str, **kwargs) -> None:
-        """_announce that works when we already have the LifePlayer subclass."""
-        self._announce(lp, message_id, **kwargs)
 
     # ---------------------------------------------------------------------
     # Landing resolution — per SpaceType

@@ -314,6 +314,134 @@ class TestActions:
         assert alice.cash == STOCK_PAYOUT
 
 
+def _speak_messages(user):
+    """Pull just the speak() events off a MockUser's message log."""
+    return [m for m in user.messages if m.type == "speak"]
+
+
+class TestAnnounceLines:
+    """Burst handlers combine multi-line narration into one speak packet.
+
+    Several Life handlers fire several ``_announce`` calls in a single
+    server tick (e.g. ``_handle_step_move`` crossing two PAYDAY spaces
+    plus the move announcement). Without combining, each line becomes a
+    separate ``speak`` packet, and a client whose TTS interrupts on
+    every new utterance hears only the last line. These tests pin the
+    single-packet behaviour.
+    """
+
+    def setup_method(self):
+        self.game = GameOfLifeGame()
+        self.alice_user = MockUser("Alice")
+        self.bob_user = MockUser("Bob")
+        self.game.add_player("Alice", self.alice_user)
+        self.game.add_player("Bob", self.bob_user)
+        self.game.options.college_path = False
+        self.game.on_start()
+        for p in self.game.players:
+            p.career_key = "teacher"
+            p.career_label_key = "life-career-teacher"
+            p.salary = 40_000
+            p.pending = ""
+
+    def test_announce_lines_emits_one_packet_per_player(self):
+        alice = self.game.players[0]
+        # Drain pre-existing setup speech.
+        self.alice_user.messages.clear()
+        self.bob_user.messages.clear()
+
+        self.game._announce_lines([
+            (alice, "life-spin-result", {"value": 5}),
+            (alice, "life-move", {"position": 7}),
+        ])
+
+        # One packet each, not two.
+        assert len(_speak_messages(self.alice_user)) == 1
+        assert len(_speak_messages(self.bob_user)) == 1
+
+    def test_announce_lines_combines_lines_per_recipient(self):
+        alice = self.game.players[0]
+        self.alice_user.messages.clear()
+
+        self.game._announce_lines([
+            (alice, "life-spin-result", {"value": 5}),
+            (alice, "life-move", {"position": 7}),
+        ])
+
+        spoken = _speak_messages(self.alice_user)[0].data["text"]
+        # Both lines are present in the single packet.
+        assert "5" in spoken
+        assert "7" in spoken
+        # Joined with a newline so the TTS engine gets a natural pause.
+        assert "\n" in spoken
+
+    def test_announce_lines_uses_per_line_perspective(self):
+        """A line about Bob reads "you" to Bob and "Bob" to Alice."""
+        alice = self.game.players[0]
+        bob = self.game.players[1]
+        self.alice_user.messages.clear()
+        self.bob_user.messages.clear()
+
+        # Line 1 is about Alice; line 2 is about Bob. Each recipient
+        # should see the right perspective applied to each line.
+        self.game._announce_lines([
+            (alice, "life-spin-result", {"value": 5}),
+            (bob, "life-stock-paid", {"number": 5, "money": "$10,000"}),
+        ])
+
+        alice_spoken = _speak_messages(self.alice_user)[0].data["text"]
+        bob_spoken = _speak_messages(self.bob_user)[0].data["text"]
+
+        # Alice's first line uses "you" (she's the actor). Bob's first
+        # line uses "Alice" (she's not him).
+        assert "Alice" in bob_spoken or "alice" in bob_spoken.lower() \
+            or "Alice" in bob_spoken, f"expected Alice's name in Bob's view: {bob_spoken!r}"
+        # Bob's name appears in Alice's view of the second line.
+        assert "Bob" in alice_spoken, f"expected Bob's name in Alice's view: {alice_spoken!r}"
+
+    def test_announce_lines_empty_is_noop(self):
+        self.alice_user.messages.clear()
+        self.game._announce_lines([])
+        assert _speak_messages(self.alice_user) == []
+
+    def test_spin_result_emits_single_packet_with_stock_payouts(self):
+        """Spin result + N stock payouts collapse into one speak per player."""
+        alice = self.game.players[0]
+        bob = self.game.players[1]
+        alice.stock_number = 5
+        self.alice_user.messages.clear()
+        self.bob_user.messages.clear()
+
+        self.game._handle_spin_result({"player_id": bob.id, "value": 5})
+
+        # Pre-fix: 2 speak packets per recipient (spin-result + stock-paid).
+        # Post-fix: 1 combined packet per recipient.
+        assert len(_speak_messages(self.alice_user)) == 1
+        assert len(_speak_messages(self.bob_user)) == 1
+
+    def test_step_move_emits_single_packet_with_passed_paydays(self):
+        """Pass-payday lines + life-move collapse into one speak per player."""
+        alice = self.game.players[0]
+        self.alice_user.messages.clear()
+        self.bob_user.messages.clear()
+
+        # Find a stretch of track that crosses at least one PAYDAY space.
+        # The standard track puts paydays at regular intervals; jumping
+        # from 0 to a position past the first payday guarantees ≥1 crossing.
+        first_payday = next(
+            i for i, s in enumerate(self.game.track) if s.type == SpaceType.PAYDAY
+        )
+        target = first_payday + 2  # land past the payday so it counts as "passed"
+        alice.position = 0
+
+        self.game._handle_step_move({"player_id": alice.id, "target": target})
+
+        # Both Alice and Bob receive a single combined packet, not two
+        # (passed-payday + life-move).
+        assert len(_speak_messages(self.alice_user)) == 1
+        assert len(_speak_messages(self.bob_user)) == 1
+
+
 class TestEndScreen:
     def test_format_end_screen_sorts_by_total(self):
         game = GameOfLifeGame()
