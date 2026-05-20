@@ -31,7 +31,12 @@ struct MainView: View {
                         onOpenControls: { showingControls = true },
                         onOpenHelp: { showingHelp = true }
                     )
-                    .ignoresSafeArea()
+                    // Leave the bottom safe area free of the direct-touch
+                    // view so the iPhone home-indicator gesture isn't
+                    // swallowed by `allowsDirectInteraction`. iOS routes
+                    // the system swipe-up via that strip; if our view
+                    // owns it, the user can't leave the app.
+                    .ignoresSafeArea(.container, edges: [.top, .horizontal])
 
                     // Always-visible recovery affordance. Reachable regardless
                     // of the user's gesture mappings — even if Help and Go
