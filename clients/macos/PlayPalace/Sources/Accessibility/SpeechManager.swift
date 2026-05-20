@@ -116,6 +116,17 @@ final class SpeechManager: NSObject, ObservableObject {
     /// Whether we've configured the audio session this app launch. iOS only.
     private var audioSessionConfigured = false
 
+    /// Pending "deactivate the audio session" task. Speaking utterance N
+    /// then immediately enqueuing N+1 used to pay an activate→deactivate→
+    /// activate cycle around AVSpeechSynthesizer's idle gap, and that
+    /// cycle adds noticeable cold-start latency to every flick because
+    /// AVSpeechSynthesizer needs to re-warm the voice each time. Instead
+    /// we defer the deactivate by a few seconds so a follow-up utterance
+    /// keeps the session warm.
+    private var deactivateTimer: Timer?
+
+    private static let deactivateDelay: TimeInterval = 10.0
+
     /// When true, all speech is routed through ``AVSpeechSynthesizer`` even
     /// while VoiceOver is running. Set by the game touch view while it holds
     /// accessibility focus, because VoiceOver's focus-element chatter on a
@@ -537,7 +548,7 @@ final class SpeechManager: NSObject, ObservableObject {
         activeText = ""
 
         guard let next = queue.first else {
-            deactivateAudioSession()
+            scheduleDeactivate()
             return
         }
         queue.removeFirst()
@@ -576,6 +587,10 @@ final class SpeechManager: NSObject, ObservableObject {
     /// session.
     private func configureAudioSessionIfNeeded() {
         #if os(iOS)
+        // If a deferred deactivation is in flight, cancel it — the user is
+        // speaking again, the session must stay live.
+        deactivateTimer?.invalidate()
+        deactivateTimer = nil
         guard !audioSessionConfigured else { return }
         let session = AVAudioSession.sharedInstance()
         do {
@@ -588,11 +603,30 @@ final class SpeechManager: NSObject, ObservableObject {
         #endif
     }
 
+    /// Defer audio-session deactivation. If new speech arrives within the
+    /// window, the timer is cancelled (see ``configureAudioSessionIfNeeded``)
+    /// and we keep the session — and the synthesizer's voice cache — warm.
+    private func scheduleDeactivate() {
+        #if os(iOS)
+        guard audioSessionConfigured else { return }
+        deactivateTimer?.invalidate()
+        deactivateTimer = Timer.scheduledTimer(
+            withTimeInterval: Self.deactivateDelay, repeats: false
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.deactivateAudioSession()
+            }
+        }
+        #endif
+    }
+
     /// AVSpeechSynthesizer activates the session implicitly but never
     /// deactivates it, leaving other audio ducked indefinitely. We deactivate
     /// once our queue drains so background apps recover their volume.
     private func deactivateAudioSession() {
         #if os(iOS)
+        deactivateTimer?.invalidate()
+        deactivateTimer = nil
         guard audioSessionConfigured else { return }
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: [.notifyOthersOnDeactivation])
