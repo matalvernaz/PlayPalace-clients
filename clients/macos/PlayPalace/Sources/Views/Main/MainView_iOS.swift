@@ -254,6 +254,9 @@ final class GameTouchView: UIView {
         let swipeUp = UISwipeGestureRecognizer(target: self, action: #selector(onSwipeUp))
         swipeUp.direction = .up
         swipeUp.numberOfTouchesRequired = 1
+        // Defer to the system's home-indicator gesture for swipes that
+        // originate in the bottom edge zone — see the delegate method below.
+        swipeUp.delegate = self
         addGestureRecognizer(swipeUp)
 
         let swipeDown = UISwipeGestureRecognizer(target: self, action: #selector(onSwipeDown))
@@ -764,6 +767,29 @@ final class GameTouchView: UIView {
     deinit {
         idleTimer?.invalidate()
         exploreTimer?.invalidate()
+    }
+}
+
+// MARK: - GameTouchView gesture delegate
+
+extension GameTouchView: UIGestureRecognizerDelegate {
+
+    /// Hand the bottom-edge zone back to the system so the iPhone 15 Pro
+    /// (and any device with a home indicator) can still swipe up to home.
+    /// Without this, our one-finger swipe-up recognizer eats the gesture
+    /// before the system can claim it, trapping the user inside the app.
+    /// Other gestures (taps, swipe-down, multi-finger) are unaffected.
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer,
+                           shouldReceive touch: UITouch) -> Bool {
+        guard let swipe = gestureRecognizer as? UISwipeGestureRecognizer,
+              swipe.direction == .up,
+              swipe.numberOfTouchesRequired == 1
+        else {
+            return true
+        }
+        let location = touch.location(in: self)
+        let homeIndicatorZone: CGFloat = 40
+        return location.y < bounds.height - homeIndicatorZone
     }
 }
 
