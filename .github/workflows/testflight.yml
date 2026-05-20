@@ -56,7 +56,14 @@ jobs:
         # the Xcode project bundles as a folder reference. ffmpeg must be
         # installed on the runner (brew install ffmpeg); afconvert ships
         # with macOS.
-        run: ./scripts/convert-sounds-ios.sh
+        #
+        # /opt/homebrew/bin is on Apple Silicon's interactive PATH but NOT
+        # on launchd's default PATH, so the runner can't find ffmpeg
+        # without an explicit prefix. Add it here so the script's PATH
+        # lookup succeeds.
+        run: |
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
+          ./scripts/convert-sounds-ios.sh
 
       # Build, archive, export, and upload in one shell step so the keychain
       # stays unlocked across xcodebuild archive and xcodebuild -exportArchive.
