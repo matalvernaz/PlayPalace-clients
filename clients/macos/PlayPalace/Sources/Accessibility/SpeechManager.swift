@@ -481,9 +481,21 @@ final class SpeechManager: NSObject, ObservableObject {
 
         switch channel {
         case .announcement:
-            // Announcements always win. Drop pending UI, cancel current, speak now.
+            // Announcements always preempt UI chatter, but they QUEUE behind
+            // each other in FIFO order. Server-side narration often arrives
+            // as a burst of related lines — "You rolled a 5. You landed on
+            // Career Pause. Lose a turn." — and each line cancelling the
+            // previous made the burst unreadable. (Life was the canonical
+            // repro: every turn outcome landed as 3+ packets in quick
+            // succession.) The VoiceOver path already serialises via
+            // voQueue + voInFlight; mirror that semantic here so the synth
+            // path matches.
             queue.removeAll(where: { $0.channel == .ui })
-            startSpeaking(text: text, channel: .announcement)
+            if activeChannel == .announcement || pendingStart?.channel == .announcement {
+                queue.append((.announcement, text))
+            } else {
+                startSpeaking(text: text, channel: .announcement)
+            }
 
         case .ui:
             if activeChannel == .announcement {
