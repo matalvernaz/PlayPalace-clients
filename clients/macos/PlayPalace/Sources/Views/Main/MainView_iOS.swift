@@ -74,7 +74,10 @@ struct MainView: View {
             HelpSheet(viewModel: viewModel, gestureSettings: gestureSettings)
         }
         .sheet(isPresented: $showingEventLog) {
-            EventLogSheet(speechManager: viewModel.speechManager)
+            EventLogSheet(
+                bufferSystem: viewModel.bufferSystem,
+                speechManager: viewModel.speechManager
+            )
         }
         .onAppear { viewModel.setup(appState: appState) }
         .onDisappear { viewModel.disconnect() }
@@ -1299,21 +1302,26 @@ private struct HelpSheet: View {
 
 // MARK: - Event Log Sheet
 
-/// Visual transcript of everything the SpeechManager has spoken in this
-/// session. The blind user gets game state through queued speech. A
-/// low-vision user with self-voicing at low volume, or who was magnifying
-/// another part of the screen when a key announcement passed, would
-/// otherwise lose that information. This sheet shows the same stream as a
-/// scrollable, navigable log.
+/// Visual viewer for the existing per-buffer message history. The iOS app
+/// already separates server narration into named buffers (table, chats,
+/// activity, misc, plus a unioned "all"), and the buffer-navigation
+/// gestures + ControlsSheet buttons let blind users scrub through them by
+/// speech. What was missing — and what this sheet fills — is a visible
+/// scrollback for low-vision players: a buffer picker at the top, the
+/// chosen buffer's messages below with timestamps, sized for Dynamic Type.
 ///
-/// Announcements (server events) are bold and prefixed with a megaphone
-/// glyph; UI chatter (menu focus reads) is regular weight and prefixed
-/// with a chevron, so the two are visually distinguishable beyond colour
-/// alone.
+/// Reads directly from ``MainViewModel/bufferSystem`` rather than keeping
+/// a parallel log: the buffer system is already the source of truth for
+/// "things the server told us", respects user mute choices, and survives
+/// reconnect / scene-phase transitions. Mirrors the desktop client's
+/// `history_text` widget pattern.
 private struct EventLogSheet: View {
-    @ObservedObject var speechManager: SpeechManager
+    @ObservedObject var bufferSystem: BufferSystem
+    let speechManager: SpeechManager
     @Environment(\.dismiss) private var dismiss
     @Environment(\.lowVision) private var lv
+
+    @State private var selectedBufferName: String = "all"
 
     private static let formatter: DateFormatter = {
         let f = DateFormatter()
@@ -1322,26 +1330,36 @@ private struct EventLogSheet: View {
         return f
     }()
 
+    private var selectedBuffer: BufferSystem.Buffer? {
+        bufferSystem.buffers.first(where: { $0.name == selectedBufferName })
+    }
+
+    private var items: [BufferItem] {
+        selectedBuffer?.items ?? []
+    }
+
     var body: some View {
         NavigationStack {
-            Group {
-                if speechManager.recentEvents.isEmpty {
-                    emptyState
-                } else {
-                    list
+            VStack(spacing: 0) {
+                bufferPicker
+                Divider()
+                Group {
+                    if items.isEmpty {
+                        emptyState
+                    } else {
+                        list
+                    }
                 }
             }
             .navigationTitle("Recent Events")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button {
-                        speechManager.repeatLastAnnouncement()
-                    } label: {
+                    Button(action: repeatLastInBuffer) {
                         Label("Repeat last", systemImage: "speaker.wave.2.fill")
                     }
-                    .accessibilityLabel("Repeat last announcement")
-                    .disabled(speechManager.recentEvents.isEmpty)
+                    .accessibilityLabel("Repeat last message in this buffer")
+                    .disabled(items.isEmpty)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
@@ -1351,6 +1369,45 @@ private struct EventLogSheet: View {
         .presentationDetents([.medium, .large])
     }
 
+    private var bufferPicker: some View {
+        // Menu-style picker because the segmented control's tighter
+        // hit targets get awkward at accessibility-tier Dynamic Type
+        // sizes; Menu scales cleanly and reads as a single accessible
+        // element to VoiceOver.
+        Menu {
+            ForEach(bufferSystem.buffers, id: \.name) { buffer in
+                Button {
+                    selectedBufferName = buffer.name
+                } label: {
+                    let mutedTag = buffer.isMuted ? " (muted)" : ""
+                    Text("\(buffer.name.capitalized) — \(buffer.items.count)\(mutedTag)")
+                }
+            }
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "tray.full.fill")
+                    .symbolRenderingMode(.hierarchical)
+                Text("Buffer: \(selectedBufferName.capitalized)")
+                    .font(.body)
+                    .fontWeight(lv.boldText ? .semibold : .regular)
+                if let buffer = selectedBuffer, buffer.isMuted {
+                    Text("(muted)")
+                        .font(.caption)
+                        .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+            .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Choose buffer. Currently showing \(selectedBufferName).")
+        .accessibilityHint("Switches the visible message history to another buffer.")
+    }
+
     private var emptyState: some View {
         VStack(spacing: 12) {
             Image(systemName: "text.bubble")
@@ -1358,7 +1415,7 @@ private struct EventLogSheet: View {
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
                 .accessibilityHidden(true)
-            Text("No events yet")
+            Text("No messages in \(selectedBufferName).")
                 .font(.body)
                 .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
         }
@@ -1366,46 +1423,40 @@ private struct EventLogSheet: View {
     }
 
     private var list: some View {
-        // Newest at the top — easier to find the thing that just
-        // happened. The reversed buffer is small (capped at 200) so a
-        // plain in-memory reverse is fine.
-        let events = Array(speechManager.recentEvents.reversed())
+        // Newest at the top so the most recent message is the first
+        // thing the eye / VoiceOver focus lands on. Reverse is fine —
+        // buffers cap at 500 items, well within in-memory reverse cost.
+        let reversed = Array(items.reversed())
         return List {
-            ForEach(events) { event in
-                row(for: event)
+            ForEach(reversed) { item in
+                row(for: item)
             }
         }
         .listStyle(.plain)
     }
 
-    private func row(for event: SpeechManager.LoggedEvent) -> some View {
-        let isAnnouncement = event.channel == .announcement
-        let iconName = isAnnouncement ? "megaphone.fill" : "chevron.right"
-        return HStack(alignment: .top, spacing: 10) {
-            Image(systemName: iconName)
-                .font(.body.weight(lv.iconWeight))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isAnnouncement ? Color.accentColor : Color.primary)
-                .frame(width: 22, alignment: .center)
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(event.text)
-                    .font(.body)
-                    .fontWeight(isAnnouncement
-                                ? (lv.boldText ? .heavy : .semibold)
-                                : .regular)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(Self.formatter.string(from: event.timestamp))
-                    .font(.caption)
-                    .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
-                    .monospacedDigit()
-            }
+    private func row(for item: BufferItem) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(item.text)
+                .font(.body)
+                .fontWeight(lv.boldText ? .semibold : .regular)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(Self.formatter.string(from: item.timestamp))
+                .font(.caption)
+                .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
+                .monospacedDigit()
         }
         .padding(.vertical, 2)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(
-            "\(isAnnouncement ? "Announcement" : "Note"): \(event.text)"
-        )
+    }
+
+    /// Re-speak the most recent message in the currently-viewed buffer.
+    /// Lets a low-vision player look at the log, find the line they
+    /// want to hear again, and tap the toolbar button — without needing
+    /// to remember which gesture maps to "repeat last".
+    private func repeatLastInBuffer() {
+        guard let last = items.last else { return }
+        speechManager.speakAnnouncement(last.text)
     }
 }
 

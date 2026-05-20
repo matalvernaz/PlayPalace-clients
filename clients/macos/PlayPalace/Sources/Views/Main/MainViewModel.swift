@@ -31,7 +31,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private(set) var soundManager = SoundManager()
     private(set) var speechManager = SpeechManager()
     private(set) var ignoreList = IgnoreList()
-    private var bufferSystem = BufferSystem()
+    let bufferSystem = BufferSystem()
     private var webSocket: WebSocketClient?
     private var appState: AppState?
 
