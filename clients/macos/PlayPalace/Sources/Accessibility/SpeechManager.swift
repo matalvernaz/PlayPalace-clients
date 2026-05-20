@@ -116,6 +116,17 @@ final class SpeechManager: NSObject, ObservableObject {
     /// Whether we've configured the audio session this app launch. iOS only.
     private var audioSessionConfigured = false
 
+    /// When true, all speech is routed through ``AVSpeechSynthesizer`` even
+    /// while VoiceOver is running. Set by the game touch view while it holds
+    /// accessibility focus, because VoiceOver's focus-element chatter on a
+    /// view with ``UIAccessibilityTraits/allowsDirectInteraction`` preempts
+    /// our ``UIAccessibility/post(notification:argument:)`` announcements,
+    /// leaving the user with no audible response to their gestures. The
+    /// synth path with `prefersAssistiveTechnologySettings = true` adopts
+    /// the VoiceOver voice so the user still hears the same voice they
+    /// expect, while sidestepping VO's announcement queue entirely.
+    var forceSelfVoicing: Bool = false
+
     // MARK: - Public API
 
     override init() {
@@ -171,9 +182,12 @@ final class SpeechManager: NSObject, ObservableObject {
     /// Speak only when self-voicing — VoiceOver users skip this. Use for
     /// transition cues ("Chat opened.", "Help opened.") that VoiceOver
     /// already covers by auto-focusing the new screen's title. Without the
-    /// guard we'd double-announce on every sheet open.
+    /// guard we'd double-announce on every sheet open. When
+    /// ``forceSelfVoicing`` is on we *are* the speech source, so VoiceOver
+    /// isn't doing the auto-focus-title readback for us and the cue would
+    /// otherwise be lost.
     func speakTransition(_ text: String) {
-        guard !isVoiceOverRunning else { return }
+        guard !isVoiceOverRunning || forceSelfVoicing else { return }
         speakUI(text, queue: true)
     }
 
@@ -225,8 +239,9 @@ final class SpeechManager: NSObject, ObservableObject {
         }
 
         let voOn = isVoiceOverRunning
-        speechLog.debug("enqueue voOn=\(voOn, privacy: .public) channel=\(String(describing: channel), privacy: .public) interrupting=\(interrupting, privacy: .public) text=\(text, privacy: .public)")
-        if voOn {
+        let useVOPath = voOn && !forceSelfVoicing
+        speechLog.debug("enqueue voOn=\(voOn, privacy: .public) forceSelfVoicing=\(self.forceSelfVoicing, privacy: .public) channel=\(String(describing: channel), privacy: .public) interrupting=\(interrupting, privacy: .public) text=\(text, privacy: .public)")
+        if useVOPath {
             postVoiceOverAnnouncement(text, channel: channel, interrupting: interrupting)
         } else {
             postSynthesizerSpeech(text, channel: channel, interrupting: interrupting)

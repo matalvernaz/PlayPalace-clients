@@ -440,6 +440,25 @@ final class GameTouchView: UIView {
         return true
     }
 
+    /// While VoiceOver focus is on this view, route our speech through
+    /// AVSpeechSynthesizer instead of UIAccessibility.post(.announcement).
+    /// The `.allowsDirectInteraction` trait makes VoiceOver re-announce
+    /// "Game area" on every flick, and that focus chatter preempts our
+    /// announcement posts — even at `.high` priority — leaving the user
+    /// with no audible response to gestures. The synth path (with
+    /// `prefersAssistiveTechnologySettings = true`) adopts VoiceOver's
+    /// voice/rate/pitch so the user still hears their familiar voice,
+    /// and the queue can't be drowned by VO focus events.
+    override func accessibilityElementDidBecomeFocused() {
+        super.accessibilityElementDidBecomeFocused()
+        viewModel?.speechManager.forceSelfVoicing = true
+    }
+
+    override func accessibilityElementDidLoseFocus() {
+        super.accessibilityElementDidLoseFocus()
+        viewModel?.speechManager.forceSelfVoicing = false
+    }
+
     override var accessibilityCustomActions: [UIAccessibilityCustomAction]? {
         get {
             [
