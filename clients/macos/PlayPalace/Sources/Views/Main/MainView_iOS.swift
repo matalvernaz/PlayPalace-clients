@@ -266,12 +266,6 @@ final class GameTouchView: UIView {
     private func setupAccessibility() {
         isAccessibilityElement = true
         accessibilityTraits = .allowsDirectInteraction
-        // .silentOnTouch suppresses VoiceOver's focus/touch chatter on the
-        // direct-touch area, so our UIAccessibility.post announcements
-        // aren't preempted by VO re-announcing "Game area" on every flick.
-        // Without this, rapid swipes lose their audio response and the
-        // user perceives 1–2 seconds of silence before the new item lands.
-        accessibilityDirectTouchOptions = .silentOnTouch
         accessibilityLabel = "Game area"
         accessibilityHint = "Swipe left and right to browse. Double-tap to select. Use the VoiceOver Actions rotor for Help, Controls, Chat, and game actions. The Menu button in the top right is always available too."
     }
@@ -515,6 +509,25 @@ final class GameTouchView: UIView {
     override func accessibilityActivate() -> Bool {
         onDoubleTap()
         return true
+    }
+
+    /// While VoiceOver focus is on this view, route our speech through
+    /// AVSpeechSynthesizer instead of UIAccessibility.post(.announcement).
+    /// The `.allowsDirectInteraction` trait makes VoiceOver re-announce
+    /// "Game area" on every flick, and that focus chatter preempts our
+    /// announcement posts — even at `.high` priority — leaving the user
+    /// with no audible response to gestures. The synth path (with
+    /// `prefersAssistiveTechnologySettings = true`) adopts VoiceOver's
+    /// voice/rate/pitch so the user still hears their familiar voice,
+    /// and the queue can't be drowned by VO focus events.
+    override func accessibilityElementDidBecomeFocused() {
+        super.accessibilityElementDidBecomeFocused()
+        viewModel?.speechManager.forceSelfVoicing = true
+    }
+
+    override func accessibilityElementDidLoseFocus() {
+        super.accessibilityElementDidLoseFocus()
+        viewModel?.speechManager.forceSelfVoicing = false
     }
 
     override var accessibilityCustomActions: [UIAccessibilityCustomAction]? {
