@@ -79,7 +79,12 @@ struct MainView: View {
                 speechManager: viewModel.speechManager
             )
         }
-        .onAppear { viewModel.setup(appState: appState) }
+        .onAppear {
+            viewModel.setup(appState: appState)
+            // Pay the AVSpeechSynthesizer cold-start tax before the user
+            // is waiting on real speech (see SpeechManager.prewarm docs).
+            viewModel.speechManager.prewarm()
+        }
         .onDisappear { viewModel.disconnect() }
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
@@ -93,6 +98,10 @@ struct MainView: View {
                 if wasBackgrounded {
                     wasBackgrounded = false
                     viewModel.forceReconnect()
+                    // Re-warm the synth: a background→active cycle can let
+                    // iOS unload the TTS voice rules and bring the cold-start
+                    // bug back on the next utterance.
+                    viewModel.speechManager.prewarm()
                 }
             default:
                 break

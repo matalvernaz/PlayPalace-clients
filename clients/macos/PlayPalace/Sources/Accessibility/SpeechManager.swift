@@ -125,7 +125,17 @@ final class SpeechManager: NSObject, ObservableObject {
     /// keeps the session warm.
     private var deactivateTimer: Timer?
 
-    private static let deactivateDelay: TimeInterval = 10.0
+    /// How long after the speech queue drains before we deactivate the audio
+    /// session. Long because iOS 16+ has a documented bug
+    /// (https://developer.apple.com/forums/thread/731238) where the first
+    /// ``AVSpeechSynthesizer/speak(_:)`` call after the synth has been idle
+    /// stalls 0.6–1+ seconds, accompanied by repeated `[AXTTSCommon] Invalid
+    /// rule:` logs — Apple confirmed but unresolved as of iOS 17. Holding the
+    /// session active across typical idle gaps in gameplay (reading a menu,
+    /// thinking about a move) avoids paying that cold-start on every swipe.
+    /// `mixWithOthers` means we don't duck other audio while idle so this is
+    /// cheap.
+    private static let deactivateDelay: TimeInterval = 300.0
 
     /// When true, all speech is routed through ``AVSpeechSynthesizer`` even
     /// while VoiceOver is running. Set by the game touch view while it holds
@@ -169,6 +179,23 @@ final class SpeechManager: NSObject, ObservableObject {
             || activeChannel != nil
             || !queue.isEmpty
             || pendingStart != nil
+    }
+
+    /// Pay the AVSpeechSynthesizer cold-start cost up front, before the user
+    /// is waiting on real speech. iOS 16+ has a documented bug
+    /// (https://developer.apple.com/forums/thread/731238) where the first
+    /// `speak(_:)` call stalls 0.6–1+ seconds while the TTS rules compile.
+    /// We trigger that stall here with a silent dummy utterance so the first
+    /// audible utterance can start immediately. Safe to call multiple times —
+    /// subsequent calls just feed a silent utterance through the warm path.
+    func prewarm() {
+        #if os(iOS)
+        configureAudioSessionIfNeeded()
+        let dummy = AVSpeechUtterance(string: " ")
+        dummy.volume = 0
+        dummy.prefersAssistiveTechnologySettings = true
+        synth.speak(dummy)
+        #endif
     }
 
     /// Legacy entry point — preserved so existing call sites keep working.
