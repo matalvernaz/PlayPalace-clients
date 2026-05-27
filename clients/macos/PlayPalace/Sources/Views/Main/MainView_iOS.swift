@@ -30,7 +30,8 @@ struct MainView: View {
                         gestureSettings: gestureSettings,
                         onOpenChat: { showingChat = true },
                         onOpenControls: { showingControls = true },
-                        onOpenHelp: { showingHelp = true }
+                        onOpenHelp: { showingHelp = true },
+                        onOpenEventLog: { showingEventLog = true }
                     )
                     // Leave the bottom safe area free of the direct-touch
                     // view so the iPhone home-indicator gesture isn't
@@ -48,11 +49,15 @@ struct MainView: View {
                         Spacer()
                     }
 
-                    // Always-visible recovery affordance. Reachable regardless
-                    // of the user's gesture mappings — even if Help and Go
-                    // Back have been remapped to None, this button stays
-                    // available so a player can never lock themselves out
-                    // of help, controls, or leaving the table.
+                    // Visible recovery affordance for sighted / low-vision
+                    // players, reachable regardless of the user's gesture
+                    // mappings. Hidden from VoiceOver: a second focusable
+                    // element on screen would steal VoiceOver focus from
+                    // "Game area" and disable `.allowsDirectInteraction`
+                    // for the swipes that followed. VoiceOver users reach
+                    // the same destinations via the Actions rotor on the
+                    // game area, which is always available and not subject
+                    // to gesture remapping.
                     InGameMenuButton(
                         onOpenChat: { showingChat = true },
                         onOpenControls: { showingControls = true },
@@ -61,6 +66,7 @@ struct MainView: View {
                     )
                     .padding(.top, 8)
                     .padding(.trailing, 12)
+                    .accessibilityHidden(true)
                 }
             }
         }
@@ -180,6 +186,7 @@ private struct DirectTouchGameView: UIViewRepresentable {
     var onOpenChat: () -> Void
     var onOpenControls: () -> Void
     var onOpenHelp: () -> Void
+    var onOpenEventLog: () -> Void
 
     func makeUIView(context: Context) -> GameTouchView {
         let view = GameTouchView()
@@ -188,6 +195,7 @@ private struct DirectTouchGameView: UIViewRepresentable {
         view.onOpenChat = onOpenChat
         view.onOpenControls = onOpenControls
         view.onOpenHelp = onOpenHelp
+        view.onOpenEventLog = onOpenEventLog
         return view
     }
 
@@ -197,6 +205,7 @@ private struct DirectTouchGameView: UIViewRepresentable {
         uiView.onOpenChat = onOpenChat
         uiView.onOpenControls = onOpenControls
         uiView.onOpenHelp = onOpenHelp
+        uiView.onOpenEventLog = onOpenEventLog
         uiView.onMenuUpdate()
     }
 }
@@ -233,6 +242,7 @@ final class GameTouchView: UIView {
     var onOpenChat: (() -> Void)?
     var onOpenControls: (() -> Void)?
     var onOpenHelp: (() -> Void)?
+    var onOpenEventLog: (() -> Void)?
 
     private let selectionFeedback = UISelectionFeedbackGenerator()
     private let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
@@ -276,7 +286,7 @@ final class GameTouchView: UIView {
         isAccessibilityElement = true
         accessibilityTraits = .allowsDirectInteraction
         accessibilityLabel = "Game area"
-        accessibilityHint = "Swipe left and right to browse. Double-tap to select. Use the VoiceOver Actions rotor for Help, Controls, Chat, and game actions. The Menu button in the top right is always available too."
+        accessibilityHint = "Swipe left and right to browse. Double-tap to select. Use the VoiceOver Actions rotor for Help, Controls, Chat, Recent events, and game actions — the rotor stays available no matter how gestures are configured."
     }
 
     // MARK: - Trait Changes (low-vision)
@@ -587,6 +597,9 @@ final class GameTouchView: UIView {
                 },
                 UIAccessibilityCustomAction(name: "Help") { [weak self] _ in
                     self?.onOpenHelp?(); return true
+                },
+                UIAccessibilityCustomAction(name: "Recent events") { [weak self] _ in
+                    self?.onOpenEventLog?(); return true
                 },
             ]
         }
@@ -1277,6 +1290,11 @@ private struct HelpSheet: View {
                     helpRow("Gestures", "Customize gesture mappings")
                     helpRow("Controls", "Volume, buffers, connection")
                     helpRow("Help", "This screen")
+                }
+                Section("VoiceOver Actions Rotor") {
+                    helpRow("How to find it", "On the game area, flick up or down with one finger until you hear \"Actions\". Then flick up or down to pick one and double-tap to run it.")
+                    helpRow("Always available", "The rotor lists Help, Controls, Chat, Recent events, Status, and the game actions. It works no matter how gestures are configured, so you can never lock yourself out.")
+                    helpRow("Why not the corner button?", "The Menu button in the top-right is hidden from VoiceOver on purpose — a second focusable element would steal focus from the game area and break direct-touch gestures. The rotor replaces it for VoiceOver users.")
                 }
                 Section("Tips") {
                     Text("The app speaks everything itself. VoiceOver is optional but supported.")

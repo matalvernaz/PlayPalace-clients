@@ -504,8 +504,8 @@ struct GettingStartedSheet: View {
                 "You can change any of these in Audio and Gesture Settings.",
             ]),
             Topic(title: "Always-available controls", lines: [
-                "There is a Menu button in the top-right corner of every game screen. It opens Help, Controls, and Chat. It works no matter how gestures are configured, so you can never lock yourself out.",
-                "When VoiceOver is on, you can also use the Actions rotor (flick up or down on the game area) to find Help, Controls, Chat, Status, and game actions.",
+                "When VoiceOver is on, the Actions rotor (flick up or down on the game area) always lists Help, Controls, Chat, Recent events, Status, and the game actions. It works no matter how gestures are configured, so you can never lock yourself out.",
+                "When VoiceOver is off, the same destinations are on the Menu button in the top-right corner of every game screen. The Menu button is hidden from VoiceOver on purpose: a second focusable element would interrupt the game's direct-touch gestures.",
             ]),
             Topic(title: "Audio", lines: [
                 "Background music and ambience volume are in Audio and Gesture Settings. Music keeps playing while you are connected.",
@@ -514,7 +514,7 @@ struct GettingStartedSheet: View {
             Topic(title: "If something goes wrong", lines: [
                 "If the connection drops, the app will automatically try to reconnect.",
                 "If gestures stop responding the way you expect, open Audio and Gesture Settings and choose Reset to defaults.",
-                "If you cannot find help while in a game, use the Menu button in the top-right of the screen — it is always there.",
+                "If you cannot find help while in a game and VoiceOver is on, use the Actions rotor on the game area — Help is always listed there. If VoiceOver is off, use the Menu button in the top-right of the screen.",
             ]),
         ]
     }
