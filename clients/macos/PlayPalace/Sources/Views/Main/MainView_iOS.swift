@@ -815,6 +815,13 @@ final class GameTouchView: UIView {
             speak("No items")
             return
         }
+        // `currentIndex` is maintained by `onMenuUpdate` but the @Published
+        // menu can shrink between updates. Re-clamp here so the idle-timer
+        // path can never OOB.
+        guard currentIndex >= 0, currentIndex < vm.menuItems.count else {
+            speak("No items")
+            return
+        }
         let item = vm.menuItems[currentIndex]
         if vm.gridEnabled && vm.gridWidth > 1 {
             let row = currentIndex / vm.gridWidth + 1
