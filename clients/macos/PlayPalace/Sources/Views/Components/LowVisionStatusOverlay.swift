@@ -77,29 +77,36 @@ struct LowVisionStatusOverlay: View {
 
     // MARK: - Current item card
 
+    @ViewBuilder
     private var currentItemCard: some View {
-        let sel = viewModel.menuSelection ?? 0
-        let safeIndex = max(0, min(sel, viewModel.menuItems.count - 1))
-        let item = viewModel.menuItems[safeIndex]
-        let iconName = MenuItemIcon.symbolName(id: item.id, text: item.text)
+        // Parent guards `!menuItems.isEmpty` (line 25), but SwiftUI can
+        // re-evaluate the child after a @Published shrink in the same
+        // render pass — `count - 1 = -1` then crashes on subscript.
+        if viewModel.menuItems.isEmpty {
+            EmptyView()
+        } else {
+            let sel = viewModel.menuSelection ?? 0
+            let safeIndex = max(0, min(sel, viewModel.menuItems.count - 1))
+            let item = viewModel.menuItems[safeIndex]
+            let iconName = MenuItemIcon.symbolName(id: item.id, text: item.text)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: iconName)
+                    .font(.title2.weight(lv.iconWeight))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(Color.accentColor)
+                    .frame(width: 28, alignment: .center)
 
-        return HStack(alignment: .top, spacing: 12) {
-            Image(systemName: iconName)
-                .font(.title2.weight(lv.iconWeight))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 28, alignment: .center)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Current")
-                    .font(.caption2)
-                    .textCase(.uppercase)
-                    .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
-                    .tracking(0.5)
-                Text(item.text)
-                    .font(.headline)
-                    .fontWeight(lv.boldText ? .heavy : .semibold)
-                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Current")
+                        .font(.caption2)
+                        .textCase(.uppercase)
+                        .foregroundStyle(lv.increasedContrast ? Color.primary : Color.secondary)
+                        .tracking(0.5)
+                    Text(item.text)
+                        .font(.headline)
+                        .fontWeight(lv.boldText ? .heavy : .semibold)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
     }
