@@ -97,4 +97,5 @@ def test_load_tables_handles_missing_game_class_and_restores(monkeypatch, tmp_pa
     # known game restored and bots attached
     assert t_known.game is not None
     assert any(u.username == "botty" for u in t_known.game._users.values())
-    assert srv._db.deleted is True
+    # Persisted rows must survive load — periodic snapshot owns DB lifecycle.
+    assert srv._db.deleted is False

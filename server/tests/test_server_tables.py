@@ -79,7 +79,7 @@ def test_save_tables_calls_db_and_manager(monkeypatch, server):
     assert saved_to_db == tables_manager.saved
 
 
-def test_load_tables_restores_games_and_clears_db(monkeypatch, server):
+def test_load_tables_restores_games_without_deleting_db(monkeypatch, server):
     dummy_game_json = json.dumps({"state": "dummy"})
     table_with_game = DummyTable("table-game", "test_game", game_json=dummy_game_json)
     plain_table = DummyTable("table-plain", "test_game")
@@ -107,4 +107,6 @@ def test_load_tables_restores_games_and_clears_db(monkeypatch, server):
     assert table_with_game.game.keybinds_setup
     assert table_with_game.game.rebuilt_players == ["BotOne"]
     assert table_with_game.game._table is table_with_game
-    assert called_delete == [True]
+    # Persisted rows must survive load — otherwise a crash before the next
+    # periodic snapshot would lose every in-progress game.
+    assert called_delete == []

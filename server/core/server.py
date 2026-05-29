@@ -71,6 +71,10 @@ REGISTRATION_RATE_WINDOW_SECONDS = 60
 REFRESH_RATE_WINDOW_SECONDS = 60
 DEFAULT_ACCESS_TOKEN_TTL_SECONDS = 60 * 60
 DEFAULT_REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60
+# How often live tables are snapshotted to disk. Bounds crash-recovery loss
+# to this window — last set to a value low enough to lose ≤30s of play and
+# high enough that the UPSERT churn doesn't matter.
+TABLE_PERSIST_INTERVAL_SECONDS = 30.0
 
 STARTUP_GATE_ID = "startup"
 LOCALIZATION_GATE_ID = "localization"
@@ -203,6 +207,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         self._pending_disconnects: dict[str, asyncio.Task] = {}
         self._chat_tokens: dict[str, float] = {}  # username -> available tokens
         self._chat_last_refill: dict[str, float] = {}  # username -> last refill timestamp
+        self._last_table_persist_at: float = time.monotonic()
         self._lifecycle = ServerLifecycleState()
         self._lifecycle.add_gate(STARTUP_GATE_ID, message="Server is starting up.")
         self._localization_gate_registered = False
@@ -874,10 +879,6 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
 
         print(f"Loaded {len(tables)} tables from database.")
 
-        # Delete all tables from database after loading to prevent stale data
-        # on subsequent restarts. Tables will be re-saved on shutdown.
-        self._db.delete_all_tables()
-
     def _save_tables(self) -> None:
         """Save all tables to database."""
         tables = self._tables.save_all()
@@ -894,6 +895,22 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
 
         # Flush queued messages for all users
         self._flush_user_messages()
+
+        # Periodically snapshot live tables so a crash doesn't lose
+        # in-progress games. The old startup-then-delete pattern only
+        # survived a graceful shutdown.
+        self._maybe_persist_tables()
+
+    def _maybe_persist_tables(self) -> None:
+        """Save live tables to the DB on a fixed interval."""
+        now = time.monotonic()
+        if now - self._last_table_persist_at < TABLE_PERSIST_INTERVAL_SECONDS:
+            return
+        self._last_table_persist_at = now
+        try:
+            self._save_tables()
+        except Exception:  # pylint: disable=broad-except
+            LOG.exception("Periodic table snapshot failed")
 
     def _flush_user_messages(self) -> None:
         """Send all queued messages for all users."""
@@ -4226,6 +4243,14 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         Args:
             table: Table being destroyed.
         """
+        # Drop the persisted row so a closed table doesn't reappear as a
+        # zombie at next startup. The periodic snapshot would otherwise
+        # leave its last state in the DB.
+        try:
+            self._db.delete_table(table.table_id)
+        except Exception:  # pylint: disable=broad-except
+            LOG.exception("Failed to delete persisted table %s", table.table_id)
+
         if not table.game:
             return
         # Return all human players to main menu
