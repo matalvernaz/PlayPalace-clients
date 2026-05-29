@@ -89,7 +89,13 @@ class EventHandlingMixin:
             if player.id in self._pending_actions:
                 action_id = self._pending_actions.pop(player.id)
                 if text:  # Non-empty input
-                    self.execute_action(player, action_id, text)
+                    # Re-check enabled at submit time. Action was enabled
+                    # when input was requested, but game state can shift
+                    # before the user hits return (turn passed, conditions
+                    # changed). Mirrors the guard in _handle_turn_menu_selection.
+                    action = self.find_action(player, action_id)
+                    if action and self.resolve_action(player, action).enabled:
+                        self.execute_action(player, action_id, text)
             self.rebuild_player_menu(player)
 
     def _handle_keybind_event(self, player: "Player", event: dict) -> None:
