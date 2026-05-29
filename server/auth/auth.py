@@ -2,6 +2,7 @@
 
 import hashlib
 import secrets
+import sqlite3
 import time
 from enum import Enum, auto
 from typing import TYPE_CHECKING
@@ -108,7 +109,14 @@ class AuthManager:
         trust_level = TrustLevel.USER
 
         password_hash = self.hash_password(password)
-        self._db.create_user(username, password_hash, locale, trust_level, approved)
+        try:
+            self._db.create_user(username, password_hash, locale, trust_level, approved)
+        except sqlite3.IntegrityError:
+            # Two register packets raced past `user_exists`. The UNIQUE
+            # constraint (binary + lower(username) index) stops the second
+            # one; turn it into a clean "username taken" instead of an
+            # unhandled exception that disconnects the client.
+            return False
 
         return True
 
