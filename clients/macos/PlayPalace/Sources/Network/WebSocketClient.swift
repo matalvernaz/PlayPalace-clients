@@ -43,8 +43,7 @@ final class WebSocketClient: ObservableObject {
         let config = URLSessionConfiguration.default
         config.waitsForConnectivity = true
 
-        let tlsDelegate = TLSSessionDelegate()
-        session = URLSession(configuration: config, delegate: tlsDelegate, delegateQueue: nil)
+        session = URLSession(configuration: config)
         webSocket = session?.webSocketTask(with: serverURL)
         webSocket?.resume()
 
@@ -222,20 +221,11 @@ protocol WebSocketDelegate: AnyObject {
 
 // MARK: - TLS Handling
 
-private final class TLSSessionDelegate: NSObject, URLSessionDelegate {
-    func urlSession(
-        _ session: URLSession,
-        didReceive challenge: URLAuthenticationChallenge
-    ) async -> (URLSession.AuthChallengeDisposition, URLCredential?) {
-        // Accept server certificates (including self-signed for development)
-        // In production, you'd implement certificate pinning here
-        if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
-           let trust = challenge.protectionSpace.serverTrust {
-            return (.useCredential, URLCredential(trust: trust))
-        }
-        return (.performDefaultHandling, nil)
-    }
-}
+// No custom URLSessionDelegate. Default handling enforces full system-trust
+// validation against the device's trust store — the right behaviour for
+// connecting to a publicly trusted Traefik cert. Self-signed dev servers
+// should be reached over `ws://` on the local network (allow_insecure_ws
+// is enabled server-side) or have their cert added to the device profile.
 
 // MARK: - Helpers
 
