@@ -407,7 +407,12 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         // through the Actions menu themselves.
         if let deadline = pendingLeaveTableUntil, Date() < deadline {
             pendingLeaveTableUntil = nil
-            if let idx = data.items.firstIndex(where: { ($0.id ?? "").lowercased() == "leave_game" }) {
+            // Look up in the FILTERED list — `activateMenuItem` reads
+            // `menuItems`, and the server is sent `selection + 1` against
+            // the filtered position. Searching the unfiltered `data.items`
+            // produced the wrong index whenever an ignored user's row
+            // appeared before `leave_game`.
+            if let idx = filteredItems.firstIndex(where: { ($0.id ?? "").lowercased() == "leave_game" }) {
                 activateMenuItem(idx)
                 return
             }
