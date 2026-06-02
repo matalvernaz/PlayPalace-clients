@@ -164,10 +164,12 @@
           },
           "language": {
             "default": "Other",
+            "maxLength": 40,
             "title": "Language",
             "type": "string"
           },
           "message": {
+            "maxLength": 2000,
             "title": "Message",
             "type": "string"
           },

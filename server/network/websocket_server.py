@@ -1,11 +1,13 @@
 """WebSocket server for client connections."""
 
+import asyncio
 import errno
 import ipaddress
 import json
 import logging
 import ssl
 import sys
+from collections import deque
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Coroutine
@@ -17,6 +19,15 @@ from websockets.asyncio.server import serve, ServerConnection
 from .packet_models import SERVER_TO_CLIENT_PACKET_ADAPTER
 
 PACKET_LOGGER = logging.getLogger("playpalace.packets")
+
+
+# Connection / flood backstops. These are coarse abuse limits, not precise
+# per-feature throttles (e.g. chat has its own tighter app-layer limit).
+DEFAULT_MAX_CONNECTIONS = 1000
+DEFAULT_MAX_CONNECTIONS_PER_IP = 20
+DEFAULT_UNAUTH_TIMEOUT_SECONDS = 30.0
+PACKET_RATE_WINDOW_SECONDS = 10.0
+MAX_PACKETS_PER_WINDOW = 300
 
 
 @dataclass
@@ -83,6 +94,9 @@ class WebSocketServer:
         ssl_cert: str | Path | None = None,
         ssl_key: str | Path | None = None,
         max_message_size: int | None = None,
+        max_connections: int = DEFAULT_MAX_CONNECTIONS,
+        max_connections_per_ip: int = DEFAULT_MAX_CONNECTIONS_PER_IP,
+        unauth_timeout_seconds: float = DEFAULT_UNAUTH_TIMEOUT_SECONDS,
     ):
         self.host = host
         self.port = port
@@ -95,6 +109,9 @@ class WebSocketServer:
         self._running = False
         self._ssl_context = None
         self._max_message_size = max_message_size
+        self._max_connections = max_connections
+        self._max_connections_per_ip = max_connections_per_ip
+        self._unauth_timeout_seconds = unauth_timeout_seconds
 
         # Configure SSL if certificates provided
         if ssl_cert and ssl_key:
@@ -196,18 +213,61 @@ class WebSocketServer:
             return real_ip.strip()
         return socket_ip
 
+    async def _enforce_auth_timeout(self, client: ClientConnection) -> None:
+        """Close a connection that hasn't authenticated within the grace period."""
+        try:
+            await asyncio.sleep(self._unauth_timeout_seconds)
+        except asyncio.CancelledError:
+            return
+        if not client.authenticated:
+            PACKET_LOGGER.warning(
+                "Closing %s: no authentication within %ss",
+                client.ip_address, self._unauth_timeout_seconds,
+            )
+            try:
+                await client.close()
+            except Exception:
+                pass
+
     async def _handle_client(self, websocket: ServerConnection) -> None:
         """Handle a client connection."""
         address = f"{websocket.remote_address[0]}:{websocket.remote_address[1]}"
         real_ip = self._extract_real_ip(websocket)
+
+        # Refuse, before registering, if we're at capacity globally or per-IP.
+        if len(self._clients) >= self._max_connections:
+            PACKET_LOGGER.warning("Connection from %s refused: server at capacity", real_ip)
+            await websocket.close(code=1013, reason="server at capacity")
+            return
+        per_ip = sum(1 for c in self._clients.values() if c.ip_address == real_ip)
+        if per_ip >= self._max_connections_per_ip:
+            PACKET_LOGGER.warning("Connection from %s refused: too many connections", real_ip)
+            await websocket.close(code=1013, reason="too many connections")
+            return
+
         client = ClientConnection(websocket=websocket, address=address, ip_address=real_ip)
         self._clients[address] = client
+
+        # Close the socket if it never authenticates, and cap inbound packet rate.
+        auth_timeout_task = asyncio.create_task(self._enforce_auth_timeout(client))
+        packet_times: deque[float] = deque()
+        loop = asyncio.get_running_loop()
 
         try:
             if self._on_connect:
                 await self._on_connect(client)
 
             async for message in websocket:
+                now = loop.time()
+                packet_times.append(now)
+                while packet_times and packet_times[0] < now - PACKET_RATE_WINDOW_SECONDS:
+                    packet_times.popleft()
+                if len(packet_times) > MAX_PACKETS_PER_WINDOW:
+                    identifier = client.username or client.address
+                    PACKET_LOGGER.warning("Packet flood from %s; closing connection", identifier)
+                    await websocket.close(code=1008, reason="rate limit exceeded")
+                    break
+
                 try:
                     packet = json.loads(message)
                     if self._on_message:
@@ -227,6 +287,7 @@ class WebSocketServer:
         except websockets.exceptions.ConnectionClosed:
             pass
         finally:
+            auth_timeout_task.cancel()
             if address in self._clients:
                 del self._clients[address]
             if client.username and self._username_to_client.get(client.username) is client:
@@ -236,7 +297,8 @@ class WebSocketServer:
 
     async def broadcast(self, packet: dict, exclude: ClientConnection | None = None) -> None:
         """Broadcast a packet to all authenticated clients."""
-        for client in self._clients.values():
+        # Snapshot: a client can disconnect (mutating _clients) during an await.
+        for client in list(self._clients.values()):
             if client.authenticated and client != exclude:
                 await client.send(packet)
 

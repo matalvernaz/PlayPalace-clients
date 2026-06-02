@@ -114,8 +114,8 @@ class DocumentEditorResponsePacket(BasePacket):
 class ChatPacket(BasePacket):
     type: Literal["chat"] = "chat"
     convo: Literal["local", "global"] = "local"
-    message: str
-    language: str = "Other"
+    message: str = Field(max_length=2000)
+    language: str = Field(default="Other", max_length=40)
 
 
 class PingPacket(BasePacket):

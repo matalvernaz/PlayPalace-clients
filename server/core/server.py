@@ -1411,7 +1411,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         username_raw = packet.get("username", "")
         password_raw = packet.get("password", "")
         session_token = packet.get("session_token")
-        locale = packet.get("locale") or self._default_locale
+        locale = self._sanitize_locale(packet.get("locale"))
         client.client_type = packet.get("client_type") or ""
         client.platform = packet.get("platform") or ""
 
@@ -1521,7 +1521,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         username_raw = packet.get("username", "")
         password_raw = packet.get("password", "")
         # email and bio are sent but not stored yet
-        locale = packet.get("locale") or self._default_locale
+        locale = self._sanitize_locale(packet.get("locale"))
 
         username, password, error = self._validate_credentials(
             username_raw, password_raw, locale=locale
@@ -1589,11 +1589,26 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             }
         )
 
+    def _sanitize_locale(self, locale: str | None) -> str:
+        """Return a known, safe locale code, falling back to the default.
+
+        The client-supplied locale becomes a path component in the localization
+        loader, so anything not in the installed set is rejected rather than
+        used or persisted.
+        """
+        if locale:
+            try:
+                if locale in Localization.get_available_locale_codes():
+                    return locale
+            except Exception:
+                pass
+        return self._default_locale
+
     async def _handle_refresh_session(self, client: ClientConnection, packet: dict) -> None:
         """Refresh an access session using a refresh token."""
         refresh_token = packet.get("refresh_token", "")
         username_hint = packet.get("username", "")
-        locale = packet.get("locale") or self._default_locale
+        locale = self._sanitize_locale(packet.get("locale"))
         client.client_type = packet.get("client_type") or ""
         client.platform = packet.get("platform") or ""
         client_ip = self._get_client_ip(client)

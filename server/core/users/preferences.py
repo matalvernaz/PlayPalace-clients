@@ -97,6 +97,9 @@ PREF_CATEGORIES: list[tuple[str, str]] = [
 # UserPreferences dataclass
 # ---------------------------------------------------------------------------
 
+#: Upper bound on a user's ignore list, to cap stored/serialized growth.
+MAX_IGNORED_USERS = 500
+
 
 @dataclass
 class UserPreferences:
@@ -387,6 +390,8 @@ class UserPreferences:
         """Add `username` to the ignore list. Returns True iff it was added."""
         normalized = username.lower().strip()
         if not normalized or normalized in self.ignored_users:
+            return False
+        if len(self.ignored_users) >= MAX_IGNORED_USERS:
             return False
         self.ignored_users = sorted({*self.ignored_users, normalized})
         return True
