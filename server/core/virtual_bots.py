@@ -753,8 +753,10 @@ class VirtualBotManager:
                     # Notify members that table is being closed
                     if table.game:
                         table.game.broadcast_l("virtual-bot-table-closed")
-                    # Remove the table
-                    self._server._tables.remove_table(bot.table_id)
+                    # Destroy (not just unregister) so on_table_destroy runs:
+                    # it deletes the persisted row and returns any seated human
+                    # players to the main menu instead of stranding them.
+                    table.destroy()
                     tables_killed.add(bot.table_id)
 
             # Take bot offline (removes from server users)
@@ -783,6 +785,23 @@ class VirtualBotManager:
         bot.state = VirtualBotState.OFFLINE
         bot.online_ticks = 0
         bot.table_id = None
+
+    def take_bot_offline_by_name(self, name: str) -> bool:
+        """Take a single named bot offline, destroying any table it hosts.
+
+        Used when a human logs in on a name currently held by an online bot,
+        where connection-based session handoff would fail since a bot has no
+        socket. Returns True if a bot by that name was online.
+        """
+        bot = self._bots.get(name)
+        if bot is None:
+            return False
+        if bot.table_id:
+            table = self._server._tables.get_table(bot.table_id)
+            if table:
+                table.destroy()
+        self._take_bot_offline_silent(bot)
+        return True
 
     def get_status(self) -> dict[str, int]:
         """

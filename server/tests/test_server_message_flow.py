@@ -20,6 +20,7 @@ class DummyClient:
         self.address = address
         self.username = None
         self.authenticated = False
+        self.replaced = False
         self.sent: list[dict] = []
         self.closed = False
         self.client_type = ""
@@ -271,6 +272,26 @@ async def test_on_client_message_routes_chat_when_approved(make_server):
     await srv._on_client_message(client, {"type": "chat", "text": "hi"})
 
     assert called["chat"] == 1
+
+
+@pytest.mark.asyncio
+async def test_replaced_client_packets_dropped(make_server):
+    srv = make_server()
+    client = DummyClient()
+    client.authenticated = True
+    client.replaced = True  # this connection lost a session handoff
+    client.username = "u1"
+    srv._users["u1"] = SimpleNamespace(approved=True, trust_level=TrustLevel.USER)
+    called = {"chat": 0}
+
+    async def chat(_c, _p):
+        called["chat"] += 1
+
+    srv._handle_chat = chat  # type: ignore
+
+    await srv._on_client_message(client, {"type": "chat", "text": "hi"})
+
+    assert called["chat"] == 0
 
 
 @pytest.mark.asyncio

@@ -19,6 +19,7 @@ class FakeClient:
         self.username = None
         self.address = "1.2.3.4:9999"
         self.authenticated = False
+        self.replaced = False
 
     async def send(self, payload):
         self.sent.append(payload)

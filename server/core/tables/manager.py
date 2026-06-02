@@ -1,5 +1,6 @@
 """Table manager for tracking all active tables."""
 
+import logging
 from typing import TYPE_CHECKING, Any
 import uuid
 
@@ -7,6 +8,8 @@ from .table import Table
 
 if TYPE_CHECKING:
     from server.core.users.base import User
+
+LOG = logging.getLogger("playpalace.tables")
 
 
 class TableManager:
@@ -34,6 +37,8 @@ class TableManager:
             Newly created Table instance.
         """
         table_id = str(uuid.uuid4())[:8]
+        while table_id in self._tables:
+            table_id = str(uuid.uuid4())[:8]
         table = Table(
             table_id=table_id,
             game_type=game_type,
@@ -81,10 +86,15 @@ class TableManager:
     def on_tick(self) -> None:
         """Tick all active tables and destroy empty ones."""
         for table in list(self._tables.values()):
-            if not table.members:
-                table.destroy()
-                continue
-            table.on_tick()
+            # Isolate each table: one game raising in on_tick must not abort
+            # the whole server tick (which also flushes queued messages).
+            try:
+                if not table.members:
+                    table.destroy()
+                    continue
+                table.on_tick()
+            except Exception:
+                LOG.exception("Error ticking table %s; skipping it this tick", table.table_id)
 
     def add_table(self, table: Table) -> None:
         """Add an existing table (e.g., loaded from database)."""

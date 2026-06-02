@@ -13,6 +13,7 @@ class StubClient:
         self.closed = False
         self.username = None
         self.authenticated = False
+        self.replaced = False
 
     async def send(self, payload):
         self.sent.append(payload)

@@ -170,6 +170,9 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         # User tracking
         self._users: dict[str, NetworkUser] = {}  # username -> NetworkUser
         self._user_states: dict[str, dict] = {}  # username -> UI state
+        # Per-username lock serializing login/handoff so two concurrent
+        # authorizes for the same name can't both win the session handoff.
+        self._login_locks: dict[str, asyncio.Lock] = {}
 
         # Document manager (contribution_mode set by _load_config_settings)
         self._contribution_mode = "auto_commit"
@@ -932,6 +935,15 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         if exc is not None:
             LOG.warning("Error sending queued message: %s", exc)
 
+    @staticmethod
+    def _log_task_exception(task: asyncio.Task) -> None:
+        """Log exceptions from fire-and-forget background tasks."""
+        if task.cancelled():
+            return
+        exc = task.exception()
+        if exc is not None:
+            LOG.warning("Background task error: %s", exc)
+
     async def _handoff_existing_session(
         self, user: NetworkUser, new_client: ClientConnection
     ) -> None:
@@ -1008,6 +1020,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         task = asyncio.create_task(
             self._delayed_disconnect_cleanup(client, username, user)
         )
+        task.add_done_callback(self._log_task_exception)
         self._pending_disconnects[username] = task
 
     async def _delayed_disconnect_cleanup(
@@ -1023,30 +1036,35 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         self._pending_disconnects.pop(username, None)
 
         # Re-check identity: another login may have occurred during the sleep.
+        # If so, leave that session untouched (and don't pop the user below).
         current_user = self._users.get(username)
         if current_user and current_user.connection is not client:
             return
 
-        table = self._tables.find_user_table(username)
-
-        if table and user:
-            if table.game:
-                player = table.game.get_player_by_id(user.uuid)
-                if player:
-                    table.game._perform_leave_game(player)
-            # Keep membership for rejoin unless this was the last member
-            if len(table.members) <= 1:
+        try:
+            table = self._tables.find_user_table(username)
+            if table and user:
+                if table.game:
+                    player = table.game.get_player_by_id(user.uuid)
+                    if player:
+                        table.game._perform_leave_game(player)
+                # Remove the member unconditionally: the grace period elapsed
+                # without a reconnect, so a leftover membership is a ghost that
+                # keeps the table from ever emptying and being destroyed.
                 table.remove_member(username)
 
-        # Only broadcast offline if user was approved and not banned
-        if user and user.approved and user.trust_level != TrustLevel.BANNED:
-            is_admin = user.trust_level.value >= TrustLevel.ADMIN.value
-            offline_sound = "offlineadmin.ogg" if is_admin else "offline.ogg"
-            self._broadcast_presence_l("user-offline", username, offline_sound)
-
-        # Clean up user state
-        self._users.pop(username, None)
-        self._user_states.pop(username, None)
+            # Only broadcast offline if user was approved and not banned
+            if user and user.approved and user.trust_level != TrustLevel.BANNED:
+                is_admin = user.trust_level.value >= TrustLevel.ADMIN.value
+                offline_sound = "offlineadmin.ogg" if is_admin else "offline.ogg"
+                self._broadcast_presence_l("user-offline", username, offline_sound)
+        except Exception:
+            LOG.exception("Error during disconnect cleanup for %s", username)
+        finally:
+            # Always release the user, even if cleanup raised, so a failure
+            # can't strand them as permanently "online".
+            self._users.pop(username, None)
+            self._user_states.pop(username, None)
 
     def _broadcast_presence_l(self, message_id: str, player_name: str, sound: str) -> None:
         """Broadcast a localized presence announcement to all approved online users with sound."""
@@ -1130,6 +1148,10 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         ):
             # A banned client that ignored the disconnect packet keeps an open
             # socket; refuse everything except the auth packets handled above.
+            return
+        elif client.replaced:
+            # This connection lost a session handoff to a newer one; ignore its
+            # packets so a stale/duplicate socket can't keep acting.
             return
         elif packet_type == "ping":
             # Always allow ping to keep connection alive
@@ -1254,7 +1276,24 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         user_record: "AuthUserRecord",
         preferences: UserPreferences,
     ) -> tuple[NetworkUser, bool]:
-        """Attach a connection to an existing user or create a new one."""
+        """Attach a connection to an existing user or create a new one.
+
+        Serialized per username so two concurrent authorizes for the same name
+        cannot both win the session handoff and leave a duplicate session.
+        """
+        lock = self._login_locks.setdefault(username, asyncio.Lock())
+        async with lock:
+            return await self._attach_or_update_user_locked(
+                client, username, user_record, preferences
+            )
+
+    async def _attach_or_update_user_locked(
+        self,
+        client: ClientConnection,
+        username: str,
+        user_record: "AuthUserRecord",
+        preferences: UserPreferences,
+    ) -> tuple[NetworkUser, bool]:
         locale = user_record.locale or "en"
         user_uuid = user_record.uuid
         trust_level = user_record.trust_level or TrustLevel.USER
@@ -1266,6 +1305,12 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             pending_task.cancel()
 
         existing_user = self._users.get(username)
+        if existing_user is not None and getattr(existing_user, "is_virtual_bot", False):
+            # A human is logging in on a name held by an online bot. Connection
+            # handoff would fail (a bot has no socket), so take the bot offline
+            # and continue as a fresh login.
+            self._virtual_bots.take_bot_offline_by_name(username)
+            existing_user = self._users.get(username)
         if existing_user:
             await self._handoff_existing_session(existing_user, client)
             existing_user.set_locale(locale)
@@ -2750,7 +2795,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         self._db.update_user_preferences(user.username, prefs_json)
         # Schedule a push so the client mirrors the change. Fire-and-forget
         # since we don't want pref saves to block on slow sends.
-        asyncio.create_task(self._send_preferences(user))
+        task = asyncio.create_task(self._send_preferences(user))
+        task.add_done_callback(self._log_task_exception)
 
     async def _send_preferences(self, user: NetworkUser) -> None:
         """Send the user's full preferences dict to their client.
@@ -2766,15 +2812,9 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 "type": "preferences",
                 "preferences": prefs_dict,
             }
-            LOG.error(
-                "[DEBUG] Pushing preferences to %s: music_volume=%s ambience_volume=%s",
-                user.username,
-                prefs_dict.get("music_volume"),
-                prefs_dict.get("ambience_volume"),
-            )
             await user.connection.send(payload)
         except Exception as exc:  # pragma: no cover — best-effort push
-            LOG.error("[DEBUG] Failed to push preferences to %s: %s", user.username, exc)
+            LOG.debug("Failed to push preferences to %s: %s", user.username, exc)
 
     async def _handle_set_preference(self, client: ClientConnection, packet: dict) -> None:
         """Handle direct preference updates from native clients (mobile/macOS).
