@@ -1,5 +1,6 @@
 """SQLite database for persistence."""
 
+import logging
 import sqlite3
 import sys
 import json
@@ -8,6 +9,23 @@ from dataclasses import dataclass, field
 
 from server.core.tables.table import Table
 from server.core.users.base import TrustLevel
+
+LOG = logging.getLogger("playpalace.database")
+
+
+def _safe_json_load(raw, default):
+    """Parse a JSON column, returning ``default`` on missing/corrupt data.
+
+    A single corrupt value should degrade that one field rather than break
+    the whole row load.
+    """
+    if not raw:
+        return default
+    try:
+        return json.loads(raw)
+    except (ValueError, TypeError):
+        LOG.warning("Corrupt JSON column; falling back to default")
+        return default
 
 
 @dataclass
@@ -83,6 +101,10 @@ class Database:
             raise SystemExit(1) from exc
         self._conn.row_factory = sqlite3.Row
         self._conn.execute("PRAGMA foreign_keys = ON")
+        # Wait briefly for a lock (e.g. a backup reader) instead of erroring
+        # out immediately, and use WAL for better reader/writer concurrency.
+        self._conn.execute("PRAGMA busy_timeout = 5000")
+        self._conn.execute("PRAGMA journal_mode = WAL")
         self._create_tables()
 
     def close(self) -> None:
@@ -319,7 +341,7 @@ class Database:
             preferences_json=row["preferences_json"] or "{}",
             trust_level=TrustLevel(trust_level_int),
             approved=bool(row["approved"]) if row["approved"] is not None else False,
-            fluent_languages=json.loads(row["fluent_languages"] or "[]"),
+            fluent_languages=_safe_json_load(row["fluent_languages"], []),
         )
 
     _USER_COLUMNS = "id, username, password_hash, uuid, locale, preferences_json, trust_level, approved, fluent_languages"
@@ -645,7 +667,7 @@ class Database:
         )
         row = cursor.fetchone()
         if row:
-            return json.loads(row["fluent_languages"] or "[]")
+            return _safe_json_load(row["fluent_languages"], [])
         return []
 
     def set_user_fluent_languages(self, username: str, languages: list[str]) -> None:
@@ -768,8 +790,12 @@ class Database:
 
     # Table operations
 
-    def save_table(self, table: Table) -> None:
-        """Save a table to the database."""
+    def save_table(self, table: Table, *, commit: bool = True) -> None:
+        """Save a table to the database.
+
+        Pass ``commit=False`` to defer the commit to a surrounding
+        transaction (see :meth:`save_all_tables`).
+        """
         cursor = self._conn.cursor()
 
         # Serialize members
@@ -791,7 +817,8 @@ class Database:
                 table.status,
             ),
         )
-        self._conn.commit()
+        if commit:
+            self._conn.commit()
 
     def load_table(self, table_id: str) -> Table | None:
         """Load a table from the database."""
@@ -820,12 +847,21 @@ class Database:
         )
 
     def load_all_tables(self) -> list[Table]:
-        """Load all tables from the database."""
+        """Load all tables, skipping (and logging) any corrupt row.
+
+        A single malformed members_json/game_json must not abort the entire
+        boot-time restore and lose every persisted table.
+        """
         cursor = self._conn.cursor()
         cursor.execute("SELECT table_id FROM tables")
+        table_ids = [row["table_id"] for row in cursor.fetchall()]
         tables = []
-        for row in cursor.fetchall():
-            table = self.load_table(row["table_id"])
+        for table_id in table_ids:
+            try:
+                table = self.load_table(table_id)
+            except Exception:
+                LOG.exception("Skipping corrupt table row %s during restore", table_id)
+                continue
             if table:
                 tables.append(table)
         return tables
@@ -843,9 +879,14 @@ class Database:
         self._conn.commit()
 
     def save_all_tables(self, tables: list[Table]) -> None:
-        """Save multiple tables."""
-        for table in tables:
-            self.save_table(table)
+        """Save all tables as a single atomic snapshot.
+
+        Either every table in the snapshot commits or none does, so process
+        death mid-loop can't leave a half-updated set.
+        """
+        with self._conn:
+            for table in tables:
+                self.save_table(table, commit=False)
 
     # Saved table operations (user-saved game states)
 
@@ -1035,7 +1076,7 @@ class Database:
                     "game_type": row["game_type"],
                     "timestamp": row["timestamp"],
                     "duration_ticks": row["duration_ticks"],
-                    "custom_data": json.loads(row["custom_data"]) if row["custom_data"] else {},
+                    "custom_data": _safe_json_load(row["custom_data"], {}),
                 }
             )
         return results

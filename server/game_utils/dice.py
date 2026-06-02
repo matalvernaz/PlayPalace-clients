@@ -36,9 +36,16 @@ class DiceSet(DataClassJSONMixin):
     locked: list[int] = field(default_factory=list)  # Indices that are locked (can't change)
 
     def __post_init__(self):
-        """Initialize empty values if needed."""
-        if not self.values:
+        """Normalize state, discarding values/indices inconsistent with
+        num_dice (e.g. from schema drift or a partial save) that would
+        otherwise IndexError on the next roll."""
+        valid_values = len(self.values) == self.num_dice and all(
+            isinstance(v, int) and 1 <= v <= self.sides for v in self.values
+        )
+        if not valid_values:
             self.values = []
+        self.kept = [i for i in self.kept if isinstance(i, int) and 0 <= i < self.num_dice]
+        self.locked = [i for i in self.locked if isinstance(i, int) and 0 <= i < self.num_dice]
 
     @property
     def has_rolled(self) -> bool:
