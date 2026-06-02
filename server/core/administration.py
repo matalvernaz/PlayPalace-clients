@@ -960,6 +960,11 @@ class AdministrationMixin:
         # Update trust level in database to BANNED
         self._db.update_user_trust_level(username, TrustLevel.BANNED)
 
+        # Revoke all credentials so the ban can't be ridden out on an existing
+        # access session or rotated away via a still-valid refresh token.
+        self._auth.invalidate_user_sessions(username)
+        self._auth.revoke_user_refresh_tokens(username)
+
         # Broadcast the ban announcement based on scope
         if broadcast_scope == "nobody":
             # Silent mode - only notify the admin who performed the action
@@ -999,6 +1004,9 @@ class AdministrationMixin:
                     "message": full_message,
                 }
             )
+            # Don't rely on the client honoring the disconnect packet — close
+            # the socket server-side so a banned client can't keep acting.
+            await target_user.connection.close()
 
         self._show_ban_user_menu(admin)
 

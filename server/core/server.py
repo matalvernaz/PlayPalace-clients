@@ -1124,6 +1124,13 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         elif not client.authenticated:
             # Ignore non-auth packets from unauthenticated clients
             return
+        elif (
+            (banned_user := self._users.get(client.username)) is not None
+            and banned_user.trust_level == TrustLevel.BANNED
+        ):
+            # A banned client that ignored the disconnect packet keeps an open
+            # socket; refuse everything except the auth packets handled above.
+            return
         elif packet_type == "ping":
             # Always allow ping to keep connection alive
             await self._handle_ping(client)
@@ -1596,7 +1603,10 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             return
 
         result = self._auth.refresh_session(
-            refresh_token, self._access_token_ttl_seconds, self._refresh_token_ttl_seconds
+            refresh_token,
+            self._access_token_ttl_seconds,
+            self._refresh_token_ttl_seconds,
+            expected_username=username_hint or None,
         )
         if not result:
             await self._send_refresh_failure(
@@ -1605,11 +1615,6 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             return
 
         username, access_token, access_expires, new_refresh_token, refresh_expires = result
-        if username_hint and username_hint.lower() != username.lower():
-            await self._send_refresh_failure(
-                client, Localization.get(locale, "refresh-token-mismatch"), locale
-            )
-            return
 
         await self._finalize_login(
             client,

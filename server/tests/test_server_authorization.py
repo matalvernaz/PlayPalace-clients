@@ -58,7 +58,9 @@ class DummyAuth:
     def create_refresh_token(self, username, ttl_seconds):
         return f"refresh-{username}", 9999999999
 
-    def refresh_session(self, refresh_token, access_ttl_seconds, refresh_ttl_seconds):
+    def refresh_session(
+        self, refresh_token, access_ttl_seconds, refresh_ttl_seconds, *, expected_username=None
+    ):
         return None
 
 
@@ -429,7 +431,9 @@ async def test_refresh_session_success(server):
     )
 
     class RefreshAuth(DummyAuth):
-        def refresh_session(self, refresh_token, access_ttl_seconds, refresh_ttl_seconds):
+        def refresh_session(
+            self, refresh_token, access_ttl_seconds, refresh_ttl_seconds, *, expected_username=None
+        ):
             return ("alice", "access-token", 999999, "refresh-token", 999999)
 
     server._auth = RefreshAuth(user_record=record)
@@ -468,7 +472,9 @@ async def test_refresh_session_success(server):
 @pytest.mark.asyncio
 async def test_refresh_session_failure_disconnects(server):
     class RefreshAuth(DummyAuth):
-        def refresh_session(self, refresh_token, access_ttl_seconds, refresh_ttl_seconds):
+        def refresh_session(
+            self, refresh_token, access_ttl_seconds, refresh_ttl_seconds, *, expected_username=None
+        ):
             return None
 
     server._auth = RefreshAuth()

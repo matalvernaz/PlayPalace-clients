@@ -1,6 +1,7 @@
 """Authentication and session management."""
 
 import hashlib
+import hmac
 import secrets
 import sqlite3
 import time
@@ -32,11 +33,17 @@ class AuthManager:
     SHA-256 hashes on successful login.
     """
 
+    #: Maximum concurrent access sessions kept per user; oldest evicted first.
+    _MAX_SESSIONS_PER_USER = 10
+
     def __init__(self, database: "Database"):
         """Initialize the auth manager with a database backend."""
         self._db = database
         self._sessions: dict[str, tuple[str, int]] = {}  # token -> (username, expires_at)
         self._hasher = PasswordHasher()
+        # Verified against on the missing-user path so authentication takes
+        # constant time whether or not the username exists.
+        self._dummy_hash = self._hasher.hash("timing-attack-mitigation")
 
     def hash_password(self, password: str) -> str:
         """Hash a password using Argon2."""
@@ -63,7 +70,7 @@ class AuthManager:
 
         # Fall back to SHA-256 for legacy hashes
         if self._is_legacy_hash(password_hash):
-            return self._hash_password_sha256(password) == password_hash
+            return hmac.compare_digest(self._hash_password_sha256(password), password_hash)
 
         return False
 
@@ -79,6 +86,9 @@ class AuthManager:
         """
         user = self._db.get_user(username)
         if not user:
+            # Verify against a dummy hash so the missing-user path costs the
+            # same Argon2 time as a real one (no enumeration timing oracle).
+            self.verify_password(password, self._dummy_hash)
             return AuthResult.USER_NOT_FOUND
 
         if not self.verify_password(password, user.password_hash):
@@ -141,6 +151,13 @@ class AuthManager:
         """Get a user record."""
         return self._db.get_user(username)
 
+    def _prune_expired_sessions(self) -> None:
+        """Drop expired access sessions to keep the in-memory table bounded."""
+        now = int(time.time())
+        expired = [token for token, (_u, exp) in self._sessions.items() if exp <= now]
+        for token in expired:
+            del self._sessions[token]
+
     def create_session(self, username: str, ttl_seconds: int) -> tuple[str, int]:
         """Create an access session token for a user.
 
@@ -149,6 +166,16 @@ class AuthManager:
         """
         token = secrets.token_hex(32)
         expires_at = int(time.time()) + ttl_seconds
+        # Bound memory: clear expired entries, then cap sessions per user
+        # (evicting the soonest-to-expire) before inserting the new one.
+        self._prune_expired_sessions()
+        user_tokens = sorted(
+            ((t, exp) for t, (u, exp) in self._sessions.items() if u == username),
+            key=lambda item: item[1],
+        )
+        excess = len(user_tokens) - (self._MAX_SESSIONS_PER_USER - 1)
+        for token_to_drop, _exp in user_tokens[: max(0, excess)]:
+            self._sessions.pop(token_to_drop, None)
         self._sessions[token] = (username, expires_at)
         return token, expires_at
 
@@ -189,27 +216,47 @@ class AuthManager:
         self._db.store_refresh_token(username, token, expires_at, now)
         return token, expires_at
 
+    def revoke_user_refresh_tokens(self, username: str) -> None:
+        """Revoke all of a user's refresh tokens (e.g. on ban or token reuse)."""
+        self._db.revoke_user_refresh_tokens(username, int(time.time()))
+
     def refresh_session(
-        self, refresh_token: str, access_ttl_seconds: int, refresh_ttl_seconds: int
+        self,
+        refresh_token: str,
+        access_ttl_seconds: int,
+        refresh_ttl_seconds: int,
+        *,
+        expected_username: str | None = None,
     ) -> tuple[str, str, int, str, int] | None:
         """Rotate refresh token and issue a new access token.
 
-        Returns:
-            (username, access_token, access_expires_at, refresh_token, refresh_expires_at)
+        Returns the new credentials, or ``None`` on any failure: unknown,
+        expired, revoked, or reused token; banned user; or a mismatch against
+        ``expected_username`` (checked before any rotation occurs).
         """
         record = self._db.get_refresh_token(refresh_token)
         if not record:
             return None
 
         username = record["username"]
-        if not self._db.user_exists(username):
-            return None
-
         now = int(time.time())
+
+        # Presenting an already-revoked or already-rotated token is the classic
+        # stolen-token signal: revoke the whole family so neither the thief nor
+        # the legitimate holder can keep refreshing.
         if record["revoked_at"] is not None or record["replaced_by"]:
+            self.revoke_user_refresh_tokens(username)
             return None
         if record["expires_at"] <= now:
             self._db.revoke_refresh_token(refresh_token, now)
+            return None
+
+        user = self._db.get_user(username)
+        if user is None or user.trust_level == TrustLevel.BANNED:
+            return None
+        # Reject a hint mismatch BEFORE rotating, so a wrong-hint request can't
+        # burn the token or leak an access session.
+        if expected_username is not None and expected_username.lower() != username.lower():
             return None
 
         new_refresh_token = secrets.token_hex(32)

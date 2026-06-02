@@ -49,7 +49,10 @@ class DummyUser:
         async def send(payload):
             self.sent.append(payload)
 
-        return SimpleNamespace(send=send)
+        async def close():
+            self.closed = True
+
+        return SimpleNamespace(send=send, close=close)
 
 
 class DummyDB:
@@ -89,6 +92,12 @@ class DummyDB:
 def server(tmp_path, monkeypatch):
     srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
     srv._db = DummyDB()
+    # The server isn't start()ed in these tests, so _auth is still None; the
+    # ban path now revokes credentials, so give it a no-op stub.
+    srv._auth = SimpleNamespace(
+        invalidate_user_sessions=lambda username: None,
+        revoke_user_refresh_tokens=lambda username: None,
+    )
     monkeypatch.setattr(
         "server.messages.localization.Localization.get",
         lambda _locale, key, **kwargs: key,

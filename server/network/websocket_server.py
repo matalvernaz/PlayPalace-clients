@@ -1,6 +1,7 @@
 """WebSocket server for client connections."""
 
 import errno
+import ipaddress
 import json
 import logging
 import ssl
@@ -159,9 +160,28 @@ class WebSocketServer:
         self._clients.clear()
 
     @staticmethod
+    def _is_trusted_proxy(ip: str) -> bool:
+        """Whether forwarded headers from this peer should be believed.
+
+        The only thing that connects to this server is the reverse proxy
+        (Traefik) over a private Docker network, so forwarded headers are
+        trustworthy only when the immediate peer is a private or loopback
+        address. A direct public connection could otherwise spoof
+        ``X-Forwarded-For`` to defeat per-IP rate limiting.
+        """
+        try:
+            addr = ipaddress.ip_address(ip)
+        except ValueError:
+            return False
+        return addr.is_private or addr.is_loopback
+
+    @staticmethod
     def _extract_real_ip(websocket: ServerConnection) -> str:
         """Extract the real client IP from proxy headers, falling back to the socket address."""
         socket_ip = websocket.remote_address[0] if websocket.remote_address else "unknown"
+        # Only believe forwarded headers from a trusted (private/loopback) peer.
+        if not WebSocketServer._is_trusted_proxy(socket_ip):
+            return socket_ip
         headers = getattr(websocket, "request", None)
         if headers is None:
             return socket_ip

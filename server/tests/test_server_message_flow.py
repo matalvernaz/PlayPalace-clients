@@ -67,8 +67,13 @@ class FakeAuth:
     def create_refresh_token(self, username, ttl_seconds):
         return "refresh", 222
 
-    def refresh_session(self, token, access_ttl, refresh_ttl):
-        return self.refresh_payloads.get(token)
+    def refresh_session(self, token, access_ttl, refresh_ttl, *, expected_username=None):
+        payload = self.refresh_payloads.get(token)
+        if payload is None:
+            return None
+        if expected_username is not None and expected_username.lower() != payload[0].lower():
+            return None
+        return payload
 
 
 class FakeDB:
@@ -236,7 +241,7 @@ async def test_on_client_message_drops_unapproved_other_packets(make_server):
     client = DummyClient()
     client.authenticated = True
     client.username = "u1"
-    srv._users["u1"] = SimpleNamespace(approved=False)
+    srv._users["u1"] = SimpleNamespace(approved=False, trust_level=TrustLevel.USER)
     called = {"chat": 0}
 
     async def chat(_c, _p):
@@ -255,7 +260,7 @@ async def test_on_client_message_routes_chat_when_approved(make_server):
     client = DummyClient()
     client.authenticated = True
     client.username = "u1"
-    srv._users["u1"] = SimpleNamespace(approved=True)
+    srv._users["u1"] = SimpleNamespace(approved=True, trust_level=TrustLevel.USER)
     called = {"chat": 0}
 
     async def chat(_c, _p):
@@ -290,8 +295,11 @@ async def test_handle_refresh_session_username_mismatch(make_server):
 
     await srv._handle_refresh_session(client, packet)
 
+    # The username-hint check now lives in refresh_session and rejects before
+    # rotation, so the handler reports a generic refresh failure (no separate
+    # mismatch message, and the token is never burned).
     failures = [p for p in client.sent if p.get("type") == "refresh_session_failure"]
-    assert failures and "does not match" in failures[0]["message"]
+    assert failures
 
 
 @pytest.mark.asyncio
