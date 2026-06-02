@@ -269,12 +269,7 @@ class Game(
         """
         from ..messages.localization import Localization
 
-        key = f"{self.get_type()}-rules"
-        text = Localization.get(locale, key)
-        # Fluent returns the key in brackets when the message is missing
-        if text in (key, f"[{key}]"):
-            return None
-        return text
+        return Localization.get_optional(locale, f"{self.get_type()}-rules")
 
     @classmethod
     def get_leaderboard_types(cls) -> list[dict]:

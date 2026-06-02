@@ -151,3 +151,10 @@ sorry-option-auto-apply-single-move = Auto apply single move: { $auto_apply_sing
 sorry-option-faster-setup-one-pawn-out = Faster setup (one pawn out): { $faster_setup_one_pawn_out }
 sorry-option-changed-auto-apply-single-move = Auto apply single move set to { $auto_apply_single_move }.
 sorry-option-changed-faster-setup-one-pawn-out = Faster setup set to { $faster_setup_one_pawn_out }.
+
+sorry-rules =
+    Move your pawns from Start all the way around to Home. There are no dice — you draw a card each turn.
+    Only a one or a two lets a pawn leave Start. A four moves backward; a ten moves ten forward or one back.
+    A seven can be split between two pawns, and an eleven can swap one of your pawns with an opponent's.
+    A Sorry card brings a pawn out of Start onto an opponent, bumping that pawn back to Start; landing on an opponent bumps it too.
+    You must reach Home on an exact count. The first player to get all of their pawns Home wins.

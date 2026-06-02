@@ -178,3 +178,10 @@ milebymile-safety-effect-extra-tank = Now protected from Out of Gas.
 milebymile-safety-effect-puncture-proof = Now protected from Flat Tire.
 milebymile-safety-effect-driving-ace = Now protected from Accident.
 milebymile-safety-effect-right-of-way = Now protected from Stop and Speed Limit.
+
+milebymile-rules =
+    Race to the finish (default one thousand miles) by playing distance cards on your turn.
+    You start stopped — play a green light before you can move, and again after any hazard an opponent deals you.
+    Hazards like a flat tire, an accident, or running out of gas halt a rival until they play the matching repair.
+    The four safety cards give permanent protection and an extra turn; playing one the instant you are hit scores a bonus.
+    Winning a race scores your miles plus bonuses, and the first player to reach the target score (default five thousand) wins the game.

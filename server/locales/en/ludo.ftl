@@ -34,3 +34,10 @@ ludo-option-changed-max-sixes = Max consecutive sixes set to { $value }.
 ludo-set-safe-start-squares = Safe start squares: { $safe_start_squares }
 ludo-desc-safe-start-squares = Make each player's starting square safe from capture
 ludo-option-changed-safe-start-squares = Safe start squares set to { $value }.
+
+ludo-rules =
+    Race your four tokens around the board and into your home column before anyone else does.
+    Roll a die on your turn. You need a six to bring a token out of its yard.
+    Landing on an opponent's token sends it back to its yard, unless the square is safe.
+    Rolling a six earns another roll, but three sixes in a row wipe out that turn's moves and end it.
+    The first player to get all four tokens home wins.

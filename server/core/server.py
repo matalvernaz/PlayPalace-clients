@@ -4475,27 +4475,36 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 for member_name in [m.username for m in table.members]:
                     user = self._users.get(member_name)
                     if user and user.approved:  # Only send to approved users
+                        connection = getattr(user, "connection", None)
+                        if connection is None:
+                            continue  # virtual bots have no socket
                         if user.preferences.is_ignored(username):
                             continue
-                        await user.connection.send(chat_packet)
+                        await connection.send(chat_packet)
             else:
-                for user in self._users.values():
+                for user in list(self._users.values()):
                     if not user.approved:
                         continue
+                    connection = getattr(user, "connection", None)
+                    if connection is None:
+                        continue  # virtual bots have no socket
                     if self._tables.find_user_table(user.username):
                         continue
                     if user.preferences.is_ignored(username):
                         continue
-                    await user.connection.send(chat_packet)
+                    await connection.send(chat_packet)
         elif convo == "global":
             # Broadcast to all approved users — except those who have
             # ignored the sender.
-            for user in self._users.values():
+            for user in list(self._users.values()):
                 if not user.approved:
                     continue
+                connection = getattr(user, "connection", None)
+                if connection is None:
+                    continue  # virtual bots have no socket
                 if user.preferences.is_ignored(username):
                     continue
-                await user.connection.send(chat_packet)
+                await connection.send(chat_packet)
 
     def _get_online_usernames(self) -> list[str]:
         """Return sorted list of online usernames."""

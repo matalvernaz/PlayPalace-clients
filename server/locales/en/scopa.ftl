@@ -89,3 +89,10 @@ scopa-error-not-enough-cards = Not enough cards in { $decks } { $decks ->
     [one] player
     *[other] players
 } with { $cards_per_deal } cards each. (Need { $cards_per_deal } × { $players } = { $cards_needed } cards, but only have { $total_cards }.)
+
+scopa-rules =
+    Capture cards from the table by playing a card from your hand.
+    A card takes a single table card of the same rank; if nothing matches, it takes any group of cards that adds up to its value.
+    Clearing the whole table in one play is a scopa and scores a point.
+    Each round also awards a point for the most cards, the most coins, the seven of coins, and the most sevens.
+    The first player to reach the target score (default eleven) wins.

@@ -306,6 +306,25 @@ class Localization:
             return f"[{message_id}]"
 
     @classmethod
+    def get_optional(cls, locale: str, message_id: str, **kwargs) -> str | None:
+        """Return a formatted message, or None if it is not defined.
+
+        Unlike :meth:`get`, a missing message is an expected, non-error
+        condition here: nothing is logged and ``None`` is returned. Use this
+        for optional text such as per-game help/rules, where many games
+        legitimately define no message and a logged error would be noise.
+        """
+        try:
+            return cls._format_message(locale, message_id, kwargs)
+        except Exception:
+            if locale != "en":
+                try:
+                    return cls._format_message("en", message_id, kwargs)
+                except Exception:
+                    return None
+            return None
+
+    @classmethod
     def format_list_and(cls, locale: str, items: list[str]) -> str:
         """
         Format a list with 'and' conjunction using Babel.
