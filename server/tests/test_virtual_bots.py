@@ -2573,6 +2573,7 @@ def test_clear_bots_removes_tables_and_calls_db(monkeypatch):
     server._users["Cleaner"] = DummyNetworkUser()
     server._tables.tables["table-clean"] = SimpleNamespace(
         game=SimpleNamespace(broadcast_l=lambda *args, **kwargs: None),
+        destroy=lambda: server._tables.tables.pop("table-clean", None),
     )
 
     bots_cleared, tables_killed = manager.clear_bots()
