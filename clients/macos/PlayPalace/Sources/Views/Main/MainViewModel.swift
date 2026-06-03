@@ -857,7 +857,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
 
     /// Sends a keybind packet for the given key name (e.g. "r", "space", "enter", "up").
     /// Used by the iOS ActionBar and other touch-based controls.
-    func sendKeybind(_ key: String) {
+    func sendKeybind(_ key: String, control: Bool = false) {
         guard isConnected else {
             announceStaleTap()
             return
@@ -865,6 +865,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         let sel = menuSelection
         var packet = ClientPacket.keybind(
             key: key,
+            control: control,
             menuID: currentMenuID,
             menuIndex: sel != nil ? sel! + 1 : nil
         )
@@ -939,8 +940,15 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             announceStaleTap()
             return
         }
-        pendingLeaveTableUntil = Date().addingTimeInterval(Self.pendingLeaveTableWindow)
-        _ = handleEscapeKey()
+        // Trigger the server's always-on leave keybind (ctrl+q -> leave_game)
+        // directly. The old path sent `escape` and then hunted for a
+        // "leave_game" item in the next menu within a 2s window, which was
+        // fragile: it depended on the current menu's escape behavior, raced
+        // game-driven menu refreshes, and silently failed for spectators
+        // (whose Actions menu omits leave_game). The keybind is state-
+        // independent and spectator-safe; the server replies with the leave
+        // confirmation menu.
+        sendKeybind("q", control: true)
     }
 
     // MARK: - Edit Mode
