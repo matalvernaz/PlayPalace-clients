@@ -100,7 +100,10 @@ final class ConfigManager: ObservableObject {
             try FileManager.default.createDirectory(at: basePath, withIntermediateDirectories: true)
             let file = IdentitiesFile(servers: servers, lastServerID: lastServerID)
             let data = try JSONEncoder().encode(file)
-            try data.write(to: identitiesPath)
+            // Atomic so a crash mid-write can't corrupt the file; complete
+            // protection keeps stored credentials unreadable before first
+            // unlock on iOS (no-op on macOS).
+            try data.write(to: identitiesPath, options: [.atomic, .completeFileProtection])
         } catch {
             print("Error saving identities: \(error)")
         }

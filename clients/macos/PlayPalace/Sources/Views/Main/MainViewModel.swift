@@ -1183,6 +1183,12 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     func addHistory(_ text: String, buffer: String = "misc", speak: Bool = true, asAnnouncement: Bool = false) {
         let item = BufferItem(text)
         historyItems.append(item)
+        // Cap retained history so a long session can't grow it unbounded; the
+        // scrollback buffer already self-caps, this mirrors that for the view.
+        let maxHistoryItems = 1000
+        if historyItems.count > maxHistoryItems {
+            historyItems.removeFirst(historyItems.count - maxHistoryItems)
+        }
         bufferSystem.addItem(text, buffer: buffer)
 
         guard speak, !bufferSystem.isMuted(buffer) else { return }

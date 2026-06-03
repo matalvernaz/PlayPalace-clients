@@ -190,25 +190,38 @@ final class SoundManager: ObservableObject {
     // MARK: - Helpers
 
     private func resolveSound(_ name: String) -> URL? {
-        // Try the exact name first, then macOS-native formats
+        // Sound names arrive from the server (untrusted). Reject anything that
+        // could resolve outside soundsDirectory via a path separator or "..".
+        guard !name.isEmpty, !name.contains("/"), !name.contains("\\"),
+              !name.contains("..") else {
+            return nil
+        }
+
+        // Try the exact name first, then macOS-native formats.
         let candidates = [name, name.replacingOccurrences(of: ".ogg", with: ".caf"),
                           name.replacingOccurrences(of: ".ogg", with: ".wav"),
                           name.replacingOccurrences(of: ".ogg", with: ".mp3")]
+
+        // Direct top-level hits.
         for candidate in candidates {
             let url = soundsDirectory.appendingPathComponent(candidate)
             if FileManager.default.fileExists(atPath: url.path) {
                 return url
             }
-            // Check subdirectories (games have sounds in subdirs)
-            let enumerator = FileManager.default.enumerator(
-                at: soundsDirectory,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            )
-            while let fileURL = enumerator?.nextObject() as? URL {
-                if fileURL.lastPathComponent == candidate {
-                    return fileURL
-                }
+        }
+
+        // Otherwise a single walk of the tree (games keep sounds in subdirs),
+        // matching any candidate by filename — one walk instead of one per
+        // candidate, on the main actor.
+        let candidateSet = Set(candidates)
+        let enumerator = FileManager.default.enumerator(
+            at: soundsDirectory,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+        while let fileURL = enumerator?.nextObject() as? URL {
+            if candidateSet.contains(fileURL.lastPathComponent) {
+                return fileURL
             }
         }
         return nil

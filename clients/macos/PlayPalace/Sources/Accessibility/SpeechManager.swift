@@ -68,6 +68,10 @@ final class SpeechManager: NSObject, ObservableObject {
     private var utteranceToken: Int = 0
     private var activeChannel: Channel?
     private var activeText: String = ""
+    /// Identity of the utterance currently being spoken. Used to ignore a
+    /// late/stale `didFinish` for an utterance we've already moved past, which
+    /// would otherwise pop the queue mid-utterance and drop active speech.
+    private var activeUtteranceID: ObjectIdentifier?
     private var fallbackTimer: Timer?
 
     /// Pending utterances for the AVSpeechSynthesizer path.
@@ -234,6 +238,7 @@ final class SpeechManager: NSObject, ObservableObject {
         utteranceToken &+= 1
         activeChannel = nil
         activeText = ""
+        activeUtteranceID = nil
         queue.removeAll()
         pendingStart = nil
         cancelPendingStartTimeout()
@@ -539,6 +544,7 @@ final class SpeechManager: NSObject, ObservableObject {
         if !isVoiceOverRunning {
             utterance.rate = rate
         }
+        activeUtteranceID = ObjectIdentifier(utterance)
         synth.speak(utterance)
         scheduleFallback(for: text, token: token)
     }
@@ -585,6 +591,7 @@ final class SpeechManager: NSObject, ObservableObject {
         cancelFallbackTimer()
         activeChannel = nil
         activeText = ""
+        activeUtteranceID = nil
 
         guard let next = queue.first else {
             scheduleDeactivate()
@@ -695,8 +702,16 @@ extension SpeechManager: AVSpeechSynthesizerDelegate {
 
     nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                                        didFinish utterance: AVSpeechUtterance) {
+        // Capture identity synchronously (ObjectIdentifier is Sendable; the
+        // utterance object is not). Only advance if this is still the active
+        // utterance — a late/stale didFinish must not pop the queue and drop
+        // the speech that's currently playing.
+        let finishedID = ObjectIdentifier(utterance)
         Task { @MainActor [weak self] in
-            self?.advanceQueue()
+            guard let self else { return }
+            guard finishedID == self.activeUtteranceID else { return }
+            self.activeUtteranceID = nil
+            self.advanceQueue()
         }
     }
 
