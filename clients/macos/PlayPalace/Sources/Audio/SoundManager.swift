@@ -55,30 +55,6 @@ final class SoundManager: ObservableObject {
         }
     }
 
-    /// Play a single playlist track and return its duration, so the playlist
-    /// can schedule the next track. Returns 0 if the sound can't be loaded.
-    func playPlaylistTrack(_ name: String, asMusic: Bool) -> TimeInterval {
-        guard let url = resolveSound(name) else { return 0 }
-        do {
-            let player = try AVAudioPlayer(contentsOf: url)
-            player.numberOfLoops = 0
-            if asMusic {
-                player.volume = musicVolume
-                musicPlayer?.stop()
-                musicPlayer = player
-            } else {
-                player.volume = 1.0
-                soundPlayers.append(player)
-                soundPlayers.removeAll { !$0.isPlaying }
-            }
-            player.prepareToPlay()
-            player.play()
-            return player.duration
-        } catch {
-            return 0
-        }
-    }
-
     func playMenuClick() {
         play(menuClickSound)
     }
@@ -214,38 +190,25 @@ final class SoundManager: ObservableObject {
     // MARK: - Helpers
 
     private func resolveSound(_ name: String) -> URL? {
-        // Sound names arrive from the server (untrusted). Reject anything that
-        // could resolve outside soundsDirectory via a path separator or "..".
-        guard !name.isEmpty, !name.contains("/"), !name.contains("\\"),
-              !name.contains("..") else {
-            return nil
-        }
-
-        // Try the exact name first, then macOS-native formats.
+        // Try the exact name first, then macOS-native formats
         let candidates = [name, name.replacingOccurrences(of: ".ogg", with: ".caf"),
                           name.replacingOccurrences(of: ".ogg", with: ".wav"),
                           name.replacingOccurrences(of: ".ogg", with: ".mp3")]
-
-        // Direct top-level hits.
         for candidate in candidates {
             let url = soundsDirectory.appendingPathComponent(candidate)
             if FileManager.default.fileExists(atPath: url.path) {
                 return url
             }
-        }
-
-        // Otherwise a single walk of the tree (games keep sounds in subdirs),
-        // matching any candidate by filename — one walk instead of one per
-        // candidate, on the main actor.
-        let candidateSet = Set(candidates)
-        let enumerator = FileManager.default.enumerator(
-            at: soundsDirectory,
-            includingPropertiesForKeys: nil,
-            options: [.skipsHiddenFiles]
-        )
-        while let fileURL = enumerator?.nextObject() as? URL {
-            if candidateSet.contains(fileURL.lastPathComponent) {
-                return fileURL
+            // Check subdirectories (games have sounds in subdirs)
+            let enumerator = FileManager.default.enumerator(
+                at: soundsDirectory,
+                includingPropertiesForKeys: nil,
+                options: [.skipsHiddenFiles]
+            )
+            while let fileURL = enumerator?.nextObject() as? URL {
+                if fileURL.lastPathComponent == candidate {
+                    return fileURL
+                }
             }
         }
         return nil
@@ -282,7 +245,6 @@ final class AudioPlaylist {
     private var trackIndex = 0
     private var currentRepeat = 1
     private(set) var isActive = false
-    private var advanceTask: Task<Void, Never>?
 
     init(
         id: String, tracks: [String], audioType: String,
@@ -312,8 +274,6 @@ final class AudioPlaylist {
 
     func stop() {
         isActive = false
-        advanceTask?.cancel()
-        advanceTask = nil
     }
 
     private func playNextTrack() {
@@ -330,20 +290,10 @@ final class AudioPlaylist {
         let track = tracks[trackIndex]
         trackIndex += 1
 
-        // Play the track and schedule the next one when it finishes, so a
-        // multi-track playlist actually advances instead of stalling on the
-        // first track.
-        let duration = soundManager?.playPlaylistTrack(track, asMusic: audioType == "music") ?? 0
-        scheduleAdvance(after: duration)
-    }
-
-    private func scheduleAdvance(after duration: TimeInterval) {
-        advanceTask?.cancel()
-        guard duration > 0 else { return }
-        advanceTask = Task { @MainActor [weak self] in
-            try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
-            guard !Task.isCancelled, let self, self.isActive else { return }
-            self.playNextTrack()
+        if audioType == "music" {
+            soundManager?.playMusic(track, looping: false, fadeOutOld: false)
+        } else {
+            soundManager?.play(track)
         }
     }
 }
