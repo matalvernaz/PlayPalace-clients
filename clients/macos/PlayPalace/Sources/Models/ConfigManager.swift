@@ -192,7 +192,10 @@ final class ConfigManager: ObservableObject {
             }
             return "\(scheme)://\(hostPart):\(port)"
         }
-        return "ws://\(host):\(port)"
+        // Default a scheme-less host to secure wss://. A user who genuinely
+        // needs cleartext can still type an explicit ws:// host, which is
+        // handled by the scheme branch above.
+        return "wss://\(host):\(port)"
     }
 
     // MARK: - Account Management
