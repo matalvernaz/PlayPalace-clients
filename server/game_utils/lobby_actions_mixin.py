@@ -193,9 +193,9 @@ class LobbyActionsMixin:
                 # Destroy the game - no humans left
                 self.destroy()
                 return
-
-                # Rebuild menus for remaining players
-                self.rebuild_all_menus()
+            # Rebuild menus for the remaining players so they reflect the
+            # departed seat now being bot-controlled.
+            self.rebuild_all_menus()
             return
 
         # Lobby or bot leaving: fully remove the player

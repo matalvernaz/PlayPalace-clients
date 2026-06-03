@@ -1048,10 +1048,10 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                     player = table.game.get_player_by_id(user.uuid)
                     if player:
                         table.game._perform_leave_game(player)
-                # Remove the member unconditionally: the grace period elapsed
-                # without a reconnect, so a leftover membership is a ghost that
-                # keeps the table from ever emptying and being destroyed.
-                table.remove_member(username)
+                # Keep the seat for reconnect unless this was the last member;
+                # a non-last disconnected player can rejoin and resume.
+                if len(table.members) <= 1:
+                    table.remove_member(username)
 
             # Only broadcast offline if user was approved and not banned
             if user and user.approved and user.trust_level != TrustLevel.BANNED:
