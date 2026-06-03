@@ -39,7 +39,7 @@ def test_banned_user_cannot_refresh(auth):
     assert manager.refresh_session(token, 3600, 86400) is None
 
 
-def test_refresh_token_reuse_revokes_family(auth):
+def test_refresh_token_reuse_within_grace_replays(auth):
     manager, db = auth
     _make_user(manager, db, "carol")
     token, _ = manager.create_refresh_token("carol", 3600)
@@ -48,8 +48,33 @@ def test_refresh_token_reuse_revokes_family(auth):
     assert result is not None
     new_token = result[3]
 
-    # Replaying the already-rotated token is the stolen-token signal: it must
-    # fail AND revoke the whole family, including the freshly minted token.
+    # Re-presenting the just-rotated token within the grace window is a benign
+    # client race: replay the rotation, handing back the SAME live successor and
+    # a usable access session rather than revoking the family.
+    replay = manager.refresh_session(token, 3600, 86400)
+    assert replay is not None
+    assert replay[0] == "carol"
+    assert replay[3] == new_token
+    assert manager.validate_session(replay[1]) == "carol"
+
+    # The successor is untouched and can still be rotated for real afterwards.
+    assert manager.refresh_session(new_token, 3600, 86400) is not None
+
+
+def test_refresh_token_reuse_outside_grace_revokes_family(auth):
+    manager, db = auth
+    # Negative grace forces every rotated-token replay onto the theft path.
+    manager._REFRESH_REUSE_GRACE_SECONDS = -1
+    _make_user(manager, db, "carol")
+    token, _ = manager.create_refresh_token("carol", 3600)
+
+    result = manager.refresh_session(token, 3600, 86400)
+    assert result is not None
+    new_token = result[3]
+
+    # Outside the grace window, replaying the already-rotated token is the
+    # stolen-token signal: it must fail AND revoke the whole family, including
+    # the freshly minted successor.
     assert manager.refresh_session(token, 3600, 86400) is None
     assert manager.refresh_session(new_token, 3600, 86400) is None
 

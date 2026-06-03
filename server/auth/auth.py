@@ -36,6 +36,12 @@ class AuthManager:
     #: Maximum concurrent access sessions kept per user; oldest evicted first.
     _MAX_SESSIONS_PER_USER = 10
 
+    #: Grace window after a refresh token is rotated during which re-presenting
+    #: it is treated as a benign client race (idempotent replay of the rotation)
+    #: rather than token theft. Tolerates clients that open concurrent
+    #: connections or re-send a token before storing its rotated successor.
+    _REFRESH_REUSE_GRACE_SECONDS = 30
+
     def __init__(self, database: "Database"):
         """Initialize the auth manager with a database backend."""
         self._db = database
@@ -220,6 +226,46 @@ class AuthManager:
         """Revoke all of a user's refresh tokens (e.g. on ban or token reuse)."""
         self._db.revoke_user_refresh_tokens(username, int(time.time()))
 
+    def _replay_rotation_within_grace(
+        self,
+        record: sqlite3.Row,
+        now: int,
+        expected_username: str | None,
+        access_ttl_seconds: int,
+    ) -> tuple[str, str, int, str, int] | None:
+        """Idempotently replay a recent rotation for a re-presented token.
+
+        Returns a fresh access session bound to ``record``'s successor refresh
+        token (unchanged, not re-rotated) when the rotation happened within
+        ``_REFRESH_REUSE_GRACE_SECONDS`` and the successor is still the live tip
+        of the chain. Returns ``None`` to signal the caller should treat the
+        re-presentation as theft (revoke the family).
+        """
+        revoked_at = record["revoked_at"]
+        if revoked_at is None or now - revoked_at > self._REFRESH_REUSE_GRACE_SECONDS:
+            return None
+
+        username = record["username"]
+        if expected_username is not None and expected_username.lower() != username.lower():
+            return None
+
+        successor = self._db.get_refresh_token(record["replaced_by"])
+        if successor is None:
+            return None
+        # The successor must still be the live tip: not itself rotated, revoked,
+        # or expired. If the chain has moved on, this is no longer a simple race.
+        if successor["replaced_by"] or successor["revoked_at"] is not None:
+            return None
+        if successor["expires_at"] <= now:
+            return None
+
+        user = self._db.get_user(username)
+        if user is None or user.trust_level == TrustLevel.BANNED:
+            return None
+
+        access_token, access_expires = self.create_session(username, access_ttl_seconds)
+        return username, access_token, access_expires, successor["token"], successor["expires_at"]
+
     def refresh_session(
         self,
         refresh_token: str,
@@ -241,10 +287,23 @@ class AuthManager:
         username = record["username"]
         now = int(time.time())
 
-        # Presenting an already-revoked or already-rotated token is the classic
-        # stolen-token signal: revoke the whole family so neither the thief nor
-        # the legitimate holder can keep refreshing.
-        if record["revoked_at"] is not None or record["replaced_by"]:
+        # An already-rotated token (replaced_by set) is normally the classic
+        # stolen-token signal. But a legitimate client that races its own
+        # refresh — concurrent reconnects, or re-sending a token before it has
+        # stored the rotated successor — innocently presents the just-rotated
+        # token a second time. Honor a short idempotency window: replay the
+        # rotation by re-issuing an access session bound to the live successor.
+        if record["replaced_by"]:
+            replay = self._replay_rotation_within_grace(
+                record, now, expected_username, access_ttl_seconds
+            )
+            if replay is not None:
+                return replay
+            self.revoke_user_refresh_tokens(username)
+            return None
+        # Revoked without rotation (logout, family-revoke, expiry sweep): no
+        # grace — treat re-presentation as a theft/invalid signal.
+        if record["revoked_at"] is not None:
             self.revoke_user_refresh_tokens(username)
             return None
         if record["expires_at"] <= now:
