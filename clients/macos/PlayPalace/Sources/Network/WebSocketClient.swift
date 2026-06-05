@@ -3,6 +3,10 @@ import Foundation
 /// Manages WebSocket connection to the PlayPalace server.
 @MainActor
 final class WebSocketClient: ObservableObject {
+    /// Bounds `waitsForConnectivity` so a transient network delay fails fast
+    /// and retryably instead of parking the socket (the default cap is 7 days).
+    private static let connectivityTimeoutSeconds: TimeInterval = 12
+
     @Published private(set) var isConnected = false
 
     private var webSocket: URLSessionWebSocketTask?
@@ -42,6 +46,7 @@ final class WebSocketClient: ObservableObject {
 
         let config = URLSessionConfiguration.default
         config.waitsForConnectivity = true
+        config.timeoutIntervalForConnectivity = Self.connectivityTimeoutSeconds
 
         session = URLSession(configuration: config)
         webSocket = session?.webSocketTask(with: serverURL)
@@ -84,8 +89,14 @@ final class WebSocketClient: ObservableObject {
                     await handlePacket(response)
                 }
             } catch {
-                clearTokens()
-                await sendRaw(ClientPacket.authorize(username: username, password: password))
+                // A timeout here means the socket never came up in time — NOT
+                // that the refresh token is bad. Surface a clean retryable error;
+                // do not destroy tokens or fire a second auth on a half-dead
+                // socket. The double-auth (refresh + authorize on one socket)
+                // trips the server's single-session handoff and earns a 1000 close.
+                if !shouldStop {
+                    delegate?.onConnectionError("Connection timed out. Tap to retry.")
+                }
             }
         } else {
             clearTokens()
