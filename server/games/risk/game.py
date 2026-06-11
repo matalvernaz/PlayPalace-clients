@@ -377,10 +377,12 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         self.rebuild_all_menus()
 
     def _end_attack_phase(self) -> None:
-        # Award a card if conquered at least one territory
+        # Award a card if conquered at least one territory. Clear the flag so
+        # a replayed phase-end can never award a second card.
         current = self.current_player
         if self.conquered_this_turn:
             self._draw_card(current)
+            self.conquered_this_turn = False
         self.phase = "fortify"
         self.attacker_id = ""
         self.defender_id = ""
@@ -543,8 +545,21 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
         return Visibility.HIDDEN
 
-    def _is_phase_action_enabled(self, player: Player) -> str | None:
-        return self.guard_turn_action_enabled(player)
+    def _is_attack_phase_action_enabled(self, player: Player) -> str | None:
+        error = self.guard_turn_action_enabled(player)
+        if error:
+            return error
+        if self.phase != "attack":
+            return "risk-wrong-phase"
+        return None
+
+    def _is_fortify_phase_action_enabled(self, player: Player) -> str | None:
+        error = self.guard_turn_action_enabled(player)
+        if error:
+            return error
+        if self.phase != "fortify":
+            return "risk-wrong-phase"
+        return None
 
     def _is_skip_attack_hidden(self, player: Player) -> Visibility:
         if player != self.current_player or self.phase != "attack":
@@ -611,7 +626,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 id="skip_attack",
                 label=Localization.get(locale, "risk-skip-attack"),
                 handler="_action_skip_attack",
-                is_enabled="_is_phase_action_enabled",
+                is_enabled="_is_attack_phase_action_enabled",
                 is_hidden="_is_skip_attack_hidden",
             )
         )
@@ -620,7 +635,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 id="cancel_attack",
                 label=Localization.get(locale, "risk-cancel-attack"),
                 handler="_action_cancel_selection",
-                is_enabled="_is_phase_action_enabled",
+                is_enabled="_is_attack_phase_action_enabled",
                 is_hidden="_is_cancel_attack_hidden",
             )
         )
@@ -629,7 +644,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 id="skip_fortify",
                 label=Localization.get(locale, "risk-skip-fortify"),
                 handler="_action_skip_fortify",
-                is_enabled="_is_phase_action_enabled",
+                is_enabled="_is_fortify_phase_action_enabled",
                 is_hidden="_is_skip_fortify_hidden",
             )
         )
@@ -638,7 +653,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 id="cancel_fortify",
                 label=Localization.get(locale, "risk-cancel-fortify"),
                 handler="_action_cancel_selection",
-                is_enabled="_is_phase_action_enabled",
+                is_enabled="_is_fortify_phase_action_enabled",
                 is_hidden="_is_cancel_fortify_hidden",
             )
         )
