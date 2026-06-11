@@ -435,6 +435,20 @@ class PusoyDosGame(Game, TurnTimerMixin):
 
                 self.play_sound(SOUND_INSTANT_WIN)
                 self.broadcast_l(msg_key, player=p.name)
+                # Record a full finishing order so every scoring mode sees
+                # the winner. _begin_play never ran here, so turn_player_ids
+                # is not usable — rank the rest from `active` with the same
+                # key _player_finishes uses.
+                self.finishing_order.append(p.id)
+                remaining = [q for q in active if q.id != p.id]
+                remaining.sort(
+                    key=lambda q: (
+                        len(q.hand),
+                        max((card_value(c) for c in q.hand), default=0),
+                    )
+                )
+                for q in remaining:
+                    self.finishing_order.append(q.id)
                 self._player_wins_round(p)
                 self._end_round()
                 return True
@@ -715,7 +729,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
                 self._action_play_selected(player, "play_selected")
                 return
 
-        self._action_pass(player, "pass")
+        self._action_pass(player, "pass", force=True)
 
     # ==========================================================================
     # Action sets
@@ -1020,7 +1034,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
         self.advance_turn(announce=False)
         self._start_turn()
 
-    def _action_pass(self, player: Player, action_id: str) -> None:
+    def _action_pass(self, player: Player, action_id: str, *, force: bool = False) -> None:
         p = self._require_active_turn_player(player)
         if not p:
             return
@@ -1029,8 +1043,10 @@ class PusoyDosGame(Game, TurnTimerMixin):
             self._send_error(p, "pusoydos-error-must-play")
             return
 
-        # Confirm-to-pass: if the preference is enabled and not yet confirmed
-        if not p.is_bot and p.pass_confirm_ticks == 0:
+        # Confirm-to-pass: if the preference is enabled and not yet confirmed.
+        # Timer-driven passes bypass the prompt — the turn timer only re-arms
+        # in _start_turn, so swallowing a timeout here would hang the table.
+        if not force and not p.is_bot and p.pass_confirm_ticks == 0:
             user = self.get_user(p)
             if user:
                 wants_confirm = user.preferences.get_effective(
