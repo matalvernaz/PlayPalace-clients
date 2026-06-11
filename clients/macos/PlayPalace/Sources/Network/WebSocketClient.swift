@@ -46,11 +46,25 @@ final class WebSocketClient: ObservableObject {
 
         let config = URLSessionConfiguration.default
         config.waitsForConnectivity = true
-        config.timeoutIntervalForConnectivity = Self.connectivityTimeoutSeconds
 
         session = URLSession(configuration: config)
         webSocket = session?.webSocketTask(with: serverURL)
         webSocket?.resume()
+
+        // URLSessionConfiguration has no per-session connectivity timeout,
+        // and the resource timeout would also kill an established socket.
+        // Bound the wait manually: if this dial hasn't authorized within the
+        // window, cancel it so the auth path surfaces a clean retryable
+        // error instead of parking the socket indefinitely.
+        let dialed = webSocket
+        Task { [weak self] in
+            try? await Task.sleep(
+                nanoseconds: UInt64(Self.connectivityTimeoutSeconds * 1_000_000_000)
+            )
+            guard let self, !self.shouldStop, !self.isConnected,
+                  self.webSocket === dialed else { return }
+            dialed?.cancel(with: .goingAway, reason: nil)
+        }
 
         Task {
             await performAuth(username: username, password: password)
