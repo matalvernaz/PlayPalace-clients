@@ -502,6 +502,13 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             if not bp:
                 self.rebuild_player_menu(player)
                 return
+            # The orientation menu only has authority while this player is
+            # actually mid-placement during deployment; a crafted or stale
+            # menu event outside that window would otherwise place an extra
+            # ship onto a live board.
+            if self.phase != "deploying" or not self.placing_orientation_pending.get(bp.id):
+                self.rebuild_player_menu(bp)
+                return
             if selection_id == "_cancel" or not selection_id:
                 # Cancel — reset pending and return to grid
                 self.placing_orientation_pending[bp.id] = False
