@@ -895,6 +895,7 @@ extension GameTouchView: UIGestureRecognizerDelegate {
 private struct EditOverlay: View {
     @ObservedObject var viewModel: MainViewModel
     @FocusState private var editFocused: Bool
+    @AccessibilityFocusState private var editA11yFocused: Bool
 
     var body: some View {
         VStack(spacing: 16) {
@@ -912,12 +913,16 @@ private struct EditOverlay: View {
                     .padding(.horizontal, 16)
                     .disabled(viewModel.editReadOnly)
                     .focused($editFocused)
+                    .accessibilityLabel(viewModel.editPrompt)
+                    .accessibilityFocused($editA11yFocused)
             } else {
                 TextField(viewModel.editPrompt, text: $viewModel.editText)
                     .textFieldStyle(.roundedBorder)
                     .padding(.horizontal, 16)
                     .disabled(viewModel.editReadOnly)
                     .focused($editFocused)
+                    .accessibilityLabel(viewModel.editPrompt)
+                    .accessibilityFocused($editA11yFocused)
                     .onSubmit { viewModel.submitEdit() }
             }
             HStack(spacing: 16) {
@@ -942,7 +947,19 @@ private struct EditOverlay: View {
             .padding(.horizontal, 16)
             Spacer()
         }
-        .onAppear { editFocused = true }
+        .onAppear {
+            editFocused = true
+            // VoiceOver focus has to be moved off the just-removed
+            // allowsDirectInteraction game view explicitly, or VO stays in
+            // direct-touch pass-through with no way to reach the field.
+            // FocusState set during onAppear is unreliable while VO is
+            // processing the hierarchy swap, so re-assert both once the
+            // swap has settled.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                editFocused = true
+                editA11yFocused = true
+            }
+        }
     }
 }
 

@@ -362,6 +362,28 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private func handleMenu(_ packet: [String: Any]) {
         let data = MenuPacketData(from: packet)
 
+        let isSameMenu = currentMenuID == data.menuID
+
+        // Hide menu items that reference an ignored user. Primarily targets
+        // tables_menu / online_users; menu_id is scoped so we don't risk
+        // dropping an item from an unrelated menu just because its text
+        // happens to start with an ignored name.
+        let filteredItems = filterMenuItems(data.items, menuID: data.menuID)
+
+        // While the user is typing into an edit box, a menu repaint that
+        // doesn't actually change the menu must not disturb the input. The
+        // server rebuilds menus on every table state change — bot ticks
+        // included — so cancelling unconditionally here destroyed in-progress
+        // text within seconds at any table with a bot. The desktop client
+        // ignores unchanged repaints the same way (_menu_state_is_unchanged).
+        if isEditMode {
+            let unchanged = isSameMenu
+                && filteredItems.map(\.id) == currentMenuItemIDs
+                && filteredItems.map(\.text) == menuItems.map(\.text)
+            if unchanged { return }
+            cancelEdit()
+        }
+
         multiletter = data.multiletter
         escapeBehavior = data.escapeBehavior
         gridEnabled = data.gridEnabled
@@ -369,17 +391,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         helpText = data.helpText
         primaryActionId = data.primaryActionId
 
-        // Exit edit mode if needed
-        if isEditMode { cancelEdit() }
-
-        let isSameMenu = currentMenuID == data.menuID
         currentMenuID = data.menuID
-
-        // Hide menu items that reference an ignored user. Primarily targets
-        // tables_menu / online_users; menu_id is scoped so we don't risk
-        // dropping an item from an unrelated menu just because its text
-        // happens to start with an ignored name.
-        let filteredItems = filterMenuItems(data.items, menuID: data.menuID)
         currentMenuItemIDs = filteredItems.map(\.id)
 
         menuItems = filteredItems
