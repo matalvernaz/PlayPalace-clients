@@ -16,7 +16,6 @@ from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...messages.localization import Localization
 from server.core.ui.keybinds import KeybindState
-from server.core.users.bot import Bot
 from server.core.users.base import User, MenuItem, EscapeBehavior
 from .bot import bot_think
 from .moves import generate_legal_moves, apply_move, has_any_legal_move
@@ -699,36 +698,6 @@ class SenetGame(Game):
             p2=p2.name if p2 else "?",
             off2=gs.off[2],
         )
-
-    # ======================================================================
-    # Leave handling
-    # ======================================================================
-
-    def _perform_leave_game(self, player: Player) -> None:
-        if self.status == "playing" and not player.is_bot:
-            player.is_bot = True
-            self._users.pop(player.id, None)
-            bot_user = Bot(player.name, uuid=player.id)
-            self.attach_user(player.id, bot_user)
-            self.broadcast_l("player-replaced-by-bot", player=player.name)
-
-            has_humans = any(not p.is_bot for p in self.players)
-            if not has_humans:
-                self.destroy()
-                return
-
-            self.rebuild_all_menus()
-            return
-
-        self.players = [p for p in self.players if p.id != player.id]
-        self.player_action_sets.pop(player.id, None)
-        self._users.pop(player.id, None)
-        self.broadcast_l("table-left", player=player.name)
-
-        has_humans = any(not p.is_bot for p in self.players)
-        if not has_humans:
-            self.destroy()
-            return
 
     # ======================================================================
     # Visibility / enabled / label / sound callbacks
