@@ -850,13 +850,21 @@ def finish_war_battle(game: AgeOfHeroesGame) -> None:
     winner = get_battle_winner(game)
     had_rounds = war.battle_in_progress
 
+    # Capture the combatant objects (not indices) before apply_war_outcome
+    # resets the war indices to -1 and before _check_elimination mutates the
+    # active-players list. Reading the indices afterward grabbed the wrong
+    # player (-1 -> last player), causing wrong eliminations and the
+    # AgeOfHeroesPlayer-not-in-list traceback.
+    attacker_player = None
+    defender_player = None
     attacker_name = None
     defender_name = None
-    if war.attacker_index < len(active_players) and war.defender_index < len(active_players):
-        attacker = active_players[war.attacker_index]
-        defender = active_players[war.defender_index]
-        attacker_name = attacker.name
-        defender_name = defender.name
+    if 0 <= war.attacker_index < len(active_players):
+        attacker_player = active_players[war.attacker_index]
+        attacker_name = attacker_player.name
+    if 0 <= war.defender_index < len(active_players):
+        defender_player = active_players[war.defender_index]
+        defender_name = defender_player.name
 
     # Apply war outcome (this may reset war state)
     apply_war_outcome(game)
@@ -884,19 +892,16 @@ def finish_war_battle(game: AgeOfHeroesGame) -> None:
                 defender=defender_name,
             )
 
-    # Check for elimination of both players
-    if war.attacker_index < len(active_players):
-        attacker = active_players[war.attacker_index]
-        game._check_elimination(attacker)
+    # Check elimination using the objects captured before apply_war_outcome
+    # (the war indices may now be reset to -1).
+    if attacker_player is not None:
+        game._check_elimination(attacker_player)
 
-    if war.defender_index < len(active_players):
-        defender = active_players[war.defender_index]
-        game._check_elimination(defender)
+    if defender_player is not None:
+        game._check_elimination(defender_player)
 
-    # Reset war state and end action
-    attacker_idx = war.attacker_index
+    # Reset war state and end the attacker's action.
     war.reset()
 
-    if attacker_idx < len(active_players):
-        attacker = active_players[attacker_idx]
-        game._end_action(attacker)
+    if attacker_player is not None:
+        game._end_action(attacker_player)
