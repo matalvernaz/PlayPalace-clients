@@ -39,13 +39,13 @@ class FakeAuth:
         self.sessions: dict[str, str] = {}
         self.refresh_payloads: dict[str, tuple] = {}
 
-    def authenticate(self, username, password):
+    async def authenticate(self, username, password):
         # Treat any known user/password as success for tests
         if username in self.users and password == "secret":
             return AuthResult.SUCCESS
         return AuthResult.NOT_FOUND
 
-    def register(self, username, password, locale="en"):
+    async def register(self, username, password, locale="en"):
         self.users[username] = SimpleNamespace(
             uuid=f"uuid-{username}",
             locale=locale,

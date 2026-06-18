@@ -26,9 +26,9 @@ def _make_user(manager, db, username, *, trust=TrustLevel.USER):
     db.create_user(username, manager.hash_password("pw"), "en", trust, True)
 
 
-def test_missing_user_returns_not_found(auth):
+async def test_missing_user_returns_not_found(auth):
     manager, _db = auth
-    assert manager.authenticate("ghost", "whatever") is AuthResult.USER_NOT_FOUND
+    assert await manager.authenticate("ghost", "whatever") is AuthResult.USER_NOT_FOUND
 
 
 def test_banned_user_cannot_refresh(auth):

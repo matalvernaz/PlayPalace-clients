@@ -42,7 +42,7 @@ class FakeAuth:
         self.sessions: dict[str, str] = {}
         self.authenticate_calls: list[tuple[str, str]] = []
 
-    def authenticate(self, username, password):
+    async def authenticate(self, username, password):
         self.authenticate_calls.append((username, password))
         if username == "alice" and password == "secret":
             return AuthResult.SUCCESS
@@ -50,7 +50,7 @@ class FakeAuth:
             return AuthResult.WRONG_PASSWORD
         return AuthResult.NOT_FOUND
 
-    def register(self, username, password, locale="en"):
+    async def register(self, username, password, locale="en"):
         self.users[username] = SimpleNamespace(
             uuid="new",
             locale=locale,

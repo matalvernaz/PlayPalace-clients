@@ -1,5 +1,6 @@
 """Authentication and session management."""
 
+import asyncio
 import hashlib
 import hmac
 import secrets
@@ -80,8 +81,13 @@ class AuthManager:
 
         return False
 
-    def authenticate(self, username: str, password: str) -> AuthResult:
+    async def authenticate(self, username: str, password: str) -> AuthResult:
         """Authenticate a user.
+
+        Argon2 verification is CPU-bound (tens of milliseconds), so it runs in
+        a worker thread to avoid stalling the event loop — and every game table
+        with it — on each login. DB access stays on the loop thread because the
+        SQLite connection has thread affinity (no check_same_thread override).
 
         Args:
             username: Username to authenticate.
@@ -94,20 +100,20 @@ class AuthManager:
         if not user:
             # Verify against a dummy hash so the missing-user path costs the
             # same Argon2 time as a real one (no enumeration timing oracle).
-            self.verify_password(password, self._dummy_hash)
+            await asyncio.to_thread(self.verify_password, password, self._dummy_hash)
             return AuthResult.USER_NOT_FOUND
 
-        if not self.verify_password(password, user.password_hash):
+        if not await asyncio.to_thread(self.verify_password, password, user.password_hash):
             return AuthResult.WRONG_PASSWORD
 
         # Upgrade legacy hash to Argon2 on successful login
         if self._is_legacy_hash(user.password_hash):
-            new_hash = self.hash_password(password)
+            new_hash = await asyncio.to_thread(self.hash_password, password)
             self._db.update_user_password(username, new_hash)
 
         return AuthResult.SUCCESS
 
-    def register(self, username: str, password: str, *, approved: bool = False, locale: str = "en") -> bool:
+    async def register(self, username: str, password: str, *, approved: bool = False, locale: str = "en") -> bool:
         """Register a new user.
 
         Args:
@@ -124,7 +130,9 @@ class AuthManager:
 
         trust_level = TrustLevel.USER
 
-        password_hash = self.hash_password(password)
+        # Argon2 hashing is CPU-bound; offload it so a signup doesn't block the
+        # event loop and every game table along with it.
+        password_hash = await asyncio.to_thread(self.hash_password, password)
         try:
             self._db.create_user(username, password_hash, locale, trust_level, approved)
         except sqlite3.IntegrityError:
@@ -136,7 +144,7 @@ class AuthManager:
 
         return True
 
-    def reset_password(self, username: str, new_password: str) -> bool:
+    async def reset_password(self, username: str, new_password: str) -> bool:
         """Reset a user's password.
 
         Args:
@@ -149,7 +157,7 @@ class AuthManager:
         if not self._db.user_exists(username):
             return False
 
-        password_hash = self.hash_password(new_password)
+        password_hash = await asyncio.to_thread(self.hash_password, new_password)
         self._db.update_user_password(username, password_hash)
         return True
 

@@ -41,11 +41,11 @@ class DummyAuth:
         self.calls = {"authenticate": [], "register": []}
         self.user_record = user_record
 
-    def authenticate(self, username, password, **kwargs):
+    async def authenticate(self, username, password, **kwargs):
         self.calls["authenticate"].append((username, password))
         return self.authenticate_result
 
-    def register(self, username, password, **kwargs):
+    async def register(self, username, password, **kwargs):
         self.calls["register"].append((username, password))
         return self.register_result
 

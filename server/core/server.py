@@ -1488,7 +1488,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 return
 
             # Try to authenticate or register
-            auth_result = self._auth.authenticate(username, password)
+            auth_result = await self._auth.authenticate(username, password)
             if auth_result != AuthResult.SUCCESS:
                 if auth_result == AuthResult.WRONG_PASSWORD:
                     self._record_login_failure(username)
@@ -1515,7 +1515,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 if self._block_new_accounts:
                     await self._send_accounts_blocked(client, locale)
                     return
-                if not self._auth.register(username, password, approved=self._auto_approve_new_accounts, locale=locale):
+                if not await self._auth.register(username, password, approved=self._auto_approve_new_accounts, locale=locale):
                     self._record_login_failure(username)
                     # Registration failed (shouldn't happen if user not found, but handle anyway)
                     error_message = Localization.get(locale, "incorrect-username")
@@ -1588,7 +1588,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         if self._block_new_accounts:
             await self._send_accounts_blocked(client, locale)
             return
-        if self._auth.register(username, password, approved=self._auto_approve_new_accounts, locale=locale):
+        if await self._auth.register(username, password, approved=self._auto_approve_new_accounts, locale=locale):
             await client.send({
                 "type": "speak",
                 "text": Localization.get(locale, "registration-success"),
