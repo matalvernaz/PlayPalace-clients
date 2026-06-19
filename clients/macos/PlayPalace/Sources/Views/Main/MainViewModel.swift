@@ -176,7 +176,16 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     /// auto-reconnect loop with exponential backoff.
     private func handleUnexpectedDisconnect() {
         isConnected = false
-        if expectingReconnect || reconnectTask != nil { return }
+        // A reconnect is already scheduled (server-directed restart, or the
+        // next auto-retry is already sleeping) — let it run.
+        if reconnectTask != nil { return }
+        if expectingReconnect {
+            // Mid auto-reconnect and the in-flight attempt's socket just failed.
+            // Arm the next attempt now — teardown has already happened, so this
+            // can't overlap the dial the way the old pre-scheduled retry did.
+            scheduleReconnect(delayNanoseconds: unexpectedReconnectDelay())
+            return
+        }
         addHistory("Connection lost. Reconnecting…", buffer: "activity")
         expectingReconnect = true
         scheduleReconnect(delayNanoseconds: Self.unexpectedReconnectBackoff.first ?? 1_000_000_000)
@@ -1184,9 +1193,11 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         }
         addHistory("Reconnecting… (attempt \(reconnectAttempts))", buffer: "activity")
         webSocket?.disconnect()
-        // Pre-schedule the next attempt. If this one succeeds,
-        // `handleAuthorizeSuccess` resets the counter and cancels the task.
-        scheduleReconnect(delayNanoseconds: unexpectedReconnectDelay())
+        // Don't pre-schedule the next attempt. The old code armed the next
+        // retry on a 1-4s backoff before this dial finished its 12s+10s
+        // handshake, so a slow-but-succeeding connect got torn down and
+        // replaced, stacking overlapping sockets. The next retry is now armed
+        // only when this attempt is observed to fail (handleUnexpectedDisconnect).
         connect(creds)
     }
 

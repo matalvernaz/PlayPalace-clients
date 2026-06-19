@@ -186,6 +186,12 @@ final class WebSocketClient: ObservableObject {
     // MARK: - Packet Handling
 
     private func handlePacket(_ packet: [String: Any]) async {
+        // Drop anything that arrives after this client was torn down. Each
+        // reconnect builds a fresh WebSocketClient and disconnects the old one;
+        // a superseded client can still have a packet in flight, and handling
+        // it would let a dead socket clobber the live connection's rotated
+        // refresh token — the "Session expired" loop seen after a reconnect.
+        guard !shouldStop else { return }
         guard let type = packet["type"] as? String else { return }
 
         switch type {
