@@ -380,3 +380,18 @@ virtual-bots-profiles-line = { $profile } (ama-bots angu-{ $bot_count }) kweqiwe
 virtual-bots-profiles-no-overrides = idla ifa ukucushwa okuyisisekelo
 
 localization-in-progress-try-again = Ukuhumusha kusaqhubeka. Sicela uzame futhi emzuzwini.
+
+# Voice chat
+voice-room-table-label = { $game } table
+voice-not-at-table = Join a table before starting voice chat.
+voice-not-in-context = You are not at that table.
+voice-invalid-context = Voice chat is not available there.
+voice-unavailable = Voice chat is currently unavailable.
+voice-rate-limited = You are joining voice too quickly. Please wait a moment.
+voice-muted-permanent = You are muted and cannot use voice chat.
+voice-muted-minutes = You are muted for { $minutes } more minute(s).
+voice-muted-seconds = You are muted for { $seconds } more second(s).
+voice-status-connected = { $player } connected to voice.
+voice-status-disconnected = { $player } disconnected from voice.
+voice-status-connection-lost = { $player } lost the voice connection.
+voice-status-left-table = { $player } left the table.

@@ -38,7 +38,9 @@ from .virtual_bots import VirtualBotManager
 from ..network.websocket_server import WebSocketServer, ClientConnection
 from ..persistence.database import Database
 from ..auth.auth import AuthManager, AuthResult
+from ..auth.voice_rate_limit import VoiceRateLimiter
 from ..voice import VoiceService
+from .voice_mixin import VoiceMixin
 from .tables.manager import TableManager
 from .users.network_user import NetworkUser
 from .users.base import MenuItem, EscapeBehavior, TrustLevel
@@ -114,7 +116,7 @@ def _ensure_var_server_dir() -> Path:
     return _VAR_SERVER_DIR
 
 
-class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
+class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
     """
     Main PlayPalace v11 server.
 
@@ -178,6 +180,10 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         self._localization_warmup_task: asyncio.Task | None = None
         # Voice chat is disabled until config.toml's [voice] table is populated.
         self._voice: VoiceService = VoiceService()
+        self._voice_rate_limiter = VoiceRateLimiter()
+        self._voice_presence_by_user: dict[str, dict] = {}
+        self._voice_join_authorizations_by_user: dict[str, dict] = {}
+        self._voice_context_resolvers = {"table": self._resolve_table_voice_context}
 
         self._username_min_length = DEFAULT_USERNAME_MIN_LENGTH
         self._username_max_length = DEFAULT_USERNAME_MAX_LENGTH
@@ -1177,6 +1183,12 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 await self._handle_list_online(client)
             elif packet_type == "list_online_with_games":
                 await self._handle_list_online_with_games(client)
+            elif packet_type == "voice_join":
+                await self._handle_voice_join(client, packet)
+            elif packet_type == "voice_presence":
+                await self._handle_voice_presence(client, packet)
+            elif packet_type == "voice_leave":
+                await self._handle_voice_leave(client, packet)
 
     async def _finalize_login(
         self,
@@ -1223,6 +1235,10 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         # clients can distinguish "server supports filtering" from
         # "server is vanilla, fall back to local-only ignore."
         await self._send_ignored_list(user)
+
+        # Advertise voice-chat availability so clients only surface voice UI
+        # when the server is configured for it.
+        await user.connection.send(self._voice.capability_packet())
 
         # Send game list
         await self._send_game_list(client)
