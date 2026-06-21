@@ -1036,9 +1036,13 @@ class ExplodingKittensGame(Game):
         ek_name = self._card_name(CARD_EXPLODING_KITTEN, locale)
         defuse_name = self._card_name(CARD_DEFUSE, locale)
         # Streaking Kitten passive — they don't explode while holding it.
+        # Drawing still ends the turn: this branch is terminal (unlike the
+        # defuse branch below, which defers the turn-end until the player
+        # reinserts the kitten), so advance like any other completed draw.
         if lp.has_streaking_kitten:
             self._announce(lp, "ek-drew-safe", card=ek_name)
             self.discard.append(CARD_EXPLODING_KITTEN)
+            self._end_current_turn()
             return
         if hand_count(lp.hand, CARD_DEFUSE) >= 1:
             remove_one(lp.hand, CARD_DEFUSE)
