@@ -111,6 +111,39 @@ def _token_from_row(row: sqlite3.Row) -> RefreshTokenRecord:
     )
 
 
+@dataclass
+class MuteRecord:
+    """An active mute on a user (voice/chat moderation).
+
+    Attributes:
+        id: Row id.
+        username: Muted user.
+        admin_username: Admin who issued the mute.
+        reason: Optional human-readable reason.
+        issued_at: When the mute was issued (epoch seconds).
+        expires_at: When it lapses (epoch seconds), or None for a permanent mute.
+    """
+
+    id: int
+    username: str
+    admin_username: str
+    reason: str
+    issued_at: int
+    expires_at: int | None = None
+
+
+def _mute_from_row(row: sqlite3.Row) -> MuteRecord:
+    """Build a MuteRecord from a database row."""
+    return MuteRecord(
+        id=row["id"],
+        username=row["username"],
+        admin_username=row["admin_username"],
+        reason=row["reason"],
+        issued_at=row["issued_at"],
+        expires_at=row["expires_at"],
+    )
+
+
 class Database:
     """SQLite database for PlayPalace persistence.
 
@@ -265,6 +298,20 @@ class Database:
                 replaced_by TEXT
             )
         """)
+
+        # Mutes (voice/chat moderation): one active mute per user, time-boxed
+        # or permanent when expires_at is NULL.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS mutes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                admin_username TEXT NOT NULL,
+                reason TEXT NOT NULL DEFAULT '',
+                issued_at INTEGER NOT NULL,
+                expires_at INTEGER
+            )
+        """)
+
         cursor.execute("""
             CREATE INDEX IF NOT EXISTS idx_refresh_tokens_username
             ON refresh_tokens(username)
@@ -517,6 +564,50 @@ class Database:
             (revoked_at, username),
         )
         self._get_conn().commit()
+
+    # Mute operations (voice/chat moderation)
+
+    def mute_user(
+        self,
+        username: str,
+        admin_username: str,
+        reason: str,
+        issued_at: int,
+        expires_at: int | None,
+    ) -> MuteRecord:
+        """Mute a user, replacing any existing mute. ``expires_at=None`` is permanent."""
+        conn = self._get_conn()
+        conn.execute(
+            "INSERT INTO mutes (username, admin_username, reason, issued_at, expires_at) "
+            "VALUES (?, ?, ?, ?, ?) "
+            "ON CONFLICT(username) DO UPDATE SET "
+            "admin_username=excluded.admin_username, reason=excluded.reason, "
+            "issued_at=excluded.issued_at, expires_at=excluded.expires_at",
+            (username, admin_username, reason, issued_at, expires_at),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM mutes WHERE lower(username) = lower(?)", (username,)
+        ).fetchone()
+        return _mute_from_row(row)
+
+    def unmute_user(self, username: str) -> bool:
+        """Lift a user's mute. Returns True if one existed (case-insensitive)."""
+        conn = self._get_conn()
+        cursor = conn.execute("DELETE FROM mutes WHERE lower(username) = lower(?)", (username,))
+        conn.commit()
+        return cursor.rowcount > 0
+
+    def get_active_mute(self, username: str, now: int) -> MuteRecord | None:
+        """Return the user's mute if present and not expired, else None (case-insensitive)."""
+        cursor = self._get_conn().cursor()
+        cursor.execute(
+            "SELECT * FROM mutes WHERE lower(username) = lower(?) "
+            "AND (expires_at IS NULL OR expires_at > ?)",
+            (username, now),
+        )
+        row = cursor.fetchone()
+        return _mute_from_row(row) if row else None
 
     def get_user_count(self) -> int:
         """Get the total number of users in the database."""
