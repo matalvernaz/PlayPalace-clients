@@ -176,3 +176,20 @@ profile = "mixer"
 # Optional tick-based scheduling: run this lounge for half of each 60-second (1200-tick) cycle
 # cycle_ticks = 1200
 # active_ticks = [0, 600]
+
+[voice]
+# Table voice chat via a LiveKit media server. Stays disabled until enabled is
+# true AND url/api_key/api_secret are all set. The game server only mints signed
+# join tokens; it never carries audio. Clients connect to `url` for media, so
+# that endpoint must be reachable from clients (managed LiveKit Cloud, or a
+# self-hosted LiveKit SFU with a public WebRTC/UDP path).
+enabled = false
+provider = "livekit"
+# wss:// URL of the LiveKit server clients connect to.
+url = ""
+api_key = ""
+api_secret = ""
+# Room names are "<prefix>:<scope>:<context_id>" (e.g. playpalace:table:<id>).
+room_prefix = "playpalace"
+# Join-token lifetime in seconds (clamped to 60..86400).
+token_ttl_seconds = 900

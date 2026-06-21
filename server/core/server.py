@@ -38,6 +38,7 @@ from .virtual_bots import VirtualBotManager
 from ..network.websocket_server import WebSocketServer, ClientConnection
 from ..persistence.database import Database
 from ..auth.auth import AuthManager, AuthResult
+from ..voice import VoiceService
 from .tables.manager import TableManager
 from .users.network_user import NetworkUser
 from .users.base import MenuItem, EscapeBehavior, TrustLevel
@@ -175,6 +176,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
 
         self._virtual_bots = VirtualBotManager(self)
         self._localization_warmup_task: asyncio.Task | None = None
+        # Voice chat is disabled until config.toml's [voice] table is populated.
+        self._voice: VoiceService = VoiceService()
 
         self._username_min_length = DEFAULT_USERNAME_MIN_LENGTH
         self._username_max_length = DEFAULT_USERNAME_MAX_LENGTH
@@ -354,6 +357,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             enabled = locale_cfg.get("enabled_locales")
             if isinstance(enabled, list) and all(isinstance(v, str) for v in enabled):
                 self._enabled_locales = enabled
+
+        self._voice = VoiceService.from_config(config.get("voice"))
 
         def _read_limit(source: dict[str, Any], key: str, current: int, minimum: int = 1) -> int:
             """Read an integer limit from config with a minimum clamp."""
