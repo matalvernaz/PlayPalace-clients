@@ -24,7 +24,7 @@ class AuthResult(Enum):
 
 
 if TYPE_CHECKING:
-    from ..persistence.database import Database, UserRecord
+    from ..persistence.database import Database, RefreshTokenRecord, UserRecord
 
 
 class AuthManager:
@@ -159,6 +159,8 @@ class AuthManager:
 
         password_hash = await asyncio.to_thread(self.hash_password, new_password)
         self._db.update_user_password(username, password_hash)
+        self.invalidate_user_sessions(username)
+        self._db.revoke_user_refresh_tokens(username, int(time.time()))
         return True
 
     def get_user(self, username: str) -> "UserRecord | None":
@@ -236,7 +238,7 @@ class AuthManager:
 
     def _replay_rotation_within_grace(
         self,
-        record: sqlite3.Row,
+        record: "RefreshTokenRecord",
         now: int,
         expected_username: str | None,
         access_ttl_seconds: int,
@@ -249,22 +251,22 @@ class AuthManager:
         of the chain. Returns ``None`` to signal the caller should treat the
         re-presentation as theft (revoke the family).
         """
-        revoked_at = record["revoked_at"]
+        revoked_at = record.revoked_at
         if revoked_at is None or now - revoked_at > self._REFRESH_REUSE_GRACE_SECONDS:
             return None
 
-        username = record["username"]
+        username = record.username
         if expected_username is not None and expected_username.lower() != username.lower():
             return None
 
-        successor = self._db.get_refresh_token(record["replaced_by"])
+        successor = self._db.get_refresh_token(record.replaced_by)
         if successor is None:
             return None
         # The successor must still be the live tip: not itself rotated, revoked,
         # or expired. If the chain has moved on, this is no longer a simple race.
-        if successor["replaced_by"] or successor["revoked_at"] is not None:
+        if successor.replaced_by or successor.revoked_at is not None:
             return None
-        if successor["expires_at"] <= now:
+        if successor.expires_at <= now:
             return None
 
         user = self._db.get_user(username)
@@ -272,7 +274,7 @@ class AuthManager:
             return None
 
         access_token, access_expires = self.create_session(username, access_ttl_seconds)
-        return username, access_token, access_expires, successor["token"], successor["expires_at"]
+        return username, access_token, access_expires, successor.token, successor.expires_at
 
     def refresh_session(
         self,
@@ -292,7 +294,10 @@ class AuthManager:
         if not record:
             return None
 
-        username = record["username"]
+        username = record.username
+        if not self._db.user_exists(username):
+            return None
+
         now = int(time.time())
 
         # An already-rotated token (replaced_by set) is normally the classic
@@ -301,7 +306,7 @@ class AuthManager:
         # stored the rotated successor — innocently presents the just-rotated
         # token a second time. Honor a short idempotency window: replay the
         # rotation by re-issuing an access session bound to the live successor.
-        if record["replaced_by"]:
+        if record.replaced_by:
             replay = self._replay_rotation_within_grace(
                 record, now, expected_username, access_ttl_seconds
             )
@@ -311,10 +316,10 @@ class AuthManager:
             return None
         # Revoked without rotation (logout, family-revoke, expiry sweep): no
         # grace — treat re-presentation as a theft/invalid signal.
-        if record["revoked_at"] is not None:
+        if record.revoked_at is not None:
             self.revoke_user_refresh_tokens(username)
             return None
-        if record["expires_at"] <= now:
+        if record.expires_at <= now:
             self._db.revoke_refresh_token(refresh_token, now)
             return None
 

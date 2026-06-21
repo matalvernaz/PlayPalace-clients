@@ -201,6 +201,7 @@ table-saved-destroying = Table saved! Returning to main menu.
 game-type-not-found = Game type no longer exists.
 
 # Action disabled reasons
+action-player-not-found = Player not found.
 action-not-your-turn = It's not your turn.
 action-not-playing = The game hasn't started.
 action-spectator = Spectators cannot do this.
@@ -369,6 +370,14 @@ account-action-empty-reason = No reason given.
 # Admin notifications for account requests
 account-request = account request
 account-action = account action taken
+
+# Password recovery
+reset-user-password = Reset User Password
+no-users-to-reset-password = No users available for password reset.
+reset-user-password-prompt = Enter a new temporary password for { $player } (or press Escape to cancel):
+reset-user-password-done = { $player }'s password has been reset.
+reset-user-password-unavailable = { $player } is not available for password reset.
+your-password-was-reset = Your password was reset by an administrator. Please log in with the new password.
 
 # Admin promotion/demotion
 promote-admin = Promote Admin

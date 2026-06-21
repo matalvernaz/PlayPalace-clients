@@ -14,6 +14,7 @@ from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.options import MenuOption, option_field
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
+from ...game_utils.game_status import GameStatus
 from ...messages.localization import Localization
 from server.core.ui.keybinds import KeybindState
 from server.core.users.bot import Bot
@@ -263,7 +264,7 @@ class NumberChainGame(Game):
     # ------------------------------------------------------------------ #
 
     def on_start(self) -> None:
-        self.status = "playing"
+        self.status = GameStatus.PLAYING
         self.game_active = True
         self.round = 1
 

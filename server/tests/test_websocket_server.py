@@ -58,9 +58,8 @@ async def test_websocket_server_broadcast_and_send_to_user():
             c3.address: c3,
         }
     )
-    server.register_client_username(c1, "alice")
-    server.register_client_username(c2, "bob")
-    server.register_client_username(c3, "carol")
+    server.register_username(c1)
+    server.register_username(c3)
 
     broadcast_packet = {
         "type": "chat",

@@ -78,6 +78,39 @@ class SavedTableRecord:
     saved_at: str
 
 
+@dataclass
+class RefreshTokenRecord:
+    """Refresh token record loaded from the database.
+
+    Attributes:
+        username: Owner username.
+        token: The token string.
+        expires_at: Expiration epoch timestamp.
+        created_at: Creation epoch timestamp.
+        revoked_at: Revocation epoch timestamp, or None if active.
+        replaced_by: Replacement token string, or None.
+    """
+
+    username: str
+    token: str
+    expires_at: int
+    created_at: int
+    revoked_at: int | None = None
+    replaced_by: str | None = None
+
+
+def _token_from_row(row: sqlite3.Row) -> RefreshTokenRecord:
+    """Build a RefreshTokenRecord from a database row."""
+    return RefreshTokenRecord(
+        username=row["username"],
+        token=row["token"],
+        expires_at=row["expires_at"],
+        created_at=row["created_at"],
+        revoked_at=row["revoked_at"],
+        replaced_by=row["replaced_by"],
+    )
+
+
 class Database:
     """SQLite database for PlayPalace persistence.
 
@@ -88,6 +121,12 @@ class Database:
         """Initialize the database wrapper with a path."""
         self.db_path = Path(db_path)
         self._conn: sqlite3.Connection | None = None
+
+    def _get_conn(self) -> sqlite3.Connection:
+        """Return the active connection or raise if not connected."""
+        if self._conn is None:
+            raise RuntimeError("Database not connected. Call connect() first.")
+        return self._conn
 
     def connect(self) -> None:
         """Connect to the database and create tables if needed."""
@@ -115,7 +154,7 @@ class Database:
 
     def _create_tables(self) -> None:
         """Create database tables if they don't exist."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
 
         # Users table
         cursor.execute("""
@@ -235,14 +274,14 @@ class Database:
             ON refresh_tokens(expires_at)
         """)
 
-        self._conn.commit()
+        self._get_conn().commit()
 
         # Run migrations for existing databases
         self._run_migrations()
 
     def _run_migrations(self) -> None:
         """Run database migrations for existing databases."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
 
         # Check which columns exist in users table
         cursor.execute("PRAGMA table_info(users)")
@@ -250,13 +289,13 @@ class Database:
 
         if "trust_level" not in columns:
             cursor.execute("ALTER TABLE users ADD COLUMN trust_level INTEGER DEFAULT 1")
-            self._conn.commit()
+            self._get_conn().commit()
 
         if "approved" not in columns:
             # Add approved column - existing users are auto-approved
             cursor.execute("ALTER TABLE users ADD COLUMN approved INTEGER DEFAULT 0")
             cursor.execute("UPDATE users SET approved = 1")  # Approve all existing users
-            self._conn.commit()
+            self._get_conn().commit()
 
         # Check game_result_players for is_virtual_bot column
         cursor.execute("PRAGMA table_info(game_result_players)")
@@ -266,13 +305,13 @@ class Database:
             cursor.execute(
                 "ALTER TABLE game_result_players ADD COLUMN is_virtual_bot INTEGER DEFAULT 0"
             )
-            self._conn.commit()
+            self._get_conn().commit()
 
         try:
             cursor.execute(
                 "CREATE UNIQUE INDEX IF NOT EXISTS idx_users_username_lower ON users(lower(username))"
             )
-            self._conn.commit()
+            self._get_conn().commit()
         except sqlite3.IntegrityError as exc:
             print(
                 "ERROR: Duplicate usernames exist when compared case-insensitively. "
@@ -283,7 +322,7 @@ class Database:
 
         if "fluent_languages" not in columns:
             cursor.execute("ALTER TABLE users ADD COLUMN fluent_languages TEXT DEFAULT '[]'")
-            self._conn.commit()
+            self._get_conn().commit()
 
         # Ensure transcriber_assignments table exists for older databases
         cursor.execute(
@@ -298,7 +337,7 @@ class Database:
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                 )
             """)
-            self._conn.commit()
+            self._get_conn().commit()
 
         # Ensure refresh_tokens table exists for older databases
         cursor.execute(
@@ -324,7 +363,7 @@ class Database:
                 CREATE INDEX IF NOT EXISTS idx_refresh_tokens_expires
                 ON refresh_tokens(expires_at)
             """)
-            self._conn.commit()
+            self._get_conn().commit()
 
     # User operations
 
@@ -348,7 +387,7 @@ class Database:
 
     def get_user(self, username: str) -> UserRecord | None:
         """Get a user by username."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             f"SELECT {self._USER_COLUMNS} FROM users WHERE lower(username) = lower(?)",
             (username,),
@@ -381,12 +420,12 @@ class Database:
         import uuid as uuid_module
 
         user_uuid = str(uuid_module.uuid4())
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "INSERT INTO users (username, password_hash, uuid, locale, trust_level, approved) VALUES (?, ?, ?, ?, ?, ?)",
             (username, password_hash, user_uuid, locale, trust_level.value, 1 if approved else 0),
         )
-        self._conn.commit()
+        self._get_conn().commit()
         return UserRecord(
             id=cursor.lastrowid,
             username=username,
@@ -399,26 +438,26 @@ class Database:
 
     def user_exists(self, username: str) -> bool:
         """Check if a user exists."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("SELECT 1 FROM users WHERE lower(username) = lower(?)", (username,))
         return cursor.fetchone() is not None
 
     def update_user_locale(self, username: str, locale: str) -> None:
         """Update a user's locale."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "UPDATE users SET locale = ? WHERE lower(username) = lower(?)", (locale, username)
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     def update_user_preferences(self, username: str, preferences_json: str) -> None:
         """Update a user's preferences."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "UPDATE users SET preferences_json = ? WHERE lower(username) = lower(?)",
             (preferences_json, username),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     def update_user_password(self, username: str, password_hash: str) -> None:
         """Update a user's password hash.
@@ -427,12 +466,12 @@ class Database:
             username: Username to update.
             password_hash: New password hash.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "UPDATE users SET password_hash = ? WHERE lower(username) = lower(?)",
             (password_hash, username),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     # Refresh token operations
 
@@ -440,47 +479,48 @@ class Database:
         self, username: str, token: str, expires_at: int, created_at: int
     ) -> None:
         """Store a new refresh token."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "INSERT INTO refresh_tokens (username, token, expires_at, created_at) VALUES (?, ?, ?, ?)",
             (username, token, expires_at, created_at),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
-    def get_refresh_token(self, token: str) -> sqlite3.Row | None:
+    def get_refresh_token(self, token: str) -> RefreshTokenRecord | None:
         """Fetch a refresh token record by token."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "SELECT username, token, expires_at, created_at, revoked_at, replaced_by "
             "FROM refresh_tokens WHERE token = ?",
             (token,),
         )
-        return cursor.fetchone()
+        row = cursor.fetchone()
+        return _token_from_row(row) if row else None
 
     def revoke_refresh_token(
         self, token: str, revoked_at: int, replaced_by: str | None = None
     ) -> None:
         """Revoke a refresh token and optionally link its replacement."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "UPDATE refresh_tokens SET revoked_at = ?, replaced_by = ? WHERE token = ?",
             (revoked_at, replaced_by, token),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     def revoke_user_refresh_tokens(self, username: str, revoked_at: int) -> None:
-        """Revoke all of a user's still-active refresh tokens."""
-        cursor = self._conn.cursor()
+        """Revoke all active refresh tokens for a user (case-insensitive)."""
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "UPDATE refresh_tokens SET revoked_at = ? "
-            "WHERE username = ? AND revoked_at IS NULL",
+            "WHERE lower(username) = lower(?) AND revoked_at IS NULL",
             (revoked_at, username),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     def get_user_count(self) -> int:
         """Get the total number of users in the database."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("SELECT COUNT(*) FROM users")
         return cursor.fetchone()[0]
 
@@ -494,7 +534,7 @@ class Database:
         Returns:
             The username of the user promoted to server owner, or None if no promotion occurred.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
 
         # Check if there's exactly one user with no trust level set
         cursor.execute("SELECT id, username FROM users WHERE trust_level IS NULL")
@@ -520,7 +560,7 @@ class Database:
         cursor.execute(
             "UPDATE users SET trust_level = ? WHERE trust_level IS NULL", (TrustLevel.USER.value,)
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
         return promoted_user
 
@@ -531,12 +571,12 @@ class Database:
             username: Username to update.
             trust_level: New trust level.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "UPDATE users SET trust_level = ? WHERE lower(username) = lower(?)",
             (trust_level.value, username),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     def get_pending_users(self, exclude_banned: bool = True) -> list[UserRecord]:
         """Get all users who are not yet approved.
@@ -544,7 +584,7 @@ class Database:
         Args:
             exclude_banned: If True (default), excludes banned users from the results.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         if exclude_banned:
             cursor.execute(
                 f"SELECT {self._USER_COLUMNS} FROM users WHERE approved = 0 AND trust_level > ?",
@@ -560,7 +600,7 @@ class Database:
         Returns:
             List of banned UserRecords.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             f"SELECT {self._USER_COLUMNS} FROM users WHERE trust_level = ?",
             (TrustLevel.BANNED.value,),
@@ -576,12 +616,12 @@ class Database:
         Returns:
             True if user was found and approved.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "UPDATE users SET approved = 1 WHERE lower(username) = lower(?)",
             (username,),
         )
-        self._conn.commit()
+        self._get_conn().commit()
         return cursor.rowcount > 0
 
     def delete_user(self, username: str) -> bool:
@@ -593,9 +633,9 @@ class Database:
         Returns:
             True if user was found and deleted.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("DELETE FROM users WHERE lower(username) = lower(?)", (username,))
-        self._conn.commit()
+        self._get_conn().commit()
         return cursor.rowcount > 0
 
     def get_non_admin_users(self, exclude_banned: bool = True) -> list[UserRecord]:
@@ -604,7 +644,7 @@ class Database:
         Args:
             exclude_banned: If True (default), excludes banned users from the results.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         if exclude_banned:
             cursor.execute(
                 f"SELECT {self._USER_COLUMNS} FROM users WHERE approved = 1 AND trust_level > ? AND trust_level < ? ORDER BY username",
@@ -619,7 +659,7 @@ class Database:
 
     def get_server_owner(self) -> UserRecord | None:
         """Get the server owner (there should only be one)."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             f"SELECT {self._USER_COLUMNS} FROM users WHERE trust_level = ?",
             (TrustLevel.SERVER_OWNER.value,),
@@ -636,7 +676,7 @@ class Database:
             include_server_owner: If True, includes the server owner in the list.
                                   If False, only returns admins (not server owner).
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         if include_server_owner:
             cursor.execute(
                 f"SELECT {self._USER_COLUMNS} FROM users WHERE trust_level >= ? ORDER BY username",
@@ -660,7 +700,7 @@ class Database:
         Returns:
             List of language codes.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "SELECT fluent_languages FROM users WHERE lower(username) = lower(?)",
             (username,),
@@ -677,12 +717,12 @@ class Database:
             username: Username to update.
             languages: New list of language codes.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "UPDATE users SET fluent_languages = ? WHERE lower(username) = lower(?)",
             (json.dumps(languages), username),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     # Transcriber assignment operations
 
@@ -695,7 +735,7 @@ class Database:
         Returns:
             List of assigned language codes.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "SELECT ta.lang_code FROM transcriber_assignments ta "
             "JOIN users u ON ta.user_id = u.id "
@@ -714,7 +754,7 @@ class Database:
         Returns:
             True if added, False if the assignment already exists.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("SELECT id FROM users WHERE lower(username) = lower(?)", (username,))
         row = cursor.fetchone()
         if not row:
@@ -725,7 +765,7 @@ class Database:
                 "INSERT INTO transcriber_assignments (user_id, lang_code) VALUES (?, ?)",
                 (user_id, lang_code),
             )
-            self._conn.commit()
+            self._get_conn().commit()
             return True
         except sqlite3.IntegrityError:
             return False
@@ -740,7 +780,7 @@ class Database:
         Returns:
             True if removed, False if the assignment was not found.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("SELECT id FROM users WHERE lower(username) = lower(?)", (username,))
         row = cursor.fetchone()
         if not row:
@@ -750,7 +790,7 @@ class Database:
             "DELETE FROM transcriber_assignments WHERE user_id = ? AND lang_code = ?",
             (user_id, lang_code),
         )
-        self._conn.commit()
+        self._get_conn().commit()
         return cursor.rowcount > 0
 
     def get_transcribers_for_language(self, lang_code: str) -> list[str]:
@@ -762,7 +802,7 @@ class Database:
         Returns:
             List of usernames.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "SELECT u.username FROM transcriber_assignments ta "
             "JOIN users u ON ta.user_id = u.id "
@@ -777,7 +817,7 @@ class Database:
         Returns:
             Dict mapping username to list of assigned language codes.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "SELECT u.username, ta.lang_code FROM transcriber_assignments ta "
             "JOIN users u ON ta.user_id = u.id "
@@ -796,7 +836,7 @@ class Database:
         Pass ``commit=False`` to defer the commit to a surrounding
         transaction (see :meth:`save_all_tables`).
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
 
         # Serialize members
         members_json = json.dumps(
@@ -818,11 +858,11 @@ class Database:
             ),
         )
         if commit:
-            self._conn.commit()
+            self._get_conn().commit()
 
     def load_table(self, table_id: str) -> Table | None:
         """Load a table from the database."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("SELECT * FROM tables WHERE table_id = ?", (table_id,))
         row = cursor.fetchone()
         if not row:
@@ -852,7 +892,7 @@ class Database:
         A single malformed members_json/game_json must not abort the entire
         boot-time restore and lose every persisted table.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("SELECT table_id FROM tables")
         table_ids = [row["table_id"] for row in cursor.fetchall()]
         tables = []
@@ -868,15 +908,15 @@ class Database:
 
     def delete_table(self, table_id: str) -> None:
         """Delete a table from the database."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("DELETE FROM tables WHERE table_id = ?", (table_id,))
-        self._conn.commit()
+        self._get_conn().commit()
 
     def delete_all_tables(self) -> None:
         """Delete all tables from the database."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("DELETE FROM tables")
-        self._conn.commit()
+        self._get_conn().commit()
 
     def save_all_tables(self, tables: list[Table]) -> None:
         """Save all tables as a single atomic snapshot.
@@ -884,7 +924,7 @@ class Database:
         Either every table in the snapshot commits or none does, so process
         death mid-loop can't leave a half-updated set.
         """
-        with self._conn:
+        with self._get_conn():
             for table in tables:
                 self.save_table(table, commit=False)
 
@@ -903,7 +943,7 @@ class Database:
 
         saved_at = datetime.now().isoformat()
 
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             INSERT INTO saved_tables (username, save_name, game_type, game_json, members_json, saved_at)
@@ -911,7 +951,7 @@ class Database:
         """,
             (username, save_name, game_type, game_json, members_json, saved_at),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
         return SavedTableRecord(
             id=cursor.lastrowid,
@@ -925,7 +965,7 @@ class Database:
 
     def get_user_saved_tables(self, username: str) -> list[SavedTableRecord]:
         """Get all saved tables for a user."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             "SELECT * FROM saved_tables WHERE lower(username) = lower(?) ORDER BY saved_at DESC",
             (username,),
@@ -947,7 +987,7 @@ class Database:
 
     def get_saved_table(self, save_id: int) -> SavedTableRecord | None:
         """Get a saved table by ID."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("SELECT * FROM saved_tables WHERE id = ?", (save_id,))
         row = cursor.fetchone()
         if not row:
@@ -965,9 +1005,9 @@ class Database:
 
     def delete_saved_table(self, save_id: int) -> None:
         """Delete a saved table."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("DELETE FROM saved_tables WHERE id = ?", (save_id,))
-        self._conn.commit()
+        self._get_conn().commit()
 
     # Game result operations (statistics)
 
@@ -994,7 +1034,7 @@ class Database:
         Returns:
             The result ID
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
 
         # Insert the main result record
         cursor.execute(
@@ -1021,7 +1061,7 @@ class Database:
                 (result_id, player_id, player_name, 1 if is_bot else 0, 1 if is_virtual_bot else 0),
             )
 
-        self._conn.commit()
+        self._get_conn().commit()
         return result_id
 
     def get_player_game_history(
@@ -1041,7 +1081,7 @@ class Database:
         Returns:
             List of game result dictionaries
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
 
         if game_type:
             cursor.execute(
@@ -1083,7 +1123,7 @@ class Database:
 
     def get_game_result_players(self, result_id: int) -> list[dict]:
         """Get all players for a specific game result."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             SELECT player_id, player_name, is_bot, is_virtual_bot
@@ -1115,7 +1155,7 @@ class Database:
         Returns:
             List of tuples: (id, game_type, timestamp, duration_ticks, custom_data)
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
 
         if limit:
             cursor.execute(
@@ -1157,7 +1197,7 @@ class Database:
         Returns:
             Dictionary with total_games, total_duration_ticks, etc.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             SELECT
@@ -1187,7 +1227,7 @@ class Database:
         Returns:
             Dictionary with games_played, etc.
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
 
         if game_type:
             cursor.execute(
@@ -1223,7 +1263,7 @@ class Database:
         Returns:
             (mu, sigma) tuple or None if no rating exists
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             SELECT mu, sigma FROM player_ratings
@@ -1238,7 +1278,7 @@ class Database:
 
     def set_player_rating(self, player_id: str, game_type: str, mu: float, sigma: float) -> None:
         """Set or update a player's rating for a game type."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             INSERT OR REPLACE INTO player_ratings (player_id, game_type, mu, sigma)
@@ -1246,7 +1286,7 @@ class Database:
             """,
             (player_id, game_type, mu, sigma),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     def get_rating_leaderboard(
         self, game_type: str, limit: int = 10
@@ -1257,7 +1297,7 @@ class Database:
         Returns:
             List of (player_id, mu, sigma) tuples sorted by mu descending
         """
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             SELECT player_id, mu, sigma FROM player_ratings
@@ -1273,7 +1313,7 @@ class Database:
 
     def _ensure_virtual_bots_table(self) -> None:
         """Create virtual_bots table if it doesn't exist."""
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             CREATE TABLE IF NOT EXISTS virtual_bots (
@@ -1286,7 +1326,7 @@ class Database:
             )
             """
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     def save_virtual_bot(
         self,
@@ -1299,7 +1339,7 @@ class Database:
     ) -> None:
         """Save or update a virtual bot's state."""
         self._ensure_virtual_bots_table()
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             INSERT OR REPLACE INTO virtual_bots
@@ -1308,12 +1348,12 @@ class Database:
             """,
             (name, state, online_ticks, target_online_ticks, table_id, game_join_tick),
         )
-        self._conn.commit()
+        self._get_conn().commit()
 
     def load_all_virtual_bots(self) -> list[dict]:
         """Load all virtual bot states from the database."""
         self._ensure_virtual_bots_table()
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute(
             """
             SELECT name, state, online_ticks, target_online_ticks, table_id, game_join_tick
@@ -1335,13 +1375,13 @@ class Database:
     def delete_virtual_bot(self, name: str) -> None:
         """Delete a single virtual bot from the database."""
         self._ensure_virtual_bots_table()
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("DELETE FROM virtual_bots WHERE name = ?", (name,))
-        self._conn.commit()
+        self._get_conn().commit()
 
     def delete_all_virtual_bots(self) -> None:
         """Delete all virtual bots from the database."""
         self._ensure_virtual_bots_table()
-        cursor = self._conn.cursor()
+        cursor = self._get_conn().cursor()
         cursor.execute("DELETE FROM virtual_bots")
-        self._conn.commit()
+        self._get_conn().commit()

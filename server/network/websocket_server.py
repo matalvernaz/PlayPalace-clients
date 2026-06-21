@@ -104,7 +104,7 @@ class WebSocketServer:
         self._on_disconnect = on_disconnect
         self._on_message = on_message
         self._clients: dict[str, ClientConnection] = {}
-        self._username_to_client: dict[str, ClientConnection] = {}
+        self._username_index: dict[str, ClientConnection] = {}
         self._server = None
         self._running = False
         self._ssl_context = None
@@ -175,6 +175,7 @@ class WebSocketServer:
         for client in list(self._clients.values()):
             await client.close()
         self._clients.clear()
+        self._username_index.clear()
 
     @staticmethod
     def _is_trusted_proxy(ip: str) -> bool:
@@ -290,8 +291,8 @@ class WebSocketServer:
             auth_timeout_task.cancel()
             if address in self._clients:
                 del self._clients[address]
-            if client.username and self._username_to_client.get(client.username) is client:
-                del self._username_to_client[client.username]
+            if client.username and self._username_index.get(client.username) is client:
+                self.unregister_username(client.username)
             if self._on_disconnect:
                 await self._on_disconnect(client)
 
@@ -302,13 +303,18 @@ class WebSocketServer:
             if client.authenticated and client != exclude:
                 await client.send(packet)
 
-    def register_client_username(self, client: ClientConnection, username: str) -> None:
-        """Register a username-to-client mapping for O(1) lookups."""
-        self._username_to_client[username] = client
+    def register_username(self, client: ClientConnection) -> None:
+        """Register a client in the username index for O(1) lookup."""
+        if client.username:
+            self._username_index[client.username] = client
+
+    def unregister_username(self, username: str) -> None:
+        """Remove a username from the index."""
+        self._username_index.pop(username, None)
 
     async def send_to_user(self, username: str, packet: dict) -> bool:
         """Send a packet to a specific user."""
-        client = self._username_to_client.get(username)
+        client = self._username_index.get(username)
         if client:
             await client.send(packet)
             return True
@@ -316,4 +322,4 @@ class WebSocketServer:
 
     def get_client_by_username(self, username: str) -> ClientConnection | None:
         """Get a client by username."""
-        return self._username_to_client.get(username)
+        return self._username_index.get(username)

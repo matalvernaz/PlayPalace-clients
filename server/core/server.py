@@ -19,10 +19,7 @@ import websockets
 from enum import Enum
 from typing import Any
 
-try:
-    import tomllib
-except ModuleNotFoundError:  # pragma: no cover - Python <3.11 fallback when available
-    import tomli as tomllib  # type: ignore[import]
+import tomllib
 
 from pydantic import ValidationError
 
@@ -159,11 +156,10 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             db_path_obj = Path(db_path)
             db_path_obj.parent.mkdir(parents=True, exist_ok=True)
 
-        # Initialize components
         self._db = Database(db_path_obj)
         self._auth: AuthManager | None = None
         self._tables = TableManager()
-        self._tables._server = self  # Enable callbacks from TableManager
+        self._tables._server = self
         self._ws_server: WebSocketServer | None = None
         self._tick_scheduler: TickScheduler | None = None
 
@@ -174,15 +170,12 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         # authorizes for the same name can't both win the session handoff.
         self._login_locks: dict[str, asyncio.Lock] = {}
 
-        # Document manager (contribution_mode set by _load_config_settings)
         self._contribution_mode = "auto_commit"
         self._documents = DocumentManager(_DOCUMENTS_DIR)
 
-        # Virtual bot manager
         self._virtual_bots = VirtualBotManager(self)
         self._localization_warmup_task: asyncio.Task | None = None
 
-        # Credential limits (overridable via config)
         self._username_min_length = DEFAULT_USERNAME_MIN_LENGTH
         self._username_max_length = DEFAULT_USERNAME_MAX_LENGTH
         self._password_min_length = DEFAULT_PASSWORD_MIN_LENGTH
@@ -345,15 +338,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
 
     def _load_config_settings(self) -> None:
         """Load credential and network limits from config.toml if available."""
-        path_obj = Path(self._config_path) if self._config_path is not None else None
-        if path_obj is None or not path_obj.exists():
-            return
-
-        try:
-            with open(path_obj, "rb") as f:
-                config: dict[str, Any] = tomllib.load(f)
-        except (OSError, tomllib.TOMLDecodeError) as exc:  # pragma: no cover - logging only
-            LOG.error("Failed to load config from %s: %s", path_obj, exc)
+        config = load_full_config(self._config_path)
+        if not config:
             return
 
         auth_cfg = config.get("auth")
@@ -889,7 +875,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         print(f"Saved {len(tables)} tables to database.")
 
     def _on_tick(self) -> None:
-        """Called every tick (50ms)."""
+        """Called every tick."""
         # Tick all tables
         self._tables.on_tick()
 
@@ -969,6 +955,8 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
                 LOG.debug("Failed to close replaced session: %s", exc)
         new_client.username = user.username
         new_client.authenticated = True
+        if self._ws_server:
+            self._ws_server.register_username(new_client)
         user.set_connection(new_client)
 
     def _queue_transcript_replay(self, user: NetworkUser, game, player_id: str) -> None:
@@ -1066,26 +1054,26 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             self._users.pop(username, None)
             self._user_states.pop(username, None)
 
+    def _iter_approved_users(self):
+        """Yield (username, user) for all approved online users."""
+        for username, user in self._users.items():
+            if user.approved:
+                yield username, user
+
     def _broadcast_presence_l(self, message_id: str, player_name: str, sound: str) -> None:
         """Broadcast a localized presence announcement to all approved online users with sound."""
-        for username, user in self._users.items():
-            if not user.approved:
-                continue  # Don't send broadcasts to unapproved users
+        for _username, user in self._iter_approved_users():
             user.speak_l(message_id, buffer="activity", player=player_name)
             user.play_sound(sound)
 
     def _broadcast_admin_announcement(self, admin_name: str) -> None:
         """Broadcast an admin announcement to all approved online users."""
-        for username, user in self._users.items():
-            if not user.approved:
-                continue  # Don't send broadcasts to unapproved users
+        for _username, user in self._iter_approved_users():
             user.speak_l("user-is-admin", buffer="activity", player=admin_name)
 
     def _broadcast_server_owner_announcement(self, owner_name: str) -> None:
         """Broadcast a server owner announcement to all approved online users."""
-        for username, user in self._users.items():
-            if not user.approved:
-                continue  # Don't send broadcasts to unapproved users
+        for _username, user in self._iter_approved_users():
             user.speak_l("user-is-server-owner", buffer="activity", player=owner_name)
 
     def _broadcast_table_created(self, host_name: str, game_type: str) -> None:
@@ -1094,9 +1082,7 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         if not game_class:
             return
         name_key = game_class.get_name_key()
-        for username, user in self._users.items():
-            if not user.approved:
-                continue
+        for username, user in self._iter_approved_users():
             state = self._user_states.get(username, {})
             if state.get("menu") == "in_game":
                 continue
@@ -1321,11 +1307,14 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             existing_user.set_platform(client.platform)
             existing_user.set_fluent_languages(user_record.fluent_languages)
             if self._ws_server:
-                self._ws_server.register_client_username(client, username)
+                client.username = username
+                self._ws_server.register_username(client)
             return existing_user, False
 
         client.username = username
         client.authenticated = True
+        if self._ws_server:
+            self._ws_server.register_username(client)
         user = NetworkUser(
             username,
             locale,
@@ -1339,8 +1328,6 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         user.set_client_type(client.client_type)
         user.set_platform(client.platform)
         self._users[username] = user
-        if self._ws_server:
-            self._ws_server.register_client_username(client, username)
         return user, True
 
     async def _send_login_success(
@@ -2450,6 +2437,10 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
             ),
             "promote_admin_menu": (self._handle_promote_admin_selection, (user, selection_id)),
             "demote_admin_menu": (self._handle_demote_admin_selection, (user, selection_id)),
+            "reset_password_user_menu": (
+                self._handle_reset_password_user_selection,
+                (user, selection_id),
+            ),
             "promote_confirm_menu": (
                 self._handle_promote_confirm_selection,
                 (user, selection_id, state),
@@ -4470,6 +4461,11 @@ class Server(AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
         if current_menu == "unban_reason_editbox":
             text = packet.get("text", "")
             await self._handle_unban_reason_editbox(user, text, state)
+            return
+
+        if current_menu == "reset_password_editbox":
+            text = packet.get("text", "")
+            await self._handle_reset_password_editbox(user, text, state)
             return
 
         # Forward to game if user is in a table
