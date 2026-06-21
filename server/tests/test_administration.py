@@ -148,6 +148,8 @@ def test_show_admin_menu_includes_owner_actions():
         "reset_user_password",
         "ban_user",
         "unban_user",
+        "mute_user",
+        "unmute_user",
         "back",
     ]
     assert host._user_states["admin"]["menu"] == "admin_menu"
@@ -159,6 +161,8 @@ def test_show_admin_menu_includes_owner_actions():
         "reset_user_password",
         "ban_user",
         "unban_user",
+        "mute_user",
+        "unmute_user",
         "promote_admin",
         "demote_admin",
         "virtual_bots",

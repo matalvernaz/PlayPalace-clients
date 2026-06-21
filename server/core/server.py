@@ -2493,6 +2493,16 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
                 self._handle_unban_confirm_selection,
                 (user, selection_id, state),
             ),
+            "mute_user_menu": (self._handle_mute_user_selection, (user, selection_id)),
+            "mute_duration_menu": (
+                self._handle_mute_duration_selection,
+                (user, selection_id, state),
+            ),
+            "unmute_user_menu": (self._handle_unmute_user_selection, (user, selection_id)),
+            "unmute_confirm_menu": (
+                self._handle_unmute_confirm_selection,
+                (user, selection_id, state),
+            ),
             "virtual_bots_menu": (self._handle_virtual_bots_selection, (user, selection_id)),
             "virtual_bots_clear_confirm_menu": (
                 self._handle_virtual_bots_clear_confirm_selection,

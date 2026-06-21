@@ -66,3 +66,11 @@ def test_remute_replaces_existing(db):
     cursor = db._get_conn().cursor()
     cursor.execute("SELECT COUNT(*) FROM mutes WHERE lower(username) = lower(?)", ("Alice",))
     assert cursor.fetchone()[0] == 1
+
+
+def test_get_muted_usernames_lists_active_only(db):
+    db.mute_user("Alice", "Admin", "", issued_at=100, expires_at=None)   # permanent
+    db.mute_user("Bob", "Admin", "", issued_at=100, expires_at=500)      # timed, active
+    db.mute_user("Carol", "Admin", "", issued_at=100, expires_at=200)    # lapses at 200
+
+    assert set(db.get_muted_usernames(now=300)) == {"Alice", "Bob"}

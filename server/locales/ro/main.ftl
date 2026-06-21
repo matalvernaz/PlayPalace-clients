@@ -399,3 +399,19 @@ voice-status-connected = { $player } connected to voice.
 voice-status-disconnected = { $player } disconnected from voice.
 voice-status-connection-lost = { $player } lost the voice connection.
 voice-status-left-table = { $player } left the table.
+
+# Mute (admin moderation)
+mute-user = Mute user
+unmute-user = Unmute user
+no-users-to-mute = There are no users to mute.
+no-users-to-unmute = No users are currently muted.
+confirm-unmute = Unmute { $player }?
+mute-duration-5m = 5 minutes
+mute-duration-30m = 30 minutes
+mute-duration-1h = 1 hour
+mute-duration-1d = 1 day
+mute-duration-permanent = Permanent
+user-muted = Muted { $player } from voice chat.
+user-unmuted = Unmuted { $player }.
+you-have-been-muted = You have been muted from voice chat.
+you-have-been-unmuted = Your mute has been lifted.

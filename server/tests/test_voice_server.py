@@ -27,19 +27,37 @@ class RecordingConnection:
 
 
 class DummyDb:
-    """Minimal DB exposing only what the voice handlers touch."""
+    """In-memory stand-in for the mute methods the voice/admin code touches."""
 
     def __init__(self):
-        self._mute: MuteRecord | None = None
+        self._mutes: dict[str, MuteRecord] = {}
 
     def set_mute(self, record: MuteRecord) -> None:
-        self._mute = record
+        self._mutes[record.username.lower()] = record
+
+    def mute_user(self, username, admin_username, reason, issued_at, expires_at) -> MuteRecord:
+        rec = MuteRecord(
+            id=len(self._mutes) + 1,
+            username=username,
+            admin_username=admin_username,
+            reason=reason,
+            issued_at=issued_at,
+            expires_at=expires_at,
+        )
+        self._mutes[username.lower()] = rec
+        return rec
+
+    def unmute_user(self, username) -> bool:
+        return self._mutes.pop(username.lower(), None) is not None
 
     def get_active_mute(self, username: str, now: int) -> MuteRecord | None:
-        m = self._mute
-        if m and m.username.lower() == username.lower() and (m.expires_at is None or m.expires_at > now):
-            return m
+        rec = self._mutes.get(username.lower())
+        if rec and (rec.expires_at is None or rec.expires_at > now):
+            return rec
         return None
+
+    def get_muted_usernames(self, now: int) -> list[str]:
+        return [r.username for r in self._mutes.values() if r.expires_at is None or r.expires_at > now]
 
 
 def _make_server() -> Server:
@@ -307,3 +325,44 @@ async def test_table_removal_sends_context_closed_without_presence():
 
     assert alice.connection.sent[-1]["type"] == "voice_context_closed"
     assert alice.connection.sent[-1]["context_id"] == table.table_id
+
+
+# --------------------------------------------------------------- admin mute
+
+
+@pytest.mark.asyncio
+async def test_mute_user_forces_voice_exit():
+    server = _make_server()
+    admin = _add_user(server, "Admin")
+    alice = _add_user(server, "Alice")
+    bob = _add_user(server, "Bob")
+    table = server._tables.create_table("pig", "Alice", alice)
+    table.add_member("Bob", bob)
+    alice_client = RecordingConnection()
+    alice_client.username = "Alice"
+    server._record_voice_join_authorization("Alice", scope="table", context_id=table.table_id)
+    await server._handle_voice_presence(
+        alice_client,
+        {"type": "voice_presence", "state": "connected", "scope": "table", "context_id": table.table_id},
+    )
+    assert "Alice" in server._voice_presence_by_user
+    alice.connection.sent.clear()
+
+    await server._mute_user(admin, "Alice", 300)
+
+    assert server._db.get_active_mute("Alice", 0) is not None       # mute recorded
+    assert "Alice" not in server._voice_presence_by_user            # evicted from voice
+    assert alice.connection.sent[-1]["type"] == "voice_context_closed"
+
+
+@pytest.mark.asyncio
+async def test_unmute_user_clears_db_mute():
+    server = _make_server()
+    admin = _add_user(server, "Admin")
+    _add_user(server, "Alice")
+
+    await server._mute_user(admin, "Alice", None)  # permanent
+    assert server._db.get_active_mute("Alice", 0) is not None
+
+    await server._unmute_user(admin, "Alice")
+    assert server._db.get_active_mute("Alice", 0) is None

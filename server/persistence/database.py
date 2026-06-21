@@ -609,6 +609,14 @@ class Database:
         row = cursor.fetchone()
         return _mute_from_row(row) if row else None
 
+    def get_muted_usernames(self, now: int) -> list[str]:
+        """Return usernames with an active (non-expired) mute."""
+        cursor = self._get_conn().cursor()
+        cursor.execute(
+            "SELECT username FROM mutes WHERE expires_at IS NULL OR expires_at > ?", (now,)
+        )
+        return [row["username"] for row in cursor.fetchall()]
+
     def get_user_count(self) -> int:
         """Get the total number of users in the database."""
         cursor = self._get_conn().cursor()
