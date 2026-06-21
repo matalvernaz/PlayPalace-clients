@@ -198,6 +198,20 @@ enum ClientPacket {
         ["type": "list_ignored"]
     }
 
+    static func voiceJoin(scope: String = "table", contextID: String? = nil) -> [String: Any] {
+        var packet: [String: Any] = ["type": "voice_join", "scope": scope]
+        if let contextID { packet["context_id"] = contextID }
+        return packet
+    }
+
+    static func voicePresence(state: String, scope: String, contextID: String) -> [String: Any] {
+        ["type": "voice_presence", "state": state, "scope": scope, "context_id": contextID]
+    }
+
+    static func voiceLeave(scope: String, contextID: String) -> [String: Any] {
+        ["type": "voice_leave", "scope": scope, "context_id": contextID]
+    }
+
     private static func defaultClientType() -> String {
         #if os(iOS)
         return "mobile"

@@ -35,6 +35,24 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private var webSocket: WebSocketClient?
     private var appState: AppState?
 
+    // Voice chat (LiveKit) — usable only when the server advertises capability.
+    private(set) var voiceAvailable = false
+    private var voiceContextID = ""
+    private lazy var voiceManager: VoiceManager = {
+        let manager = VoiceManager(
+            playEarcon: { [weak self] name in self?.soundManager.play(name) },
+            announce: { [weak self] text in self?.addHistory(text, buffer: "activity", asAnnouncement: true) },
+            isIgnored: { [weak self] name in self?.ignoreList.contains(name) ?? false }
+        )
+        manager.onConnected = { [weak self] scope, contextID in
+            self?.webSocket?.send(ClientPacket.voicePresence(state: "connected", scope: scope, contextID: contextID))
+        }
+        manager.onConnectionLost = { [weak self] in
+            self?.addHistory("Voice connection lost.", buffer: "activity", asAnnouncement: true)
+        }
+        return manager
+    }()
+
     /// Most recent local-chat sender (table or open lobby), used by the
     /// "Ignore last chatter" Controls action. Updated only when we actually
     /// deliver a chat message — ignored senders never set this so the
@@ -243,9 +261,49 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             handlePreferences(packet)
         case "ignored_list":
             handleIgnoredList(packet)
+        case "voice_capability":
+            voiceAvailable = (packet["enabled"] as? Bool) ?? false
+        case "voice_join_info":
+            handleVoiceJoinInfo(packet)
+        case "voice_join_error":
+            // The server also speaks the localized reason; surface a fallback line.
+            addHistory("Voice chat error.", buffer: "activity", asAnnouncement: true)
+        case "voice_leave_ack":
+            break
+        case "voice_context_closed":
+            voiceManager.leave()
         default:
             break
         }
+    }
+
+    // MARK: - Voice chat
+
+    func joinVoice() {
+        guard voiceAvailable else {
+            addHistory("Voice chat is not available here.", buffer: "activity", asAnnouncement: true)
+            return
+        }
+        webSocket?.send(ClientPacket.voiceJoin())
+    }
+
+    func leaveVoice() {
+        voiceManager.leave()
+        if !voiceContextID.isEmpty {
+            webSocket?.send(ClientPacket.voiceLeave(scope: "table", contextID: voiceContextID))
+        }
+        voiceContextID = ""
+    }
+
+    func toggleVoiceMicrophone() {
+        voiceManager.setMicrophoneEnabled(!voiceManager.microphoneEnabled)
+    }
+
+    private func handleVoiceJoinInfo(_ packet: [String: Any]) {
+        guard let url = packet["url"] as? String, let token = packet["token"] as? String else { return }
+        let scope = packet["scope"] as? String ?? "table"
+        voiceContextID = packet["context_id"] as? String ?? ""
+        voiceManager.join(VoiceJoinInfo(url: url, token: token, scope: scope, contextID: voiceContextID))
     }
 
     /// Replace the local ignore list with the server's authoritative copy.

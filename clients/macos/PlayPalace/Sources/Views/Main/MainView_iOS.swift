@@ -1060,6 +1060,13 @@ private struct ControlsSheet: View {
                     }
                     .accessibilityHint("Add or remove ignored users")
                 }
+                if viewModel.voiceAvailable {
+                    Section("Voice") {
+                        DoubleTapButton("Join voice") { viewModel.joinVoice() }
+                        DoubleTapButton("Toggle microphone") { viewModel.toggleVoiceMicrophone() }
+                        DoubleTapButton("Leave voice", role: .destructive) { viewModel.leaveVoice() }
+                    }
+                }
                 Section("Table") {
                     DoubleTapButton("Leave Table", role: .destructive) {
                         viewModel.requestLeaveTable()
