@@ -824,6 +824,94 @@
         ],
         "title": "UnignoreUserPacket",
         "type": "object"
+      },
+      "VoiceJoinPacket": {
+        "additionalProperties": false,
+        "description": "Client requests a voice-room join token for a context (defaults to its table).",
+        "properties": {
+          "context_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Context Id"
+          },
+          "scope": {
+            "default": "table",
+            "title": "Scope",
+            "type": "string"
+          },
+          "type": {
+            "const": "voice_join",
+            "default": "voice_join",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "title": "VoiceJoinPacket",
+        "type": "object"
+      },
+      "VoiceLeavePacket": {
+        "additionalProperties": false,
+        "description": "Client signals it has left a voice context.",
+        "properties": {
+          "context_id": {
+            "title": "Context Id",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "type": {
+            "const": "voice_leave",
+            "default": "voice_leave",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "context_id"
+        ],
+        "title": "VoiceLeavePacket",
+        "type": "object"
+      },
+      "VoicePresencePacket": {
+        "additionalProperties": false,
+        "description": "Client reports its voice connection state for presence announcements.",
+        "properties": {
+          "context_id": {
+            "title": "Context Id",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "state": {
+            "title": "State",
+            "type": "string"
+          },
+          "type": {
+            "const": "voice_presence",
+            "default": "voice_presence",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "state",
+          "scope",
+          "context_id"
+        ],
+        "title": "VoicePresencePacket",
+        "type": "object"
       }
     },
     "discriminator": {
@@ -853,7 +941,10 @@
         "set_table_pw_cmd": "#/$defs/SetTablePasswordCommandPacket",
         "set_table_visibility_cmd": "#/$defs/SetTableVisibilityCommandPacket",
         "slash_command": "#/$defs/SlashCommandPacket",
-        "unignore_user": "#/$defs/UnignoreUserPacket"
+        "unignore_user": "#/$defs/UnignoreUserPacket",
+        "voice_join": "#/$defs/VoiceJoinPacket",
+        "voice_leave": "#/$defs/VoiceLeavePacket",
+        "voice_presence": "#/$defs/VoicePresencePacket"
       },
       "propertyName": "type"
     },
@@ -935,6 +1026,15 @@
       },
       {
         "$ref": "#/$defs/ListIgnoredPacket"
+      },
+      {
+        "$ref": "#/$defs/VoiceJoinPacket"
+      },
+      {
+        "$ref": "#/$defs/VoicePresencePacket"
+      },
+      {
+        "$ref": "#/$defs/VoiceLeavePacket"
       }
     ]
   },
@@ -2118,6 +2218,202 @@
         ],
         "title": "UpdateOptionsListsPacket",
         "type": "object"
+      },
+      "VoiceCapabilityPacket": {
+        "additionalProperties": false,
+        "description": "Server advertises whether voice chat is available and where to connect.",
+        "properties": {
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "provider": {
+            "default": "livekit",
+            "title": "Provider",
+            "type": "string"
+          },
+          "token_ttl_seconds": {
+            "default": 900,
+            "title": "Token Ttl Seconds",
+            "type": "integer"
+          },
+          "type": {
+            "const": "voice_capability",
+            "default": "voice_capability",
+            "title": "Type",
+            "type": "string"
+          },
+          "url": {
+            "default": "",
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "enabled"
+        ],
+        "title": "VoiceCapabilityPacket",
+        "type": "object"
+      },
+      "VoiceContextClosedPacket": {
+        "additionalProperties": false,
+        "description": "The voice context (e.g. table) is gone; client must tear down its room.",
+        "properties": {
+          "context_id": {
+            "title": "Context Id",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "type": {
+            "const": "voice_context_closed",
+            "default": "voice_context_closed",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "context_id"
+        ],
+        "title": "VoiceContextClosedPacket",
+        "type": "object"
+      },
+      "VoiceJoinErrorPacket": {
+        "additionalProperties": false,
+        "description": "Voice join was refused; ``key`` is a localized reason id.",
+        "properties": {
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "type": {
+            "const": "voice_join_error",
+            "default": "voice_join_error",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key"
+        ],
+        "title": "VoiceJoinErrorPacket",
+        "type": "object"
+      },
+      "VoiceJoinInfoPacket": {
+        "additionalProperties": false,
+        "description": "Signed grant authorizing the client into a provider voice room.",
+        "properties": {
+          "context_id": {
+            "title": "Context Id",
+            "type": "string"
+          },
+          "expires_at": {
+            "title": "Expires At",
+            "type": "integer"
+          },
+          "ice_servers": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Ice Servers",
+            "type": "array"
+          },
+          "participant": {
+            "$ref": "#/$defs/VoiceParticipant"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "room": {
+            "title": "Room",
+            "type": "string"
+          },
+          "room_label": {
+            "default": "",
+            "title": "Room Label",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "type": {
+            "const": "voice_join_info",
+            "default": "voice_join_info",
+            "title": "Type",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "scope",
+          "context_id",
+          "url",
+          "room",
+          "participant",
+          "token",
+          "expires_at"
+        ],
+        "title": "VoiceJoinInfoPacket",
+        "type": "object"
+      },
+      "VoiceLeaveAckPacket": {
+        "additionalProperties": false,
+        "description": "Server acknowledges the client's voice leave.",
+        "properties": {
+          "context_id": {
+            "title": "Context Id",
+            "type": "string"
+          },
+          "scope": {
+            "title": "Scope",
+            "type": "string"
+          },
+          "type": {
+            "const": "voice_leave_ack",
+            "default": "voice_leave_ack",
+            "title": "Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "scope",
+          "context_id"
+        ],
+        "title": "VoiceLeaveAckPacket",
+        "type": "object"
+      },
+      "VoiceParticipant": {
+        "description": "Identity of a voice participant as carried in the join grant.",
+        "properties": {
+          "identity": {
+            "title": "Identity",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "identity",
+          "name"
+        ],
+        "title": "VoiceParticipant",
+        "type": "object"
       }
     },
     "discriminator": {
@@ -2149,7 +2445,12 @@
         "stop_ambience": "#/$defs/StopAmbiencePacket",
         "stop_music": "#/$defs/StopMusicPacket",
         "table_create": "#/$defs/TableCreatePacket",
-        "update_options_lists": "#/$defs/UpdateOptionsListsPacket"
+        "update_options_lists": "#/$defs/UpdateOptionsListsPacket",
+        "voice_capability": "#/$defs/VoiceCapabilityPacket",
+        "voice_context_closed": "#/$defs/VoiceContextClosedPacket",
+        "voice_join_error": "#/$defs/VoiceJoinErrorPacket",
+        "voice_join_info": "#/$defs/VoiceJoinInfoPacket",
+        "voice_leave_ack": "#/$defs/VoiceLeaveAckPacket"
       },
       "propertyName": "type"
     },
@@ -2237,6 +2538,21 @@
       },
       {
         "$ref": "#/$defs/IgnoredListPacket"
+      },
+      {
+        "$ref": "#/$defs/VoiceCapabilityPacket"
+      },
+      {
+        "$ref": "#/$defs/VoiceJoinInfoPacket"
+      },
+      {
+        "$ref": "#/$defs/VoiceJoinErrorPacket"
+      },
+      {
+        "$ref": "#/$defs/VoiceLeaveAckPacket"
+      },
+      {
+        "$ref": "#/$defs/VoiceContextClosedPacket"
       }
     ]
   }
