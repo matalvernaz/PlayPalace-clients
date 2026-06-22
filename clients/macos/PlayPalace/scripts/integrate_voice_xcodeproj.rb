@@ -9,6 +9,9 @@ PROJECT = File.expand_path("../PlayPalace.xcodeproj", __dir__)
 LIVEKIT_URL = "https://github.com/livekit/client-sdk-swift.git"
 NEW_FILES = ["Sources/Audio/VoiceManager.swift"].freeze
 MIC_USAGE = "PlayPalace uses your microphone for table voice chat.".freeze
+# WebRTC references camera APIs (it's a full A/V stack) even though PlayPalace
+# only uses voice, so Apple (ITMS-90683) requires a camera purpose string too.
+CAMERA_USAGE = "PlayPalace voice chat does not use the camera; this key is required because its audio library references camera APIs.".freeze
 
 project = Xcodeproj::Project.open(PROJECT)
 target = project.targets.find { |t| t.name == "PlayPalace" } or abort("PlayPalace target not found")
@@ -43,9 +46,10 @@ NEW_FILES.each do |rel|
   puts "+ source file added: #{rel}"
 end
 
-# 3. Microphone usage string for every build configuration.
+# 3. Mic + camera usage strings for every build configuration.
 target.build_configurations.each do |c|
   c.build_settings["INFOPLIST_KEY_NSMicrophoneUsageDescription"] = MIC_USAGE
+  c.build_settings["INFOPLIST_KEY_NSCameraUsageDescription"] = CAMERA_USAGE
 end
 
 project.save

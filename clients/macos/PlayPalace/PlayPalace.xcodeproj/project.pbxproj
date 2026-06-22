@@ -254,6 +254,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "PlayPalace voice chat does not use the camera; this key is required because its audio library references camera APIs.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PlayPalace uses your microphone for table voice chat.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIBackgroundModes = audio;
@@ -281,6 +282,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "PlayPalace voice chat does not use the camera; this key is required because its audio library references camera APIs.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PlayPalace uses your microphone for table voice chat.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIBackgroundModes = audio;
