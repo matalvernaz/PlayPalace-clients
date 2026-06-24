@@ -46,10 +46,15 @@ NEW_FILES.each do |rel|
   puts "+ source file added: #{rel}"
 end
 
-# 3. Mic + camera usage strings for every build configuration.
+# 3. Mic + camera usage strings, plus the runpath that lets dyld find the
+#    embedded dynamic frameworks (LiveKitWebRTC, RustLiveKitUniFFI). The base
+#    project never set LD_RUNPATH_SEARCH_PATHS because before voice the app
+#    embedded no dynamic frameworks; without @executable_path/Frameworks the
+#    LiveKit dylibs are bundled but unreachable and the app crashes on launch.
 target.build_configurations.each do |c|
   c.build_settings["INFOPLIST_KEY_NSMicrophoneUsageDescription"] = MIC_USAGE
   c.build_settings["INFOPLIST_KEY_NSCameraUsageDescription"] = CAMERA_USAGE
+  c.build_settings["LD_RUNPATH_SEARCH_PATHS"] = "$(inherited) @executable_path/Frameworks"
 end
 
 project.save
