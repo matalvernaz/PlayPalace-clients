@@ -285,13 +285,20 @@ final class GameTouchView: UIView {
     private func setupAccessibility() {
         isAccessibilityElement = true
         accessibilityTraits = .allowsDirectInteraction
-        // iOS 17+: keep VoiceOver silent while a finger is on the game area so
-        // it stops re-announcing "Game area" on every flick and drowning our
-        // self-voiced output. `.allowsDirectInteraction` above is the required
-        // prerequisite for this option to take effect.
-        accessibilityDirectTouchOptions = .silentOnTouch
+        // iOS 17+ direct-touch options (require the `.allowsDirectInteraction`
+        // trait above):
+        //  - .silentOnTouch keeps VoiceOver quiet while a finger is on the game
+        //    area so it doesn't re-announce "Game area" over our self-voiced
+        //    output.
+        //  - .requiresActivation makes VoiceOver behave NORMALLY here by default
+        //    (Home swipe, rotor, and navigation all work, so the user is never
+        //    trapped) and only passes gestures through after a deliberate
+        //    activating double-tap. Without it, full-screen always-on
+        //    passthrough swallows every VoiceOver gesture and the user can't
+        //    leave the app.
+        accessibilityDirectTouchOptions = [.silentOnTouch, .requiresActivation]
         accessibilityLabel = "Game area"
-        accessibilityHint = "Swipe left and right to browse. Double-tap to select. Use the VoiceOver Actions rotor for Help, Controls, Chat, Recent events, and game actions — the rotor stays available no matter how gestures are configured."
+        accessibilityHint = "Double-tap to start playing with touch gestures. Then swipe left and right to browse and double-tap to select. The VoiceOver Actions rotor offers Help, Controls, Chat, Recent events, and game actions."
     }
 
     // MARK: - Trait Changes (low-vision)
