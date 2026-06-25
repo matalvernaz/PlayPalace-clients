@@ -15,6 +15,11 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     @Published var chatText = ""
     @Published var chatMode: ChatMode = .table
     @Published var isConnected = false
+    /// Drives the "Couldn't connect" alert: set when the *initial* connect
+    /// (before any successful authorize this session) exhausts its retry
+    /// budget, so a new user who can't reach the server has an escapable
+    /// prompt instead of a silent screen.
+    @Published var initialConnectFailed = false
     @Published var isEditMode = false
     @Published var editPrompt = ""
     @Published var editText = ""
@@ -67,7 +72,16 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private var pingStartTime: Date?
     private var reconnectAttempts = 0
     private let maxReconnectAttempts = 30
+    /// Retry budget before the first successful connect this session. Far
+    /// smaller than `maxReconnectAttempts` so a brand-new user who can't reach
+    /// the server gets an escapable prompt in seconds, not minutes of silent
+    /// looping.
+    private let maxInitialConnectAttempts = 3
     private var expectingReconnect = false
+    /// True once at least one authorize has succeeded this session.
+    /// Distinguishes a mid-session drop (wifi blip — worth the full reconnect
+    /// budget) from a first connect that never landed (give up fast, prompt).
+    private var hasAuthorizedOnce = false
     private var credentials: Credentials?
     private var reconnectTask: Task<Void, Never>?
     private var lastStaleTapAnnounceAt: Date = .distantPast
@@ -128,6 +142,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     }
 
     private func connect(_ creds: Credentials) {
+        initialConnectFailed = false
         webSocket = WebSocketClient(delegate: self)
         soundManager.playMusic("connectloop.ogg")
         addHistory("Connecting to \(creds.serverURL)...", buffer: "activity")
@@ -165,6 +180,13 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         webSocket?.disconnect()
         isConnected = false
         connect(creds)
+    }
+
+    /// "Retry" from the initial-connect failure alert — same deterministic
+    /// teardown + redial as a scene-phase reconnect. `connect` clears
+    /// `initialConnectFailed`, which dismisses the alert.
+    func retryInitialConnect() {
+        forceReconnect()
     }
 
     // MARK: - WebSocketDelegate
@@ -363,6 +385,7 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
     private func handleAuthorizeSuccess(_ packet: [String: Any]) {
         let wasReconnecting = reconnectAttempts > 0
         isConnected = true
+        hasAuthorizedOnce = true
         reconnectAttempts = 0
         expectingReconnect = false
         reconnectTask?.cancel()
@@ -1242,7 +1265,21 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
             return
         }
         reconnectAttempts += 1
-        if reconnectAttempts > maxReconnectAttempts {
+        if !hasAuthorizedOnce {
+            // First connect never landed. Give up after a small budget and
+            // surface an escapable prompt rather than looping silently for
+            // minutes on a screen with no obvious way back. The alert is a
+            // native control VoiceOver announces and focuses, so it answers
+            // the "I cannot go back or do anything" report directly.
+            if reconnectAttempts > maxInitialConnectAttempts {
+                // Full teardown (cancels the loop, stops the connect music, and
+                // sets shouldStop on the socket so a late callback can't re-arm
+                // the loop behind the alert), then surface the prompt.
+                disconnect()
+                initialConnectFailed = true
+                return
+            }
+        } else if reconnectAttempts > maxReconnectAttempts {
             expectingReconnect = false
             reconnectAttempts = 0
             speechManager.speakAnnouncement("Failed to reconnect after multiple attempts")

@@ -85,6 +85,19 @@ struct MainView: View {
                 speechManager: viewModel.speechManager
             )
         }
+        // Escapable recovery when the *initial* connect never lands. The game
+        // area is a single direct-touch element with no on-screen Back; this
+        // native alert takes VoiceOver focus and gives an unmistakable way out,
+        // answering the "stuck, can't go back, only force-quit" report.
+        .alert("Couldn't connect", isPresented: $viewModel.initialConnectFailed) {
+            Button("Retry") { viewModel.retryInitialConnect() }
+            Button("Back to servers", role: .cancel) {
+                viewModel.disconnect()
+                appState.returnToLogin()
+            }
+        } message: {
+            Text("Couldn't reach \(appState.credentials?.serverURL ?? "the server"). Check your connection and try again.")
+        }
         .onAppear {
             viewModel.setup(appState: appState)
             // Pay the AVSpeechSynthesizer cold-start tax before the user

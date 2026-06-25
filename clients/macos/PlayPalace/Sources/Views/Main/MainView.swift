@@ -19,6 +19,17 @@ struct MainView: View {
         .onDisappear {
             viewModel.disconnect()
         }
+        // Parity with iOS: an escapable prompt when the initial connect never
+        // lands, instead of silently looping the reconnect budget.
+        .alert("Couldn't connect", isPresented: $viewModel.initialConnectFailed) {
+            Button("Retry") { viewModel.retryInitialConnect() }
+            Button("Back to servers", role: .cancel) {
+                viewModel.disconnect()
+                appState.returnToLogin()
+            }
+        } message: {
+            Text("Couldn't reach \(appState.credentials?.serverURL ?? "the server"). Check your connection and try again.")
+        }
         .focusedSceneValue(\.mainViewModel, viewModel)
         .background(KeyboardShortcutHandler(viewModel: viewModel))
     }
