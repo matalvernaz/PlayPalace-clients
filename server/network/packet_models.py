@@ -207,6 +207,31 @@ class ListIgnoredPacket(BasePacket):
     type: Literal["list_ignored"] = "list_ignored"
 
 
+class VoiceJoinPacket(BasePacket):
+    """Client requests a voice-room join token for a context (defaults to its table)."""
+
+    type: Literal["voice_join"] = "voice_join"
+    scope: str = "table"
+    context_id: str | None = None
+
+
+class VoicePresencePacket(BasePacket):
+    """Client reports its voice connection state for presence announcements."""
+
+    type: Literal["voice_presence"] = "voice_presence"
+    state: str
+    scope: str
+    context_id: str
+
+
+class VoiceLeavePacket(BasePacket):
+    """Client signals it has left a voice context."""
+
+    type: Literal["voice_leave"] = "voice_leave"
+    scope: str
+    context_id: str
+
+
 ClientToServerPacket = Annotated[
     Union[
         AuthorizePacket,
@@ -235,6 +260,9 @@ ClientToServerPacket = Annotated[
         IgnoreUserPacket,
         UnignoreUserPacket,
         ListIgnoredPacket,
+        VoiceJoinPacket,
+        VoicePresencePacket,
+        VoiceLeavePacket,
     ],
     Field(discriminator="type"),
 ]
@@ -470,6 +498,62 @@ class IgnoredListPacket(BasePacket):
     usernames: list[str] = Field(default_factory=list)
 
 
+class VoiceParticipant(BaseModel):
+    """Identity of a voice participant as carried in the join grant."""
+
+    identity: str
+    name: str
+
+
+class VoiceCapabilityPacket(BasePacket):
+    """Server advertises whether voice chat is available and where to connect."""
+
+    type: Literal["voice_capability"] = "voice_capability"
+    enabled: bool
+    provider: str = "livekit"
+    url: str = ""
+    token_ttl_seconds: int = 900
+
+
+class VoiceJoinInfoPacket(BasePacket):
+    """Signed grant authorizing the client into a provider voice room."""
+
+    type: Literal["voice_join_info"] = "voice_join_info"
+    provider: str
+    scope: str
+    context_id: str
+    url: str
+    room: str
+    room_label: str = ""
+    participant: VoiceParticipant
+    token: str
+    expires_at: int
+    ice_servers: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class VoiceJoinErrorPacket(BasePacket):
+    """Voice join was refused; ``key`` is a localized reason id."""
+
+    type: Literal["voice_join_error"] = "voice_join_error"
+    key: str
+
+
+class VoiceLeaveAckPacket(BasePacket):
+    """Server acknowledges the client's voice leave."""
+
+    type: Literal["voice_leave_ack"] = "voice_leave_ack"
+    scope: str
+    context_id: str
+
+
+class VoiceContextClosedPacket(BasePacket):
+    """The voice context (e.g. table) is gone; client must tear down its room."""
+
+    type: Literal["voice_context_closed"] = "voice_context_closed"
+    scope: str
+    context_id: str
+
+
 ServerToClientPacket = Annotated[
     Union[
         AuthorizeSuccessPacket,
@@ -500,6 +584,11 @@ ServerToClientPacket = Annotated[
         OpenServerOptionsPacket,
         PreferencesPacket,
         IgnoredListPacket,
+        VoiceCapabilityPacket,
+        VoiceJoinInfoPacket,
+        VoiceJoinErrorPacket,
+        VoiceLeaveAckPacket,
+        VoiceContextClosedPacket,
     ],
     Field(discriminator="type"),
 ]

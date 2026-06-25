@@ -197,8 +197,7 @@ final class GestureSettings: ObservableObject, Codable {
         let home = FileManager.default.homeDirectoryForCurrentUser
         return home.appendingPathComponent(".playpalace/gesture_settings.json")
         #else
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        return appSupport.appendingPathComponent("PlayPalace/gesture_settings.json")
+        return URL.applicationSupportDirectory.appendingPathComponent("PlayPalace/gesture_settings.json")
         #endif
     }
 

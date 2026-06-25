@@ -380,3 +380,34 @@ virtual-bots-profiles-line = { $profile } ({ $bot_count } botova) nadjačava: { 
 virtual-bots-profiles-no-overrides = nasljeđuje osnovnu konfiguraciju
 
 localization-in-progress-try-again = Lokalizacija je u tijeku. Pokušajte ponovno za minutu.
+
+# Voice chat
+voice-room-table-label = { $game } table
+voice-not-at-table = Join a table before starting voice chat.
+voice-not-in-context = You are not at that table.
+voice-invalid-context = Voice chat is not available there.
+voice-unavailable = Voice chat is currently unavailable.
+voice-rate-limited = You are joining voice too quickly. Please wait a moment.
+voice-muted-permanent = You are muted and cannot use voice chat.
+voice-muted-minutes = You are muted for { $minutes } more minute(s).
+voice-muted-seconds = You are muted for { $seconds } more second(s).
+voice-status-connected = { $player } connected to voice.
+voice-status-disconnected = { $player } disconnected from voice.
+voice-status-connection-lost = { $player } lost the voice connection.
+voice-status-left-table = { $player } left the table.
+
+# Mute (admin moderation)
+mute-user = Mute user
+unmute-user = Unmute user
+no-users-to-mute = There are no users to mute.
+no-users-to-unmute = No users are currently muted.
+confirm-unmute = Unmute { $player }?
+mute-duration-5m = 5 minutes
+mute-duration-30m = 30 minutes
+mute-duration-1h = 1 hour
+mute-duration-1d = 1 day
+mute-duration-permanent = Permanent
+user-muted = Muted { $player } from voice chat.
+user-unmuted = Unmuted { $player }.
+you-have-been-muted = You have been muted from voice chat.
+you-have-been-unmuted = Your mute has been lifted.

@@ -85,6 +85,19 @@ struct MainView: View {
                 speechManager: viewModel.speechManager
             )
         }
+        // Escapable recovery when the *initial* connect never lands. The game
+        // area is a single direct-touch element with no on-screen Back; this
+        // native alert takes VoiceOver focus and gives an unmistakable way out,
+        // answering the "stuck, can't go back, only force-quit" report.
+        .alert("Couldn't connect", isPresented: $viewModel.initialConnectFailed) {
+            Button("Retry") { viewModel.retryInitialConnect() }
+            Button("Back to servers", role: .cancel) {
+                viewModel.disconnect()
+                appState.returnToLogin()
+            }
+        } message: {
+            Text("Couldn't reach \(appState.credentials?.serverURL ?? "the server"). Check your connection and try again.")
+        }
         .onAppear {
             viewModel.setup(appState: appState)
             // Pay the AVSpeechSynthesizer cold-start tax before the user
@@ -285,8 +298,20 @@ final class GameTouchView: UIView {
     private func setupAccessibility() {
         isAccessibilityElement = true
         accessibilityTraits = .allowsDirectInteraction
+        // iOS 17+ direct-touch options (require the `.allowsDirectInteraction`
+        // trait above):
+        //  - .silentOnTouch keeps VoiceOver quiet while a finger is on the game
+        //    area so it doesn't re-announce "Game area" over our self-voiced
+        //    output.
+        //  - .requiresActivation makes VoiceOver behave NORMALLY here by default
+        //    (Home swipe, rotor, and navigation all work, so the user is never
+        //    trapped) and only passes gestures through after a deliberate
+        //    activating double-tap. Without it, full-screen always-on
+        //    passthrough swallows every VoiceOver gesture and the user can't
+        //    leave the app.
+        accessibilityDirectTouchOptions = [.silentOnTouch, .requiresActivation]
         accessibilityLabel = "Game area"
-        accessibilityHint = "Swipe left and right to browse. Double-tap to select. Use the VoiceOver Actions rotor for Help, Controls, Chat, Recent events, and game actions — the rotor stays available no matter how gestures are configured."
+        accessibilityHint = "Double-tap to start playing with touch gestures. Then swipe left and right to browse and double-tap to select. The VoiceOver Actions rotor offers Help, Controls, Chat, Recent events, and game actions."
     }
 
     // MARK: - Trait Changes (low-vision)
@@ -1059,6 +1084,13 @@ private struct ControlsSheet: View {
                         IgnoreListView(viewModel: viewModel)
                     }
                     .accessibilityHint("Add or remove ignored users")
+                }
+                if viewModel.voiceAvailable {
+                    Section("Voice") {
+                        DoubleTapButton("Join voice") { viewModel.joinVoice() }
+                        DoubleTapButton("Toggle microphone") { viewModel.toggleVoiceMicrophone() }
+                        DoubleTapButton("Leave voice", role: .destructive) { viewModel.leaveVoice() }
+                    }
                 }
                 Section("Table") {
                     DoubleTapButton("Leave Table", role: .destructive) {

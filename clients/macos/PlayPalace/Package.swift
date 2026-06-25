@@ -10,10 +10,13 @@ let package = Package(
     products: [
         .executable(name: "PlayPalace", targets: ["PlayPalace"])
     ],
-    dependencies: [],
+    dependencies: [
+        .package(url: "https://github.com/livekit/client-sdk-swift.git", from: "2.0.0"),
+    ],
     targets: [
         .executableTarget(
             name: "PlayPalace",
+            dependencies: [.product(name: "LiveKit", package: "client-sdk-swift")],
             path: "Sources"
         )
     ]

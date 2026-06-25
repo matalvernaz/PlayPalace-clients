@@ -1,6 +1,7 @@
 """Administration functionality for the PlayPalace server."""
 
 import functools
+import time
 from typing import TYPE_CHECKING
 
 from .users.network_user import NetworkUser
@@ -98,6 +99,14 @@ class AdministrationMixin:
             MenuItem(
                 text=Localization.get(user.locale, "unban-user"),
                 id="unban_user",
+            ),
+            MenuItem(
+                text=Localization.get(user.locale, "mute-user"),
+                id="mute_user",
+            ),
+            MenuItem(
+                text=Localization.get(user.locale, "unmute-user"),
+                id="unmute_user",
             ),
         ]
         # Only server owners can promote/demote admins, manage virtual bots, and transfer ownership
@@ -476,6 +485,10 @@ class AdministrationMixin:
             self._show_ban_user_menu(user)
         elif selection_id == "unban_user":
             self._show_unban_user_menu(user)
+        elif selection_id == "mute_user":
+            self._show_mute_user_menu(user)
+        elif selection_id == "unmute_user":
+            self._show_unmute_user_menu(user)
         elif selection_id == "virtual_bots":
             self._show_virtual_bots_menu(user)
         elif selection_id == "back":
@@ -751,6 +764,139 @@ class AdministrationMixin:
 
         # Proceed with unban, passing the reason and broadcast scope
         await self._unban_user(admin, target_username, reason=text, broadcast_scope=broadcast_scope)
+
+    # ------------------------------------------------------------------- Mute
+    # Mute restricts a user from voice chat (timed or permanent). The DB
+    # primitive + the voice join-gate live elsewhere; this is the admin UI.
+
+    # (localization key, seconds); None seconds = permanent.
+    _MUTE_DURATIONS = [
+        ("mute-duration-5m", 300),
+        ("mute-duration-30m", 1800),
+        ("mute-duration-1h", 3600),
+        ("mute-duration-1d", 86400),
+        ("mute-duration-permanent", None),
+    ]
+
+    def _show_mute_user_menu(self, user: NetworkUser) -> None:
+        """Show mute menu with non-admin users."""
+        candidates = self._db.get_non_admin_users(exclude_banned=True)
+        if not candidates:
+            user.speak_l("no-users-to-mute", buffer="misc")
+            self._show_admin_menu(user)
+            return
+        self._show_user_list_menu(user, "mute_user_menu", candidates, "mute")
+
+    def _show_unmute_user_menu(self, user: NetworkUser) -> None:
+        """Show unmute menu listing currently-muted users."""
+        muted = self._db.get_muted_usernames(int(time.time()))
+        if not muted:
+            user.speak_l("no-users-to-unmute", buffer="misc")
+            self._show_admin_menu(user)
+            return
+        items = [MenuItem(text=name, id=f"unmute_{name}") for name in muted]
+        items.append(MenuItem(text=Localization.get(user.locale, "back"), id="back"))
+        user.show_menu(
+            "unmute_user_menu", items, multiletter=True, escape_behavior=EscapeBehavior.SELECT_LAST
+        )
+        self._user_states[user.username] = {"menu": "unmute_user_menu"}
+
+    def _show_mute_duration_menu(self, user: NetworkUser, target_username: str) -> None:
+        """Ask how long to mute the target for."""
+        items = [
+            MenuItem(
+                text=Localization.get(user.locale, key),
+                id=f"dur_{seconds if seconds is not None else 'perm'}",
+            )
+            for key, seconds in self._MUTE_DURATIONS
+        ]
+        items.append(MenuItem(text=Localization.get(user.locale, "back"), id="back"))
+        user.show_menu(
+            "mute_duration_menu", items, multiletter=True, escape_behavior=EscapeBehavior.SELECT_LAST
+        )
+        self._user_states[user.username] = {
+            "menu": "mute_duration_menu",
+            "target_username": target_username,
+        }
+
+    def _show_unmute_confirm_menu(self, user: NetworkUser, target_username: str) -> None:
+        """Confirm lifting a user's mute."""
+        question = Localization.get(user.locale, "confirm-unmute", player=target_username)
+        show_yes_no_menu(user, "unmute_confirm_menu", question)
+        self._user_states[user.username] = {
+            "menu": "unmute_confirm_menu",
+            "target_username": target_username,
+        }
+
+    async def _handle_mute_user_selection(self, user: NetworkUser, selection_id: str) -> None:
+        """Handle mute user-list selection."""
+        if selection_id == "back":
+            self._show_admin_menu(user)
+        elif selection_id.startswith("mute_"):
+            self._show_mute_duration_menu(user, selection_id[5:])
+
+    async def _handle_mute_duration_selection(
+        self, user: NetworkUser, selection_id: str, state: dict
+    ) -> None:
+        """Handle the duration choice, then perform the mute."""
+        target_username = state.get("target_username")
+        if not target_username:
+            self._show_mute_user_menu(user)
+            return
+        if selection_id == "back":
+            self._show_mute_user_menu(user)
+            return
+        if not selection_id.startswith("dur_"):
+            return
+        token = selection_id[4:]
+        duration_seconds = None if token == "perm" else int(token)
+        await self._mute_user(user, target_username, duration_seconds)
+
+    async def _handle_unmute_user_selection(self, user: NetworkUser, selection_id: str) -> None:
+        """Handle unmute user-list selection."""
+        if selection_id == "back":
+            self._show_admin_menu(user)
+        elif selection_id.startswith("unmute_"):
+            self._show_unmute_confirm_menu(user, selection_id[7:])
+
+    async def _handle_unmute_confirm_selection(
+        self, user: NetworkUser, selection_id: str, state: dict
+    ) -> None:
+        """Handle unmute confirmation."""
+        target_username = state.get("target_username")
+        if not target_username:
+            self._show_unmute_user_menu(user)
+            return
+        if selection_id == "yes":
+            await self._unmute_user(user, target_username)
+        else:
+            self._show_unmute_user_menu(user)
+
+    async def _mute_user(
+        self, admin: NetworkUser, username: str, duration_seconds: int | None
+    ) -> None:
+        """Mute a user from voice chat (None duration = permanent) and evict them
+        from any active voice session."""
+        now = int(time.time())
+        expires_at = None if duration_seconds is None else now + duration_seconds
+        self._db.mute_user(username, admin.username, reason="", issued_at=now, expires_at=expires_at)
+        await self._disconnect_user_from_voice(
+            username, message_key="voice-status-disconnected", send_context_closed=True
+        )
+        target_user = self._users.get(username)
+        if target_user:
+            target_user.speak_l("you-have-been-muted", buffer="activity")
+        _speak_activity(admin, "user-muted", player=username)
+        self._show_admin_menu(admin)
+
+    async def _unmute_user(self, admin: NetworkUser, username: str) -> None:
+        """Lift a user's mute."""
+        self._db.unmute_user(username)
+        target_user = self._users.get(username)
+        if target_user:
+            target_user.speak_l("you-have-been-unmuted", buffer="activity")
+        _speak_activity(admin, "user-unmuted", player=username)
+        self._show_admin_menu(admin)
 
     async def _handle_virtual_bots_selection(self, user: NetworkUser, selection_id: str) -> None:
         """Handle virtual bots menu selection."""

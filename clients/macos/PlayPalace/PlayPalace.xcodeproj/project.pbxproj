@@ -7,69 +7,72 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B000003E8 /* Sources/Accessibility/SpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003E8 /* Sources/Accessibility/SpeechManager.swift */; };
-		B000003E9 /* Sources/App/AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003E9 /* Sources/App/AppState.swift */; };
-		B000003EA /* Sources/App/PlayPalaceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EA /* Sources/App/PlayPalaceApp.swift */; };
-		B000003EB /* Sources/Audio/SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EB /* Sources/Audio/SoundManager.swift */; };
-		B000003EC /* Sources/Models/BufferSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EC /* Sources/Models/BufferSystem.swift */; };
-		B000003ED /* Sources/Models/ConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003ED /* Sources/Models/ConfigManager.swift */; };
-		B000003EE /* Sources/Models/Credentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EE /* Sources/Models/Credentials.swift */; };
-		B000003EF /* Sources/Models/GestureSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EF /* Sources/Models/GestureSettings.swift */; };
-		B000003F0 /* Sources/Models/Packets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F0 /* Sources/Models/Packets.swift */; };
-		B000003F1 /* Sources/Network/WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F1 /* Sources/Network/WebSocketClient.swift */; };
-		B000003F2 /* Sources/Views/Components/AccessibleMenuList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F2 /* Sources/Views/Components/AccessibleMenuList.swift */; };
-		B000003F3 /* Sources/Views/Components/ActionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F3 /* Sources/Views/Components/ActionBar.swift */; };
-		B00000401 /* Sources/Views/Components/DoubleTapButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000401 /* Sources/Views/Components/DoubleTapButton.swift */; };
-		B00000402 /* Sources/Models/IgnoreList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000402 /* Sources/Models/IgnoreList.swift */; };
-		B000003F4 /* Sources/Views/Components/GestureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F4 /* Sources/Views/Components/GestureSettingsView.swift */; };
-		B000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift */; };
-		B000003F6 /* Sources/Views/Components/MenuList_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F6 /* Sources/Views/Components/MenuList_iOS.swift */; };
-		B000003F7 /* Sources/Views/Login/LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F7 /* Sources/Views/Login/LoginView.swift */; };
-		B000003F8 /* Sources/Views/Login/LoginView_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F8 /* Sources/Views/Login/LoginView_iOS.swift */; };
-		B000003F9 /* Sources/Views/Login/RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F9 /* Sources/Views/Login/RegistrationView.swift */; };
-		B000003FA /* Sources/Views/Login/ServerManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FA /* Sources/Views/Login/ServerManagerView.swift */; };
-		B000003FB /* Sources/Views/Login/ServerManagerView_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FB /* Sources/Views/Login/ServerManagerView_iOS.swift */; };
-		B000003FC /* Sources/Views/Main/MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FC /* Sources/Views/Main/MainView.swift */; };
-		B000003FD /* Sources/Views/Main/MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FD /* Sources/Views/Main/MainViewModel.swift */; };
-		B000003FE /* Sources/Views/Main/MainView_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FE /* Sources/Views/Main/MainView_iOS.swift */; };
-		B000003FF /* Sources/Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A000003FF /* Sources/Assets.xcassets */; };
-		B0000400 /* Sources/sounds in Resources */ = {isa = PBXBuildFile; fileRef = A0000400 /* Sources/sounds */; };
-		B0000401 /* Sources/Accessibility/LowVisionEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000401 /* Sources/Accessibility/LowVisionEnvironment.swift */; };
-		B0000402 /* Sources/Accessibility/MenuItemIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000402 /* Sources/Accessibility/MenuItemIcon.swift */; };
-		B0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift */; };
+		11F39181D9735B96F30B0071 /* VoiceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96BD6F9536B9578DDC11BD44 /* VoiceManager.swift */; };
+		B000003E8 /* SpeechManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003E8 /* SpeechManager.swift */; };
+		B000003E9 /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003E9 /* AppState.swift */; };
+		B000003EA /* PlayPalaceApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EA /* PlayPalaceApp.swift */; };
+		B000003EB /* SoundManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EB /* SoundManager.swift */; };
+		B000003EC /* BufferSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EC /* BufferSystem.swift */; };
+		B000003ED /* ConfigManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003ED /* ConfigManager.swift */; };
+		B000003EE /* Credentials.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EE /* Credentials.swift */; };
+		B000003EF /* GestureSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003EF /* GestureSettings.swift */; };
+		B000003F0 /* Packets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F0 /* Packets.swift */; };
+		B000003F1 /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F1 /* WebSocketClient.swift */; };
+		B000003F2 /* AccessibleMenuList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F2 /* AccessibleMenuList.swift */; };
+		B000003F3 /* ActionBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F3 /* ActionBar.swift */; };
+		B000003F4 /* GestureSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F4 /* GestureSettingsView.swift */; };
+		B000003F5 /* KeyboardShortcutHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F5 /* KeyboardShortcutHandler.swift */; };
+		B000003F6 /* MenuList_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F6 /* MenuList_iOS.swift */; };
+		B000003F7 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F7 /* LoginView.swift */; };
+		B000003F8 /* LoginView_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F8 /* LoginView_iOS.swift */; };
+		B000003F9 /* RegistrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003F9 /* RegistrationView.swift */; };
+		B000003FA /* ServerManagerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FA /* ServerManagerView.swift */; };
+		B000003FB /* ServerManagerView_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FB /* ServerManagerView_iOS.swift */; };
+		B000003FC /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FC /* MainView.swift */; };
+		B000003FD /* MainViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FD /* MainViewModel.swift */; };
+		B000003FE /* MainView_iOS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000003FE /* MainView_iOS.swift */; };
+		B000003FF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A000003FF /* Assets.xcassets */; };
+		B00000401 /* DoubleTapButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000401 /* DoubleTapButton.swift */; };
+		B00000402 /* IgnoreList.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000402 /* IgnoreList.swift */; };
+		B0000400 /* sounds in Resources */ = {isa = PBXBuildFile; fileRef = A0000400 /* sounds */; };
+		B0000401 /* LowVisionEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000401 /* LowVisionEnvironment.swift */; };
+		B0000402 /* MenuItemIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000402 /* MenuItemIcon.swift */; };
+		B0000403 /* LowVisionStatusOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0000403 /* LowVisionStatusOverlay.swift */; };
+		D01B680F49A5A2EA19CCE37E /* LiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 1DAF07DAFFE511D58EB57476 /* LiveKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A000003E8 /* Sources/Accessibility/SpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Accessibility/SpeechManager.swift; sourceTree = "<group>"; };
-		A000003E9 /* Sources/App/AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/App/AppState.swift; sourceTree = "<group>"; };
-		A000003EA /* Sources/App/PlayPalaceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/App/PlayPalaceApp.swift; sourceTree = "<group>"; };
-		A000003EB /* Sources/Audio/SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Audio/SoundManager.swift; sourceTree = "<group>"; };
-		A000003EC /* Sources/Models/BufferSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/BufferSystem.swift; sourceTree = "<group>"; };
-		A000003ED /* Sources/Models/ConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/ConfigManager.swift; sourceTree = "<group>"; };
-		A000003EE /* Sources/Models/Credentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/Credentials.swift; sourceTree = "<group>"; };
-		A000003EF /* Sources/Models/GestureSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/GestureSettings.swift; sourceTree = "<group>"; };
-		A000003F0 /* Sources/Models/Packets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/Packets.swift; sourceTree = "<group>"; };
-		A000003F1 /* Sources/Network/WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Network/WebSocketClient.swift; sourceTree = "<group>"; };
-		A000003F2 /* Sources/Views/Components/AccessibleMenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/AccessibleMenuList.swift; sourceTree = "<group>"; };
-		A000003F3 /* Sources/Views/Components/ActionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/ActionBar.swift; sourceTree = "<group>"; };
-		A00000401 /* Sources/Views/Components/DoubleTapButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/DoubleTapButton.swift; sourceTree = "<group>"; };
-		A00000402 /* Sources/Models/IgnoreList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/IgnoreList.swift; sourceTree = "<group>"; };
-		A000003F4 /* Sources/Views/Components/GestureSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/GestureSettingsView.swift; sourceTree = "<group>"; };
-		A000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/KeyboardShortcutHandler.swift; sourceTree = "<group>"; };
-		A000003F6 /* Sources/Views/Components/MenuList_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/MenuList_iOS.swift; sourceTree = "<group>"; };
-		A000003F7 /* Sources/Views/Login/LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/LoginView.swift; sourceTree = "<group>"; };
-		A000003F8 /* Sources/Views/Login/LoginView_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/LoginView_iOS.swift; sourceTree = "<group>"; };
-		A000003F9 /* Sources/Views/Login/RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/RegistrationView.swift; sourceTree = "<group>"; };
-		A000003FA /* Sources/Views/Login/ServerManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/ServerManagerView.swift; sourceTree = "<group>"; };
-		A000003FB /* Sources/Views/Login/ServerManagerView_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/ServerManagerView_iOS.swift; sourceTree = "<group>"; };
-		A000003FC /* Sources/Views/Main/MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Main/MainView.swift; sourceTree = "<group>"; };
-		A000003FD /* Sources/Views/Main/MainViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Main/MainViewModel.swift; sourceTree = "<group>"; };
-		A000003FE /* Sources/Views/Main/MainView_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Main/MainView_iOS.swift; sourceTree = "<group>"; };
-		A000003FF /* Sources/Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Sources/Assets.xcassets; sourceTree = "<group>"; };
-		A0000400 /* Sources/sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sources/sounds; sourceTree = "<group>"; };
-		A0000401 /* Sources/Accessibility/LowVisionEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Accessibility/LowVisionEnvironment.swift; sourceTree = "<group>"; };
-		A0000402 /* Sources/Accessibility/MenuItemIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Accessibility/MenuItemIcon.swift; sourceTree = "<group>"; };
-		A0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/LowVisionStatusOverlay.swift; sourceTree = "<group>"; };
+		96BD6F9536B9578DDC11BD44 /* VoiceManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = VoiceManager.swift; path = Sources/Audio/VoiceManager.swift; sourceTree = "<group>"; };
+		A000003E8 /* SpeechManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Accessibility/SpeechManager.swift; sourceTree = "<group>"; };
+		A000003E9 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/App/AppState.swift; sourceTree = "<group>"; };
+		A000003EA /* PlayPalaceApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/App/PlayPalaceApp.swift; sourceTree = "<group>"; };
+		A000003EB /* SoundManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Audio/SoundManager.swift; sourceTree = "<group>"; };
+		A000003EC /* BufferSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/BufferSystem.swift; sourceTree = "<group>"; };
+		A000003ED /* ConfigManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/ConfigManager.swift; sourceTree = "<group>"; };
+		A000003EE /* Credentials.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/Credentials.swift; sourceTree = "<group>"; };
+		A000003EF /* GestureSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/GestureSettings.swift; sourceTree = "<group>"; };
+		A000003F0 /* Packets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/Packets.swift; sourceTree = "<group>"; };
+		A000003F1 /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Network/WebSocketClient.swift; sourceTree = "<group>"; };
+		A000003F2 /* AccessibleMenuList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/AccessibleMenuList.swift; sourceTree = "<group>"; };
+		A000003F3 /* ActionBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/ActionBar.swift; sourceTree = "<group>"; };
+		A000003F4 /* GestureSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/GestureSettingsView.swift; sourceTree = "<group>"; };
+		A000003F5 /* KeyboardShortcutHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/KeyboardShortcutHandler.swift; sourceTree = "<group>"; };
+		A000003F6 /* MenuList_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/MenuList_iOS.swift; sourceTree = "<group>"; };
+		A000003F7 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/LoginView.swift; sourceTree = "<group>"; };
+		A000003F8 /* LoginView_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/LoginView_iOS.swift; sourceTree = "<group>"; };
+		A000003F9 /* RegistrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/RegistrationView.swift; sourceTree = "<group>"; };
+		A000003FA /* ServerManagerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/ServerManagerView.swift; sourceTree = "<group>"; };
+		A000003FB /* ServerManagerView_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Login/ServerManagerView_iOS.swift; sourceTree = "<group>"; };
+		A000003FC /* MainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Main/MainView.swift; sourceTree = "<group>"; };
+		A000003FD /* MainViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Main/MainViewModel.swift; sourceTree = "<group>"; };
+		A000003FE /* MainView_iOS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Main/MainView_iOS.swift; sourceTree = "<group>"; };
+		A000003FF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Sources/Assets.xcassets; sourceTree = "<group>"; };
+		A00000401 /* DoubleTapButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/DoubleTapButton.swift; sourceTree = "<group>"; };
+		A00000402 /* IgnoreList.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Models/IgnoreList.swift; sourceTree = "<group>"; };
+		A0000400 /* sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Sources/sounds; sourceTree = "<group>"; };
+		A0000401 /* LowVisionEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Accessibility/LowVisionEnvironment.swift; sourceTree = "<group>"; };
+		A0000402 /* MenuItemIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Accessibility/MenuItemIcon.swift; sourceTree = "<group>"; };
+		A0000403 /* LowVisionStatusOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sources/Views/Components/LowVisionStatusOverlay.swift; sourceTree = "<group>"; };
 		C0000005 /* PlayPalace.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PlayPalace.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -78,45 +81,46 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D01B680F49A5A2EA19CCE37E /* LiveKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		C0000001 = {
+		C0000001 /*  */ = {
 			isa = PBXGroup;
 			children = (
-				A000003E8 /* Sources/Accessibility/SpeechManager.swift */,
-				A0000401 /* Sources/Accessibility/LowVisionEnvironment.swift */,
-				A0000402 /* Sources/Accessibility/MenuItemIcon.swift */,
-				A000003E9 /* Sources/App/AppState.swift */,
-				A000003EA /* Sources/App/PlayPalaceApp.swift */,
-				A000003EB /* Sources/Audio/SoundManager.swift */,
-				A000003EC /* Sources/Models/BufferSystem.swift */,
-				A000003ED /* Sources/Models/ConfigManager.swift */,
-				A000003EE /* Sources/Models/Credentials.swift */,
-				A000003EF /* Sources/Models/GestureSettings.swift */,
-				A00000402 /* Sources/Models/IgnoreList.swift */,
-				A000003F0 /* Sources/Models/Packets.swift */,
-				A000003F1 /* Sources/Network/WebSocketClient.swift */,
-				A000003F2 /* Sources/Views/Components/AccessibleMenuList.swift */,
-				A000003F3 /* Sources/Views/Components/ActionBar.swift */,
-				A00000401 /* Sources/Views/Components/DoubleTapButton.swift */,
-				A000003F4 /* Sources/Views/Components/GestureSettingsView.swift */,
-				A000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift */,
-				A000003F6 /* Sources/Views/Components/MenuList_iOS.swift */,
-				A0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift */,
-				A000003F7 /* Sources/Views/Login/LoginView.swift */,
-				A000003F8 /* Sources/Views/Login/LoginView_iOS.swift */,
-				A000003F9 /* Sources/Views/Login/RegistrationView.swift */,
-				A000003FA /* Sources/Views/Login/ServerManagerView.swift */,
-				A000003FB /* Sources/Views/Login/ServerManagerView_iOS.swift */,
-				A000003FC /* Sources/Views/Main/MainView.swift */,
-				A000003FD /* Sources/Views/Main/MainViewModel.swift */,
-				A000003FE /* Sources/Views/Main/MainView_iOS.swift */,
-				A000003FF /* Sources/Assets.xcassets */,
-				A0000400 /* Sources/sounds */,
+				A000003E8 /* SpeechManager.swift */,
+				A0000401 /* LowVisionEnvironment.swift */,
+				A0000402 /* MenuItemIcon.swift */,
+				A000003E9 /* AppState.swift */,
+				A000003EA /* PlayPalaceApp.swift */,
+				A000003EB /* SoundManager.swift */,
+				A000003EC /* BufferSystem.swift */,
+				A000003ED /* ConfigManager.swift */,
+				A000003EE /* Credentials.swift */,
+				A000003EF /* GestureSettings.swift */,
+				A00000402 /* IgnoreList.swift */,
+				A000003F0 /* Packets.swift */,
+				A000003F1 /* WebSocketClient.swift */,
+				A000003F2 /* AccessibleMenuList.swift */,
+				A000003F3 /* ActionBar.swift */,
+				A00000401 /* DoubleTapButton.swift */,
+				A000003F4 /* GestureSettingsView.swift */,
+				A000003F5 /* KeyboardShortcutHandler.swift */,
+				A000003F6 /* MenuList_iOS.swift */,
+				A0000403 /* LowVisionStatusOverlay.swift */,
+				A000003F7 /* LoginView.swift */,
+				A000003F8 /* LoginView_iOS.swift */,
+				A000003F9 /* RegistrationView.swift */,
+				A000003FA /* ServerManagerView.swift */,
+				A000003FB /* ServerManagerView_iOS.swift */,
+				A000003FC /* MainView.swift */,
+				A000003FD /* MainViewModel.swift */,
+				A000003FE /* MainView_iOS.swift */,
+				A000003FF /* Assets.xcassets */,
+				A0000400 /* sounds */,
 			);
 			sourceTree = "<group>";
 		};
@@ -131,24 +135,13 @@
 		C0000007 = {
 			isa = PBXGroup;
 			children = (
-				C0000001,
+				C0000001 /*  */,
 				C0000006 /* Products */,
+				96BD6F9536B9578DDC11BD44 /* VoiceManager.swift */,
 			);
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
-
-/* Begin PBXResourcesBuildPhase section */
-		C0000010 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				B000003FF /* Sources/Assets.xcassets in Resources */,
-				B0000400 /* Sources/sounds in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXNativeTarget section */
 		C0000004 /* PlayPalace */ = {
@@ -164,6 +157,9 @@
 			dependencies = (
 			);
 			name = PlayPalace;
+			packageProductDependencies = (
+				1DAF07DAFFE511D58EB57476 /* LiveKit */,
+			);
 			productName = PlayPalace;
 			productReference = C0000005 /* PlayPalace.app */;
 			productType = "com.apple.product-type.application";
@@ -184,6 +180,9 @@
 				Base,
 			);
 			mainGroup = C0000007;
+			packageReferences = (
+				85AF047D5E6E0784F2514A78 /* XCRemoteSwiftPackageReference "client-sdk-swift" */,
+			);
 			productRefGroup = C0000006 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -193,39 +192,52 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXResourcesBuildPhase section */
+		C0000010 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B000003FF /* Assets.xcassets in Resources */,
+				B0000400 /* sounds in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		C0000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B000003E8 /* Sources/Accessibility/SpeechManager.swift in Sources */,
-				B0000401 /* Sources/Accessibility/LowVisionEnvironment.swift in Sources */,
-				B0000402 /* Sources/Accessibility/MenuItemIcon.swift in Sources */,
-				B000003E9 /* Sources/App/AppState.swift in Sources */,
-				B000003EA /* Sources/App/PlayPalaceApp.swift in Sources */,
-				B000003EB /* Sources/Audio/SoundManager.swift in Sources */,
-				B000003EC /* Sources/Models/BufferSystem.swift in Sources */,
-				B000003ED /* Sources/Models/ConfigManager.swift in Sources */,
-				B000003EE /* Sources/Models/Credentials.swift in Sources */,
-				B000003EF /* Sources/Models/GestureSettings.swift in Sources */,
-				B00000402 /* Sources/Models/IgnoreList.swift in Sources */,
-				B000003F0 /* Sources/Models/Packets.swift in Sources */,
-				B000003F1 /* Sources/Network/WebSocketClient.swift in Sources */,
-				B000003F2 /* Sources/Views/Components/AccessibleMenuList.swift in Sources */,
-				B000003F3 /* Sources/Views/Components/ActionBar.swift in Sources */,
-				B00000401 /* Sources/Views/Components/DoubleTapButton.swift in Sources */,
-				B000003F4 /* Sources/Views/Components/GestureSettingsView.swift in Sources */,
-				B000003F5 /* Sources/Views/Components/KeyboardShortcutHandler.swift in Sources */,
-				B000003F6 /* Sources/Views/Components/MenuList_iOS.swift in Sources */,
-				B0000403 /* Sources/Views/Components/LowVisionStatusOverlay.swift in Sources */,
-				B000003F7 /* Sources/Views/Login/LoginView.swift in Sources */,
-				B000003F8 /* Sources/Views/Login/LoginView_iOS.swift in Sources */,
-				B000003F9 /* Sources/Views/Login/RegistrationView.swift in Sources */,
-				B000003FA /* Sources/Views/Login/ServerManagerView.swift in Sources */,
-				B000003FB /* Sources/Views/Login/ServerManagerView_iOS.swift in Sources */,
-				B000003FC /* Sources/Views/Main/MainView.swift in Sources */,
-				B000003FD /* Sources/Views/Main/MainViewModel.swift in Sources */,
-				B000003FE /* Sources/Views/Main/MainView_iOS.swift in Sources */,
+				B000003E8 /* SpeechManager.swift in Sources */,
+				B0000401 /* LowVisionEnvironment.swift in Sources */,
+				B0000402 /* MenuItemIcon.swift in Sources */,
+				B000003E9 /* AppState.swift in Sources */,
+				B000003EA /* PlayPalaceApp.swift in Sources */,
+				B000003EB /* SoundManager.swift in Sources */,
+				B000003EC /* BufferSystem.swift in Sources */,
+				B000003ED /* ConfigManager.swift in Sources */,
+				B000003EE /* Credentials.swift in Sources */,
+				B000003EF /* GestureSettings.swift in Sources */,
+				B00000402 /* IgnoreList.swift in Sources */,
+				B000003F0 /* Packets.swift in Sources */,
+				B000003F1 /* WebSocketClient.swift in Sources */,
+				B000003F2 /* AccessibleMenuList.swift in Sources */,
+				B000003F3 /* ActionBar.swift in Sources */,
+				B00000401 /* DoubleTapButton.swift in Sources */,
+				B000003F4 /* GestureSettingsView.swift in Sources */,
+				B000003F5 /* KeyboardShortcutHandler.swift in Sources */,
+				B000003F6 /* MenuList_iOS.swift in Sources */,
+				B0000403 /* LowVisionStatusOverlay.swift in Sources */,
+				B000003F7 /* LoginView.swift in Sources */,
+				B000003F8 /* LoginView_iOS.swift in Sources */,
+				B000003F9 /* RegistrationView.swift in Sources */,
+				B000003FA /* ServerManagerView.swift in Sources */,
+				B000003FB /* ServerManagerView_iOS.swift in Sources */,
+				B000003FC /* MainView.swift in Sources */,
+				B000003FD /* MainViewModel.swift in Sources */,
+				B000003FE /* MainView_iOS.swift in Sources */,
+				11F39181D9735B96F30B0071 /* VoiceManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -242,12 +254,15 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "PlayPalace voice chat does not use the camera; this key is required because its audio library references camera APIs.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PlayPalace uses your microphone for table voice chat.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UIBackgroundModes = audio;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = ca.cobd.playpalace.ios;
 				PRODUCT_NAME = PlayPalace;
@@ -268,12 +283,15 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
+				INFOPLIST_KEY_NSCameraUsageDescription = "PlayPalace voice chat does not use the camera; this key is required because its audio library references camera APIs.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "PlayPalace uses your microphone for table voice chat.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIBackgroundModes = audio;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UIBackgroundModes = audio;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MARKETING_VERSION = 0.2;
 				PRODUCT_BUNDLE_IDENTIFIER = ca.cobd.playpalace.ios;
 				PRODUCT_NAME = PlayPalace;
@@ -330,6 +348,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		85AF047D5E6E0784F2514A78 /* XCRemoteSwiftPackageReference "client-sdk-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/livekit/client-sdk-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		1DAF07DAFFE511D58EB57476 /* LiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 85AF047D5E6E0784F2514A78 /* XCRemoteSwiftPackageReference "client-sdk-swift" */;
+			productName = LiveKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C000000E /* Project object */;
 }

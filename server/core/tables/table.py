@@ -91,6 +91,11 @@ class Table(DataClassJSONMixin):
         self.members = [m for m in self.members if m.username != username]
         self._users.pop(username, None)
 
+        # Notify the server so it can tear the member out of voice chat.
+        server = getattr(self, "_server", None)
+        if server is not None:
+            server.on_table_member_removed(self, username)
+
         # Destroy table if it's empty
         if not self.members:
             self.destroy()
