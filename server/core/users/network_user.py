@@ -16,6 +16,16 @@ if TYPE_CHECKING:
 _STICKY_POSITION_MARKER = "_sticky_position"
 
 
+def _menu_content(state: dict[str, Any]) -> dict[str, Any]:
+    """The fields of a stored menu state that the client renders.
+
+    ``position`` is excluded: it is a one-shot focus directive, not content,
+    and a repaint that omits it must still be skippable against a stored
+    state that recorded one.
+    """
+    return {k: v for k, v in state.items() if k != "position"}
+
+
 class NetworkUser(User):
     """
     Network implementation of User for real players connected via websocket.
@@ -50,6 +60,9 @@ class NetworkUser(User):
 
         # Track current UI state for session resumption
         self._current_menus: dict[str, dict[str, Any]] = {}
+        # The menu_id of the last menu packet actually sent; the content-diff
+        # skip only applies to repaints of this menu.
+        self._last_menu_packet_id: str | None = None
         self._current_editboxes: dict[str, dict[str, Any]] = {}
         self._current_music: dict[str, Any] | None = None
 
@@ -105,6 +118,8 @@ class NetworkUser(User):
         return self._connection
 
     def set_connection(self, connection: "ClientConnection") -> None:
+        # A fresh socket has no UI; the next menu paint must go out in full.
+        self._last_menu_packet_id = None
         """Update the active client connection."""
         self._connection = connection
 
@@ -313,22 +328,44 @@ class NetworkUser(User):
         previous_menu = self._current_menus.get(menu_id)
         escape_str = escape_behavior.value
 
-        sticky_position = False
-        if position is None and previous_menu:
-            previous_position = previous_menu.get("position")
-            if isinstance(previous_position, int) and previous_position > 0:
-                position = previous_position
-                sticky_position = True
-
-        # Store for session resumption
-        self._current_menus[menu_id] = {
+        state: dict[str, Any] = {
             "items": converted_items,
             "multiletter_enabled": multiletter,
             "escape_behavior": escape_str,
             "position": position,
             "grid_enabled": grid_enabled,
             "grid_width": grid_width,
+            "play_selection_sound": play_selection_sound,
+            "help_text": help_text,
+            "primary_action_id": primary_action_id,
         }
+
+        # Content-diff skip: a repaint of the menu the client is already
+        # displaying, with identical content and no explicit focus directive
+        # or sound cue, is a client-side no-op — don't spend a packet on it.
+        # Restricted to the menu named by _last_menu_packet_id so a re-show
+        # after the client moved to another menu or editbox always goes out
+        # in full. Stored state is left untouched so the remembered position
+        # survives.
+        if (
+            position is None
+            and not play_selection_sound
+            and menu_id == self._last_menu_packet_id
+            and previous_menu is not None
+            and _menu_content(previous_menu) == _menu_content(state)
+        ):
+            return
+
+        sticky_position = False
+        if position is None and previous_menu:
+            previous_position = previous_menu.get("position")
+            if isinstance(previous_position, int) and previous_position > 0:
+                position = previous_position
+                sticky_position = True
+        state["position"] = position
+
+        # Store for session resumption
+        self._current_menus[menu_id] = state
 
         packet: dict[str, Any] = {
             "type": "menu",
@@ -350,6 +387,7 @@ class NetworkUser(User):
             packet["help_text"] = help_text
         if primary_action_id is not None:
             packet["primary_action_id"] = primary_action_id
+        self._last_menu_packet_id = menu_id
         self._queue_packet(packet)
 
     def update_menu(
@@ -362,6 +400,17 @@ class NetworkUser(User):
     ) -> None:
         """Update an existing menu's items or selection."""
         converted_items = self._convert_items(items)
+
+        previous = self._current_menus.get(menu_id)
+        if (
+            position is None
+            and selection_id is None
+            and not play_selection_sound
+            and menu_id == self._last_menu_packet_id
+            and previous is not None
+            and previous.get("items") == converted_items
+        ):
+            return  # Content-diff skip; see show_menu.
 
         if menu_id in self._current_menus:
             self._current_menus[menu_id]["items"] = converted_items
@@ -384,11 +433,14 @@ class NetworkUser(User):
             packet["selection_id"] = selection_id
         if play_selection_sound:
             packet["play_selection_sound"] = True
+        self._last_menu_packet_id = menu_id
         self._queue_packet(packet)
 
     def remove_menu(self, menu_id: str) -> None:
         """Remove a menu from the client UI."""
         self._current_menus.pop(menu_id, None)
+        if self._last_menu_packet_id == menu_id:
+            self._last_menu_packet_id = None
         # Send empty menu to clear it
         self._queue_packet(
             {
@@ -426,6 +478,9 @@ class NetworkUser(User):
         }
         if content_format != "text":
             packet["content_format"] = content_format
+        # The editbox takes the client's screen; the next menu paint must be
+        # sent in full even if its content is unchanged.
+        self._last_menu_packet_id = None
         self._queue_packet(packet)
 
     def show_document_editor(
@@ -448,6 +503,9 @@ class NetworkUser(User):
         if source_content is not None:
             packet["source_content"] = source_content
             packet["source_label"] = source_label
+        # The document editor takes the client's screen; the next menu paint
+        # must be sent in full even if its content is unchanged.
+        self._last_menu_packet_id = None
         self._queue_packet(packet)
 
     def remove_editbox(self, input_id: str) -> None:
@@ -459,4 +517,5 @@ class NetworkUser(User):
         """Clear menus, editboxes, and UI state for the client."""
         self._current_menus.clear()
         self._current_editboxes.clear()
+        self._last_menu_packet_id = None
         self._queue_packet({"type": "clear_ui"})

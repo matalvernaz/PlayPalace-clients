@@ -209,8 +209,8 @@ def test_flush_does_not_treat_sticky_restored_position_as_explicit():
     # The repaint restores the stored position (sticky); the follow-up update
     # has no focus of its own and must not inherit the restored position as
     # if it were an explicit directive.
-    user.show_menu("m", ["a", "b"])
-    user.update_menu("m", ["a", "b"])
+    user.show_menu("m", ["a", "b", "c"])
+    user.update_menu("m", ["a", "b", "c", "d"])
 
     packets = drain_messages(user)
     assert len(packets) == 1
@@ -224,10 +224,89 @@ def test_flush_strips_sticky_marker_from_wire_packets():
     user.show_menu("m", ["a", "b"], position=2)
     drain_messages(user)
 
-    user.show_menu("m", ["a", "b"])
+    user.show_menu("m", ["a", "b", "c"])
     packets = drain_messages(user)
     assert packets[0]["position"] == 1
     assert "_sticky_position" not in packets[0]
+
+
+def test_identical_repaint_of_current_menu_is_skipped():
+    user = _coalescing_user()
+    user.show_menu("m", ["a", "b"])
+    drain_messages(user)
+
+    user.show_menu("m", ["a", "b"])
+    assert drain_messages(user) == []
+
+    user.update_menu("m", ["a", "b"])
+    assert drain_messages(user) == []
+
+    # Explicit focus bypasses the skip.
+    user.update_menu("m", ["a", "b"], selection_id="x")
+    packets = drain_messages(user)
+    assert len(packets) == 1 and packets[0]["selection_id"] == "x"
+
+
+def test_repaint_after_another_menu_sends_even_if_unchanged():
+    user = _coalescing_user()
+    user.show_menu("m", ["a"])
+    user.show_menu("other", ["y"])
+    drain_messages(user)
+
+    user.show_menu("m", ["a"])
+    packets = drain_messages(user)
+    assert len(packets) == 1 and packets[0]["menu_id"] == "m"
+
+
+def test_repaint_after_editbox_sends_even_if_unchanged():
+    user = _coalescing_user()
+    user.show_menu("m", ["a"])
+    drain_messages(user)
+
+    user.show_editbox("e", "Prompt")
+    drain_messages(user)
+
+    user.show_menu("m", ["a"])
+    packets = drain_messages(user)
+    assert len(packets) == 1 and packets[0]["menu_id"] == "m"
+
+
+def test_repaint_after_reconnect_sends_even_if_unchanged():
+    user = _coalescing_user()
+    user.show_menu("m", ["a"])
+    drain_messages(user)
+
+    user.set_connection(DummyConnection())
+    user.show_menu("m", ["a"])
+    packets = drain_messages(user)
+    assert len(packets) == 1 and packets[0]["menu_id"] == "m"
+
+
+def test_help_text_change_is_content_and_sends():
+    user = _coalescing_user()
+    user.show_menu("m", ["a"], help_text="one")
+    drain_messages(user)
+
+    user.show_menu("m", ["a"], help_text="two")
+    packets = drain_messages(user)
+    assert len(packets) == 1 and packets[0]["help_text"] == "two"
+
+    user.show_menu("m", ["a"], help_text="two")
+    assert drain_messages(user) == []
+
+
+def test_skipped_repaint_preserves_remembered_position():
+    user = _coalescing_user()
+    user.show_menu("m", ["a", "b"], position=2)
+    drain_messages(user)
+
+    user.show_menu("m", ["a", "b"])  # skipped
+    assert drain_messages(user) == []
+
+    # Content change later still restores the remembered position.
+    user.show_menu("m", ["a", "b", "c"])
+    packets = drain_messages(user)
+    assert packets[0]["position"] == 1
 
 
 def test_flush_keeps_distinct_menus_and_remove_wins_when_last():
