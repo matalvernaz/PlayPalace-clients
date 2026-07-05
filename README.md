@@ -441,3 +441,7 @@ Key behaviors:
 - `fallback_behavior = "disabled"` keeps any unassigned bots offline, eliminating random tables when testing.
 
 This setup is ideal when you want to observe repeated starts/finishes of one game (e.g., Crazy Eights) without human supervision.
+
+## License
+
+Licensing is per directory: `server/` is GPL-2.0 (it incorporates code adapted from [PlayAural](https://github.com/Daoductrung/PlayAural)), and everything else — including all clients — is MIT. See the root `LICENSE` file for the breakdown, `server/LICENSE` for the GPL text, and `LICENSE.MIT` for the MIT text.
