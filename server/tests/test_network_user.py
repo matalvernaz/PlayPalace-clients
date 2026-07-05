@@ -156,3 +156,89 @@ def test_setters_for_trust_preferences_and_approval():
 
     user.set_approved(True)
     assert user.approved is True
+
+
+def _coalescing_user() -> NetworkUser:
+    return NetworkUser("frank", "en", DummyConnection())
+
+
+def test_flush_coalesces_repaints_of_same_menu_keeping_order():
+    user = _coalescing_user()
+    user.show_menu("turn_menu", ["Draw"])
+    user.speak("between")
+    user.show_menu("turn_menu", ["Draw", "Pass"])
+
+    packets = drain_messages(user)
+    assert [p["type"] for p in packets] == ["speak", "menu"]
+    assert packets[1]["items"] == ["Draw", "Pass"]
+
+
+def test_flush_carries_explicit_selection_onto_surviving_repaint():
+    user = _coalescing_user()
+    items = [
+        MenuItem(text="Card 1", id="card_1"),
+        MenuItem(text="Card 2", id="card_2"),
+    ]
+    user.update_menu("hand", items, selection_id="card_2")
+    user.show_menu("hand", items)
+
+    packets = drain_messages(user)
+    assert len(packets) == 1
+    menu = packets[0]
+    assert menu["selection_id"] == "card_2"
+    assert "_sticky_position" not in menu
+    # The surviving packet is the show form, so full config is present.
+    assert "escape_behavior" in menu
+
+
+def test_flush_carries_explicit_position_onto_surviving_repaint():
+    user = _coalescing_user()
+    user.update_menu("board", ["a", "b", "c"], position=2)
+    user.update_menu("board", ["a", "b", "c"])
+
+    packets = drain_messages(user)
+    assert len(packets) == 1
+    assert packets[0]["position"] == 1  # zero-based on the wire
+
+
+def test_flush_does_not_treat_sticky_restored_position_as_explicit():
+    user = _coalescing_user()
+    user.show_menu("m", ["a", "b"], position=2)
+    drain_messages(user)
+
+    # The repaint restores the stored position (sticky); the follow-up update
+    # has no focus of its own and must not inherit the restored position as
+    # if it were an explicit directive.
+    user.show_menu("m", ["a", "b"])
+    user.update_menu("m", ["a", "b"])
+
+    packets = drain_messages(user)
+    assert len(packets) == 1
+    assert "position" not in packets[0]
+    assert packets[0].get("selection_id") is None
+    assert "_sticky_position" not in packets[0]
+
+
+def test_flush_strips_sticky_marker_from_wire_packets():
+    user = _coalescing_user()
+    user.show_menu("m", ["a", "b"], position=2)
+    drain_messages(user)
+
+    user.show_menu("m", ["a", "b"])
+    packets = drain_messages(user)
+    assert packets[0]["position"] == 1
+    assert "_sticky_position" not in packets[0]
+
+
+def test_flush_keeps_distinct_menus_and_remove_wins_when_last():
+    user = _coalescing_user()
+    user.show_menu("a_menu", ["x"])
+    user.show_menu("b_menu", ["y"])
+    packets = drain_messages(user)
+    assert [p["menu_id"] for p in packets] == ["a_menu", "b_menu"]
+
+    user.show_menu("a_menu", ["x"])
+    user.remove_menu("a_menu")
+    packets = drain_messages(user)
+    assert len(packets) == 1
+    assert packets[0]["items"] == []

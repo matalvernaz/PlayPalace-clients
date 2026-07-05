@@ -9,6 +9,12 @@ from .preferences import UserPreferences
 if TYPE_CHECKING:
     from ...network.websocket_server import ClientConnection
 
+# Internal marker for a menu position restored from stored menu state rather
+# than requested by the caller. Stripped from packets before they reach the
+# wire; the flush coalescer must not treat restored positions as explicit
+# focus intent.
+_STICKY_POSITION_MARKER = "_sticky_position"
+
 
 class NetworkUser(User):
     """
@@ -151,10 +157,78 @@ class NetworkUser(User):
         self._queue_packet(packet)
 
     def get_queued_messages(self) -> list[dict[str, Any]]:
-        """Get and clear the message queue."""
+        """Get and clear the message queue, coalescing redundant menu repaints.
+
+        When more than one ``menu`` packet for the same ``menu_id`` is queued
+        in a single flush — e.g. an action handler rebuilds a menu and the
+        event framework rebuilds it again on the same tick — only the last one
+        survives. This collapses double-sends (duplicate screen-reader
+        announcements and focus churn) without games having to police their
+        own rebuild calls. The batch's most recent explicit focus directive
+        (``selection_id`` or a caller-supplied ``position``) is carried onto
+        the surviving repaint; positions restored from stored menu state do
+        not count as explicit. Non-menu packets, and menus with distinct ids,
+        pass through untouched and in order.
+        """
         messages = self._message_queue
         self._message_queue = []
-        return messages
+
+        last_menu_index: dict[str, int] = {}
+        last_focus: dict[str, dict[str, Any]] = {}
+        for i, packet in enumerate(messages):
+            if packet.get("type") != "menu":
+                continue
+            menu_id = packet.get("menu_id")
+            if menu_id is None:
+                continue
+            last_menu_index[menu_id] = i
+            if self._has_explicit_focus(packet):
+                last_focus[menu_id] = {
+                    "selection_id": packet.get("selection_id"),
+                    "position": packet.get("position"),
+                }
+
+        if not last_menu_index:
+            return messages
+
+        coalesced: list[dict[str, Any]] = []
+        for i, packet in enumerate(messages):
+            if packet.get("type") == "menu":
+                menu_id = packet.get("menu_id")
+                if menu_id is not None:
+                    if last_menu_index[menu_id] != i:
+                        continue  # superseded by a later repaint of the same menu
+                    focus = last_focus.get(menu_id)
+                    if focus is not None and not self._has_explicit_focus(packet):
+                        # Carry the batch's latest explicit focus onto the
+                        # surviving repaint without mutating the original.
+                        packet = {**packet}
+                        if focus["selection_id"] is not None:
+                            packet["selection_id"] = focus["selection_id"]
+                        if focus["position"] is not None:
+                            packet["position"] = focus["position"]
+                if _STICKY_POSITION_MARKER in packet:
+                    packet = {
+                        k: v
+                        for k, v in packet.items()
+                        if k != _STICKY_POSITION_MARKER
+                    }
+            coalesced.append(packet)
+        return coalesced
+
+    @staticmethod
+    def _has_explicit_focus(packet: dict[str, Any]) -> bool:
+        """Whether a menu packet carries caller-requested focus.
+
+        A position restored from stored menu state (sticky marker) is not
+        explicit intent.
+        """
+        if packet.get("selection_id") is not None:
+            return True
+        return (
+            packet.get("position") is not None
+            and not packet.get(_STICKY_POSITION_MARKER)
+        )
 
     def speak(self, text: str, buffer: str = "misc") -> None:
         """Queue a speech message for the client."""
@@ -239,10 +313,12 @@ class NetworkUser(User):
         previous_menu = self._current_menus.get(menu_id)
         escape_str = escape_behavior.value
 
+        sticky_position = False
         if position is None and previous_menu:
             previous_position = previous_menu.get("position")
             if isinstance(previous_position, int) and previous_position > 0:
                 position = previous_position
+                sticky_position = True
 
         # Store for session resumption
         self._current_menus[menu_id] = {
@@ -266,6 +342,8 @@ class NetworkUser(User):
         if position is not None:
             # Convert 1-based to 0-based for client
             packet["position"] = position - 1
+            if sticky_position:
+                packet[_STICKY_POSITION_MARKER] = True
         if play_selection_sound:
             packet["play_selection_sound"] = True
         if help_text is not None:
