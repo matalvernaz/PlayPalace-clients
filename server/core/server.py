@@ -34,6 +34,14 @@ from .tick import TickScheduler, load_server_config
 from .administration import AdministrationMixin
 from .documents.browsing import DocumentBrowsingMixin, _DOCUMENTS_DIR
 from .documents.transcriber_role import TranscriberRoleMixin
+from .menu_pagination import (
+    MENU_PAGE_IDS,
+    MENU_PAGE_SUMMARY,
+    page_for_selection,
+    page_summary_item,
+    paginate_sequence,
+    pagination_menu_items,
+)
 from .virtual_bots import VirtualBotManager
 from ..network.websocket_server import WebSocketServer, ClientConnection
 from ..persistence.database import Database, UserRecord
@@ -2404,6 +2412,33 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             return True
         return selection_id in allowed_ids
 
+    def _handle_menu_pagination(
+        self, user: NetworkUser, state: dict, selection_id: str
+    ) -> bool:
+        """Route pagination-control selections for paginated server menus.
+
+        Returns True when the selection was a pagination control (or the
+        informational summary row) and has been fully handled.
+        """
+        if selection_id == MENU_PAGE_SUMMARY:
+            return True  # Informational row; keep the menu as-is.
+        if selection_id not in MENU_PAGE_IDS:
+            return False
+        reshow_name = state.get("page_reshow")
+        if not reshow_name:
+            return False
+        page = page_for_selection(
+            selection_id, state.get("page", 1), state.get("pages", 1)
+        )
+        if page is None:
+            return False
+        reshow = getattr(self, reshow_name, None)
+        if not callable(reshow):
+            return False
+        state["page"] = page
+        reshow(user)
+        return True
+
     async def _dispatch_menu_selection(
         self,
         user: NetworkUser,
@@ -2510,6 +2545,8 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             ),
         }
         if not current_menu:
+            return
+        if self._handle_menu_pagination(user, state, selection_id):
             return
         handler_entry = handlers.get(current_menu)
         if not handler_entry:
@@ -4675,25 +4712,46 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
     def _show_online_users_menu(self, user: NetworkUser) -> None:
         """Show online users with games in a read-only menu."""
         current_state = self._user_states.get(user.username, {})
-        previous_menu_id = current_state.get("menu")
-        previous_menu = None
-        if previous_menu_id:
-            current_menus = getattr(user, "_current_menus", {})
-            previous_menu = current_menus.get(previous_menu_id)
+        reshowing = current_state.get("menu") == "online_users"
+        if reshowing:
+            # Page navigation within the menu: keep the original return
+            # context instead of capturing the menu as its own return target.
+            page = current_state.get("page", 1)
+            previous_menu_id = current_state.get("return_menu_id")
+            previous_menu = current_state.get("return_menu")
+            return_state = current_state.get("return_state", {})
+            return_music = current_state.get("return_music")
+        else:
+            page = 1
+            previous_menu_id = current_state.get("menu")
+            previous_menu = None
+            if previous_menu_id:
+                current_menus = getattr(user, "_current_menus", {})
+                previous_menu = current_menus.get(previous_menu_id)
+            return_state = dict(current_state)
+            previous_music = getattr(user, "_current_music", None)
+            return_music = (
+                dict(previous_music) if isinstance(previous_music, dict) else None
+            )
 
         entries = self._collect_online_users_entries(user)
+        page_data = paginate_sequence(entries, page)
+        items = []
+        if page_data.total_pages > 1:
+            items.append(page_summary_item(user.locale, page_data))
         if entries:
-            items = [
+            items.extend(
                 MenuItem(text=line, id="online_user", meta={"username": username})
-                for username, line in entries
-            ]
+                for username, line in page_data.items
+            )
         else:
-            items = [
+            items.append(
                 MenuItem(
                     text=Localization.get(user.locale, "online-users-none"),
                     id="online_user",
                 )
-            ]
+            )
+        items.extend(pagination_menu_items(user.locale, page_data))
         user.show_menu(
             "online_users",
             items,
@@ -4701,14 +4759,17 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             escape_behavior=EscapeBehavior.SELECT_LAST,
             position=0,
         )
-        previous_music = getattr(user, "_current_music", None)
-        user.play_music("playersmus.ogg")
+        if not reshowing:
+            user.play_music("playersmus.ogg")
         self._user_states[user.username] = {
             "menu": "online_users",
+            "page": page_data.page,
+            "pages": page_data.total_pages,
+            "page_reshow": "_show_online_users_menu",
             "return_menu_id": previous_menu_id,
             "return_menu": previous_menu,
-            "return_state": dict(current_state),
-            "return_music": dict(previous_music) if isinstance(previous_music, dict) else None,
+            "return_state": return_state,
+            "return_music": return_music,
         }
 
     def _restore_previous_menu(self, user: NetworkUser, state: dict) -> None:

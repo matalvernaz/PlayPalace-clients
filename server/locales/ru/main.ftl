@@ -451,3 +451,11 @@ user-muted = Muted { $player } from voice chat.
 user-unmuted = Unmuted { $player }.
 you-have-been-muted = You have been muted from voice chat.
 you-have-been-unmuted = Your mute has been lifted.
+
+# Pagination controls for large server menus
+menu-page-summary = Showing { $start }-{ $end } of { $total } entries. Page { $page } of { $pages }.
+menu-page-refresh = Refresh list
+menu-page-first = First page
+menu-page-previous = Previous page
+menu-page-next = Next page
+menu-page-last = Last page

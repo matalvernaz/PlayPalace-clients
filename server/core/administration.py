@@ -7,6 +7,11 @@ from typing import TYPE_CHECKING
 from .users.network_user import NetworkUser
 from .users.base import MenuItem, EscapeBehavior, TrustLevel
 from ..messages.localization import Localization
+from .menu_pagination import (
+    page_summary_item,
+    paginate_sequence,
+    pagination_menu_items,
+)
 from .ui.common_flows import show_yes_no_menu
 
 if TYPE_CHECKING:
@@ -145,22 +150,50 @@ class AdministrationMixin:
         self._user_states[user.username] = {"menu": "admin_menu"}
 
     def _show_user_list_menu(
-        self, user: NetworkUser, menu_id: str, users, id_prefix: str
+        self,
+        user: NetworkUser,
+        menu_id: str,
+        users,
+        id_prefix: str,
+        *,
+        reshow: str | None = None,
     ) -> None:
-        """Show a menu built from a list of user records.
+        """Show a menu built from a list of user records, paged past 100 rows.
 
         Args:
             user: The admin viewing the menu.
             menu_id: Menu identifier for the client.
             users: Iterable of objects with a ``.username`` attribute.
             id_prefix: Prefix for menu item IDs (e.g. ``"pending"``).
+            reshow: Name of the server method that rebuilds this menu;
+                enables page-navigation controls when the list spans
+                multiple pages.
         """
-        items = [MenuItem(text=u.username, id=f"{id_prefix}_{u.username}") for u in users]
+        usernames = [u.username for u in users]
+        state = self._user_states.get(user.username, {})
+        page = state.get("page", 1) if state.get("menu") == menu_id else 1
+        page_data = paginate_sequence(usernames, page)
+
+        items: list[MenuItem] = []
+        if page_data.total_pages > 1:
+            items.append(page_summary_item(user.locale, page_data))
+        items.extend(
+            MenuItem(text=name, id=f"{id_prefix}_{name}") for name in page_data.items
+        )
+        if reshow:
+            items.extend(pagination_menu_items(user.locale, page_data))
         items.append(MenuItem(text=Localization.get(user.locale, "back"), id="back"))
         user.show_menu(
             menu_id, items, multiletter=True, escape_behavior=EscapeBehavior.SELECT_LAST
         )
-        self._user_states[user.username] = {"menu": menu_id}
+        new_state = {
+            "menu": menu_id,
+            "page": page_data.page,
+            "pages": page_data.total_pages,
+        }
+        if reshow:
+            new_state["page_reshow"] = reshow
+        self._user_states[user.username] = new_state
 
     def _show_account_approval_menu(self, user: NetworkUser) -> None:
         """Show account approval menu with pending users."""
@@ -171,7 +204,7 @@ class AdministrationMixin:
             self._show_admin_menu(user)
             return
 
-        self._show_user_list_menu(user, "account_approval_menu", pending, "pending")
+        self._show_user_list_menu(user, "account_approval_menu", pending, "pending", reshow="_show_account_approval_menu")
 
     def _show_pending_user_actions_menu(self, user: NetworkUser, pending_username: str) -> None:
         """Show actions for a pending user (approve, decline)."""
@@ -200,7 +233,7 @@ class AdministrationMixin:
             self._show_admin_menu(user)
             return
 
-        self._show_user_list_menu(user, "promote_admin_menu", non_admins, "promote")
+        self._show_user_list_menu(user, "promote_admin_menu", non_admins, "promote", reshow="_show_promote_admin_menu")
 
     def _show_demote_admin_menu(self, user: NetworkUser) -> None:
         """Show demote admin menu with list of admin users."""
@@ -215,7 +248,7 @@ class AdministrationMixin:
             self._show_admin_menu(user)
             return
 
-        self._show_user_list_menu(user, "demote_admin_menu", admins, "demote")
+        self._show_user_list_menu(user, "demote_admin_menu", admins, "demote", reshow="_show_demote_admin_menu")
 
     def _show_reset_password_user_menu(self, user: NetworkUser) -> None:
         """Show reset password menu with users admins may reset."""
@@ -308,7 +341,7 @@ class AdministrationMixin:
             self._show_admin_menu(user)
             return
 
-        self._show_user_list_menu(user, "transfer_ownership_menu", admins, "transfer")
+        self._show_user_list_menu(user, "transfer_ownership_menu", admins, "transfer", reshow="_show_transfer_ownership_menu")
 
     def _show_transfer_ownership_confirm_menu(
         self, user: NetworkUser, target_username: str
@@ -351,7 +384,7 @@ class AdministrationMixin:
             self._show_admin_menu(user)
             return
 
-        self._show_user_list_menu(user, "ban_user_menu", bannable_users, "ban")
+        self._show_user_list_menu(user, "ban_user_menu", bannable_users, "ban", reshow="_show_ban_user_menu")
 
     def _show_unban_user_menu(self, user: NetworkUser) -> None:
         """Show unban user menu with list of banned users."""
@@ -362,7 +395,7 @@ class AdministrationMixin:
             self._show_admin_menu(user)
             return
 
-        self._show_user_list_menu(user, "unban_user_menu", banned_users, "unban")
+        self._show_user_list_menu(user, "unban_user_menu", banned_users, "unban", reshow="_show_unban_user_menu")
 
     def _show_ban_confirm_menu(self, user: NetworkUser, target_username: str) -> None:
         """Show confirmation menu for banning a user."""
@@ -785,7 +818,7 @@ class AdministrationMixin:
             user.speak_l("no-users-to-mute", buffer="misc")
             self._show_admin_menu(user)
             return
-        self._show_user_list_menu(user, "mute_user_menu", candidates, "mute")
+        self._show_user_list_menu(user, "mute_user_menu", candidates, "mute", reshow="_show_mute_user_menu")
 
     def _show_unmute_user_menu(self, user: NetworkUser) -> None:
         """Show unmute menu listing currently-muted users."""
