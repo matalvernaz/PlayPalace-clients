@@ -27,16 +27,22 @@ class EventHandlingMixin:
 
     def handle_event(self, player: "Player", event: dict) -> None:
         """Handle an event from a player."""
-        event_type = event.get("type")
+        try:
+            event_type = event.get("type")
 
-        if event_type == "menu":
-            self._handle_menu_event(player, event)
+            if event_type == "menu":
+                self._handle_menu_event(player, event)
 
-        elif event_type == "editbox":
-            self._handle_editbox_event(player, event)
+            elif event_type == "editbox":
+                self._handle_editbox_event(player, event)
 
-        elif event_type == "keybind":
-            self._handle_keybind_event(player, event)
+            elif event_type == "keybind":
+                self._handle_keybind_event(player, event)
+        finally:
+            # Paint any menus marked dirty during the event exactly once, so
+            # a handler's focus request and the framework's trailing repaint
+            # coalesce into a single paint.
+            self.flush_menus()
 
     def _handle_menu_event(self, player: "Player", event: dict) -> None:
         """Handle a menu selection event."""
@@ -86,8 +92,10 @@ class EventHandlingMixin:
 
         if input_id == "action_input_editbox":
             # Handle action input editbox submission
+            return_focus = None
             if player.id in self._pending_actions:
                 action_id = self._pending_actions.pop(player.id)
+                return_focus = self._pending_action_return_focus.pop(player.id, None)
                 if text:  # Non-empty input
                     # Re-check enabled at submit time. Action was enabled
                     # when input was requested, but game state can shift
@@ -95,8 +103,17 @@ class EventHandlingMixin:
                     # changed). Mirrors the guard in _handle_turn_menu_selection.
                     action = self.find_action(player, action_id)
                     if action and self.resolve_action(player, action).enabled:
-                        self.execute_action(player, action_id, text)
-            self.rebuild_player_menu(player)
+                        from ..games.base import ActionContext
+
+                        context = (
+                            ActionContext(menu_item_id=return_focus)
+                            if return_focus
+                            else None
+                        )
+                        self.execute_action(player, action_id, text, context=context)
+            if not text and return_focus:
+                self.request_menu_focus(player, return_focus)
+            self.refresh_menus(player)
 
     def _handle_keybind_event(self, player: "Player", event: dict) -> None:
         """Handle a keybind press event."""
@@ -186,19 +203,34 @@ class EventHandlingMixin:
                 self.rebuild_all_menus()
 
     def _handle_action_input_menu(self, player: "Player", event: dict, selection_id: str) -> None:
+        cancelled = False
+        return_focus = None
         if player.id in self._pending_actions:
             action_id = self._pending_actions.pop(player.id)
+            return_focus = self._pending_action_return_focus.pop(player.id, None)
             resolved_selection_id = selection_id or self._resolve_action_input_selection_id(
                 player, action_id, event
             )
-            if resolved_selection_id and resolved_selection_id != "_cancel":
-                self.execute_action(player, action_id, resolved_selection_id)
+            if resolved_selection_id in ("_cancel", "back"):
+                cancelled = True
+                cancel_hook = getattr(self, "_on_action_input_cancelled", None)
+                if cancel_hook:
+                    cancel_hook(player, action_id)
+            elif resolved_selection_id:
+                from ..games.base import ActionContext
+
+                context = (
+                    ActionContext(menu_item_id=return_focus) if return_focus else None
+                )
+                self.execute_action(player, action_id, resolved_selection_id, context=context)
         if (
             player.id not in self._pending_actions
             and not self._is_transient_display_open(player)
             and player.id not in self._actions_menu_open
         ):
-            self.rebuild_player_menu(player)
+            if cancelled and return_focus:
+                self.request_menu_focus(player, return_focus)
+            self.refresh_menus(player)
 
     def _resolve_action_input_selection_id(
         self, player: "Player", action_id: str, event: dict

@@ -134,6 +134,7 @@ class MockUser(User):
         multiletter: bool = True,
         escape_behavior: EscapeBehavior = EscapeBehavior.KEYBIND,
         position: int | None = None,
+        selection_id: str | None = None,
         grid_enabled: bool = False,
         grid_width: int = 1,
         play_selection_sound: bool = False,
@@ -146,6 +147,7 @@ class MockUser(User):
             "multiletter": multiletter,
             "escape_behavior": escape_behavior,
             "position": position,
+            "selection_id": selection_id,
             "grid_enabled": grid_enabled,
             "grid_width": grid_width,
         }

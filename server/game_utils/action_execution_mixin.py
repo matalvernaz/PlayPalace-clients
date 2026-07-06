@@ -150,6 +150,13 @@ class ActionExecutionMixin:
             return req.default
         return None
 
+    def _get_action_return_focus_id(
+        self, player: "Player", fallback_action_id: str | None
+    ) -> str | None:
+        """Return the menu item that should receive focus after an overlay closes."""
+        context = self.get_action_context(player)
+        return context.menu_item_id or fallback_action_id
+
     def _request_action_input(self, action: Action, player: "Player") -> None:
         """Request input from a human player for an action."""
         user = self.get_user(player)
@@ -157,13 +164,27 @@ class ActionExecutionMixin:
             return
 
         req = action.input_request
+        if isinstance(req, MenuInput) and req.pre_input_check:
+            pre_input_check = getattr(self, req.pre_input_check, None)
+            if pre_input_check:
+                reason = pre_input_check(player, action.id)
+                if reason:
+                    if isinstance(reason, tuple):
+                        user.speak_l(reason[0], **reason[1])
+                    else:
+                        user.speak_l(reason)
+                    return
         self._pending_actions[player.id] = action.id
+        return_focus = self._get_action_return_focus_id(player, action.id)
+        if return_focus:
+            self._pending_action_return_focus[player.id] = return_focus
 
         if isinstance(req, MenuInput):
             options = self._get_menu_options_for_action(action, player)
             if not options:
                 # No options available
                 del self._pending_actions[player.id]
+                self._pending_action_return_focus.pop(player.id, None)
                 user.speak_l("no-options-available")
                 return
 
@@ -175,11 +196,24 @@ class ActionExecutionMixin:
                 if meta and isinstance(meta, MenuOption):
                     menu_option_meta = meta
 
+            option_label_method = None
+            if req.option_label:
+                option_label_method = getattr(self, req.option_label, None)
+            initial_selection = None
+            if req.initial_selection:
+                initial_selection_method = getattr(self, req.initial_selection, None)
+                if initial_selection_method:
+                    initial_selection = initial_selection_method(player, options)
+                    if initial_selection not in options:
+                        initial_selection = None
+
             # Build menu items with localized labels if available
             items = []
             for opt in options:
                 if menu_option_meta:
                     display_text = menu_option_meta.get_localized_choice(opt, user.locale)
+                elif option_label_method:
+                    display_text = option_label_method(player, opt)
                 else:
                     display_text = opt
                 items.append(MenuItem(text=display_text, id=opt))
@@ -191,6 +225,7 @@ class ActionExecutionMixin:
                 items,
                 multiletter=True,
                 escape_behavior=EscapeBehavior.SELECT_LAST,
+                selection_id=initial_selection,
             )
 
         elif isinstance(req, EditboxInput):

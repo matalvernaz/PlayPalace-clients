@@ -313,6 +313,7 @@ class NetworkUser(User):
         multiletter: bool = True,
         escape_behavior: EscapeBehavior = EscapeBehavior.KEYBIND,
         position: int | None = None,
+        selection_id: str | None = None,
         grid_enabled: bool = False,
         grid_width: int = 1,
         play_selection_sound: bool = False,
@@ -349,6 +350,7 @@ class NetworkUser(User):
         # survives.
         if (
             position is None
+            and selection_id is None
             and not play_selection_sound
             and menu_id == self._last_menu_packet_id
             and previous_menu is not None
@@ -357,12 +359,18 @@ class NetworkUser(User):
             return
 
         sticky_position = False
-        if position is None and previous_menu:
+        if position is None and selection_id is None and previous_menu:
             previous_position = previous_menu.get("position")
             if isinstance(previous_position, int) and previous_position > 0:
                 position = previous_position
                 sticky_position = True
-        state["position"] = position
+        if position is None and selection_id is not None:
+            for i, item in enumerate(items, 1):
+                if isinstance(item, MenuItem) and item.id == selection_id:
+                    state["position"] = i
+                    break
+        else:
+            state["position"] = position
 
         # Store for session resumption
         self._current_menus[menu_id] = state
@@ -381,6 +389,8 @@ class NetworkUser(User):
             packet["position"] = position - 1
             if sticky_position:
                 packet[_STICKY_POSITION_MARKER] = True
+        if selection_id is not None:
+            packet["selection_id"] = selection_id
         if play_selection_sound:
             packet["play_selection_sound"] = True
         if help_text is not None:

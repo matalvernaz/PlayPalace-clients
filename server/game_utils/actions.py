@@ -28,12 +28,21 @@ class MenuInput(DataClassJSONMixin):
         options: Method name returning list[str] options.
         bot_select: Optional method name for bot auto-selection.
         include_cancel: Whether to append a cancel option (default True).
+        pre_input_check: Optional method name returning a disabled reason
+            (str or (key, params) tuple) that blocks opening the menu.
+        option_label: Optional method name returning a localized display
+            label for an option id.
+        initial_selection: Optional method name returning the option id to
+            focus when the menu opens.
     """
 
     prompt: str  # Localization key for menu title/prompt
     options: str  # Method name that returns list[str]
     bot_select: str | None = None  # Method name for bot auto-selection
     include_cancel: bool = True
+    pre_input_check: str | None = None
+    option_label: str | None = None
+    initial_selection: str | None = None
 
 
 @dataclass

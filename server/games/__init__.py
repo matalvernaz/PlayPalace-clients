@@ -29,6 +29,7 @@ from .explodingkittens.game import ExplodingKittensGame
 from .blackjack.game import BlackjackGame
 from .twentyone import TwentyOneGame
 from .bunko.game import BunkoGame
+from .colorgame.game import ColorGameGame
 
 # --- Poker family ---
 from .fivecarddraw.game import FiveCardDrawGame

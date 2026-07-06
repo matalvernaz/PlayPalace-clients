@@ -214,6 +214,14 @@ class Game(
             str, list[Keybind]
         ] = {}  # key -> list of Keybinds (allows same key for different states)
         self._pending_actions: dict[str, str] = {}  # player_id -> action_id (waiting for input)
+        self._pending_action_return_focus: dict[
+            str, str
+        ] = {}  # player_id -> menu item to refocus after an input overlay closes
+        self._pending_menu_focus: dict[
+            str, str
+        ] = {}  # player_id -> one-shot focus intent for the next menu paint
+        self._menu_dirty: set[str] = set()  # player_ids needing a menu repaint
+        self._menu_dirty_all: bool = False  # every player needs a repaint
         self._action_context: dict[
             str, ActionContext
         ] = {}  # player_id -> context during action execution

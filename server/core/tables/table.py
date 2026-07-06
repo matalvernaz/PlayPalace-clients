@@ -132,9 +132,10 @@ class Table(DataClassJSONMixin):
             user.play_sound(name, volume)
 
     def on_tick(self) -> None:
-        """Called every tick. Forwards to game."""
+        """Called every tick. Forwards to game, then paints dirty menus."""
         if self._game:
             self._game.on_tick()
+            self._game.flush_menus()
 
     def handle_event(self, username: str, event: dict) -> None:
         """Handle an event from a member."""

@@ -178,12 +178,18 @@ class MenuManagementMixin:
         if hasattr(self, "get_primary_action_id"):
             primary_action_id = self.get_primary_action_id(player)
 
+        # A queued one-shot focus intent is consumed by this paint.
+        selection_id = None
+        if position is None:
+            selection_id = self._pending_menu_focus.pop(player.id, None)
+
         user.show_menu(
             "turn_menu",
             items,
             multiletter=False,
             escape_behavior=EscapeBehavior.KEYBIND,
             position=position,
+            selection_id=selection_id,
             help_text=help_text,
             primary_action_id=primary_action_id,
         )
@@ -196,27 +202,46 @@ class MenuManagementMixin:
             self.rebuild_player_menu(player)
 
     def refresh_menus(self, player: "Player | None" = None) -> None:
-        """Repaint ``player``'s menu (or every player's).
+        """Mark ``player`` (or every player) as needing a menu repaint.
 
-        Adapter for the PlayAural menu API used by ported games. Repaints
-        are cheap to over-request here: same-tick duplicates coalesce at
-        flush time and identical repaints are skipped against the last-sent
-        state, so a blanket refresh after any state change costs at most one
-        packet per menu that actually changed.
+        Recording only — painting happens in :meth:`flush_menus`, which the
+        framework calls at the end of ``handle_event`` and once per tick.
+        Over-marking is cheap: a repaint costs at most one packet per menu
+        that actually changed, and identical repaints are skipped against
+        the last-sent state.
         """
         if player is None:
-            self.rebuild_all_menus()
+            self._menu_dirty_all = True
         else:
-            self.rebuild_player_menu(player)
+            self._menu_dirty.add(player.id)
+
+    def flush_menus(self) -> None:
+        """Paint menus for players marked dirty since the last flush."""
+        if self._destroyed:
+            return
+        if self._menu_dirty_all:
+            self._menu_dirty_all = False
+            self._menu_dirty.clear()
+            self.rebuild_all_menus()
+            return
+        if not self._menu_dirty:
+            return
+        dirty = list(self._menu_dirty)
+        self._menu_dirty.clear()
+        for player_id in dirty:
+            player = self.get_player_by_id(player_id)
+            if player:
+                self.rebuild_player_menu(player)
 
     def request_menu_focus(self, player: "Player", action_id: str) -> None:
-        """Move ``player``'s menu focus to ``action_id``.
+        """Queue a one-shot focus jump to ``action_id`` for ``player``.
 
-        Adapter for the PlayAural menu API used by ported games. Sends an
-        explicit focus directive; if a blanket repaint follows in the same
-        flush, the directive is carried onto the surviving packet.
+        Adapter for the PlayAural menu API. The intent is a single
+        per-player slot (last writer wins) consumed by the next turn-menu
+        repaint. Event flows repaint when they finish; callers outside an
+        event flow should follow up with ``refresh_menus(player)``.
         """
-        self.update_player_menu(player, selection_id=action_id)
+        self._pending_menu_focus[player.id] = action_id
 
     def update_player_menu(
         self,
