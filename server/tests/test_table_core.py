@@ -28,6 +28,9 @@ class DummyGame:
     def handle_event(self, player, event):
         self.events.append((player.name, event))
 
+    def flush_menus(self):
+        pass
+
     def to_json(self):
         self.saved += 1
         return f"saved-{self.saved}"

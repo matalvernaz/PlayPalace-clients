@@ -36,8 +36,12 @@ class StubUser:
         multiletter: bool = True,
         escape_behavior: EscapeBehavior = EscapeBehavior.KEYBIND,
         position: int | None = None,
+        selection_id: str | None = None,
         grid_enabled: bool = False,
         grid_width: int = 1,
+        help_text: str | None = None,
+        primary_action_id: str | None = None,
+        play_selection_sound: bool = False,
     ) -> None:
         self.menus.append(
             {
@@ -139,6 +143,10 @@ def test_prediction_formats_results(monkeypatch):
 class DummyActionGame(ActionExecutionMixin):
     def __init__(self):
         self._pending_actions: dict[str, str] = {}
+        self._pending_action_return_focus: dict[str, str] = {}
+        self._pending_menu_focus: dict[str, str] = {}
+        self._menu_dirty: set[str] = set()
+        self._menu_dirty_all: bool = False
         self._action_context: dict[str, object] = {}
         self.actions: dict[str, Action] = {}
         self.resolved: dict[tuple[str, str], ResolvedAction] = {}

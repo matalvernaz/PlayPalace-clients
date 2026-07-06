@@ -54,6 +54,10 @@ class DummyGame(EventHandlingMixin):
     def __init__(self):
         self._actions_menu_open: set[str] = set()
         self._pending_actions: dict[str, str] = {}
+        self._pending_action_return_focus: dict[str, str] = {}
+        self._pending_menu_focus: dict[str, str] = {}
+        self._menu_dirty: set[str] = set()
+        self._menu_dirty_all: bool = False
         self._transient_display_state: dict[str, TransientDisplayState] = {}
         self._keybinds: dict[str, list[DummyKeybind]] = {}
         self._visible_actions: list[DummyResolved] = []
@@ -111,6 +115,18 @@ class DummyGame(EventHandlingMixin):
     def rebuild_player_menu(self, _player: Player) -> None:
         self.rebuild_player_calls += 1
 
+    def refresh_menus(self, player: Player | None = None) -> None:
+        if player is None:
+            self.rebuild_all_menus()
+        else:
+            self.rebuild_player_menu(player)
+
+    def request_menu_focus(self, player: Player, action_id: str) -> None:
+        self._pending_menu_focus[player.id] = action_id
+
+    def flush_menus(self) -> None:
+        pass
+
     def _is_player_spectator(self, player: Player) -> bool:
         return player.is_spectator
 
@@ -143,6 +159,10 @@ class DummyEndScreenGame(GameResultMixin, EventHandlingMixin):
         self._transient_display_state: dict[str, TransientDisplayState] = {}
         self._actions_menu_open: set[str] = set()
         self._pending_actions: dict[str, str] = {}
+        self._pending_action_return_focus: dict[str, str] = {}
+        self._pending_menu_focus: dict[str, str] = {}
+        self._menu_dirty: set[str] = set()
+        self._menu_dirty_all: bool = False
         self._keybinds = {}
         self._users: dict[str, DummyUser] = {}
         self.executed: list[tuple[str, str, dict]] = []
@@ -161,6 +181,15 @@ class DummyEndScreenGame(GameResultMixin, EventHandlingMixin):
 
     def get_all_visible_actions(self, _player: Player):
         return []
+
+    def refresh_menus(self, player: Player | None = None) -> None:
+        pass
+
+    def request_menu_focus(self, player: Player, action_id: str) -> None:
+        self._pending_menu_focus[player.id] = action_id
+
+    def flush_menus(self) -> None:
+        pass
 
     def _is_player_spectator(self, player: Player) -> bool:
         return player.is_spectator
