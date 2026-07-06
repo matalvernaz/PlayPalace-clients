@@ -31,6 +31,7 @@ from .twentyone import TwentyOneGame
 from .bunko.game import BunkoGame
 from .colorgame.game import ColorGameGame
 from .uno.game import UnoGame
+from .tienlen.game import TienLenGame
 
 # --- Poker family ---
 from .fivecarddraw.game import FiveCardDrawGame

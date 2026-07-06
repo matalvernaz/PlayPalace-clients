@@ -1,216 +1,198 @@
+# Vietnamese translations for UNO.
+# NOTE: agent-authored, provisional — needs native-speaker review.
+
 game-name-uno = UNO
 
 # Colors
-uno-color-red = Red
-uno-color-yellow = Yellow
-uno-color-green = Green
-uno-color-blue = Blue
-uno-color-wild = Wild
+uno-color-red = Đỏ
+uno-color-yellow = Vàng
+uno-color-green = Xanh lá
+uno-color-blue = Xanh dương
+uno-color-wild = Đổi màu
 
 # Card names
 uno-card-number = { $color } { $value }
-uno-card-skip = { $color } Skip
-uno-card-reverse = { $color } Reverse
-uno-card-draw-two = { $color } Draw Two
-uno-card-wild = Wild
-uno-card-wild-four = Wild Draw Four
+uno-card-skip = { $color } Mất lượt
+uno-card-reverse = { $color } Đảo chiều
+uno-card-draw-two = { $color } Rút Hai
+uno-card-wild = Đổi màu
+uno-card-wild-four = Đổi màu Rút Bốn
 
 # Options
-uno-set-winning-score = Score limit: { $score }
-uno-enter-winning-score = Enter score limit
-uno-option-changed-winning-score = Score limit set to { $score }.
-uno-desc-winning-score = Score limit used by the selected UNO scoring mode (default 300, range 10-2000).
+uno-set-winning-score = Giới hạn điểm: { $score }
+uno-enter-winning-score = Nhập giới hạn điểm
+uno-option-changed-winning-score = Giới hạn điểm đã được đặt là { $score }.
+uno-desc-winning-score = Mốc điểm được chế độ tính điểm UNO đã chọn sử dụng (mặc định 300, phạm vi 10-2000).
 
-uno-set-scoring-mode = Scoring: { $mode }
-uno-select-scoring-mode = Select scoring mode
-uno-option-changed-scoring-mode = Scoring set to { $mode }.
-uno-desc-scoring-mode = Chooses whether the first player to reach the limit wins, or players at the limit are eliminated.
-uno-scoring-first = First to limit wins
-uno-scoring-elimination = Elimination
+uno-set-scoring-mode = Cách tính điểm: { $mode }
+uno-select-scoring-mode = Chọn cách tính điểm
+uno-option-changed-scoring-mode = Cách tính điểm đã được đặt là { $mode }.
+uno-desc-scoring-mode = Chọn người đầu tiên đạt mốc sẽ thắng, hoặc người chạm mốc sẽ bị loại.
+uno-scoring-first = Ai đạt giới hạn trước thì thắng
+uno-scoring-elimination = Loại trực tiếp
 
-uno-set-skip-after-draw = Draw penalties skip turn: { $enabled }
-uno-option-changed-skip-after-draw = Draw penalties skip turn { $enabled }.
-uno-desc-skip-after-draw = Controls whether Draw Two and Wild Draw Four penalties also skip the target's turn.
+uno-set-skip-after-draw = Hình phạt rút bài làm mất lượt: { $enabled }
+uno-option-changed-skip-after-draw = Hình phạt rút bài làm mất lượt { $enabled }.
+uno-desc-skip-after-draw = Quy định phạt Rút Hai và Rút Bốn có làm người bị phạt mất lượt hay không.
 
-uno-set-responses = Stacking responses: { $enabled }
-uno-option-changed-responses = Stacking responses { $enabled }.
-uno-desc-responses = Allows players to stack draw cards in response to Draw Two or Wild Draw Four penalties.
+uno-set-responses = Chồng lá rút: { $enabled }
+uno-option-changed-responses = Chồng lá rút { $enabled }.
+uno-desc-responses = Cho phép người chơi chồng lá rút để đáp lại phạt Rút Hai hoặc Rút Bốn.
 
-uno-set-advanced-responses = Advanced responses: { $enabled }
-uno-option-changed-advanced-responses = Advanced responses { $enabled }.
-uno-desc-advanced-responses = Allows extra defensive responses to draw stacks, such as matching Skip, Reverse, or Wild cards. Requires Stacking responses.
+uno-set-advanced-responses = Phản đòn nâng cao: { $enabled }
+uno-option-changed-advanced-responses = Phản đòn nâng cao { $enabled }.
+uno-desc-advanced-responses = Cho phép thêm phản ứng phòng thủ với chồng rút, như lá Chặn, Đổi chiều hoặc Đổi màu hợp lệ. Cần bật Chồng lá rút.
 
-uno-set-wait-for-draw-responses = Wait for draw responses: { $enabled }
-uno-option-changed-wait-for-draw-responses = Wait for draw responses { $enabled }.
-uno-desc-wait-for-draw-responses = If the last card creates a draw stack, waits for the next player to respond or draw before scoring the round. Requires Stacking responses.
+uno-set-wait-for-draw-responses = Chờ phản đòn khi hết bài: { $enabled }
+uno-option-changed-wait-for-draw-responses = Chờ phản đòn khi hết bài { $enabled }.
+uno-desc-wait-for-draw-responses = Nếu lá cuối tạo chồng rút, chờ người kế tiếp phản ứng hoặc rút bài trước khi tính điểm vòng. Cần bật Chồng lá rút.
 
-uno-set-bluff = Wild Draw Four challenges: { $enabled }
-uno-option-changed-bluff = Wild Draw Four challenges { $enabled }.
-uno-desc-bluff = Enables Wild Draw Four challenge rules for illegal plays.
+uno-set-bluff = Thách thức Đổi màu Rút Bốn: { $enabled }
+uno-option-changed-bluff = Thách thức Đổi màu Rút Bốn { $enabled }.
+uno-desc-bluff = Bật luật thách thức Rút Bốn khi nghi ngờ đánh sai luật.
 
-uno-set-straights = Straights: { $enabled }
-uno-option-changed-straights = Straights { $enabled }.
-uno-desc-straights = Lets a player continue out of turn with the next or previous number of the same color after a number card.
+uno-set-straights = Đánh liên tiếp: { $enabled }
+uno-option-changed-straights = Đánh liên tiếp { $enabled }.
+uno-desc-straights = Cho phép người vừa đánh lá số tiếp tục chen lượt bằng số liền trước hoặc liền sau cùng màu.
 
-uno-set-interceptions = Interceptions: { $enabled }
-uno-option-changed-interceptions = Interceptions { $enabled }.
-uno-desc-interceptions = Lets players jump in out of turn with an exact matching card. Invalid attempts add 3 penalty points.
+uno-set-interceptions = Cướp lượt: { $enabled }
+uno-option-changed-interceptions = Cướp lượt { $enabled }.
+uno-desc-interceptions = Cho phép người chơi chen lượt bằng lá trùng chính xác. Thử sai sẽ cộng 3 điểm phạt.
 
-uno-set-super-interceptions = Super interceptions: { $enabled }
-uno-option-changed-super-interceptions = Super interceptions { $enabled }.
-uno-desc-super-interceptions = Expands interceptions to match number or action symbol even when the color differs. Requires Interceptions.
+uno-set-super-interceptions = Cướp lượt nâng cao: { $enabled }
+uno-option-changed-super-interceptions = Cướp lượt nâng cao { $enabled }.
+uno-desc-super-interceptions = Mở rộng chen lượt để trùng số hoặc ký hiệu hành động ngay cả khi khác màu. Cần bật Chen lượt.
 
-uno-set-zero-seven = Zero / seven rule: { $enabled }
-uno-option-changed-zero-seven = Zero / seven rule { $enabled }.
-uno-desc-zero-seven-rule = Enables the house rule where 0 rotates everyone's hands and 7 lets the player swap hands or decline.
+uno-set-zero-seven = Luật số 0 và 7: { $enabled }
+uno-option-changed-zero-seven = Luật số 0 và 7 { $enabled }.
+uno-desc-zero-seven-rule = Bật luật nhà: lá 0 xoay tay bài mọi người, lá 7 cho người đánh đổi tay bài với người khác hoặc bỏ qua.
 
-uno-set-free-draws = Free draws per turn: { $count }
-uno-enter-free-draws = Enter free draws per turn
-uno-option-changed-free-draws = Free draws per turn set to { $count }.
-uno-desc-free-draws = How many times a human player may draw despite holding a playable card (default 0, range 0-999).
+uno-set-free-draws = Số lần rút tự do mỗi lượt: { $count }
+uno-enter-free-draws = Nhập số lần rút tự do mỗi lượt
+uno-option-changed-free-draws = Số lần rút tự do mỗi lượt đã được đặt là { $count }.
+uno-desc-free-draws = Số lần một người chơi thật được rút dù đang có lá đánh được (mặc định 0, phạm vi 0-999).
 
 # Option validation
-uno-error-advanced-responses-require-responses = Advanced responses require Stacking responses to be enabled.
-uno-error-wait-responses-require-responses = Wait for draw responses requires Stacking responses to be enabled.
-uno-error-super-interceptions-require-interceptions = Super interceptions require Interceptions to be enabled.
+uno-error-advanced-responses-require-responses = Muốn bật Phản đòn nâng cao thì trước hết phải bật Chồng lá rút.
+uno-error-wait-responses-require-responses = Muốn bật Chờ phản đòn khi hết bài thì trước hết phải bật Chồng lá rút.
+uno-error-super-interceptions-require-interceptions = Muốn bật Cướp lượt nâng cao thì trước hết phải bật Cướp lượt.
 
 # Actions
-uno-draw = Draw
+uno-draw = Rút bài
 uno-say-uno = UNO
-uno-read-top = Read top card
-uno-read-color = Read current color
-uno-read-counts = Read card counts
-uno-read-hand = Read your hand value
-uno-sort-color = Sort by color
-uno-sort-number = Sort by number
+uno-read-top = Đọc lá bài trên cùng
+uno-read-color = Đọc màu hiện tại
+uno-read-counts = Đọc số lượng bài
+uno-read-hand = Đọc giá trị bài trên tay
+uno-sort-color = Sắp xếp theo màu
+uno-sort-number = Sắp xếp theo số
 
 # Gameplay announcements
-uno-new-hand = Round { $round }.
-uno-start-card = { $player } turns up { $card }.
-uno-you-start-card = You turn up { $card }.
-uno-current-color = Current color: { $color }.
-uno-dealt-cards = Everyone is dealt { $cards } cards.
-uno-choose-opening-color-you = Choose the opening color.
-uno-choose-opening-color-player = { $player } must choose the opening color.
-uno-direction-reversed = The direction is reversed.
-uno-player-plays = { $player } plays { $card }.
-uno-you-play = You play { $card }.
-uno-player-chooses-color = { $player } chooses { $color }.
-uno-you-choose-color = You choose { $color }.
-uno-player-draws-one = { $player } draws a card.
-uno-player-draws-many = { $player } draws { $count } cards.
-uno-you-draw-one = You draw a card.
-uno-you-draw-many = You draw { $count } cards.
-uno-cant-play = { $player } can't play.
-uno-you-cant-play = You can't play.
-uno-you-skipped = You are skipped.
-uno-says-uno = { $player } says UNO!
-uno-you-say-uno = You say UNO!
-uno-callout = { $caller } calls out { $player } for not saying UNO! { $player } draws { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-you-callout = You call out { $player } for not saying UNO! { $player } draws { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-callout-you = { $caller } calls you out for not saying UNO! You draw { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-error-already-said-uno = You have already said UNO.
-uno-error-no-uno-call = No UNO call is available right now.
-uno-cannot-play-that = You cannot play { $card }. { $reason }
-uno-reshuffle = Reshuffling the discard pile.
-uno-hand-blocked = No one can play. The round ends.
-uno-error-choose-color-first = Choose a color for your Wild card before playing another card.
-uno-error-wait-color-choice = Wait for the Wild card's player to choose a color before playing.
-uno-error-wild-transition = Wait for the chosen color to take effect before playing another card.
-uno-error-choose-swap-first = Choose a hand-swap target or decline before taking another action.
-uno-error-wait-swap-choice = Wait for the seven hand-swap choice to finish before playing.
-uno-error-wait-next-hand = Wait for the next round to begin before playing a card.
-uno-error-wait-intro = Wait for the round setup to finish before playing a card.
-uno-reason-draw-stack-response = There is a draw stack of { $count } { $count ->
-    [one] card
-   *[other] cards
-} against you; play a valid response card or draw the penalty.
-uno-reason-draw-stack-no-response = There is a draw penalty of { $count } { $count ->
-    [one] card
-   *[other] cards
-} against you, and stacking responses are off; draw the penalty instead.
-uno-reason-match-required = The top card is { $top }, and the active color is { $color }; match the color, match the number or action symbol, or play a Wild card.
-uno-reason-card-not-available = That card is not available in the current state.
+uno-new-hand = Vòng { $round }.
+uno-start-card = { $player } lật lá { $card }.
+uno-you-start-card = Bạn lật lá { $card }.
+uno-current-color = Màu hiện tại: { $color }.
+uno-dealt-cards = Mỗi người được chia { $cards } lá bài.
+uno-choose-opening-color-you = Hãy chọn màu mở đầu.
+uno-choose-opening-color-player = { $player } phải chọn màu mở đầu.
+uno-direction-reversed = Hướng chơi đã bị đảo chiều.
+uno-player-plays = { $player } đánh { $card }.
+uno-you-play = Bạn đánh { $card }.
+uno-player-chooses-color = { $player } chọn { $color }.
+uno-you-choose-color = Bạn chọn { $color }.
+uno-player-draws-one = { $player } rút một lá bài.
+uno-player-draws-many = { $player } rút { $count } lá bài.
+uno-you-draw-one = Bạn rút một lá bài.
+uno-you-draw-many = Bạn rút { $count } lá bài.
+uno-cant-play = { $player } không đánh được.
+uno-you-cant-play = Bạn không đánh được.
+uno-you-skipped = Bạn bị mất lượt.
+uno-says-uno = { $player } hô UNO!
+uno-you-say-uno = Bạn hô UNO!
+uno-callout = { $caller } bắt lỗi { $player } vì không hô UNO! { $player } rút { $count } lá.
+uno-you-callout = Bạn bắt lỗi { $player } vì không hô UNO! { $player } rút { $count } lá.
+uno-callout-you = { $caller } bắt lỗi bạn vì không hô UNO! Bạn rút { $count } lá.
+uno-error-already-said-uno = Bạn đã hô UNO rồi.
+uno-error-no-uno-call = Hiện không có lượt hô hoặc bắt lỗi UNO nào.
+uno-cannot-play-that = Bạn không thể đánh { $card }. { $reason }
+uno-reshuffle = Đang xáo lại chồng bài đã đánh.
+uno-hand-blocked = Không ai đánh được. Vòng này kết thúc.
+uno-error-choose-color-first = Hãy chọn màu cho lá Đổi màu trước khi đánh lá khác.
+uno-error-wait-color-choice = Hãy chờ người vừa đánh lá Đổi màu chọn màu trước khi đánh tiếp.
+uno-error-wild-transition = Hãy chờ màu vừa chọn có hiệu lực rồi mới đánh lá tiếp theo.
+uno-error-choose-swap-first = Hãy chọn người để đổi bài, hoặc từ chối, trước khi làm hành động khác.
+uno-error-wait-swap-choice = Hãy chờ lựa chọn đổi bài của lá số 7 kết thúc trước khi đánh tiếp.
+uno-error-wait-next-hand = Hãy chờ vòng tiếp theo bắt đầu rồi mới đánh bài.
+uno-error-wait-intro = Hãy chờ phần chuẩn bị vòng chơi kết thúc rồi mới đánh bài.
+uno-reason-draw-stack-response = Bạn đang chịu chồng lá rút { $count } lá; hãy đánh một lá phản đòn hợp lệ hoặc rút hình phạt.
+uno-reason-draw-stack-no-response = Bạn đang chịu hình phạt rút { $count } lá, và Chồng lá rút đang tắt; hãy rút hình phạt.
+uno-reason-match-required = Lá trên cùng là { $top }, màu hiện tại là { $color }; hãy đánh đúng màu, đúng số hoặc biểu tượng chức năng, hoặc đánh một lá Đổi màu.
+uno-reason-card-not-available = Lá này không dùng được trong trạng thái hiện tại.
 
 # Bluff challenge
-uno-bluff-challenge = Challenge Wild Draw Four
-uno-bluff-caught = { $player } played an illegal Wild Draw Four and draws { $count } cards!
-uno-you-bluff-caught = You played an illegal Wild Draw Four and draw { $count } cards!
-uno-bluff-wrong = { $player } challenged the Wild Draw Four incorrectly and draws { $count } cards!
-uno-you-bluff-wrong = You challenged the Wild Draw Four incorrectly and draw { $count } cards!
+uno-bluff-challenge = Thách thức Đổi màu Rút Bốn
+uno-bluff-caught = { $player } đã đánh lá Đổi màu Rút Bốn không hợp lệ và phải rút { $count } lá!
+uno-you-bluff-caught = Bạn đã đánh lá Đổi màu Rút Bốn không hợp lệ và phải rút { $count } lá!
+uno-bluff-wrong = { $player } thách thức lá Đổi màu Rút Bốn sai và phải rút { $count } lá!
+uno-you-bluff-wrong = Bạn thách thức lá Đổi màu Rút Bốn sai và phải rút { $count } lá!
 
 # Zero / seven rule
-uno-rotate-hands = Everyone passes their hand!
-uno-swap-hands = { $player } swaps hands with { $target }!
-uno-you-swap = You swap hands with { $target }!
-uno-swap-with-you = { $player } swaps hands with you!
-uno-swap-with = Swap hands with { $player }
-uno-choose-swap = Choose a player to swap hands with, or decline.
-uno-swap-none = Don't swap
-uno-you-swap-none = You keep your hand.
-uno-swap-none-other = { $player } keeps their hand.
+uno-rotate-hands = Mọi người chuyền bài trên tay!
+uno-swap-hands = { $player } đổi bài với { $target }!
+uno-you-swap = Bạn đổi bài với { $target }!
+uno-swap-with-you = { $player } đổi bài với bạn!
+uno-swap-with = Đổi bài với { $player }
+uno-choose-swap = Chọn người để đổi bài, hoặc từ chối.
+uno-swap-none = Không đổi
+uno-you-swap-none = Bạn giữ nguyên bài của mình.
+uno-swap-none-other = { $player } giữ nguyên bài của mình.
 
 # Interceptions / straights
-uno-player-intercepts = { $player } intercepts with { $card }!
-uno-you-intercept = You intercept with { $card }!
-uno-bad-intercept = Invalid interception. { $points } penalty points.
-uno-not-your-turn = It's not your turn.
+uno-player-intercepts = { $player } cướp lượt bằng { $card }!
+uno-you-intercept = Bạn cướp lượt bằng { $card }!
+uno-bad-intercept = Cướp lượt không hợp lệ. Phạt { $points } điểm.
+uno-not-your-turn = Chưa tới lượt bạn.
 
 # Info
-uno-no-top = There is no top card yet.
+uno-no-top = Chưa có lá bài trên cùng.
 uno-top-card = { $card }.
 uno-color-is = { $color }.
-uno-count-you = You { $count }
+uno-count-you = Bạn { $count }
 uno-count-player = { $player } { $count }
-uno-deck-count = deck { $count }
-uno-sorting-color = Sorting by color.
-uno-sorting-number = Sorting by number.
+uno-deck-count = bộ bài { $count }
+uno-sorting-color = Sắp xếp theo màu.
+uno-sorting-number = Sắp xếp theo số.
 
 # Round / game end
-uno-round-winner = { $player } wins the round!
-uno-you-win-round = You win the round!
-uno-round-points-from = { $points } from { $player }
-uno-round-points-from-you = { $points } from you
-uno-round-points-from-with-interception = { $points } from { $player } ({ $hand_points } hand + { $penalty } interception penalty)
-uno-round-points-from-you-with-interception = { $points } from you ({ $hand_points } hand + { $penalty } interception penalty)
-uno-round-details-none = No points were taken from opponents.
-uno-round-summary = { $details }. { $player } gains { $total }.
-uno-round-summary-you = { $details }. You gain { $total }.
-uno-you-add-penalty-points = You add { $points } penalty points to your total for this round.
-uno-player-adds-penalty-points = { $player } adds { $points } penalty points to their total for this round.
-uno-you-add-penalty-points-with-interception = You add { $points } penalty points to your total for this round ({ $hand_points } from your hand plus { $penalty } interception penalty).
-uno-player-adds-penalty-points-with-interception = { $player } adds { $points } penalty points to their total for this round ({ $hand_points } from their hand plus { $penalty } interception penalty).
-uno-you-are-eliminated = You have reached the { $limit }-point elimination limit and are out of the game.
-uno-player-is-eliminated = { $player } has reached the { $limit }-point elimination limit and is out of the game.
+uno-round-winner = { $player } thắng vòng này!
+uno-you-win-round = Bạn thắng vòng này!
+uno-round-points-from = { $points } từ { $player }
+uno-round-points-from-you = { $points } từ bạn
+uno-round-points-from-with-interception = { $points } từ { $player } ({ $hand_points } điểm bài + { $penalty } điểm phạt cướp lượt)
+uno-round-points-from-you-with-interception = { $points } từ bạn ({ $hand_points } điểm bài + { $penalty } điểm phạt cướp lượt)
+uno-round-details-none = Không lấy được điểm nào từ đối thủ.
+uno-round-summary = { $details }. { $player } nhận được { $total }.
+uno-round-summary-you = { $details }. Bạn nhận được { $total }.
+uno-you-add-penalty-points = Bạn bị cộng { $points } điểm phạt vào tổng điểm sau vòng này.
+uno-player-adds-penalty-points = { $player } bị cộng { $points } điểm phạt vào tổng điểm sau vòng này.
+uno-you-add-penalty-points-with-interception = Bạn bị cộng { $points } điểm phạt vào tổng điểm sau vòng này ({ $hand_points } từ bài trên tay cộng { $penalty } điểm phạt cướp lượt).
+uno-player-adds-penalty-points-with-interception = { $player } bị cộng { $points } điểm phạt vào tổng điểm sau vòng này ({ $hand_points } từ bài trên tay cộng { $penalty } điểm phạt cướp lượt).
+uno-you-are-eliminated = Bạn đã chạm mức loại { $limit } điểm và phải rời ván.
+uno-player-is-eliminated = { $player } đã chạm mức loại { $limit } điểm và phải rời ván.
 uno-you-win-game =
     { $mode ->
-        [elimination] You are the last player remaining and win with { $score } penalty points.
-       *[first_to_limit] You win the game with { $score } points!
+        [elimination] Bạn là người cuối cùng còn lại và thắng với { $score } điểm phạt.
+       *[first_to_limit] Bạn thắng cả ván với { $score } điểm!
     }
 uno-player-wins-game =
     { $mode ->
-        [elimination] { $player } is the last player remaining and wins with { $score } penalty points.
-       *[first_to_limit] { $player } wins the game with { $score } points!
+        [elimination] { $player } là người cuối cùng còn lại và thắng với { $score } điểm phạt.
+       *[first_to_limit] { $player } thắng cả ván với { $score } điểm!
     }
-uno-game-tie = Everyone has been eliminated. The game is a tie!
+uno-game-tie = Tất cả đều bị loại. Ván đấu hòa!
 uno-line-format = { $rank }. { $player }: { $score }
-uno-score-line-first = { $player }: { $score }/{ $target } points.
-uno-score-line-elimination = { $player }: { $score }/{ $target } penalty points.
+uno-score-line-first = { $player }: { $score }/{ $target } điểm.
+uno-score-line-elimination = { $player }: { $score }/{ $target } điểm phạt.
 
-# Hand value (d key)
-uno-read-hand-value = { $count ->
-    [one] { $count } card
-   *[other] { $count } cards
- } worth { $points ->
-    [one] { $points } point
-   *[other] { $points } points
- }.
+# Hand value (phím d)
+uno-read-hand-value = { $count } lá, trị giá { $points } điểm.
