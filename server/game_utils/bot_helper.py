@@ -133,6 +133,12 @@ class BotHelper:
         if not current or not current.is_bot:
             return
 
+        # Sync dynamic action sets before the bot reads or executes them.
+        # Bots have no rendered menus, so a paint-driven sync can go stale
+        # between repaints (e.g. a card drawn since the last menu build).
+        if hasattr(game, "before_menu_build"):
+            game.before_menu_build(current)
+
         # Count down thinking time
         if current.bot_think_ticks > 0:
             current.bot_think_ticks -= 1

@@ -146,6 +146,15 @@ class MenuManagementMixin:
                 state.positions[current_path_key] = index
                 return
 
+    def before_menu_build(self, player: "Player") -> None:
+        """Hook: sync dynamic action sets before any menu paint.
+
+        Called at the top of every per-player menu paint, before the
+        destroyed/finished early-outs — so action sets are also refreshed
+        for bots (whose menus are never rendered but whose action sets
+        drive bot decisions). Must be idempotent. Default is a no-op.
+        """
+
     def rebuild_player_menu(self, player: "Player", *, position: int | None = None) -> None:
         """Rebuild the turn menu for a player.
 
@@ -159,6 +168,7 @@ class MenuManagementMixin:
                 Pass position=1 in _start_turn for the current player to avoid
                 this.
         """
+        self.before_menu_build(player)
         if self._destroyed:
             return
         if self.status == "finished":
@@ -238,10 +248,12 @@ class MenuManagementMixin:
 
         Adapter for the PlayAural menu API. The intent is a single
         per-player slot (last writer wins) consumed by the next turn-menu
-        repaint. Event flows repaint when they finish; callers outside an
-        event flow should follow up with ``refresh_menus(player)``.
+        repaint. Requesting focus also marks the player for repaint; no
+        separate ``refresh_menus`` call is needed unless other players'
+        menus changed too.
         """
         self._pending_menu_focus[player.id] = action_id
+        self._menu_dirty.add(player.id)
 
     def update_player_menu(
         self,
