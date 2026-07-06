@@ -28,8 +28,8 @@ def test_diceset_discards_inconsistent_values():
 
 def test_diceset_filters_out_of_range_indices():
     d = DiceSet(num_dice=3, sides=6, values=[1, 2, 3], kept=[0, 9], locked=[-1, 2])
-    assert d.kept == [0]
-    assert d.locked == [2]
+    assert d.kept == {0}
+    assert d.locked == {2}
 
 
 def test_diceset_bad_load_then_roll_no_indexerror():
