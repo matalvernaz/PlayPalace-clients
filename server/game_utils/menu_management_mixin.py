@@ -195,6 +195,29 @@ class MenuManagementMixin:
         for player in self.players:
             self.rebuild_player_menu(player)
 
+    def refresh_menus(self, player: "Player | None" = None) -> None:
+        """Repaint ``player``'s menu (or every player's).
+
+        Adapter for the PlayAural menu API used by ported games. Repaints
+        are cheap to over-request here: same-tick duplicates coalesce at
+        flush time and identical repaints are skipped against the last-sent
+        state, so a blanket refresh after any state change costs at most one
+        packet per menu that actually changed.
+        """
+        if player is None:
+            self.rebuild_all_menus()
+        else:
+            self.rebuild_player_menu(player)
+
+    def request_menu_focus(self, player: "Player", action_id: str) -> None:
+        """Move ``player``'s menu focus to ``action_id``.
+
+        Adapter for the PlayAural menu API used by ported games. Sends an
+        explicit focus directive; if a blanket repaint follows in the same
+        flush, the directive is carried onto the surviving packet.
+        """
+        self.update_player_menu(player, selection_id=action_id)
+
     def update_player_menu(
         self,
         player: "Player",

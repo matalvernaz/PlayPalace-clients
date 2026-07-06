@@ -24,6 +24,7 @@ from ..game_utils.game_result_mixin import GameResultMixin
 from ..game_utils.duration_estimate_mixin import DurationEstimateMixin
 from ..game_utils.game_scores_mixin import GameScoresMixin
 from ..game_utils.game_prediction_mixin import GamePredictionMixin
+from ..game_utils.sequence_runner_mixin import SequenceRunnerMixin, SequenceState
 from ..game_utils.turn_management_mixin import TurnManagementMixin
 from ..game_utils.menu_management_mixin import MenuManagementMixin
 from ..game_utils.action_visibility_mixin import ActionVisibilityMixin
@@ -33,6 +34,10 @@ from ..game_utils.action_set_creation_mixin import ActionSetCreationMixin
 from ..game_utils.action_execution_mixin import ActionExecutionMixin
 from ..game_utils.action_set_system_mixin import ActionSetSystemMixin
 from ..game_utils.game_status import GameStatus
+from ..game_utils.client_types import (
+    is_touch_client_type as _is_touch_client_type,
+    user_is_touch_client,
+)
 from server.core.ui.keybinds import Keybind
 
 
@@ -132,6 +137,7 @@ class Game(
     DurationEstimateMixin,
     GameScoresMixin,
     GamePredictionMixin,
+    SequenceRunnerMixin,
     TurnManagementMixin,
     MenuManagementMixin,
     ActionVisibilityMixin,
@@ -187,6 +193,8 @@ class Game(
     # Sound scheduler state (serialized for persistence)
     scheduled_sounds: list = field(default_factory=list)  # [[tick, sound, vol, pan, pitch], ...]
     sound_scheduler_tick: int = 0  # Current tick counter
+    # Cinematic sequence runner state (serialized for persistence)
+    active_sequences: list[SequenceState] = field(default_factory=list)
     # Event queue state (serialized for persistence)
     event_queue: list[tuple[int, str, dict]] = field(
         default_factory=list
@@ -248,6 +256,19 @@ class Game(
                                 "Action '%s': %s='%s' does not resolve on %s",
                                 action.id, attr_name, method_name, type(self).__name__,
                             )
+
+    @staticmethod
+    def is_touch_client_type(client_type: str | None) -> bool:
+        """Return True for touch-oriented clients."""
+        return _is_touch_client_type(client_type or "")
+
+    def is_touch_client(self, user: "User | None") -> bool:
+        """Return True if the provided user is on a touch-oriented client."""
+        return bool(user and user_is_touch_client(user))
+
+    def is_touch_player(self, player: Player) -> bool:
+        """Return True if the player's attached user is on a touch-oriented client."""
+        return self.is_touch_client(self.get_user(player))
 
     # Abstract methods games must implement
 

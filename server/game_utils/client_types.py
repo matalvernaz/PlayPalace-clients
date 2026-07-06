@@ -19,3 +19,9 @@ def is_touch_client_type(client_type: str) -> bool:
 def uses_self_voicing(client_type: str) -> bool:
     """Return True if the client manages its own TTS/speech output."""
     return client_type in ("mobile", "macos")
+
+
+def user_is_touch_client(user) -> bool:
+    """Return True if a user-like object is connected from a touch client."""
+    client_type = getattr(user, "client_type", "") or ""
+    return is_touch_client_type(client_type)
