@@ -26,55 +26,72 @@ struct MainView: View {
     @State private var showingGestureSettings = false
     @State private var showingEventLog = false
 
+    /// True while a surface that takes over input and speech sits on top of
+    /// the game area (any sheet, the edit overlay, or the connect alert).
+    private var modalSurfaceUp: Bool {
+        showingChat || showingControls || showingHelp || showingEventLog
+            || viewModel.isEditMode || viewModel.initialConnectFailed
+    }
+
     var body: some View {
-        Group {
+        // The game surface stays mounted while the edit overlay is up.
+        // Unmounting it destroyed the GameTouchView, and the replacement
+        // instance reset the VoiceOver interaction mode to navigation — a
+        // server edit prompt mid-direct-play silently dumped the player out
+        // of direct touch. Hidden + hit-test-disabled preserves the mode
+        // across the round trip.
+        ZStack {
+            ZStack(alignment: .topTrailing) {
+                DirectTouchGameView(
+                    viewModel: viewModel,
+                    gestureSettings: gestureSettings,
+                    isSurfaceActive: !modalSurfaceUp,
+                    onOpenChat: { showingChat = true },
+                    onOpenControls: { showingControls = true },
+                    onOpenHelp: { showingHelp = true },
+                    onOpenEventLog: { showingEventLog = true }
+                )
+                // Leave the bottom safe area free of the direct-touch
+                // view so the iPhone home-indicator gesture isn't
+                // swallowed by `allowsDirectInteraction`. iOS routes
+                // the system swipe-up via that strip; if our view
+                // owns it, the user can't leave the app.
+                .ignoresSafeArea(.container, edges: [.top, .horizontal])
+
+                // Visible game state for low-vision players. Sits at the
+                // top, doesn't consume touches — gestures still go to
+                // the touch view underneath. Hidden from VoiceOver
+                // because the same info is already spoken.
+                VStack(spacing: 0) {
+                    LowVisionStatusOverlay(viewModel: viewModel)
+                    Spacer()
+                }
+
+                // Visible recovery affordance for sighted / low-vision
+                // players, reachable regardless of the user's gesture
+                // mappings. Hidden from VoiceOver: a second focusable
+                // element on screen would steal VoiceOver focus from
+                // "Game area" and disable `.allowsDirectInteraction`
+                // for the swipes that followed. VoiceOver users reach
+                // the same destinations via the Actions rotor on the
+                // game area, which is always available and not subject
+                // to gesture remapping.
+                InGameMenuButton(
+                    onOpenChat: { showingChat = true },
+                    onOpenControls: { showingControls = true },
+                    onOpenHelp: { showingHelp = true },
+                    onOpenEventLog: { showingEventLog = true }
+                )
+                .padding(.top, 8)
+                .padding(.trailing, 12)
+                .accessibilityHidden(true)
+            }
+            .accessibilityHidden(viewModel.isEditMode)
+            .allowsHitTesting(!viewModel.isEditMode)
+
             if viewModel.isEditMode {
                 EditOverlay(viewModel: viewModel)
-            } else {
-                ZStack(alignment: .topTrailing) {
-                    DirectTouchGameView(
-                        viewModel: viewModel,
-                        gestureSettings: gestureSettings,
-                        onOpenChat: { showingChat = true },
-                        onOpenControls: { showingControls = true },
-                        onOpenHelp: { showingHelp = true },
-                        onOpenEventLog: { showingEventLog = true }
-                    )
-                    // Leave the bottom safe area free of the direct-touch
-                    // view so the iPhone home-indicator gesture isn't
-                    // swallowed by `allowsDirectInteraction`. iOS routes
-                    // the system swipe-up via that strip; if our view
-                    // owns it, the user can't leave the app.
-                    .ignoresSafeArea(.container, edges: [.top, .horizontal])
-
-                    // Visible game state for low-vision players. Sits at the
-                    // top, doesn't consume touches — gestures still go to
-                    // the touch view underneath. Hidden from VoiceOver
-                    // because the same info is already spoken.
-                    VStack(spacing: 0) {
-                        LowVisionStatusOverlay(viewModel: viewModel)
-                        Spacer()
-                    }
-
-                    // Visible recovery affordance for sighted / low-vision
-                    // players, reachable regardless of the user's gesture
-                    // mappings. Hidden from VoiceOver: a second focusable
-                    // element on screen would steal VoiceOver focus from
-                    // "Game area" and disable `.allowsDirectInteraction`
-                    // for the swipes that followed. VoiceOver users reach
-                    // the same destinations via the Actions rotor on the
-                    // game area, which is always available and not subject
-                    // to gesture remapping.
-                    InGameMenuButton(
-                        onOpenChat: { showingChat = true },
-                        onOpenControls: { showingControls = true },
-                        onOpenHelp: { showingHelp = true },
-                        onOpenEventLog: { showingEventLog = true }
-                    )
-                    .padding(.top, 8)
-                    .padding(.trailing, 12)
-                    .accessibilityHidden(true)
-                }
+                    .background(Color(.systemBackground).ignoresSafeArea())
             }
         }
         .sheet(isPresented: $showingChat) {
@@ -203,6 +220,7 @@ private struct InGameMenuButton: View {
 private struct DirectTouchGameView: UIViewRepresentable {
     @ObservedObject var viewModel: MainViewModel
     @ObservedObject var gestureSettings: GestureSettings
+    var isSurfaceActive: Bool
     var onOpenChat: () -> Void
     var onOpenControls: () -> Void
     var onOpenHelp: () -> Void
@@ -216,6 +234,7 @@ private struct DirectTouchGameView: UIViewRepresentable {
         view.onOpenControls = onOpenControls
         view.onOpenHelp = onOpenHelp
         view.onOpenEventLog = onOpenEventLog
+        view.setSurfaceActive(isSurfaceActive)
         return view
     }
 
@@ -226,6 +245,7 @@ private struct DirectTouchGameView: UIViewRepresentable {
         uiView.onOpenControls = onOpenControls
         uiView.onOpenHelp = onOpenHelp
         uiView.onOpenEventLog = onOpenEventLog
+        uiView.setSurfaceActive(isSurfaceActive)
         uiView.onMenuUpdate()
     }
 }
@@ -272,9 +292,23 @@ final class GameTouchView: UIView {
     private var idleTimer: Timer?
     private let idleTimeout: TimeInterval = 8
 
-    // For two-finger scrub detection
+    /// Whether the game area is the active input/speech surface (no sheet,
+    /// edit overlay, or connect alert on top). The view survives beneath
+    /// presented surfaces; while inactive, the idle re-announcer and grid
+    /// explore stay quiet instead of interrupting the presented surface.
+    private var isSurfaceActive = true
+
+    // For two-finger scrub detection. History samples are the centroid of
+    // the two touches, appended only after `scrubSampleMinDeltaX` of
+    // horizontal travel — see `touchesMoved`.
     private var twoFingerTouchHistory: [CGPoint] = []
     private var twoFingerScrubRecognized = false
+    /// Minimum horizontal travel between scrub history samples. Filters
+    /// finger jitter so a counted direction reversal is real movement.
+    private static let scrubSampleMinDeltaX: CGFloat = 8
+    /// Direction reversals required to recognize a scrub. VoiceOver's own
+    /// scrub gesture is a "z" — two reversals.
+    private static let scrubReversalsRequired = 2
 
     // For grid explore-by-touch
     private var exploreTimer: Timer?
@@ -306,6 +340,11 @@ final class GameTouchView: UIView {
     private enum InteractionMode { case voiceOverNavigation, directPlay }
     private var interactionMode: InteractionMode = .voiceOverNavigation
 
+    /// Throttle for `reassertInteractionMode` — one trait desync produces a
+    /// burst of touch callbacks, and each re-assert posts a notification.
+    private var lastTraitReassert: TimeInterval = 0
+    private static let traitReassertMinInterval: TimeInterval = 1.0
+
     // MARK: - Init
 
     override init(frame: CGRect) {
@@ -334,6 +373,35 @@ final class GameTouchView: UIView {
         // `applyInteractionMode` is the single source of truth. We start in the
         // safe, fully-navigable VoiceOver-navigation mode.
         applyInteractionMode()
+        // VoiceOver toggling mid-session invalidates the mode contract:
+        // direct play entered under the previous state must not survive as
+        // passthrough the user never activated this VoiceOver session, nor
+        // as stale direct-touch traits when VoiceOver comes back later.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(voiceOverStatusChanged),
+            name: UIAccessibility.voiceOverStatusDidChangeNotification,
+            object: nil
+        )
+    }
+
+    @objc private func voiceOverStatusChanged() {
+        guard interactionMode == .directPlay else { return }
+        directTouchLog.notice("VoiceOver status changed in directPlay — resetting to navigation")
+        exitDirectPlay(announce: false, refocus: false)
+    }
+
+    /// VoiceOver's cached view of our traits has drifted from
+    /// `interactionMode` — raw touches or recognizer callbacks arrived while
+    /// VoiceOver should own the screen. Re-apply and re-post rather than
+    /// acting on input the user believes VoiceOver is handling.
+    private func reassertInteractionMode() {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastTraitReassert >= Self.traitReassertMinInterval else { return }
+        lastTraitReassert = now
+        directTouchLog.error("input arrived in \(String(describing: self.interactionMode), privacy: .public) with VoiceOver on — re-asserting traits")
+        applyInteractionMode()
+        UIAccessibility.post(notification: .layoutChanged, argument: self)
     }
 
     /// Apply the accessibility configuration for the current `interactionMode`.
@@ -382,8 +450,11 @@ final class GameTouchView: UIView {
     ///     took it), so we don't yank focus back.
     private func exitDirectPlay(announce: Bool, refocus: Bool) {
         guard interactionMode != .voiceOverNavigation else { return }
-        // Speak the cue through the synth path (still self-voicing) before
-        // handing speech back to VoiceOver.
+        // Speak the cue while forceSelfVoicing is still on so it takes the
+        // synth path. speak() must stay synchronous: the old Task-hopped
+        // version enqueued this after forceSelfVoicing was cleared below,
+        // landing the cue on the VoiceOver announcement path where the
+        // refocus readback preempted it — the "mode drops in silence" report.
         if announce { speak("VoiceOver navigation.") }
         interactionMode = .voiceOverNavigation
         applyInteractionMode()
@@ -525,16 +596,49 @@ final class GameTouchView: UIView {
 
     // MARK: - Touch Tracking (scrub + grid explore)
 
+    /// Centroid of the currently-active touches when exactly two are down.
+    /// Sampling the centroid instead of `touches.first` keeps the scrub
+    /// history on one stable track: `Set<UITouch>.first` has no identity and
+    /// alternates fingers between events, so the fingers' horizontal
+    /// separation used to manufacture direction reversals that read as a
+    /// scrub — randomly dropping the player out of direct play.
+    private func twoFingerCentroid(in event: UIEvent?) -> CGPoint? {
+        guard let active = event?.allTouches?.filter({
+            $0.phase != .ended && $0.phase != .cancelled
+        }), active.count == 2 else { return nil }
+        let points = active.map { $0.location(in: self) }
+        return CGPoint(x: (points[0].x + points[1].x) / 2,
+                       y: (points[0].y + points[1].y) / 2)
+    }
+
+    /// Append a scrub sample only after real horizontal travel, so a counted
+    /// sign flip is a deliberate change of direction rather than jitter.
+    private func recordScrubSample(_ point: CGPoint) {
+        if let last = twoFingerTouchHistory.last {
+            guard abs(point.x - last.x) >= Self.scrubSampleMinDeltaX else { return }
+        }
+        twoFingerTouchHistory.append(point)
+    }
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
         guard let allTouches = event?.allTouches else { return }
+
+        // With VoiceOver on, raw touches belong to the app only in direct
+        // play. Arrivals in navigation mode mean VoiceOver's trait cache has
+        // drifted from ours — don't track a scrub or explore on touches the
+        // user believes VoiceOver owns; re-assert the traits instead.
+        if UIAccessibility.isVoiceOverRunning, interactionMode != .directPlay {
+            reassertInteractionMode()
+            return
+        }
 
         if allTouches.count == 2 {
             // Two-finger scrub detection
             twoFingerTouchHistory.removeAll()
             twoFingerScrubRecognized = false
-            if let touch = touches.first {
-                twoFingerTouchHistory.append(touch.location(in: self))
+            if let point = twoFingerCentroid(in: event) {
+                twoFingerTouchHistory.append(point)
             }
         } else if allTouches.count == 1,
                   let vm = viewModel, vm.gridEnabled, vm.gridWidth > 1 {
@@ -552,22 +656,26 @@ final class GameTouchView: UIView {
     override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesMoved(touches, with: event)
         guard let allTouches = event?.allTouches else { return }
+        if UIAccessibility.isVoiceOverRunning, interactionMode != .directPlay { return }
 
         if allTouches.count == 2 && !twoFingerScrubRecognized {
-            if let touch = touches.first {
-                twoFingerTouchHistory.append(touch.location(in: self))
+            if let point = twoFingerCentroid(in: event) {
+                recordScrubSample(point)
             }
-            // Detect scrub: 3+ direction changes in horizontal movement
-            if twoFingerTouchHistory.count >= 4 {
-                var directionChanges = 0
+            // Recognize a scrub once the hysteresis-filtered track reverses
+            // horizontal direction `scrubReversalsRequired` times. Every
+            // consecutive delta is ≥ scrubSampleMinDeltaX by construction,
+            // so no per-delta magnitude check is needed here.
+            if twoFingerTouchHistory.count >= 3 {
+                var reversals = 0
                 for i in 2..<twoFingerTouchHistory.count {
                     let prev = twoFingerTouchHistory[i-1].x - twoFingerTouchHistory[i-2].x
                     let curr = twoFingerTouchHistory[i].x - twoFingerTouchHistory[i-1].x
-                    if prev * curr < 0 && abs(curr) > 5 {
-                        directionChanges += 1
+                    if prev * curr < 0 {
+                        reversals += 1
                     }
                 }
-                if directionChanges >= 2 {
+                if reversals >= Self.scrubReversalsRequired {
                     twoFingerScrubRecognized = true
                     onScrub()
                 }
@@ -725,6 +833,16 @@ final class GameTouchView: UIView {
         // reached the game (passthrough engaged). If a post-activation flick
         // does VoiceOver navigation instead, this stays silent.
         directTouchLog.debug("dispatch gesture=\(String(describing: gestureType), privacy: .public) voOn=\(UIAccessibility.isVoiceOverRunning, privacy: .public) mode=\(String(describing: self.interactionMode), privacy: .public)")
+        // Invariant: with VoiceOver running, the app acts on gestures only in
+        // direct play. Anything arriving in navigation mode means VoiceOver's
+        // cached traits have drifted from ours, or a recognizer armed by the
+        // gesture that just exited direct play is still in flight — acting on
+        // it is the app and VoiceOver fighting over one touch.
+        guard !UIAccessibility.isVoiceOverRunning || interactionMode == .directPlay else {
+            directTouchLog.error("dropped gesture=\(String(describing: gestureType), privacy: .public) in VoiceOver navigation mode")
+            reassertInteractionMode()
+            return
+        }
         cancelExplore()
         let action = gestureSettings?.action(for: gestureType) ?? GestureSettings.defaultMapping[gestureType] ?? .none
         perform(action)
@@ -921,18 +1039,18 @@ final class GameTouchView: UIView {
 
     // MARK: - Speech Helpers
 
-    /// Speak with interrupt — for user-initiated navigation.
+    /// Speak with interrupt — for user-initiated navigation. Synchronous on
+    /// purpose: UIView is @MainActor so the call is already isolated, and the
+    /// old `Task { @MainActor }` hop deferred the enqueue past mode
+    /// transitions — transition cues then read `forceSelfVoicing` after it
+    /// had flipped and landed on the wrong speech path.
     private func speak(_ text: String) {
-        Task { @MainActor in
-            viewModel?.speechManager.speak(text, interrupt: true)
-        }
+        viewModel?.speechManager.speak(text, interrupt: true)
     }
 
     /// Speak without interrupt — for queued announcements.
     private func speakQueued(_ text: String) {
-        Task { @MainActor in
-            viewModel?.speechManager.speak(text, interrupt: false)
-        }
+        viewModel?.speechManager.speak(text, interrupt: false)
     }
 
     private func announceCurrentItem() {
@@ -965,17 +1083,41 @@ final class GameTouchView: UIView {
         speak(vm.enrichedStatusText())
     }
 
-    // MARK: - Idle Timer
+    // MARK: - Surface Activity + Idle Timer
+
+    /// Called by the SwiftUI layer whenever a sheet, the edit overlay, or the
+    /// connect alert appears over (or leaves) the game area.
+    func setSurfaceActive(_ active: Bool) {
+        guard active != isSurfaceActive else { return }
+        isSurfaceActive = active
+        if active {
+            resetIdleTimer()
+        } else {
+            idleTimer?.invalidate()
+            idleTimer = nil
+            cancelExplore()
+        }
+    }
 
     private func resetIdleTimer() {
         idleTimer?.invalidate()
+        idleTimer = nil
+        // While a presented surface has the user's attention, the game item
+        // chatter would interrupt it — the view survives beneath sheets and
+        // onMenuUpdate keeps firing on server pushes.
+        guard isSurfaceActive else { return }
         idleTimer = Timer.scheduledTimer(withTimeInterval: idleTimeout, repeats: false) { [weak self] _ in
             self?.onIdle()
         }
     }
 
     private func onIdle() {
-        guard let vm = viewModel, !vm.menuItems.isEmpty else { return }
+        guard let vm = viewModel, !vm.menuItems.isEmpty, isSurfaceActive else { return }
+        // In VoiceOver navigation mode the element speaks on demand;
+        // unsolicited item re-announcements just interrupt whatever VoiceOver
+        // is reading. The idle re-announce is a self-voicing / direct-play
+        // feature.
+        if UIAccessibility.isVoiceOverRunning && interactionMode != .directPlay { return }
         // Don't cut into in-flight narration (round summaries, win
         // announcements, multi-line rule reads can easily run past the 8s
         // idle window). Re-arm the timer and try again once speech drains.
@@ -1074,12 +1216,12 @@ private struct EditOverlay: View {
         }
         .onAppear {
             editFocused = true
-            // VoiceOver focus has to be moved off the just-removed
+            // VoiceOver focus has to be moved off the (now hidden)
             // allowsDirectInteraction game view explicitly, or VO stays in
             // direct-touch pass-through with no way to reach the field.
             // FocusState set during onAppear is unreliable while VO is
-            // processing the hierarchy swap, so re-assert both once the
-            // swap has settled.
+            // processing the hierarchy change, so re-assert both once it
+            // has settled.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                 editFocused = true
                 editA11yFocused = true
@@ -1448,8 +1590,9 @@ private struct HelpSheet: View {
                     helpRow("Help", "This screen")
                 }
                 Section("VoiceOver Actions Rotor") {
-                    helpRow("How to find it", "On the game area, flick up or down with one finger until you hear \"Actions\". Then flick up or down to pick one and double-tap to run it.")
-                    helpRow("Always available", "The rotor lists Help, Controls, Chat, Recent events, Status, and the game actions. It works no matter how gestures are configured, so you can never lock yourself out.")
+                    helpRow("How to find it", "In VoiceOver navigation mode, flick up or down with one finger on the game area until you hear \"Actions\". Then flick up or down to pick one and double-tap to run it.")
+                    helpRow("If you are in direct play", "One-finger flicks go to the game while direct play is on, so the rotor isn't reachable there. Two-finger scrub first — that returns to VoiceOver navigation — then use the rotor.")
+                    helpRow("Always available", "The rotor lists Help, Controls, Chat, Recent events, Status, and the game actions. It works no matter how gestures are configured — after a two-finger scrub, it is always there.")
                     helpRow("Why not the corner button?", "The Menu button in the top-right is hidden from VoiceOver on purpose — a second focusable element would steal focus from the game area and break direct-touch gestures. The rotor replaces it for VoiceOver users.")
                 }
                 Section("Tips") {

@@ -504,7 +504,7 @@ struct GettingStartedSheet: View {
                 "You can change any of these in Audio and Gesture Settings.",
             ]),
             Topic(title: "Always-available controls", lines: [
-                "When VoiceOver is on, the Actions rotor (flick up or down on the game area) always lists Help, Controls, Chat, Recent events, Status, and the game actions. It works no matter how gestures are configured, so you can never lock yourself out.",
+                "When VoiceOver is on and the game area is in VoiceOver navigation, the Actions rotor (flick up or down on the game area) lists Help, Controls, Chat, Recent events, Status, and the game actions. In direct play, one-finger flicks go to the game — two-finger scrub first to return to VoiceOver navigation, and the rotor is always there, no matter how gestures are configured.",
                 "When VoiceOver is off, the same destinations are on the Menu button in the top-right corner of every game screen. The Menu button is hidden from VoiceOver on purpose: a second focusable element would interrupt the game's direct-touch gestures.",
             ]),
             Topic(title: "Audio", lines: [
@@ -514,7 +514,7 @@ struct GettingStartedSheet: View {
             Topic(title: "If something goes wrong", lines: [
                 "If the connection drops, the app will automatically try to reconnect.",
                 "If gestures stop responding the way you expect, open Audio and Gesture Settings and choose Reset to defaults.",
-                "If you cannot find help while in a game and VoiceOver is on, use the Actions rotor on the game area — Help is always listed there. If VoiceOver is off, use the Menu button in the top-right of the screen.",
+                "If you cannot find help while in a game and VoiceOver is on, two-finger scrub to return to VoiceOver navigation, then use the Actions rotor on the game area — Help is always listed there. If VoiceOver is off, use the Menu button in the top-right of the screen.",
             ]),
         ]
     }
