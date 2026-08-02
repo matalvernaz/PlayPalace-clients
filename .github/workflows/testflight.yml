@@ -176,11 +176,11 @@ jobs:
           fi
           echo "::notice::Tester notes: ${notes}"
 
-          python3 ~/playpalace-deploy/testflight-add-to-group.py \
-            --build-number "${BUILD_NUMBER}" \
-            --bundle-id "${ASC_BUNDLE_ID}" \
+          python3 ~/asc-tools/asc.py ship "${ASC_BUNDLE_ID}" \
+            --build "${BUILD_NUMBER}" \
             --group-id "${ASC_BETA_GROUP_ID}" \
             --notes "${notes}" \
+            --wait \
             --key-id "${ASC_KEY_ID}" \
             --issuer-id "${ASC_ISSUER_ID}" \
             --key-path "${ASC_KEY_PATH}"
