@@ -25,12 +25,15 @@ struct MainView: View {
     @State private var showingHelp = false
     @State private var showingGestureSettings = false
     @State private var showingEventLog = false
+    @State private var showingInGameMenu = false
 
     /// True while a surface that takes over input and speech sits on top of
-    /// the game area (any sheet, the edit overlay, or the connect alert).
+    /// the game area (any sheet, the edit overlay, the in-game menu dialog,
+    /// or the connect alert).
     private var modalSurfaceUp: Bool {
         showingChat || showingControls || showingHelp || showingEventLog
-            || viewModel.isEditMode || viewModel.initialConnectFailed
+            || showingInGameMenu || viewModel.isEditMode
+            || viewModel.initialConnectFailed
     }
 
     var body: some View {
@@ -77,6 +80,7 @@ struct MainView: View {
                 // game area, which is always available and not subject
                 // to gesture remapping.
                 InGameMenuButton(
+                    showingMenu: $showingInGameMenu,
                     onOpenChat: { showingChat = true },
                     onOpenControls: { showingControls = true },
                     onOpenHelp: { showingHelp = true },
@@ -174,12 +178,18 @@ struct MainView: View {
 /// what's behind it; opacity bumps under Reduce Transparency / Increase
 /// Contrast.
 private struct InGameMenuButton: View {
+    /// Owned by `MainView` so `modalSurfaceUp` tracks the dialog: while it
+    /// is up, the game surface must go inactive (idle re-announcer quiet,
+    /// speech ownership handed to VoiceOver) like every other presented
+    /// surface. As a local `@State` it was invisible to that gate — the
+    /// idle announcer talked over the dialog and direct-play speech routing
+    /// stayed live underneath it.
+    @Binding var showingMenu: Bool
     var onOpenChat: () -> Void
     var onOpenControls: () -> Void
     var onOpenHelp: () -> Void
     var onOpenEventLog: () -> Void
 
-    @State private var showingMenu = false
     @Environment(\.lowVision) private var lv
 
     @ScaledMetric(relativeTo: .title2) private var iconPointSize: CGFloat = 28
@@ -436,7 +446,7 @@ final class GameTouchView: UIView {
         // Force VoiceOver to re-read the now-direct-touch element. This is the
         // load-bearing, on-device-unverified step (see the mode comment above).
         UIAccessibility.post(notification: .layoutChanged, argument: self)
-        viewModel?.speechManager.forceSelfVoicing = true
+        syncSpeechOwnership()
         directTouchLog.notice("enter directPlay; posted layoutChanged")
         speak("Direct play on. Two-finger scrub to return to VoiceOver.")
     }
@@ -459,8 +469,22 @@ final class GameTouchView: UIView {
         interactionMode = .voiceOverNavigation
         applyInteractionMode()
         if refocus { UIAccessibility.post(notification: .layoutChanged, argument: self) }
-        viewModel?.speechManager.forceSelfVoicing = false
+        syncSpeechOwnership()
         directTouchLog.notice("exit directPlay announce=\(announce, privacy: .public) refocus=\(refocus, privacy: .public)")
+    }
+
+    /// Single source of truth for who owns speech. The game self-voices
+    /// exactly when it is in direct play AND no presented surface (sheet,
+    /// edit overlay, dialog, alert) sits on top. Derived from app-owned
+    /// state on every transition rather than mirrored from VoiceOver focus
+    /// callbacks: an unpaired `accessibilityElementDidLoseFocus` (sheet
+    /// dismissed elsewhere, dialog round-trip, same-element refocus post)
+    /// used to strand direct play with `forceSelfVoicing == false`, sending
+    /// game speech to the VoiceOver announcement path where focus chatter
+    /// preempts it — gestures kept working but responses went silent.
+    private func syncSpeechOwnership() {
+        viewModel?.speechManager.forceSelfVoicing =
+            (interactionMode == .directPlay) && isSurfaceActive
     }
 
     // MARK: - Trait Changes (low-vision)
@@ -756,16 +780,16 @@ final class GameTouchView: UIView {
     /// and the queue can't be drowned by VO focus events.
     override func accessibilityElementDidBecomeFocused() {
         super.accessibilityElementDidBecomeFocused()
-        // Self-voice only while actually in direct play; in navigation mode
-        // VoiceOver speaks the element itself.
-        viewModel?.speechManager.forceSelfVoicing = (interactionMode == .directPlay)
-        directTouchLog.debug("didBecomeFocused mode=\(String(describing: self.interactionMode), privacy: .public)")
+        // Focus callbacks are observational only. Speech ownership is derived
+        // from app-owned state in `syncSpeechOwnership()`; writing it here
+        // made it hostage to VoiceOver delivering perfectly paired
+        // focus/unfocus callbacks, which it does not guarantee.
+        directTouchLog.notice("didBecomeFocused mode=\(String(describing: self.interactionMode), privacy: .public)")
     }
 
     override func accessibilityElementDidLoseFocus() {
         super.accessibilityElementDidLoseFocus()
-        viewModel?.speechManager.forceSelfVoicing = false
-        directTouchLog.debug("didLoseFocus mode=\(String(describing: self.interactionMode), privacy: .public)")
+        directTouchLog.notice("didLoseFocus mode=\(String(describing: self.interactionMode), privacy: .public)")
     }
 
     override var accessibilityCustomActions: [UIAccessibilityCustomAction]? {
@@ -832,7 +856,11 @@ final class GameTouchView: UIView {
         // Key experiment signal: if this logs after activation, the flick
         // reached the game (passthrough engaged). If a post-activation flick
         // does VoiceOver navigation instead, this stays silent.
-        directTouchLog.debug("dispatch gesture=\(String(describing: gestureType), privacy: .public) voOn=\(UIAccessibility.isVoiceOverRunning, privacy: .public) mode=\(String(describing: self.interactionMode), privacy: .public)")
+        // .notice, not .debug: this is the key passthrough-engaged signal for
+        // the on-device VoiceOver experiment, and .notice persists to the log
+        // archive so a broken session can be diagnosed after the fact with
+        // `log collect --device` instead of a live tethered stream.
+        directTouchLog.notice("dispatch gesture=\(String(describing: gestureType), privacy: .public) voOn=\(UIAccessibility.isVoiceOverRunning, privacy: .public) mode=\(String(describing: self.interactionMode), privacy: .public)")
         // Invariant: with VoiceOver running, the app acts on gestures only in
         // direct play. Anything arriving in navigation mode means VoiceOver's
         // cached traits have drifted from ours, or a recognizer armed by the
@@ -1090,6 +1118,7 @@ final class GameTouchView: UIView {
     func setSurfaceActive(_ active: Bool) {
         guard active != isSurfaceActive else { return }
         isSurfaceActive = active
+        syncSpeechOwnership()
         if active {
             resetIdleTimer()
         } else {
