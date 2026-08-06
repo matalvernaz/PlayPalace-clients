@@ -1009,6 +1009,21 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         """Handle client disconnection with a grace period for mobile reconnects."""
         username = client.username or "unknown"
         print(f"Client disconnected: {username}@{client.address}")
+        # One-line interaction summary per session. This is the server-side
+        # discriminator for client input problems: menus/keybinds flowing
+        # means input reached the game; only auth+ping means it never did.
+        # getattr like `replaced` above: tests stand in plain namespaces.
+        packet_counts = getattr(client, "packet_counts", None)
+        if packet_counts:
+            connected_at = getattr(client, "connected_at", 0.0)
+            duration = time.monotonic() - connected_at if connected_at else 0.0
+            counts = " ".join(f"{k}={v}" for k, v in sorted(packet_counts.items()))
+            print(
+                f"Session summary: {username}@{client.address}"
+                f" client={getattr(client, 'client_type', '') or '?'}"
+                f" platform={getattr(client, 'platform', '') or '?'}"
+                f" duration={duration:.0f}s {counts}"
+            )
         if getattr(client, "replaced", False):
             return
         if not client.username:
@@ -1137,6 +1152,8 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             return
 
         packet_type = packet.get("type")
+        if packet_type:
+            client.packet_counts[packet_type] = client.packet_counts.get(packet_type, 0) + 1
 
         if packet_type == "authorize":
             await self._handle_authorize(client, packet)
@@ -1383,7 +1400,10 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         else:
             payload.update({"type": "refresh_session_success", "version": VERSION})
         await client.send(payload)
-        print(f"Client authorized: {username}@{client.address}")
+        print(
+            f"Client authorized: {username}@{client.address}"
+            f" client={client.client_type or '?'} platform={client.platform or '?'}"
+        )
 
     async def _handle_banned_login(self, user: NetworkUser) -> bool:
         """Handle disconnecting banned users."""

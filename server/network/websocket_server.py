@@ -7,8 +7,9 @@ import json
 import logging
 import ssl
 import sys
+import time
 from collections import deque
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Callable, Coroutine
 
@@ -42,6 +43,12 @@ class ClientConnection:
     client_type: str = ""
     platform: str = ""
     ip_address: str = ""
+    connected_at: float = 0.0
+    # Per-session counts of validated inbound packet types, reported as a
+    # one-line session summary on disconnect. Diagnostic for client-side
+    # input problems: a session whose counts are all pings never delivered
+    # any user interaction, regardless of what the client believed.
+    packet_counts: dict[str, int] = field(default_factory=dict)
 
     async def send(self, packet: dict) -> None:
         """Send a packet to this client."""
@@ -246,7 +253,12 @@ class WebSocketServer:
             await websocket.close(code=1013, reason="too many connections")
             return
 
-        client = ClientConnection(websocket=websocket, address=address, ip_address=real_ip)
+        client = ClientConnection(
+            websocket=websocket,
+            address=address,
+            ip_address=real_ip,
+            connected_at=time.monotonic(),
+        )
         self._clients[address] = client
 
         # Close the socket if it never authenticates, and cap inbound packet rate.
