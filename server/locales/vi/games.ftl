@@ -159,3 +159,97 @@ poker-unknown-hand = Bài không xác định
 
 # Lỗi xác thực (chung)
 game-error-invalid-team-mode = Chế độ đội đã chọn không hợp lệ với số lượng người chơi hiện tại.
+
+game-turn-start-you = Đến lượt bạn.
+game-turn-start-player = Đến lượt { $player }.
+game-score-line-target = { $player }: { $score }/{ $target } { $unit }
+game-score-unit-points = { $count ->
+    [one] điểm
+   *[other] điểm
+}
+game-score-unit-chips = { $count ->
+    [one] chip
+   *[other] chip
+}
+game-score-unit-coins = { $count ->
+    [one] xu
+   *[other] xu
+}
+game-score-unit-health = máu
+game-score-unit-ninetynine-tokens = { $count ->
+    [one] thẻ
+   *[other] thẻ
+}
+game-score-unit-tokens-home = { $count ->
+    [one] quân về đích
+   *[other] quân về đích
+}
+game-score-unit-pawns-home = { $count ->
+    [one] quân về nhà
+   *[other] quân về nhà
+}
+game-score-unit-hand-wins = { $count ->
+    [one] ván thắng
+   *[other] ván thắng
+}
+game-score-unit-light = quang năng
+game-winner-you = Bạn thắng!
+game-team-name = Đội { $index }
+team-arrangement-started = Bắt đầu sắp xếp đội. Hãy kiểm tra đội hình, đổi người nếu cần, rồi xác nhận để bắt đầu.
+team-arrangement-confirm = Xác nhận đội và bắt đầu
+team-arrangement-read = Đọc đội hình
+team-arrangement-select-member-action = Chọn thành viên đội
+team-arrangement-select-member = Chọn một thành viên đội
+team-arrangement-select-swap-target = Chọn người chơi để đổi chỗ
+team-arrangement-swap-member = Chọn mục tiêu đổi chỗ
+team-arrangement-swap-member-selected = Đổi { $player } với...
+team-arrangement-cancel = Hủy sắp xếp đội
+team-arrangement-line = { $team }: { $members }
+team-arrangement-turn-order = Thứ tự lượt: { $players }
+team-arrangement-member-option = { $player }, { $team }, { $selected }
+team-arrangement-selected = đã chọn
+team-arrangement-not-selected = chưa chọn
+team-arrangement-member-selected = Đã chọn { $player } ở { $team }. Hãy chọn một người ở đội khác để đổi chỗ.
+team-arrangement-swapped = { $first } và { $second } đã đổi đội cho nhau.
+team-arrangement-cancelled = Đã hủy sắp xếp đội.
+team-arrangement-cancelled-roster = Đã hủy sắp xếp đội vì danh sách người chơi thay đổi.
+team-arrangement-refreshed = Danh sách người chơi đã thay đổi. Đội hình đã được sắp xếp lại.
+team-arrangement-in-progress = Hãy hoàn tất hoặc hủy sắp xếp đội trước.
+team-arrangement-not-active = Hiện không có phiên sắp xếp đội.
+team-arrangement-select-first = Hãy chọn một thành viên đội trước.
+team-arrangement-player-missing = Người chơi đó không còn trong phiên sắp xếp đội.
+team-arrangement-same-team = Hãy chọn một người ở đội khác.
+team-arrangement-swap-failed = Không thể đổi chỗ hai thành viên đội đó.
+
+status-box-closed = Đã đóng thông tin trạng thái.
+
+dice-status-label-locked = { $value } (đã khóa)
+dice-status-label-kept = { $value } (đang giữ)
+
+poker-royal-flush = Sảnh chúa
+documentation-menu = Tài liệu
+introduction = Giới thiệu
+community-rules = Nội quy cộng đồng
+global-keys = Điều khiển toàn cục
+game-rules = Luật chơi
+changelog = Nhật ký thay đổi
+donation = Quyên góp
+contact = Liên hệ
+document-not-found = Không tìm thấy tài liệu.
+help = Trợ giúp
+
+# Game Info (Ctrl+I)
+game-info = Thông tin trò chơi
+game-info-header = Thông tin trò chơi hiện tại
+game-info-name = Trò chơi: {$game}
+game-info-players = Người chơi: {$count}
+game-info-host = Chủ phòng: {$host}
+game-info-status = Trạng thái: {$status}
+game-info-status-waiting = Đang chờ trong phòng
+game-info-status-playing = Đang chơi
+game-info-options-header = Cài đặt:
+game-info-no-options = Trò chơi này không có tùy chọn cấu hình.
+
+# How to Play (Ctrl+F1)
+how-to-play = Cách chơi
+game-rules-not-available = Luật chơi cho {$game} chưa có sẵn.

@@ -32,7 +32,7 @@ def test_uno_game_creation():
     assert game.get_name() == "UNO"
     assert game.get_name_key() == "game-name-uno"
     assert game.get_type() == "uno"
-    assert game.get_category() == "cards"
+    assert game.get_category() == "category-card-games"
     assert game.get_min_players() == 2
     assert game.get_max_players() == 10
 

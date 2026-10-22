@@ -113,7 +113,7 @@ class BunkoGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "dice"
+        return "category-dice-games"
 
     @classmethod
     def get_min_players(cls) -> int:

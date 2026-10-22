@@ -59,7 +59,7 @@ class LobbyActionsMixin:
         player_action_sets: dict.
         get_user(player) -> User | None.
         broadcast_l(), broadcast_sound().
-        prestart_validate(), on_start().
+        prestart_validate(), optional validate_start(), on_start().
         attach_user(), rebuild_all_menus().
         get_all_enabled_actions().
         _get_keybind_for_action().
@@ -69,7 +69,8 @@ class LobbyActionsMixin:
     def _action_start_game(self, player: "Player", action_id: str) -> None:
         """Start the game."""
         # Validate configuration before starting
-        errors = self.prestart_validate()
+        validator = getattr(self, "validate_start", self.prestart_validate)
+        errors = validator()
         if errors:
             for error in errors:
                 # Handle both plain strings and (key, kwargs) tuples
@@ -285,6 +286,44 @@ class LobbyActionsMixin:
     def get_bot_count(self) -> int:
         """Get the number of bot players."""
         return sum(1 for p in self.players if p.is_bot)
+
+    def _setup_team_manager_for_start(
+        self,
+        team_mode: str,
+        active_players: list["Player"] | None = None,
+    ) -> None:
+        """Build team assignments and mirror their indexes onto game players."""
+        active_players = (
+            active_players if active_players is not None else self.get_active_players()
+        )
+        self._team_manager.team_mode = team_mode
+        self._team_manager.setup_teams([player.name for player in active_players])
+        self._apply_team_indexes_from_manager(active_players)
+
+    def _apply_team_indexes_from_manager(
+        self,
+        active_players: list["Player"] | None = None,
+    ) -> None:
+        """Mirror team assignments onto players that expose ``team_index``."""
+        active_players = (
+            active_players if active_players is not None else self.get_active_players()
+        )
+        for current_player in active_players:
+            team = self._team_manager.get_team(current_player.name)
+            if team and hasattr(current_player, "team_index"):
+                current_player.team_index = team.index
+
+    def _get_team_turn_players(
+        self,
+        active_players: list["Player"] | None = None,
+    ) -> list["Player"]:
+        """Return active players in a team-balanced turn order."""
+        active_players = (
+            active_players if active_players is not None else self.get_active_players()
+        )
+        players_by_name = {player.name: player for player in active_players}
+        names = self._team_manager.balanced_turn_order(list(players_by_name))
+        return [players_by_name[name] for name in names if name in players_by_name]
 
     def create_player(self, player_id: str, name: str, is_bot: bool = False) -> "Player":
         """Create a new player. Override in subclasses for custom player types."""

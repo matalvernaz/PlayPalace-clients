@@ -25,6 +25,9 @@ class DummyClient:
         self.closed = False
         self.client_type = ""
         self.platform = ""
+        # Mirrors ClientConnection.packet_counts, which the server has filled in
+        # for the per-session summary since the August telemetry change.
+        self.packet_counts: dict[str, int] = {}
 
     async def send(self, payload):
         self.sent.append(payload)

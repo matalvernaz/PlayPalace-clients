@@ -1,18 +1,4 @@
-"""Exploding Kittens — main game implementation.
-
-Turn structure:
-    - draws_owed = how many cards the current player still has to draw this
-      turn (normally 1; raised to 2+ by Attack cards).
-    - On their turn, a player may play any number of cards before drawing.
-      Some plays end the turn (Skip ends one slice, Attack ends all and
-      transfers slices+2 to the next player).
-    - Nope-able actions don't fire immediately. They go into `pending_action`
-      and a Nope window opens. Each Nope toggles a cancel flag. When the
-      window closes, the action either fires or is discarded.
-
-Action visibility is driven by per-player `pending` state and by the
-deck/hand contents — see `_is_play_*_hidden` callbacks.
-"""
+"""Accessible Original Edition implementation of Exploding Kittens."""
 
 from __future__ import annotations
 
@@ -20,62 +6,204 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import random
 
-from ..base import Game, Player
+from ..base import Game, GameOptions, Player
 from ..registry import register_game
-from ...game_utils.actions import Action, ActionSet, MenuInput, Visibility
+from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.game_status import GameStatus
+from ...game_utils.menu_management_mixin import StatusBoxBuild
+from ...game_utils.options import BoolOption, MenuOption, option_field
+from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...messages.localization import Localization
 from server.core.ui.keybinds import KeybindState
-
-from .options import ExplodingKittensOptions
-from .player import EKPlayer
+from server.core.users.base import MenuItem
+from .cards import (
+    ACTION_KINDS,
+    ATTACK,
+    CAT_KINDS,
+    DEFUSE,
+    EXPLODING_KITTEN,
+    FAVOR,
+    NOPE,
+    REQUESTABLE_KINDS,
+    SEE_FUTURE,
+    SHUFFLE,
+    SKIP,
+    ExplodingKittensCard,
+    SEE_FUTURE_CARD_COUNT,
+    extra_defuse_count,
+    build_full_deck,
+    card_name,
+    sort_cards,
+)
+from .player import ExplodingKittensPlayer
+from .bot import bot_think as _bot_think
 from .state import (
-    ALL_CAT_TYPES,
-    CARD_ATTACK,
-    CARD_DEFUSE,
-    CARD_EXPLODING_KITTEN,
-    CARD_FAVOR,
-    CARD_NOPE,
-    CARD_SEE_FUTURE,
-    CARD_SHUFFLE,
-    CARD_SKIP,
-    CARD_STREAKING_KITTEN,
-    CARD_TYPES,
-    build_starting_deck,
-    card_label_key,
-    hand_count,
-    hand_summary,
-    is_cat_card,
-    remove_one,
+    ACTION_ATTACK,
+    ACTION_FAVOR,
+    ACTION_PAIR,
+    ACTION_SEE_FUTURE,
+    ACTION_SHUFFLE,
+    ACTION_SKIP,
+    ACTION_TRIPLE,
+    PHASE_COMBO,
+    PHASE_DEFUSE,
+    PHASE_FAVOR_GIVE,
+    PHASE_GAME_OVER,
+    PHASE_NOPE,
+    PHASE_NORMAL,
+    PHASE_REINSERT,
+    PHASE_REQUEST,
+    PHASE_RESOLVING,
+    PHASE_STARTING,
+    PHASE_TARGET,
+    PendingAction,
 )
 
 
-# Server tick rate (50 ms ticks → 20 per second).
-_TICKS_PER_SECOND = 20
+INITIAL_ACTION_CARDS = 7
+TICKS_PER_SECOND = 20
+DEFAULT_NOPE_RESPONSE_SECONDS = "10"
+NOPE_RESPONSE_CHOICES = ["2", "3", "5", "10", "15", "20"]
+NOPE_RESPONSE_LABELS = {
+    value: f"explodingkittens-nope-response-{value}"
+    for value in NOPE_RESPONSE_CHOICES
+}
+NOPE_WINDOW_TICKS = int(DEFAULT_NOPE_RESPONSE_SECONDS) * TICKS_PER_SECOND
+FAST_GAME_PLAYER_COUNTS = (2, 3)
+GAME_START_DELAY_TICKS = 10 * TICKS_PER_SECOND
+KITTEN_REVEAL_DELAY_TICKS = 18  # 900ms at the server's 20Hz tick rate.
+CARD_PLAY_INTERVAL_DIVISOR = 3
+
+SOUND_MUSIC = "game_ninetynine/mus.ogg"
+SOUND_TURN = "turn.ogg"
+SOUND_GAME_START = "game_explodingkittens/game_start.ogg"
+SOUND_GAME_OVER = "game_explodingkittens/game_over.ogg"
+SOUND_ACTION_CANCELED = "game_explodingkittens/action_canceled.ogg"
+SOUND_ATTACK = "game_explodingkittens/attack.ogg"
+SOUND_COMBO_MISS = "game_explodingkittens/combo_miss.ogg"
+SOUND_DEFUSE = "game_explodingkittens/defuse.ogg"
+SOUND_FUSE = "game_explodingkittens/fuse.ogg"
+SOUND_KITTEN_REVEAL = "game_explodingkittens/kitten_reveal.ogg"
+SOUND_REINSERT = "game_explodingkittens/reinsert.ogg"
+SOUND_SEE_FUTURE = "game_explodingkittens/see_future.ogg"
+SOUND_SKIP = "game_explodingkittens/skip.ogg"
+SOUND_EXPLOSIONS = [
+    "game_explodingkittens/explosion1.ogg",
+    "game_explodingkittens/explosion2.ogg",
+]
+SOUND_NOPES = [
+    "game_explodingkittens/nope1.ogg",
+    "game_explodingkittens/nope2.ogg",
+    "game_explodingkittens/nope3.ogg",
+]
+SOUND_DRAWS = [
+    "game_explodingkittens/draw1.ogg",
+    "game_explodingkittens/draw2.ogg",
+]
+SOUND_PLAYS = [
+    "game_explodingkittens/play1.ogg",
+    "game_explodingkittens/play2.ogg",
+]
+SOUND_SHUFFLES = [
+    "game_explodingkittens/shuffle1.ogg",
+    "game_explodingkittens/shuffle2.ogg",
+    "game_explodingkittens/shuffle3.ogg",
+]
+
+# Ceiling-rounded from the actual OGG Vorbis granule durations at 20 ticks/second.
+AUDIO_DURATIONS_TICKS = {
+    SOUND_ACTION_CANCELED: 14,
+    SOUND_ATTACK: 75,
+    SOUND_COMBO_MISS: 30,
+    SOUND_DEFUSE: 37,
+    SOUND_EXPLOSIONS[0]: 79,
+    SOUND_EXPLOSIONS[1]: 218,
+    SOUND_FUSE: 14,
+    SOUND_GAME_OVER: 72,
+    SOUND_GAME_START: 271,
+    SOUND_KITTEN_REVEAL: 68,
+    SOUND_NOPES[0]: 21,
+    SOUND_NOPES[1]: 21,
+    SOUND_NOPES[2]: 21,
+    SOUND_REINSERT: 31,
+    SOUND_SEE_FUTURE: 107,
+    SOUND_SKIP: 29,
+    SOUND_DRAWS[0]: 11,
+    SOUND_DRAWS[1]: 7,
+    SOUND_PLAYS[0]: 9,
+    SOUND_PLAYS[1]: 13,
+    SOUND_SHUFFLES[0]: 15,
+    SOUND_SHUFFLES[1]: 11,
+    SOUND_SHUFFLES[2]: 14,
+}
+ACTION_BY_CARD_KIND = {
+    ATTACK: ACTION_ATTACK,
+    SKIP: ACTION_SKIP,
+    FAVOR: ACTION_FAVOR,
+    SHUFFLE: ACTION_SHUFFLE,
+    SEE_FUTURE: ACTION_SEE_FUTURE,
+}
+CARD_KIND_BY_ACTION = {
+    action_kind: card_kind for card_kind, action_kind in ACTION_BY_CARD_KIND.items()
+}
+
+
+@dataclass
+class ExplodingKittensOptions(GameOptions):
+    """Official setup options."""
+
+    fast_game: bool = option_field(
+        BoolOption(
+            default=False,
+            value_key="enabled",
+            label="explodingkittens-set-fast-game",
+            change_msg="explodingkittens-option-changed-fast-game",
+            description="explodingkittens-option-fast-game-description",
+        )
+    )
+    advanced_combos: bool = option_field(
+        BoolOption(
+            default=True,
+            value_key="enabled",
+            label="explodingkittens-set-advanced-combos",
+            change_msg="explodingkittens-option-changed-advanced-combos",
+            description="explodingkittens-option-advanced-combos-description",
+        )
+    )
+    nope_response_seconds: str = option_field(
+        MenuOption(
+            choices=NOPE_RESPONSE_CHOICES,
+            default=DEFAULT_NOPE_RESPONSE_SECONDS,
+            value_key="time",
+            label="explodingkittens-set-nope-response",
+            prompt="explodingkittens-select-nope-response",
+            change_msg="explodingkittens-option-changed-nope-response",
+            choice_labels=NOPE_RESPONSE_LABELS,
+            description="explodingkittens-option-nope-response-description",
+        )
+    )
 
 
 @dataclass
 @register_game
 class ExplodingKittensGame(Game):
-    """Exploding Kittens — last one not exploded wins."""
+    """Turn-based, audio-first Exploding Kittens game."""
 
-    players: list[EKPlayer] = field(default_factory=list)
+    players: list[ExplodingKittensPlayer] = field(default_factory=list)
     options: ExplodingKittensOptions = field(default_factory=ExplodingKittensOptions)
-
-    deck: list[str] = field(default_factory=list)  # top of deck = index 0
-    discard: list[str] = field(default_factory=list)
-    draws_owed: int = 1  # current player's remaining draws this turn
-
-    # In-flight cancellable action waiting on a Nope window.
-    # Format: {"actor_id": str, "card": str, "params": dict, "cancelled": bool}
-    pending_action: dict | None = None
-    nope_window_ticks: int = 0
-
-    # Pending eliminate flag — once everyone except one is out, the next
-    # tick declares the winner.
-    finished_check_pending: bool = False
+    deck: list[ExplodingKittensCard] = field(default_factory=list)
+    discard_pile: list[ExplodingKittensCard] = field(default_factory=list)
+    removed_cards: list[ExplodingKittensCard] = field(default_factory=list)
+    phase: str = PHASE_NORMAL
+    pending_action: PendingAction | None = None
+    drawn_kitten: ExplodingKittensCard | None = None
+    decision_player_id: str = ""
+    turns_remaining: int = 1
+    attack_obligation: bool = False
+    winner_id: str = ""
+    elimination_counter: int = 0
 
     @classmethod
     def get_name(cls) -> str:
@@ -97,1211 +225,2583 @@ class ExplodingKittensGame(Game):
     def get_max_players(cls) -> int:
         return 5
 
-    def create_player(self, player_id: str, name: str, is_bot: bool = False) -> EKPlayer:
-        return EKPlayer(id=player_id, name=name, is_bot=is_bot)
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
-    # ------------------------------------------------------------------
-    # Setup
-    # ------------------------------------------------------------------
+    def supports_score_actions(self) -> bool:
+        return False
+
+    def rebuild_runtime_state(self) -> None:
+        """Repair restored private phases before play resumes."""
+        super().rebuild_runtime_state()
+        self._repair_pending_state(announce=False)
+
+    def create_player(
+        self, player_id: str, name: str, is_bot: bool = False
+    ) -> ExplodingKittensPlayer:
+        return ExplodingKittensPlayer(id=player_id, name=name, is_bot=is_bot)
+
+    @property
+    def alive_players(self) -> list[ExplodingKittensPlayer]:
+        return [
+            player
+            for player in self.get_active_players()
+            if isinstance(player, ExplodingKittensPlayer) and not player.eliminated
+        ]
+
+    def prestart_validate(self) -> list[str | tuple[str, dict]]:
+        errors: list[str | tuple[str, dict]] = []
+        if self.options.fast_game and self.get_active_player_count() not in FAST_GAME_PLAYER_COUNTS:
+            errors.append("explodingkittens-error-fast-game-player-count")
+        if self.options.nope_response_seconds not in NOPE_RESPONSE_CHOICES:
+            errors.append("explodingkittens-error-invalid-nope-response")
+        return errors
+
+    def _nope_window_ticks(self) -> int:
+        seconds = self.options.nope_response_seconds
+        if seconds not in NOPE_RESPONSE_CHOICES:
+            seconds = DEFAULT_NOPE_RESPONSE_SECONDS
+        return int(seconds) * TICKS_PER_SECOND
+
+    def _sound_ticks(self, sound: str) -> int:
+        return AUDIO_DURATIONS_TICKS.get(sound, 0)
+
+    def _random_draw_sound(self) -> str:
+        return random.choice(SOUND_DRAWS)  # nosec B311 - cosmetic variation
+
+    def _random_play_sound(self) -> str:
+        return random.choice(SOUND_PLAYS)  # nosec B311 - cosmetic variation
+
+    def _random_shuffle_sound(self) -> str:
+        return random.choice(SOUND_SHUFFLES)  # nosec B311 - cosmetic variation
 
     def on_start(self) -> None:
         self.status = GameStatus.PLAYING
+        self._sync_table_status()
         self.game_active = True
-        rng = random.Random()  # nosec B311
-        hands, deck = build_starting_deck(
-            player_count=len(self.get_active_players()),
-            rng=rng,
-            hand_size=self.options.hand_size,
-            streaking_kittens=self.options.streaking_kittens,
-        )
-        self.deck = deck
-        self.discard = []
-        self.draws_owed = 1
+        self.round = 1
+        self.phase = PHASE_STARTING
         self.pending_action = None
-        self.nope_window_ticks = 0
+        self.drawn_kitten = None
+        self.decision_player_id = ""
+        self.turns_remaining = 1
+        self.attack_obligation = False
+        self.winner_id = ""
+        self.elimination_counter = 0
+        self.deck.clear()
+        self.discard_pile.clear()
+        self.removed_cards.clear()
+        self.set_turn_players([])
+        self.clear_scheduled_sounds()
+        self.cancel_all_sequences()
 
-        for p, hand in zip(self.get_active_players(), hands):
-            p.hand = list(hand)
-            p.eliminated = False
-            p.has_streaking_kitten = False
-            p.last_peek = []
-            p.pending = ""
-            p.pending_card = ""
+        active = [
+            player
+            for player in self.get_active_players()
+            if isinstance(player, ExplodingKittensPlayer)
+        ]
+        for player in active:
+            player.hand.clear()
+            player.selected_card_ids.clear()
+            player.eliminated = False
+            player.elimination_order = 0
+            self._clear_strategy_memory(player)
 
-        self.set_turn_players(self.get_active_players())
-        self.play_music("game_pig/mus.ogg")
-        self.broadcast_l("game-explodingkittens-desc")
-        self._start_turn()
-
-    # ------------------------------------------------------------------
-    # Edition helpers
-    # ------------------------------------------------------------------
-
-    def _card_name(self, card: str, locale: str) -> str:
-        return Localization.get(locale, card_label_key(card, self.options.edition))
-
-    # ------------------------------------------------------------------
-    # Turn flow
-    # ------------------------------------------------------------------
-
-    def _start_turn(self, previous_player: EKPlayer | None = None) -> None:
-        # Skip eliminated players.
-        safety = 0
-        while True:
-            player = self.current_player
-            if player is None:
-                return
-            if not getattr(player, "eliminated", False):
-                break
-            self.turn_index = (self.turn_index + 1) % max(1, len(self.turn_player_ids))
-            safety += 1
-            if safety > len(self.players):
-                return
-
-        lp: EKPlayer = player  # type: ignore
-        self.broadcast_l(
-            "ek-turn-start",
-            player=player.name,
-            remaining=len(self.deck),
-            extra_turns=max(0, self.draws_owed - 1),
+        shuffle_sound = self._random_shuffle_sound()
+        self.start_sequence(
+            "explodingkittens_game_start",
+            [
+                SequenceBeat(
+                    ops=[
+                        SequenceOperation.sound_op(SOUND_GAME_START),
+                        SequenceOperation.callback_op("announce_start_wait"),
+                    ],
+                    delay_after_ticks=GAME_START_DELAY_TICKS,
+                ),
+                SequenceBeat(
+                    ops=[
+                        SequenceOperation.callback_op("prepare_match"),
+                        SequenceOperation.callback_op(
+                            "announce_match_start",
+                            {"shuffle_sound": shuffle_sound},
+                        ),
+                    ],
+                ),
+            ],
+            tag="explodingkittens_start",
+            lock_scope=self.SEQUENCE_LOCK_GAMEPLAY,
+            pause_bots=True,
         )
+        self.refresh_menus()
 
-        user = self.get_user(player)
-        if user and getattr(user.preferences, "play_turn_sound", True):
-            user.play_sound("game_pig/turn.ogg")
+    def _prepare_match(self) -> None:
+        active = [
+            player
+            for player in self.get_active_players()
+            if isinstance(player, ExplodingKittensPlayer)
+        ]
+        if not active:
+            return
+        self._prepare_deck(active)
+        self.set_turn_players(active)
+        self.turn_index = random.randrange(len(active))
 
-        if player.is_bot:
-            BotHelper.jolt_bot(player, ticks=random.randint(20, 40))
+    def _announce_match_start(self, shuffle_sound: str) -> None:
+        active = [
+            player
+            for player in self.get_active_players()
+            if isinstance(player, ExplodingKittensPlayer)
+        ]
+        if not active or not self.turn_player_ids:
+            return
+        self.phase = PHASE_NORMAL
+        resolved_shuffle = (
+            shuffle_sound
+            if shuffle_sound in SOUND_SHUFFLES
+            else self._random_shuffle_sound()
+        )
+        self.play_sound(resolved_shuffle)
+        self.play_music(SOUND_MUSIC)
+        self.broadcast_l(
+            "explodingkittens-game-started",
+            buffer="game",
+            players=len(active),
+            cards=len(self.deck),
+        )
+        for player in active:
+            if not player.is_bot:
+                self._speak_hand(player)
+        self.announce_turn(turn_sound=SOUND_TURN)
+        BotHelper.jolt_bots(self)
+        self.refresh_menus()
 
-        if previous_player is not None and previous_player is not player:
-            self.rebuild_player_menu(previous_player)
-        for p in self.players:
-            self.rebuild_player_menu(p, position=1 if p is player else None)
+    def _prepare_deck(self, players: list[ExplodingKittensPlayer]) -> None:
+        full_deck = build_full_deck()
+        kittens = [card for card in full_deck if card.kind == EXPLODING_KITTEN]
+        defuses = [card for card in full_deck if card.kind == DEFUSE]
+        working = [
+            card
+            for card in full_deck
+            if card.kind not in (EXPLODING_KITTEN, DEFUSE)
+        ]
+        random.shuffle(working)
 
-    def _end_current_turn(self) -> None:
-        """Advance to the next non-eliminated player (or a remaining-draws slice)."""
-        previous = self.current_player
-        lp: EKPlayer | None = previous  # type: ignore
-        if lp is not None:
-            lp.last_peek = []  # peek info doesn't carry between turns
-            lp.pending = ""
+        for player in players:
+            player.hand.extend(working[:INITIAL_ACTION_CARDS])
+            del working[:INITIAL_ACTION_CARDS]
+            player.hand.append(defuses.pop())
+            player.hand[:] = sort_cards(player.hand)
 
-        if self.draws_owed > 1:
-            # Same player keeps the seat; just decrement and announce.
-            self.draws_owed -= 1
-            self._start_turn(previous_player=None)
+        extra_defuses = extra_defuse_count(len(players))
+        working.extend(defuses[:extra_defuses])
+        self.removed_cards.extend(defuses[extra_defuses:])
+
+        if self.options.fast_game:
+            random.shuffle(working)
+            remove_count = len(working) // 3
+            self.removed_cards.extend(working[:remove_count])
+            del working[:remove_count]
+
+        working.extend(kittens[: len(players) - 1])
+        self.removed_cards.extend(kittens[len(players) - 1 :])
+        random.shuffle(working)
+        self.deck = working
+
+    def on_tick(self) -> None:
+        nope_pending_at_tick_start = (
+            self.pending_action if self.phase == PHASE_NOPE else None
+        )
+        super().on_tick()
+        self.process_sequences()
+        if not self.game_active or self.is_sequence_bot_paused():
             return
 
-        self.draws_owed = 1
-        self.turn_index = (self.turn_index + 1) % max(1, len(self.turn_player_ids))
-        self._start_turn(previous_player=previous)
+        if self._repair_pending_state():
+            return
+
+        if (
+            self.phase == PHASE_NOPE
+            and self.pending_action is nope_pending_at_tick_start
+        ):
+            if self.pending_action.timer_ticks > 0:
+                self.pending_action.timer_ticks -= 1
+            if self.pending_action.timer_ticks <= 0:
+                self._resolve_nope_window()
+                return
+        self._process_one_bot()
+
+    def on_sequence_callback(
+        self,
+        sequence_id: str,
+        callback_id: str,
+        payload: dict,
+    ) -> None:
+        del sequence_id
+        if callback_id == "announce_start_wait":
+            self.broadcast_l(
+                "explodingkittens-game-starting-wait",
+                buffer="game",
+            )
+        elif callback_id == "prepare_match":
+            self._prepare_match()
+        elif callback_id == "announce_match_start":
+            self._announce_match_start(str(payload.get("shuffle_sound", "")))
+        elif callback_id == "finish_kitten_reveal":
+            self._finish_kitten_reveal(payload)
+        elif callback_id == "eliminate_for_final_explosion":
+            player = self.get_player_by_id(str(payload.get("player_id", "")))
+            if isinstance(player, ExplodingKittensPlayer) and not player.eliminated:
+                self._eliminate_player(player, defer_game_over=True)
+        elif callback_id == "resolve_final_explosion":
+            alive = self.alive_players
+            if len(alive) <= 1:
+                self._end_game(alive[0] if alive else None)
+            else:
+                self.phase = PHASE_NORMAL
+                self.refresh_menus()
 
     # ------------------------------------------------------------------
-    # Action sets
+    # Action sets and menu state
     # ------------------------------------------------------------------
 
-    def create_turn_action_set(self, player: EKPlayer) -> ActionSet:  # type: ignore[override]
+    def create_turn_action_set(self, player: Player) -> ActionSet:
         user = self.get_user(player)
         locale = user.locale if user else "en"
         action_set = ActionSet(name="turn")
-
-        # Draw a card.
-        action_set.add(
-            Action(
-                id="draw",
-                label=Localization.get(locale, "ek-action-draw"),
-                handler="_action_draw",
-                is_enabled="_is_draw_enabled",
-                is_hidden="_is_draw_hidden",
-            )
-        )
-
-        # Single-play action cards.
-        for card in (CARD_SKIP, CARD_ATTACK, CARD_SEE_FUTURE, CARD_SHUFFLE):
+        for action_id, label, handler, enabled, hidden in (
+            ("play_nope", "explodingkittens-action-nope", "_action_play_nope", "_is_nope_enabled", "_is_nope_hidden"),
+            (
+                "pass_nope",
+                "explodingkittens-action-pass",
+                "_action_pass_nope",
+                "_is_pass_nope_enabled",
+                "_is_nope_hidden",
+            ),
+            ("draw_card", "explodingkittens-action-draw", "_action_draw_card", "_is_draw_enabled", "_is_draw_hidden"),
+            (
+                "start_combo",
+                "explodingkittens-action-start-combo",
+                "_action_start_combo",
+                "_is_start_combo_enabled",
+                "_is_start_combo_hidden",
+            ),
+            (
+                "confirm_combo",
+                "explodingkittens-action-confirm-combo",
+                "_action_confirm_combo",
+                "_is_confirm_combo_enabled",
+                "_is_confirm_combo_hidden",
+            ),
+            (
+                "combo_command",
+                "explodingkittens-action-start-combo",
+                "_action_combo_command",
+                "_is_combo_command_enabled",
+                "_is_combo_command_hidden",
+            ),
+            (
+                "cancel_selection",
+                "explodingkittens-action-cancel",
+                "_action_cancel_selection",
+                "_is_cancel_enabled",
+                "_is_cancel_hidden",
+            ),
+            (
+                "use_defuse",
+                "explodingkittens-action-use-defuse",
+                "_action_use_defuse",
+                "_is_use_defuse_enabled",
+                "_is_defuse_choice_hidden",
+            ),
+            (
+                "accept_explosion",
+                "explodingkittens-action-accept-explosion",
+                "_action_accept_explosion",
+                "_is_accept_explosion_enabled",
+                "_is_defuse_choice_hidden",
+            ),
+        ):
             action_set.add(
                 Action(
-                    id=f"play_{card}",
-                    label="",
-                    handler="_action_play_simple",
-                    is_enabled="_is_play_card_enabled",
-                    is_hidden="_is_play_card_hidden",
-                    get_label="_get_play_card_label",
+                    id=action_id,
+                    label=Localization.get(locale, label),
+                    handler=handler,
+                    is_enabled=enabled,
+                    is_hidden=hidden,
+                    show_in_actions_menu=False,
                 )
             )
-
-        # Favor (target prompt).
-        action_set.add(
-            Action(
-                id=f"play_{CARD_FAVOR}",
-                label="",
-                handler="_action_play_favor",
-                is_enabled="_is_play_card_enabled",
-                is_hidden="_is_play_card_hidden",
-                get_label="_get_play_card_label",
-                input_request=MenuInput(
-                    prompt="ek-target-prompt",
-                    options="_target_options",
-                    bot_select="_bot_select_target",
-                    include_cancel=True,
-                ),
-            )
-        )
-
-        # Cat pair / trio actions per cat type.
-        for cat in ALL_CAT_TYPES:
-            action_set.add(
-                Action(
-                    id=f"play_pair_{cat}",
-                    label="",
-                    handler="_action_play_cat_pair",
-                    is_enabled="_is_play_cat_pair_enabled",
-                    is_hidden="_is_play_cat_pair_hidden",
-                    get_label="_get_play_cat_pair_label",
-                    input_request=MenuInput(
-                        prompt="ek-target-prompt",
-                        options="_target_options",
-                        bot_select="_bot_select_target",
-                        include_cancel=True,
-                    ),
-                )
-            )
-            action_set.add(
-                Action(
-                    id=f"play_trio_{cat}",
-                    label="",
-                    handler="_action_play_cat_trio",
-                    is_enabled="_is_play_cat_trio_enabled",
-                    is_hidden="_is_play_cat_trio_hidden",
-                    get_label="_get_play_cat_trio_label",
-                    input_request=MenuInput(
-                        prompt="ek-target-prompt",
-                        options="_target_options",
-                        bot_select="_bot_select_target",
-                        include_cancel=True,
-                    ),
-                )
-            )
-
-        # Defuse position prompts (visible only when pending == "defuse_position").
-        for slot in ("top", "second", "bottom", "random"):
-            action_set.add(
-                Action(
-                    id=f"defuse_{slot}",
-                    label="",
-                    handler="_action_defuse_position",
-                    is_enabled="_is_defuse_position_enabled",
-                    is_hidden="_is_defuse_position_hidden",
-                    get_label="_get_defuse_position_label",
-                )
-            )
-
-        # Cat trio name prompt: list every card type as a candidate.
-        for card in CARD_TYPES:
-            if card in (CARD_DEFUSE, CARD_EXPLODING_KITTEN, CARD_STREAKING_KITTEN):
-                continue
-            action_set.add(
-                Action(
-                    id=f"trio_name_{card}",
-                    label="",
-                    handler="_action_cat_trio_name",
-                    is_enabled="_is_trio_name_enabled",
-                    is_hidden="_is_trio_name_hidden",
-                    get_label="_get_trio_name_label",
-                )
-            )
-
-        # Nope window responses.
-        action_set.add(
-            Action(
-                id="play_nope",
-                label="",
-                handler="_action_play_nope",
-                is_enabled="_is_play_nope_enabled",
-                is_hidden="_is_play_nope_hidden",
-                get_label="_get_play_nope_label",
-            )
-        )
-        action_set.add(
-            Action(
-                id="skip_nope",
-                label=Localization.get(locale, "ek-action-skip-nope"),
-                handler="_action_skip_nope",
-                is_enabled="_is_skip_nope_enabled",
-                is_hidden="_is_skip_nope_hidden",
-            )
-        )
+        self._sync_turn_actions(player, action_set)
         return action_set
 
-    def create_standard_action_set(self, player: EKPlayer) -> ActionSet:  # type: ignore[override]
+    def create_standard_action_set(self, player: Player) -> ActionSet:
         action_set = super().create_standard_action_set(player)
+        action_set.remove("check_scores")
+        action_set.remove("check_scores_detailed")
         user = self.get_user(player)
         locale = user.locale if user else "en"
-
-        status = Action(
-            id="check_status",
-            label=Localization.get(locale, "ek-status-hand-header", count=0),
-            handler="_action_check_status",
-            is_enabled="_is_check_status_enabled",
-            is_hidden="_is_check_status_hidden",
-        )
-        action_set.add(status)
-        if status.id in action_set._order:
-            action_set._order.remove(status.id)
-        action_set._order.insert(0, status.id)
-
-        detailed = Action(
-            id="check_status_detailed",
-            label="Detailed status",
-            handler="_action_check_status_detailed",
-            is_enabled="_is_check_status_enabled",
-            is_hidden="_is_check_status_hidden",
-        )
-        action_set.add(detailed)
-        if detailed.id in action_set._order:
-            action_set._order.remove(detailed.id)
-        action_set._order.insert(1, detailed.id)
-
-        for aid in ("check_scores", "check_scores_detailed"):
-            existing = action_set.get_action(aid)
-            if existing:
-                existing.show_in_actions_menu = False
+        for action_id, label, handler, enabled, hidden, spectators in (
+            (
+                "read_piles",
+                "explodingkittens-action-read-piles",
+                "_action_read_piles",
+                "_is_public_info_enabled",
+                "_is_public_info_hidden",
+                True,
+            ),
+            (
+                "read_table",
+                "explodingkittens-action-read-table",
+                "_action_read_table",
+                "_is_public_info_enabled",
+                "_is_public_info_hidden",
+                True,
+            ),
+            (
+                "read_hand",
+                "explodingkittens-action-read-hand",
+                "_action_read_hand",
+                "_is_private_info_enabled",
+                "_is_private_info_hidden",
+                False,
+            ),
+            (
+                "check_nope_timer",
+                "explodingkittens-action-check-nope-timer",
+                "_action_check_nope_timer",
+                "_is_nope_timer_enabled",
+                "_is_nope_timer_hidden",
+                True,
+            ),
+        ):
+            action_set.add(
+                Action(
+                    id=action_id,
+                    label=Localization.get(locale, label),
+                    handler=handler,
+                    is_enabled=enabled,
+                    is_hidden=hidden,
+                    include_spectators=spectators,
+                )
+            )
+        if self.is_touch_client(user):
+            self._order_touch_standard_actions(
+                action_set,
+                [
+                    "read_piles",
+                    "read_table",
+                    "read_hand",
+                    "check_nope_timer",
+                    "whose_turn",
+                    "whos_at_table",
+                ],
+            )
         return action_set
 
     def setup_keybinds(self) -> None:
         super().setup_keybinds()
-        if "s" in self._keybinds:
-            self._keybinds["s"] = []
-        if "shift+s" in self._keybinds:
-            self._keybinds["shift+s"] = []
-        self.define_keybind(
-            "s", "Check status", ["check_status"],
-            state=KeybindState.ACTIVE, include_spectators=True,
-        )
-        self.define_keybind(
-            "shift+s", "Detailed status", ["check_status_detailed"],
-            state=KeybindState.ACTIVE, include_spectators=True,
-        )
-        self.define_keybind("space", "Draw a card", ["draw"], state=KeybindState.ACTIVE)
-        self.define_keybind("d", "Draw a card", ["draw"], state=KeybindState.ACTIVE)
+        self.define_keybind("space", "Draw a card", ["draw_card"], state=KeybindState.ACTIVE)
         self.define_keybind("n", "Play Nope", ["play_nope"], state=KeybindState.ACTIVE)
+        self.define_keybind("p", "Pass", ["pass_nope"], state=KeybindState.ACTIVE)
+        self.define_keybind(
+            "c",
+            "Build or play a combo",
+            ["combo_command"],
+            state=KeybindState.ACTIVE,
+        )
+        self.define_keybind("x", "Cancel selection", ["cancel_selection"], state=KeybindState.ACTIVE)
+        self.define_keybind("h", "Read hand", ["read_hand"], state=KeybindState.ACTIVE)
+        self.define_keybind("d", "Read piles", ["read_piles"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind("v", "Read table", ["read_table"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind(
+            "shift+t",
+            "Check Nope timer",
+            ["check_nope_timer"],
+            state=KeybindState.ACTIVE,
+            include_spectators=True,
+        )
+
+    def before_menu_build(self, player: Player) -> None:
+        self._sync_turn_actions(player)
+
+    def _sync_turn_actions(
+        self, player: Player, action_set: ActionSet | None = None
+    ) -> None:
+        if not isinstance(player, ExplodingKittensPlayer):
+            return
+        if action_set is None:
+            action_set = self.get_action_set(player, "turn")
+        if action_set is None:
+            return
+        for prefix in ("play_card_", "target_", "request_", "insert_"):
+            action_set.remove_by_prefix(prefix)
+
+        user = self.get_user(player)
+        locale = user.locale if user else "en"
+        player.hand[:] = sort_cards(player.hand)
+        for card in player.hand:
+            action_set.add(
+                Action(
+                    id=f"play_card_{card.id}",
+                    label=self._card_action_label(player, card, locale),
+                    handler="_action_play_card",
+                    is_enabled="_is_play_card_enabled",
+                    is_hidden="_is_play_card_hidden",
+                    get_label="_get_play_card_label",
+                    show_in_actions_menu=False,
+                )
+            )
+
+        if self.phase == PHASE_TARGET and self.pending_action and player.id == self.pending_action.actor_id:
+            for target in self._valid_targets(player):
+                action_set.add(
+                    Action(
+                        id=f"target_{target.id}",
+                        label=Localization.get(
+                            locale,
+                            "explodingkittens-target-player",
+                            player=target.name,
+                            cards=len(target.hand),
+                        ),
+                        handler="_action_choose_target",
+                        is_enabled="_is_target_enabled",
+                        is_hidden="_is_target_hidden",
+                        show_in_actions_menu=False,
+                    )
+                )
+
+        if self.phase == PHASE_REQUEST and self.pending_action and player.id == self.pending_action.actor_id:
+            for kind in REQUESTABLE_KINDS:
+                action_set.add(
+                    Action(
+                        id=f"request_{kind}",
+                        label=card_name(kind, locale),
+                        handler="_action_choose_request",
+                        is_enabled="_is_request_enabled",
+                        is_hidden="_is_request_hidden",
+                        show_in_actions_menu=False,
+                    )
+                )
+
+        if self.phase == PHASE_REINSERT and player.id == self.decision_player_id:
+            for position in range(len(self.deck) + 1):
+                action_set.add(
+                    Action(
+                        id=f"insert_{position}",
+                        label=self._insertion_label(locale, position),
+                        handler="_action_reinsert_kitten",
+                        is_enabled="_is_reinsert_enabled",
+                        is_hidden="_is_reinsert_hidden",
+                        show_in_actions_menu=False,
+                    )
+                )
+
+        card_ids = [f"play_card_{card.id}" for card in player.hand]
+        special_ids = [
+            action_id
+            for action_id in action_set._order
+            if action_id.startswith(("target_", "request_", "insert_"))
+        ]
+        if special_ids:
+            action_set._order = special_ids + ["cancel_selection"]
+        elif self.phase == PHASE_DEFUSE and player.id == self.decision_player_id:
+            action_set._order = ["use_defuse", "accept_explosion"]
+        elif self.phase == PHASE_FAVOR_GIVE and self.pending_action and player.id == self.pending_action.target_id:
+            action_set._order = card_ids
+        elif self.phase == PHASE_COMBO and self.current_player == player:
+            action_set._order = card_ids + ["confirm_combo", "cancel_selection"]
+        elif self.phase == PHASE_NOPE and self._is_nope_responder(player):
+            reactions = ["play_nope", "pass_nope"] if self.is_touch_client(user) else []
+            action_set._order = card_ids + reactions
+        else:
+            action_set._order = card_ids + ["start_combo", "draw_card"]
 
     # ------------------------------------------------------------------
-    # Visibility / enabled helpers
+    # Visibility and validation
     # ------------------------------------------------------------------
 
-    def _my_turn(self, player: Player) -> bool:
-        return self.current_player is player
+    def _is_alive_player(self, player: Player) -> bool:
+        return (
+            isinstance(player, ExplodingKittensPlayer)
+            and not player.is_spectator
+            and not player.eliminated
+        )
 
-    def _has_pending_action(self) -> bool:
-        return self.pending_action is not None and self.nope_window_ticks > 0
+    def _action_in_progress_error(
+        self,
+        player: Player,
+        *,
+        locale: str | None = None,
+    ) -> str | tuple[str, dict]:
+        """Describe the exact private or resolving state blocking an action."""
+        if locale is None:
+            user = self.get_user(player)
+            locale = user.locale if user else "en"
 
-    # Draw.
-    def _is_draw_enabled(self, player: Player) -> str | None:
-        if self.status != "playing":
-            return "ek-action-not-playing"
-        if not self._my_turn(player):
-            return "ek-action-not-your-turn"
-        if self._has_pending_action():
-            return "ek-action-must-respond-nope"
-        lp: EKPlayer = player  # type: ignore
-        if lp.eliminated:
-            return "ek-status-eliminated"
-        if lp.pending != "":
-            return "ek-action-must-respond-nope"
+        if self.phase == PHASE_STARTING:
+            return "explodingkittens-game-starting-wait"
+
+        if self.phase == PHASE_COMBO:
+            actor = self.current_player
+            if actor and actor.id == player.id:
+                return "explodingkittens-error-finish-combo"
+            if actor:
+                return (
+                    "explodingkittens-error-waiting-combo",
+                    {"player": actor.name},
+                )
+
+        pending = self.pending_action
+        actor = (
+            self.get_player_by_id(pending.actor_id)
+            if pending is not None
+            else None
+        )
+        action = (
+            self._pending_action_name(pending, locale)
+            if pending is not None
+            else ""
+        )
+
+        if self.phase == PHASE_TARGET and pending is not None:
+            if actor and actor.id == player.id:
+                return (
+                    "explodingkittens-error-choose-target",
+                    {"action": action},
+                )
+            if actor:
+                return (
+                    "explodingkittens-error-waiting-target",
+                    {"player": actor.name, "action": action},
+                )
+
+        if self.phase == PHASE_REQUEST and pending is not None:
+            target = self.get_player_by_id(pending.target_id)
+            target_name = target.name if target else ""
+            if actor and actor.id == player.id:
+                return (
+                    "explodingkittens-error-choose-request",
+                    {"target": target_name},
+                )
+            if actor:
+                return (
+                    "explodingkittens-error-waiting-request",
+                    {"player": actor.name, "target": target_name},
+                )
+
+        if self.phase == PHASE_NOPE and pending is not None and actor:
+            if actor.id == player.id:
+                return (
+                    "explodingkittens-error-waiting-nope-you",
+                    {"action": action},
+                )
+            return (
+                "explodingkittens-error-waiting-nope-player",
+                {"player": actor.name, "action": action},
+            )
+
+        if self.phase == PHASE_FAVOR_GIVE and pending is not None:
+            target = self.get_player_by_id(pending.target_id)
+            if actor and target and target.id == player.id:
+                return (
+                    "explodingkittens-error-give-favor-card",
+                    {"player": actor.name},
+                )
+            if actor and target and actor.id == player.id:
+                return (
+                    "explodingkittens-error-waiting-favor-you",
+                    {"target": target.name},
+                )
+            if actor and target:
+                return (
+                    "explodingkittens-error-waiting-favor-player",
+                    {"target": target.name, "player": actor.name},
+                )
+
+        decision_player = self.get_player_by_id(self.decision_player_id)
+        if self.phase == PHASE_DEFUSE:
+            if decision_player and decision_player.id == player.id:
+                return "explodingkittens-error-choose-defuse"
+            if decision_player:
+                return (
+                    "explodingkittens-error-waiting-defuse",
+                    {"player": decision_player.name},
+                )
+
+        if self.phase == PHASE_REINSERT:
+            if decision_player and decision_player.id == player.id:
+                return "explodingkittens-error-choose-reinsert"
+            if decision_player:
+                return (
+                    "explodingkittens-error-waiting-reinsert",
+                    {"player": decision_player.name},
+                )
+
+        if self.phase == PHASE_RESOLVING:
+            if self.drawn_kitten is not None and decision_player:
+                if decision_player.id == player.id:
+                    return "explodingkittens-error-kitten-reveal-you"
+                return (
+                    "explodingkittens-error-kitten-reveal-player",
+                    {"player": decision_player.name},
+                )
+            return "explodingkittens-error-action-resolving"
+
+        return "explodingkittens-error-action-in-progress"
+
+    def _base_play_error(self, player: Player) -> str | None:
+        if self.status != "playing" or not self.game_active:
+            return "action-not-playing"
+        if player.is_spectator:
+            return "action-spectator"
+        if not self._is_alive_player(player):
+            return "explodingkittens-error-eliminated"
         return None
 
-    def _is_draw_hidden(self, player: Player) -> Visibility:
-        if not self._my_turn(player):
+    def _card_for_action(
+        self, player: Player, action_id: str | None
+    ) -> ExplodingKittensCard | None:
+        if not isinstance(player, ExplodingKittensPlayer) or not action_id:
+            return None
+        try:
+            card_id = int(action_id.rsplit("_", 1)[1])
+        except (ValueError, IndexError):
+            return None
+        return next((card for card in player.hand if card.id == card_id), None)
+
+    def _is_play_card_hidden(
+        self, player: Player, *, action_id: str | None = None
+    ) -> Visibility:
+        if self.status != "playing" or not self._is_alive_player(player):
             return Visibility.HIDDEN
-        lp: EKPlayer = player  # type: ignore
-        if lp.eliminated:
-            return Visibility.HIDDEN
-        if lp.pending != "":
-            return Visibility.HIDDEN
-        if self._has_pending_action():
+        if self.phase in (PHASE_TARGET, PHASE_REQUEST) and self.pending_action:
+            if player.id == self.pending_action.actor_id:
+                return Visibility.HIDDEN
+        if self.phase in (PHASE_DEFUSE, PHASE_REINSERT) and player.id == self.decision_player_id:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
-    # Generic play_card visibility.
-    def _is_play_card_enabled(self, player: Player) -> str | None:
-        return self._is_draw_enabled(player)
+    def _is_play_card_enabled(
+        self, player: Player, *, action_id: str | None = None
+    ) -> str | tuple[str, dict] | None:
+        error = self._base_play_error(player)
+        if error:
+            return error
+        card = self._card_for_action(player, action_id)
+        if card is None:
+            return "explodingkittens-error-card-missing"
 
-    def _is_play_card_hidden(self, player: Player, action_id: str | None = None) -> Visibility:
-        if self._is_draw_hidden(player) == Visibility.HIDDEN:
-            return Visibility.HIDDEN
-        # Hide if player doesn't have the card.
-        lp: EKPlayer = player  # type: ignore
-        # Resolve which card this action represents from the action id.
-        if action_id is None:
-            return Visibility.VISIBLE
-        if action_id.startswith("play_"):
-            card = action_id[len("play_"):]
-            return Visibility.VISIBLE if hand_count(lp.hand, card) >= 1 else Visibility.HIDDEN
-        return Visibility.VISIBLE
+        if self.phase == PHASE_COMBO and self.current_player == player:
+            if card.kind == EXPLODING_KITTEN:
+                return "explodingkittens-error-card-not-combo"
+            if not self.options.advanced_combos and card.kind not in CAT_KINDS:
+                return "explodingkittens-error-advanced-combo-required"
+            selected = player.selected_card_ids  # type: ignore[attr-defined]
+            selected_kinds = {
+                held.kind for held in player.hand if held.id in selected
+            }
+            if card.id not in selected and selected_kinds and card.kind not in selected_kinds:
+                return "explodingkittens-error-combo-name-mismatch"
+            combo_limit = 3 if self.options.advanced_combos else 2
+            if card.id not in selected and len(selected) >= combo_limit:
+                if self.options.advanced_combos:
+                    return "explodingkittens-error-combo-too-large"
+                return "explodingkittens-error-basic-combo-pair-only"
+            return None
+
+        if (
+            self.phase == PHASE_FAVOR_GIVE
+            and self.pending_action
+            and player.id == self.pending_action.target_id
+        ):
+            return None
+
+        if self.phase == PHASE_NOPE and card.kind == NOPE:
+            return self._is_nope_enabled(player)
+
+        if self.phase != PHASE_NORMAL:
+            return self._action_in_progress_error(player)
+        if self.current_player != player:
+            return "action-not-your-turn"
+        if card.kind == DEFUSE:
+            return "explodingkittens-error-defuse-only-after-kitten"
+        if card.kind == NOPE:
+            return "explodingkittens-error-nope-only-in-response"
+        if card.kind in CAT_KINDS:
+            if self.options.advanced_combos:
+                return "explodingkittens-error-cat-needs-combo"
+            return "explodingkittens-error-cat-needs-pair"
+        if card.kind == FAVOR and not self._valid_targets(player):
+            return "explodingkittens-error-no-target-with-cards"
+        if card.kind not in ACTION_KINDS:
+            return "explodingkittens-error-card-not-playable"
+        return None
 
     def _get_play_card_label(self, player: Player, action_id: str) -> str:
         user = self.get_user(player)
         locale = user.locale if user else "en"
-        card = action_id[len("play_"):]
-        lp: EKPlayer = player  # type: ignore
-        count = hand_count(lp.hand, card)
-        name = self._card_name(card, locale)
-        if count > 1:
-            return f"Play {name} (x{count})"
-        return f"Play {name}"
+        card = self._card_for_action(player, action_id)
+        if card is None:
+            return Localization.get(locale, "explodingkittens-card-unknown")
+        return self._card_action_label(player, card, locale)
 
-    # Cat pair visibility.
-    def _is_play_cat_pair_enabled(self, player: Player) -> str | None:
-        return self._is_draw_enabled(player)
+    def _card_action_label(
+        self,
+        player: ExplodingKittensPlayer,
+        card: ExplodingKittensCard,
+        locale: str,
+    ) -> str:
+        name = card_name(card, locale)
+        if self.phase == PHASE_COMBO and self.current_player == player:
+            key = (
+                "explodingkittens-card-selected"
+                if card.id in player.selected_card_ids
+                else "explodingkittens-card-not-selected"
+            )
+            return Localization.get(locale, key, card=name)
+        if (
+            self.phase == PHASE_FAVOR_GIVE
+            and self.pending_action
+            and player.id == self.pending_action.target_id
+        ):
+            return Localization.get(locale, "explodingkittens-give-card-label", card=name)
+        return name
 
-    def _is_play_cat_pair_hidden(self, player: Player, action_id: str | None = None) -> Visibility:
-        if self._is_draw_hidden(player) == Visibility.HIDDEN:
-            return Visibility.HIDDEN
-        if action_id is None or not action_id.startswith("play_pair_"):
+    def _is_draw_enabled(self, player: Player) -> str | tuple[str, dict] | None:
+        error = self._base_play_error(player)
+        if error:
+            return error
+        if self.phase != PHASE_NORMAL:
+            return self._action_in_progress_error(player)
+        if self.current_player != player:
+            return "action-not-your-turn"
+        if not self.deck:
+            return "explodingkittens-error-deck-empty"
+        return None
+
+    def _is_draw_hidden(self, player: Player) -> Visibility:
+        if (
+            self.status == "playing"
+            and self.phase == PHASE_NORMAL
+            and self._is_alive_player(player)
+            and self.current_player == player
+        ):
             return Visibility.VISIBLE
-        cat = action_id[len("play_pair_"):]
-        lp: EKPlayer = player  # type: ignore
-        return Visibility.VISIBLE if hand_count(lp.hand, cat) >= 2 else Visibility.HIDDEN
+        return Visibility.HIDDEN
 
-    def _get_play_cat_pair_label(self, player: Player, action_id: str) -> str:
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
-        cat = action_id[len("play_pair_"):]
-        return f"Play 2× {self._card_name(cat, locale)}"
+    def _combo_kinds(self, player: ExplodingKittensPlayer) -> set[str]:
+        counts: dict[str, int] = {}
+        for card in player.hand:
+            if card.kind != EXPLODING_KITTEN and (
+                self.options.advanced_combos or card.kind in CAT_KINDS
+            ):
+                counts[card.kind] = counts.get(card.kind, 0) + 1
+        return {kind for kind, count in counts.items() if count >= 2}
 
-    def _is_play_cat_trio_enabled(self, player: Player) -> str | None:
-        return self._is_draw_enabled(player)
+    def _has_combo(self, player: ExplodingKittensPlayer) -> bool:
+        return bool(self._combo_kinds(player))
 
-    def _is_play_cat_trio_hidden(self, player: Player, action_id: str | None = None) -> Visibility:
-        if self._is_draw_hidden(player) == Visibility.HIDDEN:
+    def _is_start_combo_enabled(
+        self, player: Player
+    ) -> str | tuple[str, dict] | None:
+        error = self._is_draw_enabled(player)
+        if error:
+            return error
+        if not self._valid_targets(player):
+            return "explodingkittens-error-no-target-with-cards"
+        if not isinstance(player, ExplodingKittensPlayer) or not self._has_combo(player):
+            if self.options.advanced_combos:
+                return "explodingkittens-error-no-combo"
+            return "explodingkittens-error-no-cat-pair"
+        return None
+
+    def _is_start_combo_hidden(self, player: Player) -> Visibility:
+        if self._is_draw_hidden(player) is Visibility.HIDDEN:
             return Visibility.HIDDEN
-        if action_id is None or not action_id.startswith("play_trio_"):
+        if not isinstance(player, ExplodingKittensPlayer):
+            return Visibility.HIDDEN
+        if not self._has_combo(player) or not self._valid_targets(player):
+            return Visibility.HIDDEN
+        return Visibility.VISIBLE
+
+    def _is_confirm_combo_enabled(
+        self, player: Player
+    ) -> str | tuple[str, dict] | None:
+        error = self._base_play_error(player)
+        if error:
+            return error
+        if self.phase != PHASE_COMBO or self.current_player != player:
+            return self._action_in_progress_error(player)
+        if not isinstance(player, ExplodingKittensPlayer):
+            return "explodingkittens-error-invalid-combo"
+        cards = [card for card in player.hand if card.id in player.selected_card_ids]
+        if len(cards) not in (2, 3) or len({card.kind for card in cards}) != 1:
+            if not self.options.advanced_combos:
+                return "explodingkittens-error-invalid-cat-pair"
+            return "explodingkittens-error-invalid-combo"
+        if not self.options.advanced_combos and (
+            len(cards) != 2 or cards[0].kind not in CAT_KINDS
+        ):
+            return "explodingkittens-error-advanced-combo-required"
+        return None
+
+    def _is_confirm_combo_hidden(self, player: Player) -> Visibility:
+        if self.phase == PHASE_COMBO and self.current_player == player:
             return Visibility.VISIBLE
-        cat = action_id[len("play_trio_"):]
-        lp: EKPlayer = player  # type: ignore
-        return Visibility.VISIBLE if hand_count(lp.hand, cat) >= 3 else Visibility.HIDDEN
+        return Visibility.HIDDEN
 
-    def _get_play_cat_trio_label(self, player: Player, action_id: str) -> str:
+    def _is_combo_command_enabled(
+        self, player: Player
+    ) -> str | tuple[str, dict] | None:
+        """Validate the phase-specific combo operation bound to C."""
+        if self.phase == PHASE_COMBO and self.current_player == player:
+            return self._is_confirm_combo_enabled(player)
+        return self._is_start_combo_enabled(player)
+
+    def _is_combo_command_hidden(self, player: Player) -> Visibility:
+        return Visibility.HIDDEN
+
+    def _is_cancel_enabled(self, player: Player) -> str | tuple[str, dict] | None:
+        if (
+            self.phase in (PHASE_TARGET, PHASE_REQUEST)
+            and self.pending_action
+            and player.id == self.pending_action.actor_id
+        ):
+            return None
+        if self.phase == PHASE_COMBO and self.current_player == player:
+            return None
+        return self._action_in_progress_error(player)
+
+    def _is_cancel_hidden(self, player: Player) -> Visibility:
+        if self.phase == PHASE_COMBO and self.current_player == player:
+            return Visibility.VISIBLE
+        if (
+            self.phase in (PHASE_TARGET, PHASE_REQUEST)
+            and self.pending_action
+            and player.id == self.pending_action.actor_id
+        ):
+            return Visibility.VISIBLE
+        return Visibility.HIDDEN
+
+    def _nope_response_error(self, player: Player) -> str | None:
+        error = self._base_play_error(player)
+        if error:
+            return error
+        if self.phase != PHASE_NOPE or not self.pending_action:
+            return "explodingkittens-error-not-nope-window"
+        if player.id in self.pending_action.passed_player_ids:
+            return "explodingkittens-error-already-passed-nope"
+        if self.pending_action.nope_count == 0:
+            if player.id == self.pending_action.actor_id:
+                return "explodingkittens-error-nope-own-action"
+        elif player.id == self.pending_action.last_nope_player_id:
+            return "explodingkittens-error-nope-own-nope"
+        return None
+
+    def _is_nope_responder(self, player: Player) -> bool:
+        return self._nope_response_error(player) is None
+
+    def _is_nope_enabled(self, player: Player) -> str | None:
+        error = self._nope_response_error(player)
+        if error:
+            return error
+        if not isinstance(player, ExplodingKittensPlayer) or not any(card.kind == NOPE for card in player.hand):
+            return "explodingkittens-error-no-nope"
+        return None
+
+    def _is_pass_nope_enabled(self, player: Player) -> str | None:
+        error = self._nope_response_error(player)
+        if error in {
+            "explodingkittens-error-not-nope-window",
+            "explodingkittens-error-nope-own-action",
+            "explodingkittens-error-nope-own-nope",
+        }:
+            return "explodingkittens-error-nothing-to-pass"
+        return error
+
+    def _is_nope_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        locale = user.locale if user else "en"
-        cat = action_id[len("play_trio_"):]
-        return f"Play 3× {self._card_name(cat, locale)}"
+        if self.is_touch_client(user) and self._is_nope_responder(player):
+            return Visibility.VISIBLE
+        return Visibility.HIDDEN
 
-    # Defuse position.
-    def _is_defuse_position_enabled(self, player: Player) -> str | None:
-        if not self._my_turn(player):
-            return "ek-action-not-your-turn"
+    def _defuse_decision_error(
+        self, player: Player
+    ) -> str | tuple[str, dict] | None:
+        error = self._base_play_error(player)
+        if error:
+            return error
+        if self.phase != PHASE_DEFUSE or player.id != self.decision_player_id:
+            return self._action_in_progress_error(player)
         return None
 
-    def _is_defuse_position_hidden(self, player: Player) -> Visibility:
-        lp: EKPlayer = player  # type: ignore
-        if not self._my_turn(player) or lp.pending != "defuse_position":
-            return Visibility.HIDDEN
-        return Visibility.VISIBLE
-
-    def _get_defuse_position_label(self, player: Player, action_id: str) -> str:
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
-        slot = action_id[len("defuse_"):]
-        return Localization.get(locale, f"ek-defuse-position-{slot}")
-
-    # Cat trio name.
-    def _is_trio_name_enabled(self, player: Player) -> str | None:
-        if not self._my_turn(player):
-            return "ek-action-not-your-turn"
+    def _is_use_defuse_enabled(
+        self, player: Player
+    ) -> str | tuple[str, dict] | None:
+        error = self._defuse_decision_error(player)
+        if error:
+            return error
+        if not isinstance(player, ExplodingKittensPlayer):
+            return "explodingkittens-error-card-missing"
+        if not any(card.kind == DEFUSE for card in player.hand):
+            return "explodingkittens-error-no-defuse"
         return None
 
-    def _is_trio_name_hidden(self, player: Player) -> Visibility:
-        lp: EKPlayer = player  # type: ignore
-        if not self._my_turn(player) or lp.pending != "cat_trio_name":
-            return Visibility.HIDDEN
-        return Visibility.VISIBLE
+    def _is_accept_explosion_enabled(
+        self, player: Player
+    ) -> str | tuple[str, dict] | None:
+        return self._defuse_decision_error(player)
 
-    def _get_trio_name_label(self, player: Player, action_id: str) -> str:
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
-        card = action_id[len("trio_name_"):]
-        return self._card_name(card, locale)
+    def _is_defuse_choice_hidden(self, player: Player) -> Visibility:
+        if self.phase == PHASE_DEFUSE and player.id == self.decision_player_id:
+            return Visibility.VISIBLE
+        return Visibility.HIDDEN
 
-    # Nope.
-    def _is_play_nope_enabled(self, player: Player) -> str | None:
-        if not self._has_pending_action():
-            return "ek-action-not-playing"
-        if self.pending_action and self.pending_action.get("actor_id") == player.id:
-            return "ek-action-not-your-turn"
+    def _is_target_enabled(
+        self, player: Player, *, action_id: str | None = None
+    ) -> str | tuple[str, dict] | None:
+        if self.phase != PHASE_TARGET or not self.pending_action or player.id != self.pending_action.actor_id:
+            return self._action_in_progress_error(player)
+        target = self._target_for_action(action_id)
+        if target is None or target not in self._valid_targets(player):
+            return "explodingkittens-error-invalid-target"
         return None
 
-    def _is_play_nope_hidden(self, player: Player) -> Visibility:
-        if not self._has_pending_action():
-            return Visibility.HIDDEN
-        if self.pending_action and self.pending_action.get("actor_id") == player.id:
-            return Visibility.HIDDEN
-        lp: EKPlayer = player  # type: ignore
-        if lp.eliminated:
-            return Visibility.HIDDEN
-        if hand_count(lp.hand, CARD_NOPE) < 1:
-            return Visibility.HIDDEN
-        return Visibility.VISIBLE
+    def _is_target_hidden(self, player: Player, *, action_id: str | None = None) -> Visibility:
+        if self.phase == PHASE_TARGET and self.pending_action and player.id == self.pending_action.actor_id:
+            return Visibility.VISIBLE
+        return Visibility.HIDDEN
 
-    def _get_play_nope_label(self, player: Player, action_id: str) -> str:
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
-        return Localization.get(
-            locale, "ek-action-play-nope", card=self._card_name(CARD_NOPE, locale)
-        )
-
-    def _is_skip_nope_enabled(self, player: Player) -> str | None:
-        if not self._has_pending_action():
-            return "ek-action-not-playing"
+    def _is_request_enabled(
+        self, player: Player, *, action_id: str | None = None
+    ) -> str | tuple[str, dict] | None:
+        if self.phase != PHASE_REQUEST or not self.pending_action or player.id != self.pending_action.actor_id:
+            return self._action_in_progress_error(player)
+        kind = self._kind_for_request_action(action_id)
+        if kind not in REQUESTABLE_KINDS:
+            return "explodingkittens-error-invalid-request"
         return None
 
-    def _is_skip_nope_hidden(self, player: Player) -> Visibility:
-        if not self._has_pending_action():
-            return Visibility.HIDDEN
-        if self.pending_action and self.pending_action.get("actor_id") == player.id:
-            return Visibility.HIDDEN
-        lp: EKPlayer = player  # type: ignore
-        if lp.eliminated:
-            return Visibility.HIDDEN
-        return Visibility.VISIBLE
+    def _is_request_hidden(self, player: Player, *, action_id: str | None = None) -> Visibility:
+        if self.phase == PHASE_REQUEST and self.pending_action and player.id == self.pending_action.actor_id:
+            return Visibility.VISIBLE
+        return Visibility.HIDDEN
 
-    def _is_check_status_enabled(self, player: Player) -> str | None:
-        if self.status not in ("playing", "finished"):
-            return "ek-action-not-playing"
+    def _is_reinsert_enabled(
+        self, player: Player, *, action_id: str | None = None
+    ) -> str | tuple[str, dict] | None:
+        if self.phase != PHASE_REINSERT or player.id != self.decision_player_id or self.drawn_kitten is None:
+            return self._action_in_progress_error(player)
+        position = self._position_for_action(action_id)
+        if position is None or not 0 <= position <= len(self.deck):
+            return "explodingkittens-error-invalid-position"
         return None
 
-    def _is_check_status_hidden(self, player: Player) -> Visibility:
+    def _is_reinsert_hidden(self, player: Player, *, action_id: str | None = None) -> Visibility:
+        if self.phase == PHASE_REINSERT and player.id == self.decision_player_id:
+            return Visibility.VISIBLE
         return Visibility.HIDDEN
 
     # ------------------------------------------------------------------
-    # "You vs player" announce helper
+    # Player actions and private selection flows
     # ------------------------------------------------------------------
 
-    def _announce(self, actor: Player, message_id: str, **kwargs) -> None:
-        for p in self.players:
-            user = self.get_user(p)
-            if not user:
-                continue
-            if p is actor:
-                user.speak_l(message_id, "table", who="you", **kwargs)
+    def _action_play_card(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, ExplodingKittensPlayer):
+            return
+        card = self._card_for_action(player, action_id)
+        if card is None:
+            return
+
+        if self.phase == PHASE_NOPE and card.kind == NOPE:
+            self._play_nope_card(player, card)
+            return
+
+        if self.phase == PHASE_COMBO:
+            if card.id in player.selected_card_ids:
+                player.selected_card_ids.remove(card.id)
             else:
+                player.selected_card_ids.append(card.id)
+            user = self.get_user(player)
+            if user:
                 user.speak_l(
-                    message_id, "table", who="player", player=actor.name, **kwargs
+                    "explodingkittens-combo-selection-count",
+                    buffer="game",
+                    count=len(player.selected_card_ids),
                 )
+            self.request_menu_focus(player, action_id)
+            return
 
-    def _announce_private(self, target: Player, source: Player, message_id: str, **kwargs) -> None:
-        """Send a card-detail message only to one specific recipient."""
-        user = self.get_user(target)
-        if user:
-            user.speak_l(
-                message_id, "table", who="you", source=source.name, **kwargs
+        if self.phase == PHASE_FAVOR_GIVE and self.pending_action:
+            self._give_favor_card(player, card)
+            return
+
+        if card.kind == FAVOR:
+            self.pending_action = PendingAction(
+                kind=ACTION_FAVOR,
+                actor_id=player.id,
+                card_ids=[card.id],
             )
-
-    # ------------------------------------------------------------------
-    # Target options (for Favor / cat pair / cat trio)
-    # ------------------------------------------------------------------
-
-    def _target_options(self, player: Player) -> list[str]:
-        return [
-            p.name
-            for p in self.get_active_players()
-            if p is not player and not getattr(p, "eliminated", False)
-        ]
-
-    def _bot_select_target(self, player: Player, options: list[str]) -> str | None:
-        """Bot picks the player with the most cards (most likely to have something useful)."""
-        candidates = [
-            p for p in self.get_active_players()
-            if p is not player and not getattr(p, "eliminated", False)
-        ]
-        if not candidates:
-            return None
-        candidates.sort(key=lambda p: len(p.hand), reverse=True)  # type: ignore[arg-type]
-        return candidates[0].name
-
-    def _resolve_target(self, name: str) -> EKPlayer | None:
-        for p in self.get_active_players():
-            if p.name == name and not getattr(p, "eliminated", False):
-                return p  # type: ignore[return-value]
-        return None
-
-    # ------------------------------------------------------------------
-    # Action handlers — playing cards
-    # ------------------------------------------------------------------
-
-    def _action_play_simple(self, player: Player, action_id: str) -> None:
-        """Skip / Attack / See the Future / Shuffle (no target needed)."""
-        lp: EKPlayer = player  # type: ignore
-        card = action_id[len("play_"):]
-        if not remove_one(lp.hand, card):
+            self.phase = PHASE_TARGET
+            self._focus_first_target(player)
             return
-        self.discard.append(card)
-        self._open_pending_action(actor=lp, card=card, params={})
 
-    def _action_play_favor(self, player: Player, *args) -> None:
-        lp: EKPlayer = player  # type: ignore
-        if len(args) < 2:
-            return
-        target_name, action_id = args[0], args[1]
-        target = self._resolve_target(str(target_name))
-        if not target:
-            return
-        if not remove_one(lp.hand, CARD_FAVOR):
-            return
-        self.discard.append(CARD_FAVOR)
-        self._open_pending_action(actor=lp, card=CARD_FAVOR, params={"target_id": target.id})
-
-    def _action_play_cat_pair(self, player: Player, *args) -> None:
-        lp: EKPlayer = player  # type: ignore
-        if len(args) < 2:
-            return
-        target_name, action_id = args[0], args[1]
-        cat = action_id[len("play_pair_"):]
-        target = self._resolve_target(str(target_name))
-        if not target:
-            return
-        if hand_count(lp.hand, cat) < 2:
-            return
-        remove_one(lp.hand, cat)
-        remove_one(lp.hand, cat)
-        self.discard.append(cat)
-        self.discard.append(cat)
-        self._open_pending_action(
-            actor=lp, card=cat, params={"target_id": target.id, "mode": "pair"}
+        self.pending_action = PendingAction(
+            kind=ACTION_BY_CARD_KIND[card.kind],
+            actor_id=player.id,
+            card_ids=[card.id],
         )
+        self._commit_pending_action()
 
-    def _action_play_cat_trio(self, player: Player, *args) -> None:
-        lp: EKPlayer = player  # type: ignore
-        if len(args) < 2:
+    def _action_start_combo(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, ExplodingKittensPlayer):
             return
-        target_name, action_id = args[0], args[1]
-        cat = action_id[len("play_trio_"):]
-        target = self._resolve_target(str(target_name))
-        if not target:
-            return
-        if hand_count(lp.hand, cat) < 3:
-            return
-        for _ in range(3):
-            remove_one(lp.hand, cat)
-            self.discard.append(cat)
-        # Defer name prompt until after the Nope window closes successfully.
-        self._open_pending_action(
-            actor=lp, card=cat, params={"target_id": target.id, "mode": "trio"}
+        self.phase = PHASE_COMBO
+        self.pending_action = None
+        player.selected_card_ids.clear()
+        self._clear_bot_plan(player, keep_combo=True)
+        combo_kinds = self._combo_kinds(player)
+        first = next(
+            (
+                card
+                for card in player.hand
+                if card.kind in combo_kinds
+            ),
+            None,
         )
+        if first:
+            self.request_menu_focus(player, f"play_card_{first.id}")
+        else:
+            self.refresh_menus(player)
 
-    # ------------------------------------------------------------------
-    # Pending action / Nope window
-    # ------------------------------------------------------------------
+    def _action_combo_command(self, player: Player, action_id: str) -> None:
+        """Route the C key to exactly one operation for the current phase."""
+        if self.phase == PHASE_COMBO and self.current_player == player:
+            self._action_confirm_combo(player, action_id)
+        else:
+            self._action_start_combo(player, action_id)
 
-    def _open_pending_action(self, actor: EKPlayer, card: str, params: dict) -> None:
-        self.pending_action = {
-            "actor_id": actor.id,
-            "card": card,
-            "params": params,
-            "cancelled": False,
-        }
-        # Announce the play first so the table hears what's happening before
-        # being told a Nope window is open against it.
-        self._announce_play(actor, card, params)
-        self.nope_window_ticks = self.options.nope_window_seconds * _TICKS_PER_SECOND
-        user = self.get_user(actor)
-        locale = user.locale if user else "en"
-        self.broadcast_l(
-            "ek-nope-window-open",
-            seconds=self.options.nope_window_seconds,
-            card=self._card_name(CARD_NOPE, locale),
-            original_player=actor.name,
-            original_card=self._card_name(card, locale),
+    def _action_confirm_combo(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, ExplodingKittensPlayer):
+            return
+        cards = [card for card in player.hand if card.id in player.selected_card_ids]
+        if len(cards) not in (2, 3) or len({card.kind for card in cards}) != 1:
+            self._speak_error(player, "explodingkittens-error-invalid-combo")
+            return
+        self.pending_action = PendingAction(
+            kind=ACTION_PAIR if len(cards) == 2 else ACTION_TRIPLE,
+            actor_id=player.id,
+            card_ids=[card.id for card in cards],
         )
-        # Refresh menus so Nope buttons appear.
-        for p in self.players:
-            self.rebuild_player_menu(p)
+        self.phase = PHASE_TARGET
+        self._focus_first_target(player)
 
-    def _announce_play(self, actor: EKPlayer, card: str, params: dict) -> None:
-        user = self.get_user(actor)
-        locale = user.locale if user else "en"
-        name = self._card_name(card, locale)
-        if card == CARD_SKIP:
-            self._announce(actor, "ek-played-skip", card=name)
-        elif card == CARD_ATTACK:
-            target = self._next_active_player(actor)
-            target_name = target.name if target else ""
-            self._announce(actor, "ek-played-attack", card=name, target=target_name)
-        elif card == CARD_SHUFFLE:
-            self._announce(actor, "ek-played-shuffle", card=name)
-        elif card == CARD_SEE_FUTURE:
-            self._announce(actor, "ek-played-see-future", card=name, count=self.options.peek_count, cards="(hidden until resolved)")
-        elif card == CARD_FAVOR:
-            target_id = params.get("target_id", "")
-            target = self.get_player_by_id(target_id)
-            self._announce(actor, "ek-played-favor", card=name, target=target.name if target else "")
-        elif is_cat_card(card):
-            mode = params.get("mode", "pair")
-            target_id = params.get("target_id", "")
-            target = self.get_player_by_id(target_id)
-            target_name = target.name if target else ""
-            if mode == "pair":
-                self._announce(actor, "ek-played-cat-pair", card=name, target=target_name)
-            else:
-                self._announce(actor, "ek-played-cat-trio", card=name, target=target_name)
+    def _action_cancel_selection(self, player: Player, action_id: str) -> None:
+        if isinstance(player, ExplodingKittensPlayer):
+            player.selected_card_ids.clear()
+            self._clear_bot_plan(player)
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        focus = (
+            f"play_card_{player.hand[0].id}"
+            if isinstance(player, ExplodingKittensPlayer) and player.hand
+            else "draw_card"
+        )
+        self.request_menu_focus(player, focus)
+
+    def _action_choose_target(self, player: Player, action_id: str) -> None:
+        if not self.pending_action:
+            return
+        target = self._target_for_action(action_id)
+        if target is None:
+            return
+        self.pending_action.target_id = target.id
+        if self.pending_action.kind == ACTION_TRIPLE:
+            self.phase = PHASE_REQUEST
+            self.request_menu_focus(player, f"request_{REQUESTABLE_KINDS[0]}")
+            return
+        self._commit_pending_action()
+
+    def _action_choose_request(self, player: Player, action_id: str) -> None:
+        if not self.pending_action:
+            return
+        kind = self._kind_for_request_action(action_id)
+        if kind not in REQUESTABLE_KINDS:
+            return
+        self.pending_action.requested_kind = kind
+        self._commit_pending_action()
 
     def _action_play_nope(self, player: Player, action_id: str) -> None:
-        if not self._has_pending_action() or not self.pending_action:
+        if not isinstance(player, ExplodingKittensPlayer):
             return
-        lp: EKPlayer = player  # type: ignore
-        if not remove_one(lp.hand, CARD_NOPE):
+        self._play_nope_card(player)
+
+    def _play_nope_card(
+        self,
+        player: ExplodingKittensPlayer,
+        card: ExplodingKittensCard | None = None,
+    ) -> None:
+        """Consume one legal Nope, regardless of how the player activated it."""
+        error = self._is_nope_enabled(player)
+        if error:
+            self._speak_error(player, error)
             return
-        self.discard.append(CARD_NOPE)
-        # Toggle the cancel flag and reset the window.
-        self.pending_action["cancelled"] = not self.pending_action["cancelled"]
-        original_actor = self.get_player_by_id(self.pending_action["actor_id"])
-        original_card = self.pending_action["card"]
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
-        if self.pending_action["cancelled"]:
-            self._announce(
-                lp, "ek-noped",
-                card=self._card_name(CARD_NOPE, locale),
-                original_player=original_actor.name if original_actor else "",
-                original_card=self._card_name(original_card, locale),
-            )
-        else:
-            self._announce(
-                lp, "ek-yes-noped",
-                card=self._card_name(CARD_NOPE, locale),
-                original_player=original_actor.name if original_actor else "",
-                original_card=self._card_name(original_card, locale),
-            )
-        self.nope_window_ticks = self.options.nope_window_seconds * _TICKS_PER_SECOND
-        for p in self.players:
-            self.rebuild_player_menu(p)
+        if card is None:
+            card = next((held for held in player.hand if held.kind == NOPE), None)
+        if card is None or card.kind != NOPE or card not in player.hand:
+            self._speak_error(player, "explodingkittens-error-card-missing")
+            return
+        pending = self.pending_action
+        if pending is None:
+            self._speak_error(player, "explodingkittens-error-not-nope-window")
+            return
+        player.hand.remove(card)
+        self.discard_pile.append(card)
+        self._record_played_cards(player, [card])
+        pending.nope_count += 1
+        pending.last_nope_player_id = player.id
+        pending.passed_player_ids.clear()
+        pending.timer_ticks = self._nope_window_ticks()
+        self.play_sound(random.choice(SOUND_NOPES))  # nosec B311 - cosmetic variation
+        self._broadcast_actor(
+            player,
+            "explodingkittens-you-play-nope",
+            "explodingkittens-player-plays-nope",
+        )
+        BotHelper.jolt_bots(self)
+        self.refresh_menus()
 
-    def _action_skip_nope(self, player: Player, action_id: str) -> None:
-        # No-op; bots use this to opt out of the Nope window quickly.
-        pass
-
-    def _close_nope_window(self) -> None:
+    def _action_pass_nope(self, player: Player, action_id: str) -> None:
+        error = self._is_pass_nope_enabled(player)
+        if error:
+            self._speak_error(player, error)
+            return
         if not self.pending_action:
-            self.nope_window_ticks = 0
             return
-        action = self.pending_action
-        self.pending_action = None
-        self.nope_window_ticks = 0
-        self.broadcast_l("ek-nope-window-closed")
-        if action["cancelled"]:
-            for p in self.players:
-                self.rebuild_player_menu(p)
-            return
-        self._resolve_action(action)
-        for p in self.players:
-            self.rebuild_player_menu(p)
-
-    # ------------------------------------------------------------------
-    # Action resolution (after Nope window closes without cancel)
-    # ------------------------------------------------------------------
-
-    def _resolve_action(self, action: dict) -> None:
-        actor = self.get_player_by_id(action["actor_id"])
-        if actor is None:
-            return
-        lp: EKPlayer = actor  # type: ignore
-        card = action["card"]
-        params = action.get("params", {})
-
-        if card == CARD_SKIP:
-            self._end_current_turn()
-        elif card == CARD_ATTACK:
-            self._resolve_attack(lp)
-        elif card == CARD_SHUFFLE:
-            random.shuffle(self.deck)  # nosec B311
-        elif card == CARD_SEE_FUTURE:
-            self._resolve_see_future(lp)
-        elif card == CARD_FAVOR:
-            target = self.get_player_by_id(params.get("target_id", ""))
-            if target:
-                self._resolve_favor(lp, target)
-        elif is_cat_card(card):
-            target = self.get_player_by_id(params.get("target_id", ""))
-            if not target:
-                return
-            mode = params.get("mode", "pair")
-            if mode == "pair":
-                self._resolve_cat_pair(lp, target)
-            else:
-                # Trio — prompt actor for a card name. Stash the target id on
-                # pending_card so the name handler knows who to steal from.
-                lp.pending = "cat_trio_name"
-                lp.pending_card = target.id
-                self.rebuild_player_menu(lp, position=1)
-
-    def _resolve_attack(self, actor: EKPlayer) -> None:
-        # Transfer (current draws_owed + 2 - 1) = draws_owed + 1 to next player.
-        # Spec: "next player takes (your remaining turns) + 2".
-        carry = self.draws_owed + 2
-        # End attacker's turn block.
-        self.draws_owed = 1
-        previous = actor
-        self.turn_index = (self.turn_index + 1) % max(1, len(self.turn_player_ids))
-        # Skip eliminated players.
-        safety = 0
-        while True:
-            cp = self.current_player
-            if cp is None:
-                return
-            if not getattr(cp, "eliminated", False):
-                break
-            self.turn_index = (self.turn_index + 1) % max(1, len(self.turn_player_ids))
-            safety += 1
-            if safety > len(self.players):
-                return
-        self.draws_owed = carry
-        self._start_turn(previous_player=previous)
-
-    def _resolve_see_future(self, actor: EKPlayer) -> None:
-        peek = self.deck[: self.options.peek_count]
-        actor.last_peek = list(peek)
-        user = self.get_user(actor)
+        self.pending_action.passed_player_ids.append(player.id)
+        user = self.get_user(player)
         if user:
-            locale = user.locale
-            names = ", ".join(self._card_name(c, locale) for c in peek) or "(empty)"
-            user.speak_l(
-                "ek-played-see-future",
-                "table", who="you",
-                card=self._card_name(CARD_SEE_FUTURE, locale),
-                count=len(peek),
-                cards=names,
-            )
-
-    def _resolve_favor(self, actor: EKPlayer, target: EKPlayer) -> None:
-        if not target.hand:
-            self._announce(actor, "ek-cat-pair-empty", target=target.name)
-            return
-        # Bot or human: target picks a card to give. For simplicity, target
-        # gives a random low-value card (Cat cards first if any, else last
-        # card in hand). We don't open another menu prompt to keep flow tight.
-        chosen = self._pick_card_to_give(target)
-        if chosen is None:
-            return
-        remove_one(target.hand, chosen)
-        actor.hand.append(chosen)
-        target_user = self.get_user(target)
-        actor_user = self.get_user(actor)
-        target_locale = target_user.locale if target_user else "en"
-        actor_locale = actor_user.locale if actor_user else "en"
-        self._announce(
-            target, "ek-favor-given",
-            target=actor.name, card=self._card_name(chosen, target_locale)
-        )
-        if actor_user:
-            actor_user.speak_l(
-                "ek-favor-received", "table", who="you",
-                source=target.name, card=self._card_name(chosen, actor_locale)
-            )
-
-    def _pick_card_to_give(self, target: EKPlayer) -> str | None:
-        """Pick a card the target would prefer to part with (for Favor / steals)."""
-        if not target.hand:
-            return None
-        # Priority: cat cards (often duplicates), then See/Shuffle, then anything but Defuse/Nope.
-        priority = list(ALL_CAT_TYPES) + [CARD_SEE_FUTURE, CARD_SHUFFLE, CARD_FAVOR, CARD_SKIP, CARD_ATTACK]
-        for c in priority:
-            if c in target.hand:
-                return c
-        # Fall through — give Nope/Defuse only if that's all they have.
-        for c in target.hand:
-            if c != CARD_DEFUSE:
-                return c
-        return target.hand[0]
-
-    def _resolve_cat_pair(self, actor: EKPlayer, target: EKPlayer) -> None:
-        if not target.hand:
-            self._announce(actor, "ek-cat-pair-empty", target=target.name)
-            return
-        chosen = random.choice(target.hand)  # nosec B311
-        remove_one(target.hand, chosen)
-        actor.hand.append(chosen)
-        actor_user = self.get_user(actor)
-        target_user = self.get_user(target)
-        actor_locale = actor_user.locale if actor_user else "en"
-        target_locale = target_user.locale if target_user else "en"
-        if actor_user:
-            actor_user.speak_l(
-                "ek-cat-pair-stole", "table", who="you",
-                target=target.name, card=self._card_name(chosen, actor_locale)
-            )
-        if target_user:
-            target_user.speak_l(
-                "ek-cat-pair-stole-private", "table", who="you",
-                source=actor.name, card=self._card_name(chosen, target_locale)
-            )
-        # Others see only the steal happened.
-        for p in self.players:
-            if p is actor or p is target:
-                continue
-            user = self.get_user(p)
-            if user:
-                user.speak_l(
-                    "ek-cat-pair-stole", "table", who="player",
-                    player=actor.name, target=target.name, card=""
-                )
-
-    def _action_cat_trio_name(self, player: Player, action_id: str) -> None:
-        lp: EKPlayer = player  # type: ignore
-        if lp.pending != "cat_trio_name":
-            return
-        named = action_id[len("trio_name_"):]
-        # Find the most recent target (we need to remember it across the Nope window).
-        # Simplification: walk the discard pile backwards to find the trio target.
-        target_id = lp.pending_card  # we'll repurpose this as target_id
-        target = self.get_player_by_id(target_id) if target_id else None
-        # Fallback: any other active player with the named card.
-        if target is None:
-            for p in self.get_active_players():
-                if p is not lp and not getattr(p, "eliminated", False) and named in p.hand:
-                    target = p  # type: ignore[assignment]
-                    break
-        if target is None:
-            return
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
-        if named == CARD_DEFUSE:
-            user.speak_l("ek-cat-defuse-not-stealable") if user else None
-            lp.pending = ""
-            lp.pending_card = ""
-            self.rebuild_player_menu(lp, position=1)
-            return
-        if named in target.hand:
-            remove_one(target.hand, named)
-            lp.hand.append(named)
-            self._announce(
-                lp, "ek-cat-trio-success",
-                target=target.name, card=self._card_name(named, locale)
-            )
+            user.speak_l("explodingkittens-you-pass-nope", buffer="game")
+        if self._all_nope_responders_passed():
+            self._resolve_nope_window()
         else:
-            self._announce(
-                lp, "ek-cat-trio-fail",
-                target=target.name, card=self._card_name(named, locale)
-            )
-        lp.pending = ""
-        lp.pending_card = ""
-        self.rebuild_player_menu(lp, position=1)
+            self.refresh_menus(player)
 
-    # ------------------------------------------------------------------
-    # Drawing
-    # ------------------------------------------------------------------
-
-    def _action_draw(self, player: Player, action_id: str) -> None:
-        lp: EKPlayer = player  # type: ignore
-        if lp.eliminated or lp.pending != "":
+    def _action_draw_card(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, ExplodingKittensPlayer) or not self.deck:
             return
-        if not self.deck:
-            # Reshuffle from discard if we somehow run out (rare).
-            if self.discard:
-                self.deck = list(self.discard)
-                random.shuffle(self.deck)  # nosec B311
-                self.discard = []
-            else:
-                return
         card = self.deck.pop(0)
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
-        if card == CARD_EXPLODING_KITTEN:
-            self._handle_exploding_kitten(lp, locale)
-        elif card == CARD_STREAKING_KITTEN:
-            lp.has_streaking_kitten = True
-            lp.hand.append(card)
-            self._announce(
-                lp, "ek-drew-streaking-kitten", card=self._card_name(card, locale)
+        self._consume_known_top(card)
+        self.play_sound(self._random_draw_sound())
+        if card.kind == EXPLODING_KITTEN:
+            self.drawn_kitten = card
+            self.decision_player_id = player.id
+            self.phase = PHASE_RESOLVING
+            self.play_sound(SOUND_KITTEN_REVEAL)
+            self._broadcast_actor(
+                player,
+                "explodingkittens-you-draw-kitten",
+                "explodingkittens-player-draws-kitten",
             )
-            self._end_current_turn()
-        else:
-            lp.hand.append(card)
-            # Personal-only reveal of the actual card.
-            if user:
-                user.speak_l(
-                    "ek-drew-safe", "table", who="you",
-                    card=self._card_name(card, locale),
-                )
-            # Public message (others only know it was a card).
-            for p in self.players:
-                if p is lp:
-                    continue
-                u = self.get_user(p)
-                if u:
-                    u.speak_l(
-                        "ek-drew-safe", "table", who="player", player=lp.name, card=""
-                    )
-            self._end_current_turn()
-
-    def _handle_exploding_kitten(self, lp: EKPlayer, locale: str) -> None:
-        ek_name = self._card_name(CARD_EXPLODING_KITTEN, locale)
-        defuse_name = self._card_name(CARD_DEFUSE, locale)
-        # Streaking Kitten passive — they don't explode while holding it.
-        # Drawing still ends the turn: this branch is terminal (unlike the
-        # defuse branch below, which defers the turn-end until the player
-        # reinserts the kitten), so advance like any other completed draw.
-        if lp.has_streaking_kitten:
-            self._announce(lp, "ek-drew-safe", card=ek_name)
-            self.discard.append(CARD_EXPLODING_KITTEN)
-            self._end_current_turn()
-            return
-        if hand_count(lp.hand, CARD_DEFUSE) >= 1:
-            remove_one(lp.hand, CARD_DEFUSE)
-            self.discard.append(CARD_DEFUSE)
-            self._announce(
-                lp, "ek-drew-exploding-survived", card=ek_name, defuse=defuse_name
+            self.start_sequence(
+                "explodingkittens_kitten_reveal",
+                [
+                    SequenceBeat.pause(KITTEN_REVEAL_DELAY_TICKS),
+                    SequenceBeat(
+                        ops=[
+                            SequenceOperation.callback_op(
+                                "finish_kitten_reveal",
+                                {"player_id": player.id},
+                            )
+                        ]
+                    ),
+                ],
+                tag="explodingkittens_kitten_reveal",
+                lock_scope=self.SEQUENCE_LOCK_GAMEPLAY,
+                pause_bots=True,
             )
-            # Hold the EK aside; ask the player where to put it.
-            lp.pending = "defuse_position"
-            lp.pending_card = CARD_EXPLODING_KITTEN
-            self.rebuild_player_menu(lp, position=1)
+            self.refresh_menus()
             return
-        # Boom.
-        self._eliminate(lp, ek_name, defuse_name)
 
-    def _action_defuse_position(self, player: Player, action_id: str) -> None:
-        lp: EKPlayer = player  # type: ignore
-        if lp.pending != "defuse_position":
-            return
-        slot = action_id[len("defuse_"):]
-        if slot == "top":
-            self.deck.insert(0, CARD_EXPLODING_KITTEN)
-        elif slot == "second":
-            self.deck.insert(min(1, len(self.deck)), CARD_EXPLODING_KITTEN)
-        elif slot == "bottom":
-            self.deck.append(CARD_EXPLODING_KITTEN)
-        elif slot == "random":
-            pos = random.randint(0, len(self.deck))  # nosec B311
-            self.deck.insert(pos, CARD_EXPLODING_KITTEN)
+        player.hand.append(card)
+        player.hand[:] = sort_cards(player.hand)
         user = self.get_user(player)
-        locale = user.locale if user else "en"
-        self._announce(
-            lp, "ek-defuse-tucked",
-            card=self._card_name(CARD_EXPLODING_KITTEN, locale),
-            where=Localization.get(locale, f"ek-defuse-position-{slot}"),
-        )
-        lp.pending = ""
-        lp.pending_card = ""
-        self._end_current_turn()
-
-    def _eliminate(self, lp: EKPlayer, ek_name: str, defuse_name: str) -> None:
-        lp.eliminated = True
-        self._announce(
-            lp, "ek-drew-exploding-no-defuse", card=ek_name, defuse=defuse_name
-        )
-        # Discard their hand.
-        self.discard.extend(lp.hand)
-        lp.hand = []
-        remaining = sum(
-            1 for p in self.get_active_players() if not getattr(p, "eliminated", False)
-        )
-        self.broadcast_l(
-            "ek-eliminated", player=lp.name, remaining=remaining
-        )
-        if remaining <= 1:
-            self.finished_check_pending = True
-        else:
-            self._end_current_turn()
-
-    # ------------------------------------------------------------------
-    # Status readouts
-    # ------------------------------------------------------------------
-
-    def _action_check_status(self, player: Player, action_id: str) -> None:
-        lp: EKPlayer = player  # type: ignore
-        user = self.get_user(player)
-        if not user:
-            return
-        locale = user.locale
-        lines: list[str] = []
-
-        ek_count = sum(1 for c in self.deck if c == CARD_EXPLODING_KITTEN)
-        if ek_count > 0:
-            lines.append(
-                Localization.get(locale, "ek-status-deck-with-kittens",
-                                 count=len(self.deck), kittens=ek_count)
+        if user:
+            user.speak_l(
+                "explodingkittens-you-draw-card",
+                buffer="game",
+                card=card_name(card, user.locale),
             )
-        else:
-            lines.append(Localization.get(locale, "ek-status-deck", count=len(self.deck)))
-        lines.append(Localization.get(locale, "ek-status-discard", count=len(self.discard)))
-
-        if lp.eliminated:
-            lines.append(Localization.get(locale, "ek-status-eliminated"))
-        else:
-            summary = hand_summary(lp.hand)
-            lines.append(Localization.get(locale, "ek-status-hand-header", count=len(lp.hand)))
-            if not lp.hand:
-                lines.append(Localization.get(locale, "ek-status-hand-empty"))
-            else:
-                for card, count in summary.items():
-                    name = self._card_name(card, locale)
-                    label = f"{count}× {name}" if count > 1 else name
-                    lines.append(Localization.get(locale, "ek-status-hand-card", card=label))
-
-        if self.draws_owed > 1 and self._my_turn(player):
-            lines.append(
-                Localization.get(locale, "ek-status-extra-turns", count=self.draws_owed - 1)
-            )
-
-        if lp.last_peek:
-            names = ", ".join(self._card_name(c, locale) for c in lp.last_peek)
-            lines.append(Localization.get(locale, "ek-status-future-peek", cards=names))
-        else:
-            lines.append(Localization.get(locale, "ek-status-future-no-peek"))
-
-        self.status_box(player, lines)
-
-    def _action_check_status_detailed(self, player: Player, action_id: str) -> None:
-        user = self.get_user(player)
-        if not user:
-            return
-        locale = user.locale
-        active = [p for p in self.get_active_players()]
-        remaining = sum(1 for p in active if not getattr(p, "eliminated", False))
-        lines: list[str] = [
-            Localization.get(locale, "ek-status-detailed-header", count=remaining)
-        ]
-        for p in active:
-            lp: EKPlayer = p  # type: ignore
-            if lp.eliminated:
-                lines.append(Localization.get(locale, "ek-status-detailed-out", player=p.name))
+        for observer in self.players:
+            if observer.id == player.id:
                 continue
-            self_suffix = (
-                Localization.get(locale, "ek-status-detailed-self-suffix")
-                if p is player else ""
-            )
-            lines.append(
-                Localization.get(
-                    locale, "ek-status-detailed-line",
-                    player=p.name, self_suffix=self_suffix, hand_count=len(lp.hand),
+            observer_user = self.get_user(observer)
+            if observer_user:
+                observer_user.speak_l(
+                    "explodingkittens-player-draws-card",
+                    buffer="game",
+                    player=player.name,
                 )
-            )
-        self.status_box(player, lines)
+        self._complete_one_turn(player)
 
-    # ------------------------------------------------------------------
-    # Tick / Nope window countdown / endgame check
-    # ------------------------------------------------------------------
-
-    def on_tick(self) -> None:
-        super().on_tick()
-        self.process_scheduled_events()
-        if self.status != "playing":
+    def _finish_kitten_reveal(self, payload: dict) -> None:
+        player = self.get_player_by_id(str(payload.get("player_id", "")))
+        if (
+            not isinstance(player, ExplodingKittensPlayer)
+            or self.drawn_kitten is None
+            or self.decision_player_id != player.id
+        ):
+            self._reset_stale_kitten_flow()
             return
-
-        if self._has_pending_action():
-            self.nope_window_ticks -= 1
-            if self.nope_window_ticks <= 0:
-                self._close_nope_window()
-                return
-
-        if self.finished_check_pending:
-            self.finished_check_pending = False
-            self._declare_winner()
+        if any(held.kind == DEFUSE for held in player.hand):
+            self.phase = PHASE_DEFUSE
+            self.request_menu_focus(player, "use_defuse")
+            self.refresh_menus()
             return
+        self._start_explosion_sequence(player)
 
-        BotHelper.on_tick(self)
+    def _action_use_defuse(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, ExplodingKittensPlayer):
+            return
+        error = self._is_use_defuse_enabled(player)
+        if error:
+            self._speak_error(player, error)
+            return
+        defuse = next((card for card in player.hand if card.kind == DEFUSE), None)
+        if defuse is None:
+            return
+        self.play_sound(SOUND_DEFUSE)
+        self._finish_defuse({"player_id": player.id, "card_id": defuse.id})
 
-    def _declare_winner(self) -> None:
-        survivors = [
-            p for p in self.get_active_players() if not getattr(p, "eliminated", False)
-        ]
-        if len(survivors) == 1:
-            self.winner = survivors[0]
-            self.broadcast_l("ek-winner", player=survivors[0].name)
-            self.play_sound("game_pig/win.ogg")
-            self.finish_game()
-        elif len(survivors) == 0:
-            self.finish_game()
-
-    # ------------------------------------------------------------------
-    # Bot AI
-    # ------------------------------------------------------------------
-
-    def bot_think(self, player: EKPlayer) -> str | None:
-        if player.eliminated:
-            return None
-
-        # Nope window: bot considers Noping.
-        if self._has_pending_action() and self.pending_action:
-            actor_id = self.pending_action.get("actor_id", "")
-            target_id = self.pending_action.get("params", {}).get("target_id", "")
-            if actor_id != player.id and hand_count(player.hand, CARD_NOPE) > 0:
-                # Nope if it targets us, or if it's a high-value action.
-                card = self.pending_action.get("card", "")
-                if target_id == player.id and random.random() < 0.7:  # nosec B311
-                    return "play_nope"
-                if card == CARD_FAVOR and random.random() < 0.3:  # nosec B311
-                    return "play_nope"
-            return "skip_nope"
-
-        if not self._my_turn(player):
-            return None
-
-        if player.pending == "defuse_position":
-            # Put EK on top so the next player explodes (mean but effective).
-            return "defuse_top"
-        if player.pending == "cat_trio_name":
-            # Pick a common card type to name.
-            for cand in (CARD_NOPE, CARD_SEE_FUTURE, CARD_SKIP, CARD_ATTACK):
-                return f"trio_name_{cand}"
-            return None
-
-        # Strategy: if we know top card is dangerous, play Skip/Attack/See/Shuffle.
-        top_known = player.last_peek[0] if player.last_peek else None
-        if top_known == CARD_EXPLODING_KITTEN:
-            if hand_count(player.hand, CARD_SKIP) > 0:
-                return "play_skip"
-            if hand_count(player.hand, CARD_ATTACK) > 0:
-                return "play_attack"
-            if hand_count(player.hand, CARD_SHUFFLE) > 0:
-                return "play_shuffle"
-        # If we have multiple Skips and lots of EKs are coming, occasionally play one.
-        ek_density = (
-            sum(1 for c in self.deck if c == CARD_EXPLODING_KITTEN) / max(1, len(self.deck))
+    def _finish_defuse(self, payload: dict) -> None:
+        player = self.get_player_by_id(str(payload.get("player_id", "")))
+        card_id = int(payload.get("card_id", 0))
+        if (
+            not isinstance(player, ExplodingKittensPlayer)
+            or self.drawn_kitten is None
+            or self.decision_player_id != player.id
+        ):
+            self._reset_stale_kitten_flow()
+            return
+        defuse = next((card for card in player.hand if card.id == card_id), None)
+        if defuse is None or defuse.kind != DEFUSE:
+            if any(card.kind == DEFUSE for card in player.hand):
+                self.phase = PHASE_DEFUSE
+                self.request_menu_focus(player, "use_defuse")
+                self.refresh_menus()
+            else:
+                self._start_explosion_sequence(player)
+            return
+        player.hand.remove(defuse)
+        self.discard_pile.append(defuse)
+        self._record_played_cards(player, [defuse])
+        self._broadcast_actor(
+            player,
+            "explodingkittens-you-defuse",
+            "explodingkittens-player-defuses",
         )
-        if ek_density > 0.2 and hand_count(player.hand, CARD_SKIP) >= 2:
-            return "play_skip"
-        # Use See the Future if we don't know the top.
-        if not player.last_peek and hand_count(player.hand, CARD_SEE_FUTURE) > 0 and random.random() < 0.7:  # nosec B311
-            return "play_see-the-future"
-        # Use cat pairs if we have them.
-        for cat in ALL_CAT_TYPES:
-            if hand_count(player.hand, cat) >= 3:
-                return f"play_trio_{cat}"
-        for cat in ALL_CAT_TYPES:
-            if hand_count(player.hand, cat) >= 2:
-                return f"play_pair_{cat}"
-        # Default: draw.
-        return "draw"
+        if not self.deck:
+            self._reinsert_kitten(player, 0)
+            return
+        self.phase = PHASE_REINSERT
+        self.request_menu_focus(player, "insert_0")
+        self.refresh_menus()
+
+    def _action_accept_explosion(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, ExplodingKittensPlayer):
+            return
+        error = self._is_accept_explosion_enabled(player)
+        if error:
+            self._speak_error(player, error)
+            return
+        self._start_explosion_sequence(player)
+
+    def _action_reinsert_kitten(self, player: Player, action_id: str) -> None:
+        if not isinstance(player, ExplodingKittensPlayer) or self.drawn_kitten is None:
+            return
+        position = self._position_for_action(action_id)
+        if position is None or not 0 <= position <= len(self.deck):
+            return
+        self._reinsert_kitten(player, position)
+
+    def _start_explosion_sequence(self, player: ExplodingKittensPlayer) -> None:
+        if self.drawn_kitten is None or self.decision_player_id != player.id:
+            self._reset_stale_kitten_flow()
+            return
+        explosion_sound = random.choice(SOUND_EXPLOSIONS)  # nosec B311
+        if len(self.alive_players) <= 2:
+            self.phase = PHASE_RESOLVING
+            self.start_sequence(
+                "explodingkittens_final_explosion",
+                [
+                    SequenceBeat(
+                        ops=[
+                            SequenceOperation.sound_op(SOUND_FUSE),
+                            SequenceOperation.callback_op(
+                                "eliminate_for_final_explosion",
+                                {"player_id": player.id},
+                            ),
+                        ],
+                        delay_after_ticks=self._sound_ticks(SOUND_FUSE),
+                    ),
+                    SequenceBeat(
+                        ops=[
+                            SequenceOperation.sound_op(explosion_sound),
+                            SequenceOperation.callback_op("resolve_final_explosion"),
+                        ]
+                    ),
+                ],
+                tag="explodingkittens_final_explosion",
+                lock_scope=self.SEQUENCE_LOCK_GAMEPLAY,
+                pause_bots=True,
+            )
+            self.refresh_menus()
+            return
+        self.play_sound(SOUND_FUSE)
+        self.schedule_sound(
+            explosion_sound,
+            delay_ticks=max(0, self._sound_ticks(SOUND_FUSE) - 1),
+        )
+        self._eliminate_player(player)
+
+    def _reinsert_kitten(self, player: ExplodingKittensPlayer, position: int) -> None:
+        if self.drawn_kitten is None:
+            return
+        kitten = self.drawn_kitten
+        self.play_sound(SOUND_REINSERT)
+        self.deck.insert(position, kitten)
+        self.drawn_kitten = None
+        self.decision_player_id = ""
+        self._clear_future_knowledge()
+        player.known_kitten_positions[kitten.id] = position
+        self._broadcast_actor(
+            player,
+            "explodingkittens-you-reinsert-kitten",
+            "explodingkittens-player-reinserts-kitten",
+        )
+        self._complete_one_turn(player)
+
+    def _commit_pending_action(self) -> None:
+        pending = self.pending_action
+        if pending is None:
+            return
+        actor = self.get_player_by_id(pending.actor_id)
+        if not isinstance(actor, ExplodingKittensPlayer) or actor.eliminated:
+            self._cancel_stale_action()
+            return
+        cards = [card for card in actor.hand if card.id in pending.card_ids]
+        if len(cards) != len(pending.card_ids):
+            self._cancel_stale_action()
+            return
+        for card in cards:
+            actor.hand.remove(card)
+            self.discard_pile.append(card)
+        self._record_played_cards(actor, cards)
+        actor.selected_card_ids.clear()
+        self._clear_bot_plan(actor)
+        self._play_committed_cards(len(cards))
+        self._begin_nope_window()
+
+    def _play_committed_cards(self, count: int) -> None:
+        sounds = [self._random_play_sound() for _ in range(max(1, count))]
+        self.play_sound(sounds[0])
+        elapsed_ticks = self._card_play_interval_ticks(sounds[0])
+        for sound in sounds[1:]:
+            self.schedule_sound(sound, delay_ticks=max(0, elapsed_ticks - 1))
+            elapsed_ticks += self._card_play_interval_ticks(sound)
+
+    def _card_play_interval_ticks(self, sound: str) -> int:
+        duration = self._sound_ticks(sound)
+        return max(
+            1,
+            (duration + CARD_PLAY_INTERVAL_DIVISOR - 1)
+            // CARD_PLAY_INTERVAL_DIVISOR,
+        )
+
+    def _begin_nope_window(self) -> None:
+        pending = self.pending_action
+        if pending is None:
+            self._cancel_stale_action()
+            return
+        actor = self.get_player_by_id(pending.actor_id)
+        cards = [
+            card
+            for card in self.discard_pile
+            if card.id in pending.card_ids
+        ]
+        if not isinstance(actor, ExplodingKittensPlayer) or not cards:
+            self._cancel_stale_action()
+            return
+        if pending.kind in (ACTION_PAIR, ACTION_TRIPLE):
+            target = self.get_player_by_id(pending.target_id)
+            self._broadcast_combo(actor, target, cards[0], pending.requested_kind)
+        else:
+            target: Player | None = None
+            if pending.kind == ACTION_FAVOR:
+                target = self.get_player_by_id(pending.target_id)
+            elif pending.kind == ACTION_ATTACK:
+                target = self._next_alive_after(pending.actor_id)
+            self._broadcast_card_play(actor, cards[0], target)
+        self.phase = PHASE_NOPE
+        pending.timer_ticks = self._nope_window_ticks()
+        pending.passed_player_ids.clear()
+        pending.last_nope_player_id = ""
+        BotHelper.jolt_bots(self)
+        self.refresh_menus()
 
     # ------------------------------------------------------------------
-    # Helpers
+    # Nope and action resolution
     # ------------------------------------------------------------------
 
-    def _next_active_player(self, after: EKPlayer) -> EKPlayer | None:
-        try:
-            idx = self.turn_player_ids.index(after.id)
-        except ValueError:
+    def _nope_responder_ids(self) -> set[str]:
+        if not self.pending_action:
+            return set()
+        excluded_id = (
+            self.pending_action.actor_id
+            if self.pending_action.nope_count == 0
+            else self.pending_action.last_nope_player_id
+        )
+        return {player.id for player in self.alive_players if player.id != excluded_id}
+
+    def _all_nope_responders_passed(self) -> bool:
+        if not self.pending_action:
+            return True
+        return self._nope_responder_ids().issubset(set(self.pending_action.passed_player_ids))
+
+    def _resolve_nope_window(self) -> None:
+        if self.phase != PHASE_NOPE or self.pending_action is None:
+            return
+        pending = self.pending_action
+        for player in self.alive_players:
+            if player.is_bot:
+                player.bot_pending_action = None
+        pending.timer_ticks = 0
+        self.phase = PHASE_RESOLVING
+        if pending.nope_count % 2:
+            actor = self.get_player_by_id(pending.actor_id)
+            self.play_sound(SOUND_ACTION_CANCELED)
+            if isinstance(actor, ExplodingKittensPlayer):
+                self._announce_action_canceled(actor, pending)
+            self.pending_action = None
+            self.phase = PHASE_NORMAL
+            self.refresh_menus()
+            return
+
+        actor = self.get_player_by_id(pending.actor_id)
+        if not isinstance(actor, ExplodingKittensPlayer) or actor.eliminated:
+            self._cancel_stale_action()
+            return
+        if pending.kind == ACTION_ATTACK:
+            self.play_sound(SOUND_ATTACK)
+            self._resolve_attack(actor, pending)
+        elif pending.kind == ACTION_SKIP:
+            self.play_sound(SOUND_SKIP)
+            self._resolve_skip(actor, pending)
+        elif pending.kind == ACTION_SHUFFLE:
+            self.play_sound(self._random_shuffle_sound())
+            self._resolve_shuffle(actor, pending)
+        elif pending.kind == ACTION_SEE_FUTURE:
+            self.play_sound(SOUND_SEE_FUTURE)
+            self._resolve_see_future(actor, pending)
+        elif pending.kind == ACTION_FAVOR:
+            self._resolve_favor_request(actor, pending)
+        elif pending.kind == ACTION_PAIR:
+            target = self.get_player_by_id(pending.target_id)
+            if not isinstance(target, ExplodingKittensPlayer) or target.eliminated:
+                self._cancel_stale_action()
+                return
+            if not target.hand:
+                self.play_sound(SOUND_COMBO_MISS)
+                self._finish_empty_target_action(actor, target, "pair")
+                return
+            card_id = random.choice(target.hand).id  # nosec B311
+            self.play_sound(self._random_draw_sound())
+            self._resolve_pair(actor, pending, card_id=card_id)
+        elif pending.kind == ACTION_TRIPLE:
+            target = self.get_player_by_id(pending.target_id)
+            if not isinstance(target, ExplodingKittensPlayer):
+                self._cancel_stale_action()
+                return
+            requested = next(
+                (card for card in target.hand if card.kind == pending.requested_kind),
+                None,
+            )
+            self.play_sound(
+                self._random_draw_sound() if requested else SOUND_COMBO_MISS
+            )
+            self._resolve_triple(
+                actor,
+                pending,
+                card_id=requested.id if requested else 0,
+            )
+        else:
+            self._cancel_stale_action()
+
+    def _resolve_attack(
+        self,
+        actor: ExplodingKittensPlayer,
+        pending: PendingAction,
+    ) -> None:
+        turns = self.turns_remaining + 2 if self.attack_obligation else 2
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        next_player = self._advance_to_next_alive()
+        self.turns_remaining = turns
+        self.attack_obligation = True
+        if next_player:
+            self._play_turn_sound(next_player)
+            self._announce_attack_resolution(actor, next_player, turns)
+        self.refresh_menus()
+
+    def _resolve_skip(
+        self,
+        actor: ExplodingKittensPlayer,
+        pending: PendingAction,
+    ) -> None:
+        self._announce_action_resolved(actor, pending)
+        self.pending_action = None
+        self._complete_one_turn(actor)
+
+    def _resolve_shuffle(
+        self,
+        actor: ExplodingKittensPlayer,
+        pending: PendingAction,
+    ) -> None:
+        random.shuffle(self.deck)
+        self._clear_future_knowledge()
+        self._announce_shuffle_resolved(actor)
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        self.refresh_menus()
+
+    def _resolve_see_future(
+        self,
+        actor: ExplodingKittensPlayer,
+        pending: PendingAction,
+    ) -> None:
+        cards = self.deck[:SEE_FUTURE_CARD_COUNT]
+        actor.known_future_card_ids = [card.id for card in cards]
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            if listener.id == actor.id:
+                names = [card_name(card, user.locale) for card in cards]
+                user.speak_l(
+                    "explodingkittens-future-cards",
+                    buffer="game",
+                    cards=Localization.format_list_and(user.locale, names),
+                )
+            else:
+                user.speak_l(
+                    "explodingkittens-player-see-future-resolves",
+                    buffer="game",
+                    player=actor.name,
+                )
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        self.refresh_menus()
+
+    def _resolve_favor_request(
+        self, actor: ExplodingKittensPlayer, pending: PendingAction
+    ) -> None:
+        target = self.get_player_by_id(pending.target_id)
+        if not isinstance(target, ExplodingKittensPlayer) or target.eliminated:
+            self._cancel_stale_action()
+            return
+        if not target.hand:
+            self._finish_empty_target_action(actor, target, "favor")
+            return
+        if len(target.hand) == 1:
+            self._give_favor_card(target, target.hand[0])
+            return
+        self.phase = PHASE_FAVOR_GIVE
+        self._announce_favor_choice(actor, target)
+        self.request_menu_focus(target, f"play_card_{sort_cards(target.hand)[0].id}")
+        self.refresh_menus()
+
+    def _give_favor_card(
+        self, target: ExplodingKittensPlayer, card: ExplodingKittensCard
+    ) -> None:
+        pending = self.pending_action
+        if pending is None or target.id != pending.target_id:
+            return
+        actor = self.get_player_by_id(pending.actor_id)
+        if not isinstance(actor, ExplodingKittensPlayer) or actor.eliminated:
+            self._cancel_stale_action()
+            return
+        if card not in target.hand:
+            self._cancel_stale_action()
+            return
+        self.play_sound(self._random_draw_sound())
+        self._finish_transfer(actor, target, card, "favor")
+
+    def _finish_transfer(
+        self,
+        actor: ExplodingKittensPlayer,
+        target: ExplodingKittensPlayer,
+        card: ExplodingKittensCard,
+        method: str,
+    ) -> None:
+        if card not in target.hand:
+            self._cancel_stale_action()
+            return
+        target.hand.remove(card)
+        actor.hand.append(card)
+        actor.hand[:] = sort_cards(actor.hand)
+        self._announce_transfer(actor, target, card, method)
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        self.refresh_menus()
+
+    def _resolve_pair(
+        self,
+        actor: ExplodingKittensPlayer,
+        pending: PendingAction,
+        *,
+        card_id: int = 0,
+    ) -> None:
+        target = self.get_player_by_id(pending.target_id)
+        if not isinstance(target, ExplodingKittensPlayer) or target.eliminated:
+            self._cancel_stale_action()
+            return
+        if not target.hand:
+            self._finish_empty_target_action(actor, target, "pair")
+            return
+        card = next((held for held in target.hand if held.id == card_id), None)
+        if card is None and not card_id:
+            card = random.choice(target.hand)  # nosec B311 - direct-call fallback
+        if card is None:
+            self._cancel_stale_action()
+            return
+        self._finish_transfer(actor, target, card, "pair")
+
+    def _resolve_triple(
+        self,
+        actor: ExplodingKittensPlayer,
+        pending: PendingAction,
+        *,
+        card_id: int = 0,
+    ) -> None:
+        target = self.get_player_by_id(pending.target_id)
+        if not isinstance(target, ExplodingKittensPlayer) or target.eliminated:
+            self._cancel_stale_action()
+            return
+        card = next((held for held in target.hand if held.id == card_id), None)
+        if card is None and not card_id:
+            card = next(
+                (held for held in target.hand if held.kind == pending.requested_kind),
+                None,
+            )
+        if card:
+            self._finish_transfer(actor, target, card, "triple")
+        else:
+            self._announce_triple_miss(actor, target, pending.requested_kind)
+            self.pending_action = None
+            self.phase = PHASE_NORMAL
+            self.refresh_menus()
+
+    # ------------------------------------------------------------------
+    # Turns, Defusing, elimination, and knowledge
+    # ------------------------------------------------------------------
+
+    def _complete_one_turn(self, player: ExplodingKittensPlayer) -> None:
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        self.decision_player_id = ""
+        if self.turns_remaining > 1:
+            self.turns_remaining -= 1
+            self._play_turn_sound(player)
+            self._announce_turns(player, self.turns_remaining)
+        else:
+            self.turns_remaining = 1
+            self.attack_obligation = False
+            next_player = self._advance_to_next_alive()
+            if next_player:
+                self.announce_turn(turn_sound=SOUND_TURN)
+        BotHelper.jolt_bots(self)
+        self.refresh_menus()
+
+    def _play_turn_sound(self, player: ExplodingKittensPlayer) -> None:
+        user = self.get_user(player)
+        if user and user.preferences.play_turn_sound:
+            user.play_sound(SOUND_TURN)
+
+    def _advance_to_next_alive(self) -> ExplodingKittensPlayer | None:
+        if not self.turn_player_ids:
             return None
-        n = len(self.turn_player_ids)
-        for offset in range(1, n + 1):
-            cand_id = self.turn_player_ids[(idx + offset) % n]
-            cand = self.get_player_by_id(cand_id)
-            if cand and not getattr(cand, "eliminated", False):
-                return cand  # type: ignore[return-value]
+        for _ in range(len(self.turn_player_ids)):
+            self.turn_index = (self.turn_index + 1) % len(self.turn_player_ids)
+            candidate = self.current_player
+            if isinstance(candidate, ExplodingKittensPlayer) and not candidate.eliminated:
+                return candidate
         return None
 
+    def _next_alive_after(self, actor_id: str) -> ExplodingKittensPlayer | None:
+        if actor_id not in self.turn_player_ids:
+            return None
+        index = self.turn_player_ids.index(actor_id)
+        alive_by_id = {player.id: player for player in self.alive_players}
+        for offset in range(1, len(self.turn_player_ids) + 1):
+            candidate_id = self.turn_player_ids[
+                (index + offset) % len(self.turn_player_ids)
+            ]
+            candidate = alive_by_id.get(candidate_id)
+            if candidate:
+                return candidate
+        return None
+
+    def _announce_turns(self, player: ExplodingKittensPlayer, turns: int) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            if listener.id == player.id:
+                user.speak_l("explodingkittens-you-have-turns", buffer="game", turns=turns)
+            else:
+                user.speak_l(
+                    "explodingkittens-player-has-turns",
+                    buffer="game",
+                    player=player.name,
+                    turns=turns,
+                )
+
+    def _eliminate_player(
+        self,
+        player: ExplodingKittensPlayer,
+        *,
+        defer_game_over: bool = False,
+    ) -> None:
+        kitten = self.drawn_kitten
+        self.drawn_kitten = None
+        self.decision_player_id = ""
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        self.removed_cards.extend(player.hand)
+        player.hand.clear()
+        if kitten:
+            self.removed_cards.append(kitten)
+        player.selected_card_ids.clear()
+        player.known_future_card_ids.clear()
+        player.known_kitten_positions.clear()
+        player.eliminated = True
+        self.elimination_counter += 1
+        player.elimination_order = self.elimination_counter
+        self._broadcast_actor(
+            player,
+            "explodingkittens-you-explode",
+            "explodingkittens-player-explodes",
+        )
+
+        alive = self.alive_players
+        if len(alive) <= 1:
+            if defer_game_over:
+                self.phase = PHASE_RESOLVING
+                self.refresh_menus()
+                return
+            self._end_game(alive[0] if alive else None)
+            return
+
+        self.turns_remaining = 1
+        self.attack_obligation = False
+        next_player = self._advance_to_next_alive()
+        if next_player:
+            self.announce_turn(turn_sound=SOUND_TURN)
+        BotHelper.jolt_bots(self)
+        self.refresh_menus()
+
+    def _consume_known_top(self, drawn: ExplodingKittensCard) -> None:
+        for player in self.alive_players:
+            if player.known_future_card_ids and player.known_future_card_ids[0] == drawn.id:
+                player.known_future_card_ids.pop(0)
+            elif player.known_future_card_ids:
+                player.known_future_card_ids.clear()
+
+            updated_positions: dict[int, int] = {}
+            for card_id, position in player.known_kitten_positions.items():
+                if position == 0:
+                    if card_id != drawn.id:
+                        updated_positions.clear()
+                        break
+                    continue
+                next_position = position - 1
+                if (
+                    next_position < len(self.deck)
+                    and self.deck[next_position].id == card_id
+                ):
+                    updated_positions[card_id] = next_position
+            player.known_kitten_positions = updated_positions
+
+    def _clear_future_knowledge(self) -> None:
+        for player in self.alive_players:
+            player.known_future_card_ids.clear()
+            player.known_kitten_positions.clear()
+
+    def _known_future_cards(
+        self, player: ExplodingKittensPlayer
+    ) -> list[ExplodingKittensCard]:
+        known: list[ExplodingKittensCard] = []
+        for index, card_id in enumerate(player.known_future_card_ids):
+            if index >= len(self.deck) or self.deck[index].id != card_id:
+                return []
+            known.append(self.deck[index])
+        return known
+
+    def _known_kitten_positions(
+        self, player: ExplodingKittensPlayer
+    ) -> dict[int, int]:
+        """Return valid private Kitten placements remembered by one player."""
+        return {
+            card_id: position
+            for card_id, position in player.known_kitten_positions.items()
+            if 0 <= position < len(self.deck)
+            and self.deck[position].id == card_id
+            and self.deck[position].kind == EXPLODING_KITTEN
+        }
+
+    @staticmethod
+    def _record_played_cards(
+        player: ExplodingKittensPlayer,
+        cards: list[ExplodingKittensCard],
+    ) -> None:
+        """Record public card plays for fair opponent modeling after save/load."""
+        for card in cards:
+            player.played_card_counts[card.kind] = (
+                player.played_card_counts.get(card.kind, 0) + 1
+            )
+
+    def _end_game(self, winner: ExplodingKittensPlayer | None) -> None:
+        if self.phase == PHASE_GAME_OVER or self.status == "finished":
+            return
+        self.phase = PHASE_GAME_OVER
+        self.winner_id = winner.id if winner else ""
+        self.play_sound(SOUND_GAME_OVER)
+        if winner:
+            self._broadcast_actor(
+                winner,
+                "explodingkittens-you-win",
+                "explodingkittens-player-wins",
+            )
+        self.finish_game()
+
+    def _repair_pending_state(self, *, announce: bool = True) -> bool:
+        """Resolve impossible restored or externally changed private states."""
+        pending_phases = {
+            PHASE_TARGET,
+            PHASE_REQUEST,
+            PHASE_NOPE,
+            PHASE_FAVOR_GIVE,
+        }
+        if self.phase in pending_phases and self.pending_action is None:
+            self._cancel_stale_action()
+            return True
+
+        pending = self.pending_action
+        if pending is not None and self.phase in pending_phases:
+            actor = self.get_player_by_id(pending.actor_id)
+            if not isinstance(actor, ExplodingKittensPlayer) or actor.eliminated:
+                self._cancel_stale_action()
+                return True
+
+            if self.phase in (PHASE_TARGET, PHASE_REQUEST):
+                held_ids = {card.id for card in actor.hand}
+                expected_kind = (
+                    {ACTION_FAVOR, ACTION_PAIR, ACTION_TRIPLE}
+                    if self.phase == PHASE_TARGET
+                    else {ACTION_TRIPLE}
+                )
+                if (
+                    pending.kind not in expected_kind
+                    or not pending.card_ids
+                    or any(card_id not in held_ids for card_id in pending.card_ids)
+                ):
+                    self._cancel_stale_action()
+                    return True
+
+            if self.phase in (PHASE_NOPE, PHASE_FAVOR_GIVE):
+                discard_ids = {card.id for card in self.discard_pile}
+                valid_kinds = {
+                    ACTION_ATTACK,
+                    ACTION_SKIP,
+                    ACTION_FAVOR,
+                    ACTION_SHUFFLE,
+                    ACTION_SEE_FUTURE,
+                    ACTION_PAIR,
+                    ACTION_TRIPLE,
+                }
+                if (
+                    pending.kind not in valid_kinds
+                    or not pending.card_ids
+                    or any(
+                        card_id not in discard_ids
+                        for card_id in pending.card_ids
+                    )
+                ):
+                    self._cancel_stale_action()
+                    return True
+
+            if self.phase == PHASE_TARGET and not self._valid_targets(actor):
+                if announce:
+                    self._speak_error(
+                        actor,
+                        "explodingkittens-error-no-target-with-cards",
+                    )
+                self._cancel_stale_action()
+                return True
+
+            if self.phase == PHASE_REQUEST:
+                target = self.get_player_by_id(pending.target_id)
+                if (
+                    not isinstance(target, ExplodingKittensPlayer)
+                    or target.eliminated
+                    or not target.hand
+                ):
+                    if announce:
+                        self._speak_error(
+                            actor,
+                            "explodingkittens-error-no-target-with-cards",
+                        )
+                    self._cancel_stale_action()
+                    return True
+
+            if self.phase == PHASE_FAVOR_GIVE:
+                target = self.get_player_by_id(pending.target_id)
+                if (
+                    pending.kind != ACTION_FAVOR
+                    or not isinstance(target, ExplodingKittensPlayer)
+                    or target.eliminated
+                ):
+                    self._cancel_stale_action()
+                    return True
+                if not target.hand:
+                    self._finish_empty_target_action(
+                        actor,
+                        target,
+                        "favor",
+                        announce=announce,
+                    )
+                    return True
+                if len(target.hand) == 1:
+                    self._give_favor_card(target, target.hand[0])
+                    return True
+
+        if self.phase in (PHASE_DEFUSE, PHASE_REINSERT):
+            decision_player = self.get_player_by_id(self.decision_player_id)
+            if (
+                not isinstance(decision_player, ExplodingKittensPlayer)
+                or decision_player.eliminated
+                or self.drawn_kitten is None
+            ):
+                self._reset_stale_kitten_flow()
+                return True
+            if self.phase == PHASE_DEFUSE and not any(
+                card.kind == DEFUSE for card in decision_player.hand
+            ):
+                self._start_explosion_sequence(decision_player)
+                return True
+            if self.phase == PHASE_REINSERT and not self.deck:
+                self._reinsert_kitten(decision_player, 0)
+                return True
+
+        return False
+
+    def _finish_empty_target_action(
+        self,
+        actor: ExplodingKittensPlayer,
+        target: ExplodingKittensPlayer,
+        method: str,
+        *,
+        announce: bool = True,
+    ) -> None:
+        """Finish a valid Favor or pair after its target spends the last card."""
+        if announce:
+            self._announce_empty_target(actor, target, method)
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        self.refresh_menus()
+
+    def _reset_stale_kitten_flow(self) -> None:
+        """Conserve a drawn Kitten when an invalid decision state is recovered."""
+        if self.drawn_kitten is not None:
+            occupied_ids = {
+                card.id
+                for card in (
+                    self.deck
+                    + self.discard_pile
+                    + self.removed_cards
+                    + [held for seated in self.players for held in seated.hand]
+                )
+            }
+            if self.drawn_kitten.id not in occupied_ids:
+                self.deck.insert(0, self.drawn_kitten)
+            self._clear_future_knowledge()
+        self.drawn_kitten = None
+        self.decision_player_id = ""
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        self.refresh_menus()
+
+    def _cancel_stale_action(self) -> None:
+        for player in self.alive_players:
+            player.selected_card_ids.clear()
+            self._clear_bot_plan(player)
+        self.pending_action = None
+        self.phase = PHASE_NORMAL
+        self.refresh_menus()
+
     # ------------------------------------------------------------------
-    # End screen
+    # Information actions
+    # ------------------------------------------------------------------
+
+    def _is_public_info_enabled(self, player: Player) -> str | None:
+        return None if self.status == "playing" else "action-not-playing"
+
+    def _is_private_info_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        if player.is_spectator:
+            return "action-spectator"
+        return None
+
+    def _is_public_info_hidden(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.status == "playing" and self.is_touch_client(user):
+            return Visibility.VISIBLE
+        return Visibility.HIDDEN
+
+    def _is_private_info_hidden(self, player: Player) -> Visibility:
+        if player.is_spectator:
+            return Visibility.HIDDEN
+        return self._is_public_info_hidden(player)
+
+    def _is_whose_turn_hidden(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.status == "playing" and self.is_touch_client(user):
+            return Visibility.VISIBLE
+        return super()._is_whose_turn_hidden(player)
+
+    def _is_whos_at_table_hidden(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE
+        return super()._is_whos_at_table_hidden(player)
+
+    def _is_nope_timer_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        if self.phase != PHASE_NOPE or self.pending_action is None:
+            return "action-not-available"
+        return None
+
+    def _is_nope_timer_hidden(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.phase == PHASE_NOPE and self.is_touch_client(user):
+            return Visibility.VISIBLE
+        return Visibility.HIDDEN
+
+    def _action_read_hand(self, player: Player, action_id: str) -> None:
+        if isinstance(player, ExplodingKittensPlayer):
+            self._speak_hand(player)
+
+    def _speak_hand(self, player: ExplodingKittensPlayer) -> None:
+        user = self.get_user(player)
+        if not user:
+            return
+        if not player.hand:
+            user.speak_l("explodingkittens-hand-empty", buffer="game")
+            return
+        names = [card_name(card, user.locale) for card in sort_cards(player.hand)]
+        user.speak_l(
+            "explodingkittens-hand",
+            buffer="game",
+            count=len(names),
+            cards=Localization.format_list_and(user.locale, names),
+        )
+
+    def _action_read_piles(self, player: Player, action_id: str) -> None:
+        user = self.get_user(player)
+        if not user:
+            return
+        top = (
+            card_name(self.discard_pile[-1], user.locale)
+            if self.discard_pile
+            else Localization.get(user.locale, "explodingkittens-no-discard")
+        )
+        user.speak_l(
+            "explodingkittens-piles",
+            buffer="game",
+            deck=len(self.deck),
+            discard=len(self.discard_pile),
+            top=top,
+        )
+
+    def _action_read_table(self, player: Player, action_id: str) -> None:
+        self.live_status_box(player, "explodingkittens_table", self._build_table_status)
+
+    def _action_check_nope_timer(self, player: Player, action_id: str) -> None:
+        user = self.get_user(player)
+        if not user or not self.pending_action:
+            return
+        seconds = max(0, (self.pending_action.timer_ticks + 19) // 20)
+        user.speak_l(
+            "explodingkittens-nope-time-remaining",
+            buffer="game",
+            seconds=seconds,
+        )
+
+    def _build_table_status(self, player: Player, user) -> StatusBoxBuild:
+        locale = user.locale
+        items: list[MenuItem] = [
+            MenuItem(
+                text=Localization.get(
+                    locale,
+                    "explodingkittens-table-piles",
+                    deck=len(self.deck),
+                    discard=len(self.discard_pile),
+                ),
+                id="piles",
+            )
+        ]
+        current = self.current_player
+        if current:
+            items.append(
+                MenuItem(
+                    text=Localization.get(
+                        locale,
+                        "explodingkittens-table-turn",
+                        player=current.name,
+                        turns=self.turns_remaining,
+                    ),
+                    id="turn",
+                )
+            )
+        phase_reason = self._action_in_progress_error(player, locale=locale)
+        if self.phase == PHASE_NORMAL:
+            phase_text = Localization.get(locale, "explodingkittens-phase-normal")
+        elif isinstance(phase_reason, tuple):
+            phase_text = Localization.get(
+                locale,
+                phase_reason[0],
+                **phase_reason[1],
+            )
+        else:
+            phase_text = Localization.get(locale, phase_reason)
+        items.append(
+            MenuItem(
+                text=phase_text,
+                id="phase",
+            )
+        )
+        for table_player in self.get_active_players():
+            if not isinstance(table_player, ExplodingKittensPlayer):
+                continue
+            status = Localization.get(
+                locale,
+                "explodingkittens-status-eliminated" if table_player.eliminated else "explodingkittens-status-alive",
+            )
+            items.append(
+                MenuItem(
+                    text=Localization.get(
+                        locale,
+                        "explodingkittens-table-player",
+                        player=table_player.name,
+                        cards=len(table_player.hand),
+                        status=status,
+                    ),
+                    id=f"player:{table_player.id}",
+                )
+            )
+        return StatusBoxBuild(items=items)
+
+    # ------------------------------------------------------------------
+    # Bots
+    # ------------------------------------------------------------------
+
+    def _bot_candidates(self) -> list[ExplodingKittensPlayer]:
+        if self.phase == PHASE_NOPE:
+            return [player for player in self.alive_players if player.is_bot and self._is_nope_responder(player)]
+        owner: Player | None = None
+        if self.phase in (PHASE_NORMAL, PHASE_COMBO):
+            owner = self.current_player
+        elif self.phase in (PHASE_TARGET, PHASE_REQUEST) and self.pending_action:
+            owner = self.get_player_by_id(self.pending_action.actor_id)
+        elif self.phase == PHASE_FAVOR_GIVE and self.pending_action:
+            owner = self.get_player_by_id(self.pending_action.target_id)
+        elif self.phase in (PHASE_DEFUSE, PHASE_REINSERT):
+            owner = self.get_player_by_id(self.decision_player_id)
+        if isinstance(owner, ExplodingKittensPlayer) and owner.is_bot and not owner.eliminated:
+            return [owner]
+        return []
+
+    def _process_one_bot(self) -> None:
+        for bot in self._bot_candidates():
+            self._sync_turn_actions(bot)
+            acted = BotHelper.process_bot_action(
+                bot,
+                lambda bot=bot: self.bot_think(bot),
+                lambda action_id, bot=bot: self.execute_action(bot, action_id),
+            )
+            if acted:
+                return
+
+    def bot_think(self, player: ExplodingKittensPlayer) -> str | None:
+        return _bot_think(self, player)
+
+    def _clear_bot_plan(
+        self, player: ExplodingKittensPlayer, *, keep_combo: bool = False
+    ) -> None:
+        if not keep_combo:
+            player.bot_combo_kind = ""
+            player.bot_combo_card_ids.clear()
+        player.bot_planned_target_id = ""
+        player.bot_requested_kind = ""
+
+    def _clear_strategy_memory(self, player: ExplodingKittensPlayer) -> None:
+        """Discard game-local knowledge and unfinished bot decisions."""
+        player.known_future_card_ids.clear()
+        player.known_kitten_positions.clear()
+        player.played_card_counts.clear()
+        self._clear_bot_plan(player)
+
+    # ------------------------------------------------------------------
+    # Localization-aware communication and parsing helpers
+    # ------------------------------------------------------------------
+
+    def _speak_error(self, player: Player, key: str, **kwargs) -> None:
+        user = self.get_user(player)
+        if user:
+            user.speak_l(key, buffer="game", **kwargs)
+
+    def _broadcast_actor(self, actor: Player, personal_key: str, public_key: str, **kwargs) -> None:
+        self.broadcast_personal_l(actor, personal_key, public_key, buffer="game", **kwargs)
+
+    def _pending_action_name(self, pending: PendingAction, locale: str) -> str:
+        if pending.kind == ACTION_PAIR:
+            return Localization.get(locale, "explodingkittens-action-name-pair")
+        if pending.kind == ACTION_TRIPLE:
+            return Localization.get(locale, "explodingkittens-action-name-triple")
+        return card_name(CARD_KIND_BY_ACTION.get(pending.kind, pending.kind), locale)
+
+    def _announce_action_canceled(
+        self,
+        actor: ExplodingKittensPlayer,
+        pending: PendingAction,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            action = self._pending_action_name(pending, user.locale)
+            if listener.id == actor.id:
+                user.speak_l(
+                    "explodingkittens-your-action-canceled",
+                    buffer="game",
+                    action=action,
+                )
+            else:
+                user.speak_l(
+                    "explodingkittens-player-action-canceled",
+                    buffer="game",
+                    player=actor.name,
+                    action=action,
+                )
+
+    def _announce_action_resolved(
+        self,
+        actor: ExplodingKittensPlayer,
+        pending: PendingAction,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            action = self._pending_action_name(pending, user.locale)
+            if listener.id == actor.id:
+                user.speak_l(
+                    "explodingkittens-your-action-resolves",
+                    buffer="game",
+                    action=action,
+                )
+            else:
+                user.speak_l(
+                    "explodingkittens-player-action-resolves",
+                    buffer="game",
+                    player=actor.name,
+                    action=action,
+                )
+
+    def _announce_shuffle_resolved(self, actor: ExplodingKittensPlayer) -> None:
+        self._broadcast_actor(
+            actor,
+            "explodingkittens-your-shuffle-resolves",
+            "explodingkittens-player-shuffle-resolves",
+        )
+
+    def _announce_attack_resolution(
+        self,
+        actor: ExplodingKittensPlayer,
+        target: ExplodingKittensPlayer,
+        turns: int,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            if listener.id == actor.id:
+                key = "explodingkittens-your-attack-resolves"
+            elif listener.id == target.id:
+                key = "explodingkittens-attack-resolves-target"
+            else:
+                key = "explodingkittens-player-attack-resolves"
+            user.speak_l(
+                key,
+                buffer="game",
+                player=actor.name,
+                target=target.name,
+                turns=turns,
+            )
+
+    def _announce_favor_choice(
+        self,
+        actor: ExplodingKittensPlayer,
+        target: ExplodingKittensPlayer,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            if listener.id == actor.id:
+                key = "explodingkittens-your-favor-resolves"
+            elif listener.id == target.id:
+                key = "explodingkittens-favor-resolves-target"
+            else:
+                key = "explodingkittens-player-favor-resolves"
+            user.speak_l(
+                key,
+                buffer="game",
+                player=actor.name,
+                target=target.name,
+            )
+
+    def _broadcast_card_play(
+        self,
+        actor: ExplodingKittensPlayer,
+        card: ExplodingKittensCard,
+        target: Player | None = None,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            name = card_name(card, user.locale)
+            if target and listener.id == actor.id:
+                user.speak_l(
+                    "explodingkittens-you-play-targeted-card",
+                    buffer="game",
+                    card=name,
+                    target=target.name,
+                )
+            elif target and listener.id == target.id:
+                user.speak_l(
+                    "explodingkittens-player-targets-you-with-card",
+                    buffer="game",
+                    player=actor.name,
+                    card=name,
+                )
+            elif target:
+                user.speak_l(
+                    "explodingkittens-player-plays-targeted-card",
+                    buffer="game",
+                    player=actor.name,
+                    card=name,
+                    target=target.name,
+                )
+            elif listener.id == actor.id:
+                user.speak_l("explodingkittens-you-play-card", buffer="game", card=name)
+            else:
+                user.speak_l(
+                    "explodingkittens-player-plays-card",
+                    buffer="game",
+                    player=actor.name,
+                    card=name,
+                )
+
+    def _broadcast_combo(
+        self,
+        actor: ExplodingKittensPlayer,
+        target: Player | None,
+        card: ExplodingKittensCard,
+        requested_kind: str,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            kwargs = {
+                "card": card_name(card, user.locale),
+                "target": target.name if target else "",
+            }
+            if requested_kind:
+                kwargs["request"] = card_name(requested_kind, user.locale)
+            suffix = "triple" if requested_kind else "pair"
+            if listener.id == actor.id:
+                user.speak_l(f"explodingkittens-you-play-{suffix}", buffer="game", **kwargs)
+            elif target and listener.id == target.id:
+                user.speak_l(
+                    f"explodingkittens-player-plays-{suffix}-target",
+                    buffer="game",
+                    player=actor.name,
+                    **kwargs,
+                )
+            else:
+                user.speak_l(
+                    f"explodingkittens-player-plays-{suffix}",
+                    buffer="game",
+                    player=actor.name,
+                    **kwargs,
+                )
+
+    def _announce_transfer(
+        self,
+        actor: ExplodingKittensPlayer,
+        target: ExplodingKittensPlayer,
+        card: ExplodingKittensCard,
+        method: str,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            localized_card = card_name(card, user.locale)
+            if listener.id == actor.id:
+                user.speak_l(
+                    f"explodingkittens-{method}-transfer-you",
+                    buffer="game",
+                    target=target.name,
+                    card=localized_card,
+                )
+            elif listener.id == target.id:
+                user.speak_l(
+                    f"explodingkittens-{method}-transfer-target",
+                    buffer="game",
+                    player=actor.name,
+                    card=localized_card,
+                )
+            else:
+                user.speak_l(
+                    f"explodingkittens-{method}-transfer-public",
+                    buffer="game",
+                    player=actor.name,
+                    target=target.name,
+                )
+
+    def _announce_empty_target(
+        self,
+        actor: ExplodingKittensPlayer,
+        target: ExplodingKittensPlayer,
+        method: str,
+    ) -> None:
+        """Announce a valid Favor or pair that has no card left to transfer."""
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            if listener.id == actor.id:
+                key = f"explodingkittens-{method}-empty-you"
+            elif listener.id == target.id:
+                key = f"explodingkittens-{method}-empty-target"
+            else:
+                key = f"explodingkittens-{method}-empty-public"
+            user.speak_l(
+                key,
+                buffer="game",
+                player=actor.name,
+                target=target.name,
+            )
+
+    def _announce_triple_miss(
+        self,
+        actor: ExplodingKittensPlayer,
+        target: ExplodingKittensPlayer,
+        requested_kind: str,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            request = card_name(requested_kind, user.locale)
+            if listener.id == actor.id:
+                key = "explodingkittens-triple-miss-you"
+            elif listener.id == target.id:
+                key = "explodingkittens-triple-miss-target"
+            else:
+                key = "explodingkittens-triple-miss-public"
+            user.speak_l(key, buffer="game", player=actor.name, target=target.name, card=request)
+
+    def _valid_targets(self, actor: Player) -> list[ExplodingKittensPlayer]:
+        return [player for player in self.alive_players if player.id != actor.id and bool(player.hand)]
+
+    def _focus_first_target(self, actor: Player) -> None:
+        targets = self._valid_targets(actor)
+        if not targets:
+            self._cancel_stale_action()
+            return
+        if len(targets) == 1 and self.pending_action:
+            self.pending_action.target_id = targets[0].id
+            if self.pending_action.kind == ACTION_TRIPLE:
+                self.phase = PHASE_REQUEST
+                self.request_menu_focus(actor, f"request_{REQUESTABLE_KINDS[0]}")
+            else:
+                self._commit_pending_action()
+            return
+        self.request_menu_focus(actor, f"target_{targets[0].id}")
+
+    def _target_for_action(self, action_id: str | None) -> ExplodingKittensPlayer | None:
+        if not action_id or not action_id.startswith("target_"):
+            return None
+        player = self.get_player_by_id(action_id[len("target_") :])
+        return player if isinstance(player, ExplodingKittensPlayer) else None
+
+    @staticmethod
+    def _kind_for_request_action(action_id: str | None) -> str:
+        if not action_id or not action_id.startswith("request_"):
+            return ""
+        return action_id[len("request_") :]
+
+    @staticmethod
+    def _position_for_action(action_id: str | None) -> int | None:
+        if not action_id or not action_id.startswith("insert_"):
+            return None
+        try:
+            return int(action_id[len("insert_") :])
+        except ValueError:
+            return None
+
+    def _insertion_label(self, locale: str, position: int) -> str:
+        if position == 0:
+            return Localization.get(locale, "explodingkittens-insert-top")
+        if position == len(self.deck):
+            return Localization.get(locale, "explodingkittens-insert-bottom")
+        return Localization.get(locale, "explodingkittens-insert-position", cards=position)
+
+    # ------------------------------------------------------------------
+    # Results
     # ------------------------------------------------------------------
 
     def build_game_result(self) -> GameResult:
-        winner = getattr(self, "winner", None)
-        # Order: winner first, then eliminated in reverse-elimination order
-        # (we don't track elimination order precisely; sort eliminated last).
-        sorted_players = sorted(
-            self.get_active_players(),
-            key=lambda p: (getattr(p, "eliminated", False), p.name),
+        active = [
+            player
+            for player in self.get_active_players()
+            if isinstance(player, ExplodingKittensPlayer)
+        ]
+        rankings = sorted(
+            active,
+            key=lambda player: (
+                0 if player.id == self.winner_id else 1,
+                -player.elimination_order,
+                player.name,
+            ),
         )
         return GameResult(
             game_type=self.get_type(),
@@ -1309,32 +2809,42 @@ class ExplodingKittensGame(Game):
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
                 PlayerResult(
-                    player_id=p.id, player_name=p.name,
-                    is_bot=p.is_bot, is_virtual_bot=getattr(p, "is_virtual_bot", False),
+                    player_id=player.id,
+                    player_name=player.name,
+                    is_bot=player.is_bot and not player.replaced_human,
                 )
-                for p in sorted_players
+                for player in active
             ],
             custom_data={
-                "winner_name": winner.name if winner else None,
-                "edition": self.options.edition,
+                "winner_name": next((player.name for player in active if player.id == self.winner_id), None),
+                "winner_ids": [self.winner_id] if self.winner_id else [],
+                "team_rankings": [
+                    {
+                        "index": index,
+                        "members": [player.name],
+                        "score": len(rankings) - index,
+                        "is_individual": True,
+                    }
+                    for index, player in enumerate(rankings)
+                ],
+                "rankings": [player.name for player in rankings],
             },
         )
 
     def format_end_screen(self, result: GameResult, locale: str) -> list[str]:
-        lines = [Localization.get(locale, "game-final-scores")]
-        for rank, p_result in enumerate(result.player_results, 1):
-            # Was this player eliminated?
-            p = self.get_player_by_id(p_result.player_id)
-            status_key = (
-                "ek-end-status-survived"
-                if p and not getattr(p, "eliminated", False)
-                else "ek-end-status-eliminated"
-            )
-            status = Localization.get(locale, status_key)
+        winner = result.custom_data.get("winner_name")
+        lines = [
+            Localization.get(locale, "explodingkittens-results-winner", player=winner)
+            if winner
+            else Localization.get(locale, "game-over")
+        ]
+        for rank, name in enumerate(result.custom_data.get("rankings", []), 1):
             lines.append(
                 Localization.get(
-                    locale, "ek-end-score",
-                    rank=rank, player=p_result.player_name, status=status,
+                    locale,
+                    "explodingkittens-results-place",
+                    rank=rank,
+                    player=name,
                 )
             )
         return lines

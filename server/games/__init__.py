@@ -26,6 +26,8 @@ from .ninetynine.game import NinetyNineGame
 from .nine.game import NineGame
 from .milebymile.game import MileByMileGame
 from .explodingkittens.game import ExplodingKittensGame
+from .citadels.game import CitadelsGame
+from .deadmansdeck.game import DeadMansDeckGame
 from .blackjack.game import BlackjackGame
 from .twentyone import TwentyOneGame
 from .bunko.game import BunkoGame
@@ -36,6 +38,7 @@ from .tienlen.game import TienLenGame
 # --- Poker family ---
 from .fivecarddraw.game import FiveCardDrawGame
 from .holdem.game import HoldemGame
+from .deadmanspoker.game import DeadMansPokerGame
 
 # --- Board games — race/track first, then strategy/abstract ---
 from .ludo.game import LudoGame
@@ -71,6 +74,7 @@ from .coup.game import CoupGame
 from .dominos.game import DominosGame
 from .lastcard.game import LastCardGame
 from .pusoydos.game import PusoyDosGame
+from .battle.game import BattleGame
 
 __all__ = [
     "Game",
@@ -92,10 +96,13 @@ __all__ = [
     "NineGame",
     "MileByMileGame",
     "ExplodingKittensGame",
+    "CitadelsGame",
+    "DeadMansDeckGame",
     "BlackjackGame",
     "TwentyOneGame",
     "FiveCardDrawGame",
     "HoldemGame",
+    "DeadMansPokerGame",
     "LudoGame",
     "SorryGame",
     "TroubleGame",
@@ -119,4 +126,5 @@ __all__ = [
     "DominosGame",
     "LastCardGame",
     "PusoyDosGame",
+    "BattleGame",
 ]

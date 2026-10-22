@@ -221,7 +221,7 @@ class UnoGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "cards"
+        return "category-card-games"
 
     @classmethod
     def get_min_players(cls) -> int:

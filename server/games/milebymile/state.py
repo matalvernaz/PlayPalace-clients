@@ -27,6 +27,15 @@ def is_critical_problem(hazard: str) -> bool:
 
 
 @dataclass
+class DirtyTrickWindow(DataClassJSONMixin):
+    """A serialized opportunity to counter one recently played hazard."""
+
+    team_index: int
+    hazard: str
+    ticks: int
+
+
+@dataclass
 class RaceState(DataClassJSONMixin):
     """Per-team race state for Mile by Mile (resets each race)."""
 
@@ -34,7 +43,7 @@ class RaceState(DataClassJSONMixin):
     problems: list[str] = field(default_factory=list)  # Active hazard types
     safeties: list[str] = field(default_factory=list)  # Played safety types
     battle_pile: list[Card] = field(default_factory=list)  # Cards played on/by team
-    used_200_mile: bool = False
+    used_200_mile_count: int = 0
     dirty_trick_count: int = 0
     has_karma: bool = True
 
@@ -86,6 +95,6 @@ class RaceState(DataClassJSONMixin):
         self.problems = [HazardType.STOP]  # Everyone starts stopped
         self.safeties = []
         self.battle_pile = []
-        self.used_200_mile = False
+        self.used_200_mile_count = 0
         self.dirty_trick_count = 0
         self.has_karma = True

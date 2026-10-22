@@ -26,7 +26,7 @@ from ..game_utils.game_scores_mixin import GameScoresMixin
 from ..game_utils.game_prediction_mixin import GamePredictionMixin
 from ..game_utils.sequence_runner_mixin import SequenceRunnerMixin, SequenceState
 from ..game_utils.turn_management_mixin import TurnManagementMixin
-from ..game_utils.menu_management_mixin import MenuManagementMixin
+from ..game_utils.menu_management_mixin import LiveStatusBoxState, MenuManagementMixin
 from ..game_utils.action_visibility_mixin import ActionVisibilityMixin
 from ..game_utils.lobby_actions_mixin import LobbyActionsMixin, BOT_NAMES
 from ..game_utils.event_handling_mixin import EventHandlingMixin
@@ -92,6 +92,9 @@ class Player(DataClassJSONMixin):
     bot_pending_action: str | None = None  # Action to execute when ready
     bot_target: int | None = None  # Game-specific target (e.g., score to reach)
     replaced_human: bool = False  # True if this slot was a human replaced by a bot
+    replaced_human_name: str = ""
+    replacement_bot_name: str = ""
+    reconnect_grace_ticks: int = 0
 
 
 # Re-export GameOptions from options module for backwards compatibility
@@ -226,6 +229,7 @@ class Game(
             str, ActionContext
         ] = {}  # player_id -> context during action execution
         self._transient_display_state: dict[str, TransientDisplayState] = {}
+        self._live_status_boxes: dict[str, LiveStatusBoxState] = {}
         self._actions_menu_open: set[str] = set()  # player_ids with actions menu open
         self._destroyed: bool = False  # Whether game has been destroyed
         # Duration estimation state
@@ -397,6 +401,44 @@ class Game(
             )
         return errors
 
+    def validate_start(self) -> list[str | tuple[str, dict]]:
+        """Return framework player-count errors plus game-specific checks."""
+        active_count = self.get_active_player_count()
+        minimum = self.get_min_players()
+        maximum = self.get_max_players()
+        errors: list[str | tuple[str, dict]] = []
+
+        if minimum == maximum and active_count != minimum:
+            errors.append(
+                (
+                    "action-start-requires-exact-players",
+                    {"current": active_count, "required": minimum},
+                )
+            )
+        elif active_count < minimum:
+            errors.append(
+                (
+                    "action-start-needs-more-players",
+                    {"current": active_count, "minimum": minimum},
+                )
+            )
+        elif active_count > maximum:
+            errors.append(
+                (
+                    "action-start-has-too-many-players",
+                    {"current": active_count, "maximum": maximum},
+                )
+            )
+
+        legacy_count_keys = {"action-need-more-players", "action-table-full"}
+        for error in self.prestart_validate():
+            key = error[0] if isinstance(error, tuple) else error
+            if errors and key in legacy_count_keys:
+                continue
+            if error not in errors:
+                errors.append(error)
+        return errors
+
     def _validate_team_mode(self, team_mode: str) -> str | None:
         """Helper to validate team mode for current player count.
 
@@ -424,17 +466,49 @@ class Game(
         if self._table:
             self._table.status = self.status
 
-    def _replace_with_bot(self, player: "Player") -> None:
+    def _replace_with_bot(
+        self,
+        player: "Player",
+        *,
+        allow_waiting: bool = False,
+    ) -> bool:
         """Replace a human player with a bot (shared logic)."""
-        if self.status != "playing":
-            return
+        if self.status != "playing" and not (
+            allow_waiting and self.status == "waiting"
+        ):
+            return False
+        if player.is_bot:
+            return False
+
+        human_name = player.replaced_human_name or player.name
+        reserved_names = {
+            current.name.casefold()
+            for current in self.players
+            if current.id != player.id
+        }
+        reserved_names.add(human_name.casefold())
+        bot_name = next(
+            (name for name in BOT_NAMES if name.casefold() not in reserved_names),
+            f"Bot {len(self.players)}",
+        )
 
         player.replaced_human = True
         player.is_bot = True
+        player.replaced_human_name = human_name
+        player.replacement_bot_name = bot_name
+        player.name = bot_name
+        self._team_manager.rename_member(human_name, bot_name)
         self._users.pop(player.id, None)
 
-        bot_user = Bot(player.name, uuid=player.id)
+        bot_user = Bot(bot_name, uuid=player.id)
         self.attach_user(player.id, bot_user)
+        self.broadcast_l(
+            "player-replaced-by-bot",
+            buffer="system",
+            player=human_name,
+            bot=bot_name,
+        )
+        return True
 
     @abstractmethod
     def on_start(self) -> None:

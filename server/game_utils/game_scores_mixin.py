@@ -21,6 +21,14 @@ class GameScoresMixin:
         status_box(player, lines).
     """
 
+    def get_score_unit_key(self) -> str:
+        """Return the localization key for this game's scoreboard unit."""
+        return getattr(self, "score_unit_key", "game-score-unit-points")
+
+    def supports_score_actions(self) -> bool:
+        """Return whether the shared score actions have score lines to report."""
+        return bool(self.team_manager.teams)
+
     def _action_whose_turn(self, player: "Player", action_id: str) -> None:
         """Announce whose turn it is."""
         user = self.get_user(player)
