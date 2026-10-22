@@ -21,15 +21,9 @@ def choose_suit(game: "CrazyEightsGame", player: "CrazyEightsPlayer") -> int:
 
 
 def _card_priority(game: "CrazyEightsGame", card: Card) -> int:
-    if card.rank == 13:  # Draw Two (King)
-        return 5
-    if card.rank == 12:  # Skip (Queen)
-        return 4
-    if card.rank == 11:  # Reverse (Jack)
-        return 3
-    if card.rank == 8:  # Wild
+    if card.rank == 8:
         return 1
-    return 2
+    return min(card.rank, 10)
 
 
 def choose_playable_card_id(game: "CrazyEightsGame", player: "CrazyEightsPlayer") -> int | None:
@@ -61,11 +55,11 @@ def bot_think(game: "CrazyEightsGame", player: "CrazyEightsPlayer") -> str | Non
     if game.turn_has_drawn:
         playable = game.get_playable_indices(player)
         if playable:
-            # 80% chance to play, otherwise pass
-            if random.random() < 0.8:  # nosec B311
-                card_id = choose_playable_card_id(game, player)
-                if card_id is not None:
-                    return f"play_card_{card_id}"
+            card_id = choose_playable_card_id(game, player)
+            if card_id is not None:
+                return f"play_card_{card_id}"
+        if game._can_draw(player):
+            return "draw"
         return "pass"
 
     playable = game.get_playable_indices(player)

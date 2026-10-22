@@ -207,8 +207,8 @@ class ActionVisibilityMixin:
         """Check if check_scores action is enabled."""
         if self.status != "playing":
             return "action-not-playing"
-        if len(self.team_manager.teams) == 0:
-            return "action-no-scores"
+        if not self.supports_score_actions():
+            return "action-not-available"
         return None
 
     def _is_check_scores_hidden(self, player: "Player") -> Visibility:
@@ -219,8 +219,8 @@ class ActionVisibilityMixin:
         """Check if check_scores_detailed action is enabled."""
         if self.status != "playing":
             return "action-not-playing"
-        if len(self.team_manager.teams) == 0:
-            return "action-no-scores"
+        if not self.supports_score_actions():
+            return "action-not-available"
         return None
 
     def _is_check_scores_detailed_hidden(self, player: "Player") -> Visibility:

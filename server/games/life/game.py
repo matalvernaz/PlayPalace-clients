@@ -7,9 +7,9 @@ Flow summary:
                    for (spin, choose path, pick career, insurance offer, ...)
     _action_spin -> animate, resolve_landing on destination, set up next
                     prompt or end_turn depending on the space
-    retirement -> individual players finish the track, retire, and stop
-                  taking turns; once everyone has retired, the game runs
-                  the Millionaire Estates spin-off (if any) and tallies.
+    retirement -> individual players finish the track and choose Millionaire
+                  Estates or Countryside Acres; once everyone has retired,
+                  the Estates LIFE-tile bonus is awarded and totals are tallied.
 
 Status readouts use status_box so both desktop and iOS get a navigable
 list instead of a single spoken blob. This mirrors the pattern milebymile
@@ -35,36 +35,28 @@ from . import bot as life_bot
 from .options import LifeOptions
 from .player import LifePlayer
 from .state import (
-    ACRES_BONUS,
+    BANK_LOAN_REPAYMENT,
+    BANK_LOAN_VALUE,
     CANONICAL_CAREERS,
-    COLLEGE_LOAN_INTEREST,
     COLLEGE_LOAN_PRINCIPAL,
     EVENT_DECK,
-    ESTATES_LOSER_PENALTY,
-    ESTATES_WINNER_MULTIPLIER,
     EventEffect,
     EventDef,
+    HOUSE_DEEDS,
     INSURABLE_TO_TYPE,
     INSURANCE_PREMIUMS,
     LIFE_TILE_VALUES,
-    PAYDAY_PER_CHILD,
     RISK_IT_PRIZE,
     RISK_IT_STAKE,
     RISK_IT_THRESHOLD,
+    SALARY_CARDS,
     STOCK_COST,
     STOCK_PAYOUT,
     Space,
     SpaceType,
-    TRACK_LENGTHS,
     build_track,
     filter_events_for_options,
 )
-
-
-# How long college players take before they "graduate" and draw career cards.
-# We trigger the draw when they pass their first COLLEGE_GRAD space; this
-# counter is only used as a safety net.
-_COLLEGE_TURN_FALLBACK = 4
 
 
 def _fmt_money(n: int) -> str:
@@ -87,22 +79,24 @@ class GameOfLifeGame(Game):
     career_pool: list[int] = field(default_factory=list)  # indices into CANONICAL_CAREERS
     degree_career_pool: list[int] = field(default_factory=list)
     nondegree_career_pool: list[int] = field(default_factory=list)
+    salary_pool: list[int] = field(default_factory=list)
+    house_deed_pool: list[int] = field(default_factory=list)
+    available_stock_numbers: list[int] = field(default_factory=list)
     life_tile_pool: list[int] = field(default_factory=list)
+    estates_tile_values: list[int] = field(default_factory=list)
 
     # Live game state
     players_finished: list[str] = field(default_factory=list)  # ids that have retired
-    game_phase: str = "play"  # "play" | "estates_spin" | "tally" | "done"
+    game_phase: str = "play"  # "play" | "tally" | "done"
 
-    # Estates spin-off state
     estates_players: list[str] = field(default_factory=list)  # ids who chose estates
-    estates_results: dict[str, int] = field(default_factory=dict)  # id -> spin
-    estates_index: int = 0
 
     # Tally animation progress (ticks)
     tally_index: int = 0
 
     # Per-player pending career offers (player_id -> list of CANONICAL_CAREERS indices)
     career_offers: dict[str, list[int]] = field(default_factory=dict)
+    salary_offers: dict[str, list[int]] = field(default_factory=dict)
 
     # ---------------------------------------------------------------------
     # Metadata
@@ -122,7 +116,7 @@ class GameOfLifeGame(Game):
 
     @classmethod
     def get_min_players(cls) -> int:
-        return 1
+        return 2
 
     @classmethod
     def get_max_players(cls) -> int:
@@ -139,6 +133,10 @@ class GameOfLifeGame(Game):
         self.status = GameStatus.PLAYING
         self.game_active = True
         self.game_phase = "play"
+        self.players_finished = []
+        self.estates_players = []
+        self.career_offers = {}
+        self.salary_offers = {}
 
         # Build the board and event deck.
         self.track = build_track(self.options.track_length)
@@ -158,13 +156,21 @@ class GameOfLifeGame(Game):
         self.nondegree_career_pool = [
             i for i, c in enumerate(CANONICAL_CAREERS) if not c.degree_required
         ]
+        self.salary_pool = list(range(len(SALARY_CARDS)))
+        self.house_deed_pool = list(range(len(HOUSE_DEEDS)))
+        self.available_stock_numbers = list(range(1, 10))
 
         # Life tile pool (drawn without replacement during the game).
         if self.options.life_tiles == "off":
             self.life_tile_pool = []
+            self.estates_tile_values = []
         else:
             self.life_tile_pool = list(LIFE_TILE_VALUES)
             random.shuffle(self.life_tile_pool)  # nosec B311
+            self.estates_tile_values = [
+                self.life_tile_pool.pop()
+                for _ in range(min(4, len(self.life_tile_pool)))
+            ]
 
         # Per-player init.
         for p in self.players:
@@ -175,29 +181,44 @@ class GameOfLifeGame(Game):
             p.awaiting_spin = True
             p.path = "none"
             p.college_loan = 0
+            p.career_index = -1
             p.career_key = ""
             p.career_label_key = ""
             p.salary = 0
+            p.salary_taxes = 0
+            p.salary_card_index = -1
             p.married = False
             p.children = 0
+            p.house_key = ""
+            p.house_label_key = ""
+            p.house_price = 0
+            p.house_insurance_cost = 0
             p.has_fire_insurance = False
             p.has_auto_insurance = False
             p.has_life_insurance = False
             p.has_full_insurance = False
             p.stock_number = 0
+            p.extra_stock_numbers = []
             p.life_tile_values = []
-            p.pending = "path" if self.options.college_path else "career_pick_noncollege"
+            p.pending = "path" if self.options.college_path else ""
             p.pending_options = []
             p.pending_event_key = ""
             p.turns_since_college_start = 0
 
-        # If college path is off, every player gets a 2-card non-degree draw.
+        # The no-college lobby variant deals one random unrestricted career and
+        # one random Salary Card, with no debt.
         if not self.options.college_path:
             for p in self.players:
-                self._offer_careers(p, self.nondegree_career_pool, count=2)
-                p.pending = "career_pick"
+                p.path = "career"
+                self._deal_random_career_and_salary(p, allow_degree=True)
 
         self.set_turn_players(self.get_active_players())
+        if self.turn_player_ids:
+            opening_spins = [
+                random.randint(1, 10)  # nosec B311
+                for _ in self.turn_player_ids
+            ]
+            self.turn_index = max(range(len(opening_spins)), key=opening_spins.__getitem__)
         self.play_music("game_pig/mus.ogg")
         self.broadcast_l("game-life-desc")
 
@@ -286,13 +307,10 @@ class GameOfLifeGame(Game):
         self._start_turn(previous_player=previous)
 
     def _maybe_advance_phase(self) -> None:
-        """Move from 'play' through 'estates_spin' and 'tally' to 'done'."""
+        """Move from play to the final LIFE-tile tally."""
         # If everyone's retired, start the endgame.
         if self.game_phase == "play" and self._everyone_retired():
             self._begin_endgame()
-            return
-        if self.game_phase == "estates_spin":
-            # Estates spin runs itself via scheduled events.
             return
         if self.game_phase == "tally":
             # Tally runs itself via scheduled events.
@@ -354,6 +372,30 @@ class GameOfLifeGame(Game):
                     is_enabled="_is_career_pick_enabled",
                     is_hidden="_is_career_pick_hidden",
                     get_label="_get_career_pick_label",
+                )
+            )
+
+        for slot in range(3):
+            action_set.add(
+                Action(
+                    id=f"pick_salary_{slot}",
+                    label="",
+                    handler="_action_pick_salary",
+                    is_enabled="_is_salary_pick_enabled",
+                    is_hidden="_is_salary_pick_hidden",
+                    get_label="_get_salary_pick_label",
+                )
+            )
+
+        for slot in range(6):
+            action_set.add(
+                Action(
+                    id=f"steal_tile_{slot}",
+                    label="",
+                    handler="_action_steal_tile",
+                    is_enabled="_is_steal_tile_enabled",
+                    is_hidden="_is_steal_tile_hidden",
+                    get_label="_get_steal_tile_label",
                 )
             )
 
@@ -499,21 +541,21 @@ class GameOfLifeGame(Game):
         # Always-available game actions.
         action_set.add(
             Action(
+                id="take_loan",
+                label=Localization.get(locale, "life-action-take-loan"),
+                handler="_action_take_loan",
+                is_enabled="_is_take_loan_enabled",
+                is_hidden="_is_take_loan_hidden",
+            )
+        )
+        action_set.add(
+            Action(
                 id="pay_loan",
                 label="",
                 handler="_action_pay_loan",
                 is_enabled="_is_pay_loan_enabled",
                 is_hidden="_is_pay_loan_hidden",
                 get_label="_get_pay_loan_label",
-            )
-        )
-        action_set.add(
-            Action(
-                id="sell_stock",
-                label=Localization.get(locale, "life-action-sell-stock"),
-                handler="_action_sell_stock",
-                is_enabled="_is_sell_stock_enabled",
-                is_hidden="_is_sell_stock_hidden",
             )
         )
         return action_set
@@ -562,6 +604,8 @@ class GameOfLifeGame(Game):
             return "life-action-already-retired"
         if lp.pending != "":
             return "life-action-must-spin-first"
+        if not lp.awaiting_spin:
+            return "life-action-must-spin-first"
         return None
 
     def _is_spin_hidden(self, player: Player) -> Visibility:
@@ -572,7 +616,7 @@ class GameOfLifeGame(Game):
         lp: LifePlayer = player  # type: ignore
         if lp.retired:
             return Visibility.HIDDEN
-        if lp.pending != "":
+        if lp.pending != "" or not lp.awaiting_spin:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -600,14 +644,21 @@ class GameOfLifeGame(Game):
             return "life-action-must-spin-first"
         return None
 
-    def _is_career_pick_hidden(self, player: Player) -> Visibility:
+    def _is_career_pick_hidden(
+        self, player: Player, *, action_id: str | None = None
+    ) -> Visibility:
         lp: LifePlayer = player  # type: ignore
         if not self._my_turn(player) or lp.pending != "career_pick":
             return Visibility.HIDDEN
-        # Extract slot index from the action id we're being asked about.
-        # (The base action framework calls this per-action; the slot is read
-        # from the action id itself.)
-        return Visibility.VISIBLE
+        try:
+            slot = int((action_id or "").rsplit("_", 1)[-1])
+        except ValueError:
+            return Visibility.HIDDEN
+        return (
+            Visibility.VISIBLE
+            if slot < len(self.career_offers.get(lp.id, []))
+            else Visibility.HIDDEN
+        )
 
     def _is_slot_visible(self, player: LifePlayer, slot: int) -> bool:
         offers = self.career_offers.get(player.id, [])
@@ -629,24 +680,145 @@ class GameOfLifeGame(Game):
             locale,
             "life-career-card-line",
             career=Localization.get(locale, career.label_key),
-            salary=_fmt_money(career.salary),
             degree="yes" if career.degree_required else "no",
+            salary=_fmt_money(lp.salary),
         )
+
+    def _is_salary_pick_enabled(self, player: Player) -> str | None:
+        if not self._my_turn(player):
+            return "life-action-not-your-turn"
+        lp: LifePlayer = player  # type: ignore
+        if lp.pending != "salary_pick":
+            return "life-action-must-spin-first"
+        return None
+
+    def _is_salary_pick_hidden(
+        self, player: Player, *, action_id: str | None = None
+    ) -> Visibility:
+        lp: LifePlayer = player  # type: ignore
+        if not self._my_turn(player) or lp.pending != "salary_pick":
+            return Visibility.HIDDEN
+        try:
+            slot = int((action_id or "").rsplit("_", 1)[-1])
+        except ValueError:
+            return Visibility.HIDDEN
+        return (
+            Visibility.VISIBLE
+            if slot < len(self.salary_offers.get(lp.id, []))
+            else Visibility.HIDDEN
+        )
+
+    def _get_salary_pick_label(self, player: Player, action_id: str) -> str:
+        lp: LifePlayer = player  # type: ignore
+        try:
+            slot = int(action_id.rsplit("_", 1)[-1])
+        except ValueError:
+            return ""
+        offers = self.salary_offers.get(lp.id, [])
+        if slot >= len(offers):
+            return ""
+        card = SALARY_CARDS[offers[slot]]
+        user = self.get_user(player)
+        locale = user.locale if user else "en"
+        return Localization.get(
+            locale,
+            "life-salary-card-line",
+            salary=_fmt_money(card.salary),
+            taxes=_fmt_money(card.taxes),
+        )
+
+    def _is_steal_tile_enabled(self, player: Player) -> str | None:
+        if not self._my_turn(player):
+            return "life-action-not-your-turn"
+        lp: LifePlayer = player  # type: ignore
+        if lp.pending != "steal_tile":
+            return "life-action-must-spin-first"
+        return None
+
+    def _is_steal_tile_hidden(
+        self, player: Player, *, action_id: str | None = None
+    ) -> Visibility:
+        lp: LifePlayer = player  # type: ignore
+        if not self._my_turn(player) or lp.pending != "steal_tile":
+            return Visibility.HIDDEN
+        try:
+            slot = int((action_id or "").rsplit("_", 1)[-1])
+        except ValueError:
+            return Visibility.HIDDEN
+        return (
+            Visibility.VISIBLE
+            if slot < len(lp.pending_options)
+            else Visibility.HIDDEN
+        )
+
+    def _get_steal_tile_label(self, player: Player, action_id: str) -> str:
+        lp: LifePlayer = player  # type: ignore
+        try:
+            slot = int(action_id.rsplit("_", 1)[-1])
+        except ValueError:
+            return ""
+        if slot >= len(lp.pending_options):
+            return ""
+        target = self.get_player_by_id(lp.pending_options[slot])
+        if not target:
+            return ""
+        user = self.get_user(player)
+        locale = user.locale if user else "en"
+        return Localization.get(locale, "life-action-steal-tile", player=target.name)
 
     # Insurance action visibility / labels.
 
-    def _is_buy_insurance_hidden(self, player: Player) -> Visibility:
+    def _is_buy_insurance_hidden(
+        self, player: Player, *, action_id: str | None = None
+    ) -> Visibility:
         lp: LifePlayer = player  # type: ignore
-        if not self._my_turn(player) or lp.pending != "insurance":
+        if (
+            not self._my_turn(player)
+            or lp.retired
+            or self.options.insurance == "off"
+            or lp.pending not in ("", "home_insurance")
+        ):
             return Visibility.HIDDEN
-        return Visibility.VISIBLE
+        if lp.pending == "" and not lp.awaiting_spin:
+            return Visibility.HIDDEN
+        if self.options.insurance == "simplified":
+            return (
+                Visibility.VISIBLE
+                if action_id == "buy_full_insurance" and not lp.has_full_insurance
+                else Visibility.HIDDEN
+            )
+        if action_id == "buy_auto_insurance":
+            return (
+                Visibility.VISIBLE
+                if lp.pending == "" and not lp.has_auto_insurance
+                else Visibility.HIDDEN
+            )
+        if action_id == "buy_fire_insurance":
+            return (
+                Visibility.VISIBLE
+                if bool(lp.house_key) and not lp.has_fire_insurance
+                else Visibility.HIDDEN
+            )
+        return Visibility.HIDDEN
 
-    def _is_buy_insurance_enabled(self, player: Player) -> str | None:
+    def _is_buy_insurance_enabled(
+        self, player: Player, *, action_id: str | None = None
+    ) -> str | None:
         if not self._my_turn(player):
             return "life-action-not-your-turn"
+        lp: LifePlayer = player  # type: ignore
+        if action_id == "buy_fire_insurance":
+            premium = lp.house_insurance_cost
+        elif action_id == "buy_auto_insurance":
+            premium = INSURANCE_PREMIUMS["auto"]
+        else:
+            premium = INSURANCE_PREMIUMS["simplified"]
+        if lp.cash < premium:
+            return "life-cannot-afford"
         return None
 
     def _get_buy_insurance_label(self, player: Player, action_id: str) -> str:
+        lp: LifePlayer = player  # type: ignore
         user = self.get_user(player)
         locale = user.locale if user else "en"
         if action_id == "buy_full_insurance":
@@ -654,9 +826,8 @@ class GameOfLifeGame(Game):
                 locale, "life-action-buy-insurance", money=_fmt_money(INSURANCE_PREMIUMS["simplified"])
             )
         mapping = {
-            "buy_fire_insurance": ("life-action-buy-fire", INSURANCE_PREMIUMS["fire"]),
+            "buy_fire_insurance": ("life-action-buy-fire", lp.house_insurance_cost),
             "buy_auto_insurance": ("life-action-buy-auto", INSURANCE_PREMIUMS["auto"]),
-            "buy_life_insurance": ("life-action-buy-life", INSURANCE_PREMIUMS["life"]),
         }
         entry = mapping.get(action_id)
         if not entry:
@@ -671,7 +842,7 @@ class GameOfLifeGame(Game):
 
     def _is_insurance_skip_hidden(self, player: Player) -> Visibility:
         lp: LifePlayer = player  # type: ignore
-        if not self._my_turn(player) or lp.pending != "insurance":
+        if not self._my_turn(player) or lp.pending != "home_insurance":
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -689,7 +860,15 @@ class GameOfLifeGame(Game):
 
     def _is_buy_stock_hidden(self, player: Player) -> Visibility:
         lp: LifePlayer = player  # type: ignore
-        if not self._my_turn(player) or lp.pending != "stock":
+        if (
+            not self._my_turn(player)
+            or lp.pending != ""
+            or not lp.awaiting_spin
+            or lp.retired
+            or not self.options.stock_market
+            or lp.stock_number != 0
+            or not self.available_stock_numbers
+        ):
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -704,10 +883,7 @@ class GameOfLifeGame(Game):
         return None
 
     def _is_stock_skip_hidden(self, player: Player) -> Visibility:
-        lp: LifePlayer = player  # type: ignore
-        if not self._my_turn(player) or lp.pending != "stock":
-            return Visibility.HIDDEN
-        return Visibility.VISIBLE
+        return Visibility.HIDDEN
 
     # Risk It.
 
@@ -750,9 +926,13 @@ class GameOfLifeGame(Game):
             return "life-action-not-your-turn"
         return None
 
-    def _is_retirement_hidden(self, player: Player) -> Visibility:
+    def _is_retirement_hidden(
+        self, player: Player, *, action_id: str | None = None
+    ) -> Visibility:
         lp: LifePlayer = player  # type: ignore
         if not self._my_turn(player) or lp.pending != "retirement":
+            return Visibility.HIDDEN
+        if self.options.retirement == "safe" and action_id == "choose_estates":
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -768,9 +948,11 @@ class GameOfLifeGame(Game):
 
     def _is_pay_loan_enabled(self, player: Player) -> str | None:
         lp: LifePlayer = player  # type: ignore
+        if not self._my_turn(player):
+            return "life-action-not-your-turn"
         if lp.college_loan <= 0:
             return "life-loan-none"
-        if lp.cash < min(lp.college_loan, 10_000):
+        if lp.cash < BANK_LOAN_REPAYMENT:
             return "life-loan-cannot-afford"
         return None
 
@@ -778,7 +960,7 @@ class GameOfLifeGame(Game):
         lp: LifePlayer = player  # type: ignore
         if lp.college_loan <= 0:
             return Visibility.HIDDEN
-        if self.status != "playing":
+        if self.status != "playing" or not self._my_turn(player) or lp.retired:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -787,20 +969,20 @@ class GameOfLifeGame(Game):
         user = self.get_user(player)
         locale = user.locale if user else "en"
         return Localization.get(
-            locale, "life-action-pay-loan", money=_fmt_money(lp.college_loan)
+            locale, "life-action-pay-loan", money=_fmt_money(BANK_LOAN_REPAYMENT)
         )
 
-    def _is_sell_stock_enabled(self, player: Player) -> str | None:
+    def _is_take_loan_enabled(self, player: Player) -> str | None:
+        if not self._my_turn(player):
+            return "life-action-not-your-turn"
         lp: LifePlayer = player  # type: ignore
-        if lp.stock_number == 0:
-            return "life-stock-already-held"
+        if lp.retired or self.status != "playing":
+            return "life-action-not-playing"
         return None
 
-    def _is_sell_stock_hidden(self, player: Player) -> Visibility:
+    def _is_take_loan_hidden(self, player: Player) -> Visibility:
         lp: LifePlayer = player  # type: ignore
-        if lp.stock_number == 0:
-            return Visibility.HIDDEN
-        if self.status != "playing":
+        if self.status != "playing" or not self._my_turn(player) or lp.retired:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -887,8 +1069,9 @@ class GameOfLifeGame(Game):
 
     def _action_spin(self, player: Player, action_id: str) -> None:
         lp: LifePlayer = player  # type: ignore
-        if lp.pending != "" or lp.retired:
+        if lp.pending != "" or lp.retired or not lp.awaiting_spin:
             return
+        lp.awaiting_spin = False
         self.is_animating = True
         self.broadcast_l("life-spinner-spinning")
         self.play_standard_dice_roll_sound()
@@ -912,23 +1095,32 @@ class GameOfLifeGame(Game):
         lp.college_loan = COLLEGE_LOAN_PRINCIPAL
         lp.pending = ""
         self._announce(player, "life-chose-college")
-        self.end_turn()
+        self._continue_turn_after_stop(player)
 
     def _action_choose_career_path(self, player: Player, action_id: str) -> None:
         lp: LifePlayer = player  # type: ignore
         if lp.pending != "path":
             return
         lp.path = "career"
+        lp.position = next(
+            (
+                space.index
+                for space in self.track
+                if space.type == SpaceType.COLLEGE_GRAD
+            ),
+            0,
+        )
+        self._deal_random_career_and_salary(lp, allow_degree=False)
+        lp.pending = ""
         self._announce(player, "life-chose-career")
-        self._offer_careers(lp, self.nondegree_career_pool, count=2)
-        lp.pending = "career_pick"
+        self._announce_career_and_salary(lp)
+        self._continue_turn_after_stop(player)
 
     # ---------------------------------------------------------------------
     # Action handlers — career pick
     # ---------------------------------------------------------------------
 
     def _action_pick_career(self, player: Player, *args) -> None:
-        """Handle career pick. Called with (player, action_id)."""
         lp: LifePlayer = player  # type: ignore
         if lp.pending != "career_pick":
             return
@@ -940,30 +1132,124 @@ class GameOfLifeGame(Game):
         offers = self.career_offers.get(lp.id, [])
         if slot >= len(offers):
             return
-        career = CANONICAL_CAREERS[offers[slot]]
-        lp.career_key = career.key
-        lp.career_label_key = career.label_key
-        lp.salary = career.salary
-        lp.pending = ""
+        context = lp.pending_event_key
+        self._assign_career(lp, offers[slot])
         self.career_offers.pop(lp.id, None)
+        self._offer_salaries(
+            lp,
+            count=3 if context == "college" else 2,
+            include_current=context == "night_school",
+        )
+        lp.pending = "salary_pick"
 
+    def _action_pick_salary(self, player: Player, *args) -> None:
+        lp: LifePlayer = player  # type: ignore
+        if lp.pending != "salary_pick":
+            return
+        action_id = args[-1] if args else ""
+        try:
+            slot = int(action_id.rsplit("_", 1)[-1])
+        except ValueError:
+            return
+        offers = self.salary_offers.get(lp.id, [])
+        if slot >= len(offers):
+            return
+        context = lp.pending_event_key
+        self._assign_salary(lp, offers[slot])
+        self.salary_offers.pop(lp.id, None)
+        lp.pending = ""
+        lp.pending_event_key = ""
+        self._announce_career_and_salary(lp)
+        if context == "college":
+            self._continue_turn_after_stop(player)
+        else:
+            self.end_turn()
+
+    def _announce_career_and_salary(self, player: LifePlayer) -> None:
         user = self.get_user(player)
         locale = user.locale if user else "en"
         self._announce(
             player,
             "life-career-chosen",
-            career=Localization.get(locale, career.label_key),
-            salary=_fmt_money(career.salary),
+            career=Localization.get(locale, player.career_label_key),
+            salary=_fmt_money(player.salary),
         )
-        self.end_turn()
+        self._announce(
+            player,
+            "life-salary-chosen",
+            salary=_fmt_money(player.salary),
+            taxes=_fmt_money(player.salary_taxes),
+        )
 
     def _offer_careers(
-        self, player: LifePlayer, pool: list[int], count: int
+        self,
+        player: LifePlayer,
+        pool: list[int],
+        count: int,
+        *,
+        include_current: bool = False,
     ) -> None:
-        pool_copy = list(pool)
+        pool_copy = [index for index in pool if index in self.career_pool]
         random.shuffle(pool_copy)  # nosec B311
         picks = pool_copy[: min(count, len(pool_copy))]
+        if include_current and player.career_index >= 0:
+            picks.insert(0, player.career_index)
         self.career_offers[player.id] = picks
+
+    def _offer_salaries(
+        self,
+        player: LifePlayer,
+        count: int,
+        *,
+        include_current: bool = False,
+    ) -> None:
+        pool_copy = list(self.salary_pool)
+        random.shuffle(pool_copy)  # nosec B311
+        picks = pool_copy[: min(count, len(pool_copy))]
+        if include_current and player.salary_card_index >= 0:
+            picks.insert(0, player.salary_card_index)
+            picks = picks[:3]
+        self.salary_offers[player.id] = picks
+
+    def _assign_career(self, player: LifePlayer, career_index: int) -> None:
+        if player.career_index == career_index:
+            return
+        if player.career_index >= 0 and player.career_index not in self.career_pool:
+            self.career_pool.append(player.career_index)
+        if career_index in self.career_pool:
+            self.career_pool.remove(career_index)
+        career = CANONICAL_CAREERS[career_index]
+        player.career_index = career_index
+        player.career_key = career.key
+        player.career_label_key = career.label_key
+
+    def _assign_salary(self, player: LifePlayer, salary_index: int) -> None:
+        if player.salary_card_index == salary_index:
+            return
+        if (
+            player.salary_card_index >= 0
+            and player.salary_card_index not in self.salary_pool
+        ):
+            self.salary_pool.append(player.salary_card_index)
+        if salary_index in self.salary_pool:
+            self.salary_pool.remove(salary_index)
+        card = SALARY_CARDS[salary_index]
+        player.salary_card_index = salary_index
+        player.salary = card.salary
+        player.salary_taxes = card.taxes
+
+    def _deal_random_career_and_salary(
+        self, player: LifePlayer, *, allow_degree: bool
+    ) -> None:
+        eligible = [
+            index
+            for index in self.career_pool
+            if allow_degree or not CANONICAL_CAREERS[index].degree_required
+        ]
+        if eligible:
+            self._assign_career(player, random.choice(eligible))  # nosec B311
+        if self.salary_pool:
+            self._assign_salary(player, random.choice(self.salary_pool))  # nosec B311
 
     # ---------------------------------------------------------------------
     # Action handlers — insurance / stocks / risk it / retirement
@@ -971,12 +1257,16 @@ class GameOfLifeGame(Game):
 
     def _action_buy_insurance(self, player: Player, action_id: str) -> None:
         lp: LifePlayer = player  # type: ignore
-        if lp.pending != "insurance":
+        if lp.pending not in ("", "home_insurance") or not lp.awaiting_spin:
             return
+        was_house_offer = lp.pending == "home_insurance"
         type_map = {
-            "buy_fire_insurance": ("fire", INSURANCE_PREMIUMS["fire"], "life-bought-fire"),
+            "buy_fire_insurance": (
+                "fire",
+                lp.house_insurance_cost,
+                "life-bought-fire",
+            ),
             "buy_auto_insurance": ("auto", INSURANCE_PREMIUMS["auto"], "life-bought-auto"),
-            "buy_life_insurance": ("life", INSURANCE_PREMIUMS["life"], "life-bought-life"),
             "buy_full_insurance": (
                 "full",
                 INSURANCE_PREMIUMS["simplified"],
@@ -999,24 +1289,29 @@ class GameOfLifeGame(Game):
             return
         lp.cash -= premium
         self._announce(player, message, money=_fmt_money(premium))
-        lp.pending = ""
-        self.end_turn()
+        if was_house_offer:
+            lp.pending = ""
+            self._continue_turn_after_stop(player)
+        else:
+            self.rebuild_player_menu(player, position=1)
 
     def _action_skip_insurance(self, player: Player, action_id: str) -> None:
         lp: LifePlayer = player  # type: ignore
-        if lp.pending != "insurance":
+        if lp.pending != "home_insurance":
             return
         self._announce(player, "life-skipped-insurance")
         lp.pending = ""
-        self.end_turn()
+        self._continue_turn_after_stop(player)
 
     def _action_buy_stock(self, player: Player, *args) -> None:
         lp: LifePlayer = player  # type: ignore
-        if lp.pending != "stock":
+        if (
+            lp.pending != ""
+            or not lp.awaiting_spin
+            or lp.stock_number != 0
+            or not self.options.stock_market
+        ):
             return
-        if len(args) < 1:
-            return
-        # args is (input_value, action_id) when input_request is set.
         if len(args) >= 2:
             input_value = args[0]
         else:
@@ -1025,7 +1320,7 @@ class GameOfLifeGame(Game):
             number = int(str(input_value).strip())
         except ValueError:
             return
-        if not (1 <= number <= 10):
+        if number not in self.available_stock_numbers:
             return
         if lp.cash < STOCK_COST:
             user = self.get_user(player)
@@ -1033,25 +1328,22 @@ class GameOfLifeGame(Game):
                 user.speak_l("life-cannot-afford")
             return
         lp.cash -= STOCK_COST
-        lp.stock_number = number
+        lp.add_stock(number)
+        self.available_stock_numbers.remove(number)
         self._announce(player, "life-stock-bought", number=number, money=_fmt_money(STOCK_COST))
-        lp.pending = ""
-        self.end_turn()
+        self.rebuild_player_menu(player, position=1)
 
     def _stock_number_options(self, player: Player) -> list[str]:
-        return [str(i) for i in range(1, 11)]
+        return [str(number) for number in self.available_stock_numbers]
 
     def _bot_select_stock_number(self, player: Player, options: list[str]) -> str | None:
-        lp: LifePlayer = player  # type: ignore
-        return life_bot.choose_stock(lp) if life_bot.choose_stock(lp) != "skip" else options[0]
+        if not options:
+            return None
+        preferred = life_bot.choose_stock(player)  # type: ignore[arg-type]
+        return preferred if preferred in options else options[0]
 
     def _action_skip_stock(self, player: Player, action_id: str) -> None:
-        lp: LifePlayer = player  # type: ignore
-        if lp.pending != "stock":
-            return
-        self._announce(player, "life-stock-skipped")
-        lp.pending = ""
-        self.end_turn()
+        return
 
     def _action_risk_it(self, player: Player, action_id: str) -> None:
         lp: LifePlayer = player  # type: ignore
@@ -1100,6 +1392,27 @@ class GameOfLifeGame(Game):
         lp: LifePlayer = player  # type: ignore
         if lp.pending != "retirement":
             return
+        loan_count = lp.college_loan // BANK_LOAN_VALUE
+        if loan_count:
+            repayment = loan_count * BANK_LOAN_REPAYMENT
+            lp.cash -= repayment
+            lp.college_loan = 0
+            self._announce(player, "life-retirement-loans-paid", money=_fmt_money(repayment))
+
+        lp.career_index = -1
+        lp.career_key = ""
+        lp.career_label_key = ""
+        lp.salary_card_index = -1
+        lp.salary = 0
+        lp.salary_taxes = 0
+        lp.house_key = ""
+        lp.house_label_key = ""
+        lp.house_price = 0
+        lp.house_insurance_cost = 0
+        lp.has_fire_insurance = False
+        lp.has_auto_insurance = False
+        lp.has_full_insurance = False
+
         lp.retirement_choice = choice
         lp.pending = ""
         lp.retired = True
@@ -1107,42 +1420,57 @@ class GameOfLifeGame(Game):
             self.players_finished.append(player.id)
         if choice == "acres":
             self._announce(player, "life-chose-acres")
-        else:
+            before = len(lp.life_tile_values)
+            tile_awarded = self._grant_life_tile(
+                lp,
+                silent=True,
+                continuation="retire",
+            )
+            if len(lp.life_tile_values) > before:
+                self._announce(player, "life-acres-tile")
+            if not tile_awarded:
+                self._rebuild_and_continue(player)
+                return
+        elif choice == "estates":
             self._announce(player, "life-chose-estates")
             self.estates_players.append(player.id)
+        else:
+            self.broadcast_l("life-retirement-skipped")
         self.end_turn()
 
     # ---------------------------------------------------------------------
-    # Always-available actions (loan, stock sell, status).
+    # Always-available actions (loans and status).
     # ---------------------------------------------------------------------
+
+    def _action_take_loan(self, player: Player, action_id: str) -> None:
+        lp: LifePlayer = player  # type: ignore
+        if not self._my_turn(player) or lp.retired:
+            return
+        lp.cash += BANK_LOAN_VALUE
+        lp.college_loan += BANK_LOAN_VALUE
+        self._announce(
+            player,
+            "life-loan-taken",
+            money=_fmt_money(BANK_LOAN_VALUE),
+            balance=_fmt_money(lp.college_loan),
+        )
 
     def _action_pay_loan(self, player: Player, action_id: str) -> None:
         lp: LifePlayer = player  # type: ignore
-        if lp.college_loan <= 0:
+        if (
+            lp.college_loan < BANK_LOAN_VALUE
+            or lp.cash < BANK_LOAN_REPAYMENT
+            or not self._my_turn(player)
+        ):
             return
-        pay = min(lp.college_loan, lp.cash)
-        if pay <= 0:
-            return
-        lp.cash -= pay
-        lp.college_loan -= pay
-        if lp.college_loan == 0:
-            self._announce(player, "life-loan-paid", money=_fmt_money(pay))
-        else:
-            self._announce(
-                player,
-                "life-loan-partial",
-                money=_fmt_money(pay),
-                remaining=_fmt_money(lp.college_loan),
-            )
-
-    def _action_sell_stock(self, player: Player, action_id: str) -> None:
-        lp: LifePlayer = player  # type: ignore
-        if lp.stock_number == 0:
-            return
-        refund = STOCK_COST  # sell back at cost
-        lp.cash += refund
-        lp.stock_number = 0
-        self._announce(player, "life-stock-sold", money=_fmt_money(refund))
+        lp.cash -= BANK_LOAN_REPAYMENT
+        lp.college_loan -= BANK_LOAN_VALUE
+        self._announce(
+            player,
+            "life-loan-paid",
+            money=_fmt_money(BANK_LOAN_REPAYMENT),
+            remaining=_fmt_money(lp.college_loan),
+        )
 
     def _action_check_status(self, player: Player, action_id: str) -> None:
         lp: LifePlayer = player  # type: ignore
@@ -1177,10 +1505,20 @@ class GameOfLifeGame(Game):
                     "life-status-career",
                     career=Localization.get(locale, lp.career_label_key),
                     salary=_fmt_money(lp.salary),
+                    taxes=_fmt_money(lp.salary_taxes),
                 )
             )
         else:
             lines.append(Localization.get(locale, "life-status-career-none"))
+
+        if lp.house_key:
+            lines.append(
+                Localization.get(
+                    locale,
+                    "life-status-house",
+                    house=Localization.get(locale, lp.house_label_key),
+                )
+            )
 
         # Cash
         lines.append(Localization.get(locale, "life-status-cash", money=_fmt_money(lp.cash)))
@@ -1223,14 +1561,32 @@ class GameOfLifeGame(Game):
 
         # Loan
         if lp.college_loan > 0:
-            lines.append(Localization.get(locale, "life-status-loan", money=_fmt_money(lp.college_loan)))
+            repayment = (
+                lp.college_loan // BANK_LOAN_VALUE
+            ) * BANK_LOAN_REPAYMENT
+            lines.append(
+                Localization.get(
+                    locale,
+                    "life-status-loan",
+                    money=_fmt_money(lp.college_loan),
+                    repayment=_fmt_money(repayment),
+                )
+            )
         elif lp.path == "college":
             lines.append(Localization.get(locale, "life-status-loan-none"))
 
         # Stock
         if self.options.stock_market:
-            if lp.stock_number:
-                lines.append(Localization.get(locale, "life-status-stock", number=lp.stock_number))
+            stock_numbers = lp.owned_stock_numbers()
+            if stock_numbers:
+                lines.append(
+                    Localization.get(
+                        locale,
+                        "life-status-stock",
+                        numbers=", ".join(str(number) for number in stock_numbers),
+                        number=", ".join(str(number) for number in stock_numbers),
+                    )
+                )
             else:
                 lines.append(Localization.get(locale, "life-status-stock-none"))
 
@@ -1296,10 +1652,6 @@ class GameOfLifeGame(Game):
         elif event_type == "end_turn":
             self.is_animating = False
             self.end_turn()
-        elif event_type == "estates_spin":
-            self._handle_estates_spin(data)
-        elif event_type == "estates_resolve":
-            self._handle_estates_resolve()
         elif event_type == "tally_start":
             self._begin_tally()
         elif event_type == "tally_reveal_tile":
@@ -1325,13 +1677,35 @@ class GameOfLifeGame(Game):
         if self.options.stock_market:
             for p in self.get_active_players():
                 lp: LifePlayer = p  # type: ignore
-                if lp.stock_number == value:
+                if value in lp.owned_stock_numbers():
                     lp.cash += STOCK_PAYOUT
                     lines.append(
                         (
                             p,
                             "life-stock-paid",
                             {"number": value, "money": _fmt_money(STOCK_PAYOUT)},
+                        )
+                    )
+            if value == 10:
+                police = next(
+                    (
+                        p
+                        for p in self.get_active_players()
+                        if not getattr(p, "retired", False)
+                        and getattr(p, "career_key", "") == "police_officer"
+                        and p is not player
+                    ),
+                    None,
+                )
+                if police:
+                    police_lp: LifePlayer = police  # type: ignore
+                    self._pay_amount(player, 5_000)
+                    police_lp.cash += 5_000
+                    lines.append(
+                        (
+                            police,
+                            "life-police-paid",
+                            {"money": _fmt_money(5_000), "spinner": player.name},
                         )
                     )
         self._announce_lines(lines)
@@ -1342,22 +1716,56 @@ class GameOfLifeGame(Game):
     def _schedule_movement(self, player: Player, steps: int) -> None:
         """Schedule step-by-step movement events with sounds, then a landing resolution."""
         lp: LifePlayer = player  # type: ignore
+        natural_target = min(lp.position + steps, len(self.track) - 1)
+        target = natural_target
+
+        for index in range(lp.position + 1, natural_target + 1):
+            if self._is_mandatory_stop(lp, self.track[index]):
+                target = index
+                break
+
+        occupied = {
+            p.position
+            for p in self.get_active_players()
+            if p is not player and not getattr(p, "retired", False)
+        }
+        if (
+            target == natural_target
+            and target in occupied
+            and not self._is_mandatory_stop(lp, self.track[target])
+        ):
+            while target < len(self.track) - 1 and target in occupied:
+                target += 1
+                if self._is_mandatory_stop(lp, self.track[target]):
+                    break
+
+        actual_steps = max(0, target - lp.position)
         base_delay = 6
         step_interval = 4
-        # Use the standard token-movement scheduler for per-step sounds.
         next_delay = self.schedule_standard_token_movement_sounds(
-            steps,
+            actual_steps,
             start_delay_ticks=base_delay,
             step_interval_ticks=step_interval,
             variant_count=3,
         )
-        # After all steps, jump the player to the final position in one event.
-        target = min(lp.position + steps, len(self.track) - 1)
         self.schedule_event(
             "step_move",
-            {"player_id": player.id, "target": target, "steps": steps},
+            {"player_id": player.id, "target": target, "steps": actual_steps},
             delay_ticks=next_delay,
         )
+
+    def _is_mandatory_stop(self, player: LifePlayer, space: Space) -> bool:
+        if (
+            space.type == SpaceType.COLLEGE_GRAD
+            and player.path == "college"
+            and not player.career_key
+        ):
+            return True
+        if space.type == SpaceType.MARRY:
+            return self.options.family_enabled
+        if space.type == SpaceType.BUY_HOUSE:
+            return not player.house_key
+        return space.type == SpaceType.FINISH
 
     def _handle_step_move(self, data: dict) -> None:
         player = self.get_player_by_id(data["player_id"])
@@ -1368,12 +1776,6 @@ class GameOfLifeGame(Game):
         old_pos = lp.position
         target = int(data["target"])
 
-        # Collect every line that should land in the same TTS burst: any
-        # passed-payday announcements, the move announcement itself, and a
-        # college-graduated announcement when the move crosses a graduation
-        # space. Emitted as a single combined packet so the client speaks
-        # the whole turn-outcome description without cancelling each line
-        # mid-utterance.
         lines: list[tuple[Player, str, dict]] = []
 
         # Pass-through bonuses: if we cross a PAYDAY space between old_pos
@@ -1383,10 +1785,7 @@ class GameOfLifeGame(Game):
         for idx in range(old_pos + 1, target + 1):
             space = self.track[idx]
             if space.type == SpaceType.PAYDAY and lp.salary > 0:
-                bonus = 0
-                if self.options.family_enabled and lp.children > 0:
-                    bonus = PAYDAY_PER_CHILD * lp.children
-                earning = lp.salary + bonus
+                earning = lp.salary
                 lp.cash += earning
                 payday_gained += earning
                 # If this is a *passed* payday (not the final landing), announce it.
@@ -1397,20 +1796,6 @@ class GameOfLifeGame(Game):
 
         lp.position = target
         lines.append((player, "life-move", {"position": target}))
-
-        # College auto-grad: if a college-path player passes/lands on the first
-        # COLLEGE_GRAD space, draw career cards. The graduation announcement
-        # rides on the same burst; the offer + pending-state side-effects
-        # don't speak, so they happen silently here.
-        if lp.path == "college" and lp.career_key == "":
-            for idx in range(old_pos + 1, target + 1):
-                if self.track[idx].type == SpaceType.COLLEGE_GRAD:
-                    lines.append((lp, "life-college-graduated", {}))
-                    self._offer_careers(lp, self.career_pool, count=3)
-                    lp.pending = "career_pick"
-                    break
-            # Safety net if the track has no grad space.
-            lp.turns_since_college_start += 1
 
         self._announce_lines(lines)
 
@@ -1429,8 +1814,6 @@ class GameOfLifeGame(Game):
             return
         lp: LifePlayer = player  # type: ignore
 
-        # If the player was already given a pending prompt (e.g. career pick
-        # from college graduation), skip landing resolution and let them pick.
         if lp.pending != "":
             self.is_animating = False
             self._rebuild_and_continue(player)
@@ -1438,31 +1821,17 @@ class GameOfLifeGame(Game):
 
         space = self.track[lp.position]
         stype = space.type
-        locale = (self.get_user(player).locale if self.get_user(player) else "en")
-
         end_turn = True
+        continue_after_stop = False
+
         if stype == SpaceType.NORMAL or stype == SpaceType.START:
-            # Nothing happens.
             pass
         elif stype == SpaceType.PAYDAY:
-            # Already collected during pass-through; just announce the landing.
             if lp.salary > 0:
-                bonus = PAYDAY_PER_CHILD * lp.children if (self.options.family_enabled and lp.children > 0) else 0
-                salary = lp.salary
-                total = salary + bonus
-                if bonus > 0:
-                    self._announce(
-                        player,
-                        "life-payday-with-kids",
-                        money=_fmt_money(total),
-                        salary=_fmt_money(salary),
-                        bonus=_fmt_money(bonus),
-                        kids=lp.children,
-                    )
-                else:
-                    self._announce(player, "life-payday", money=_fmt_money(total))
+                self._announce(player, "life-payday", money=_fmt_money(lp.salary))
         elif stype == SpaceType.EVENT:
             self._apply_event(lp, space)
+            end_turn = lp.pending == ""
         elif stype == SpaceType.MARRY:
             if self.options.family_enabled:
                 if lp.married:
@@ -1470,34 +1839,19 @@ class GameOfLifeGame(Game):
                 else:
                     lp.married = True
                     self._announce(player, "life-event-get-married")
+                    self._grant_life_tile(lp, continuation="continue")
+            end_turn = False
+            continue_after_stop = lp.pending == ""
         elif stype == SpaceType.BABY:
             if self.options.family_enabled:
-                if not lp.married:
-                    self._announce(player, "life-event-baby-needs-marriage")
+                if space.event_key == "twins":
+                    lp.children += 2
+                    self._announce(player, "life-event-twins")
                 else:
-                    roll = random.randint(1, 10)  # nosec B311
-                    if roll == 10:
-                        lp.children += 2
-                        self._announce(player, "life-event-twins")
-                    elif roll % 2 == 0:
-                        lp.children += 1
-                        self._announce(player, "life-event-baby-girl")
-                    else:
-                        lp.children += 1
-                        self._announce(player, "life-event-baby-boy")
-        elif stype == SpaceType.INSURANCE:
-            if self.options.insurance != "off":
-                lp.pending = "insurance"
-                self._announce(player, "life-insurance-offer")
-                end_turn = False
-        elif stype == SpaceType.STOCK:
-            if self.options.stock_market and lp.stock_number == 0 and lp.cash >= STOCK_COST:
-                lp.pending = "stock"
-                self._announce(player, "life-stock-offer")
-                end_turn = False
-            else:
-                # No prompt — just a flavor announcement.
-                self._announce(player, "life-stock-offer")
+                    lp.children += 1
+                    self._announce(player, "life-event-baby")
+                self._grant_life_tile(lp, continuation="end")
+                end_turn = lp.pending == ""
         elif stype == SpaceType.RISK_IT:
             if self.options.stock_market and lp.cash >= RISK_IT_STAKE:
                 lp.pending = "risk_it"
@@ -1510,33 +1864,64 @@ class GameOfLifeGame(Game):
                 )
                 end_turn = False
         elif stype == SpaceType.COLLEGE_GRAD:
-            # Already handled during step_move via pending; fall through.
-            pass
+            if lp.path == "college" and not lp.career_key:
+                self._announce(player, "life-college-graduated")
+                self._offer_careers(lp, self.career_pool, count=3)
+                lp.pending = "career_pick"
+                lp.pending_event_key = "college"
+                end_turn = False
+            else:
+                end_turn = False
+                continue_after_stop = True
         elif stype == SpaceType.CAREER_CHANGE:
-            # Offer a fresh career draw.
+            self._deal_random_career_and_salary(
+                lp,
+                allow_degree=lp.path == "college",
+            )
+            self._announce(player, "life-career-change")
+            self._announce_career_and_salary(lp)
+        elif stype == SpaceType.NIGHT_SCHOOL:
             pool = (
                 self.career_pool if lp.path == "college" else self.nondegree_career_pool
             )
-            self._offer_careers(lp, pool, count=2)
+            self._offer_careers(lp, pool, count=2, include_current=True)
             lp.pending = "career_pick"
+            lp.pending_event_key = "night_school"
             end_turn = False
-        elif stype == SpaceType.RETIRE_JUNCTION:
-            if self.options.retirement == "none":
-                # Treat as immediate finish.
-                lp.retired = True
-                if player.id not in self.players_finished:
-                    self.players_finished.append(player.id)
-                self.broadcast_l("life-retirement-skipped")
+            self._announce(player, "life-night-school")
+        elif stype == SpaceType.BUY_HOUSE:
+            self._buy_house(lp)
+            end_turn = False
+            if (
+                self.options.insurance != "off"
+                and not lp.has_fire_insurance
+                and not lp.has_full_insurance
+            ):
+                lp.pending = "home_insurance"
+                self._announce(player, "life-home-insurance-offer")
             else:
-                lp.pending = "retirement"
-                self._announce(player, "life-retirement-reached")
-                end_turn = False
+                continue_after_stop = True
+        elif stype == SpaceType.STOCK_ZOOMS:
+            if self.options.stock_market and self.available_stock_numbers:
+                number = random.choice(self.available_stock_numbers)  # nosec B311
+                self.available_stock_numbers.remove(number)
+                lp.add_stock(number)
+                self._announce(player, "life-stock-zooms", number=number)
+        elif stype == SpaceType.STOCK_SLUMPS:
+            if self.options.stock_market and lp.owned_stock_numbers():
+                number = lp.remove_stock()
+                if number:
+                    self.available_stock_numbers.append(number)
+                    self.available_stock_numbers.sort()
+                    self._announce(player, "life-stock-slumps", number=number)
+        elif stype == SpaceType.RETIRE_JUNCTION:
+            pass
         elif stype == SpaceType.FINISH:
-            # Force retirement choice if they haven't already retired.
             if self.options.retirement == "none":
-                lp.retired = True
-                if player.id not in self.players_finished:
-                    self.players_finished.append(player.id)
+                lp.pending = "retirement"
+                self.is_animating = False
+                self._resolve_retirement_choice(player, "none")
+                return
             else:
                 lp.pending = "retirement"
                 self._announce(player, "life-retirement-reached")
@@ -1545,16 +1930,62 @@ class GameOfLifeGame(Game):
         if end_turn:
             self.is_animating = False
             self.end_turn()
+        elif continue_after_stop:
+            self._continue_turn_after_stop(player)
         else:
-            # We need a menu rebuild so the pending actions appear.
             self.is_animating = False
             self._rebuild_and_continue(player)
 
     def _rebuild_and_continue(self, player: Player) -> None:
         """Rebuild the current player's menu for a pending prompt and continue."""
         self.rebuild_player_menu(player, position=1)
-        # If it's a bot, they'll act on their next tick via bot_think.
         BotHelper.jolt_bot(player, ticks=random.randint(15, 25))
+
+    def _continue_turn_after_stop(self, player: Player) -> None:
+        lp: LifePlayer = player  # type: ignore
+        self.is_animating = False
+        lp.awaiting_spin = True
+        self._rebuild_and_continue(player)
+
+    def _buy_house(self, player: LifePlayer) -> None:
+        if not self.house_deed_pool:
+            return
+        deed_index = random.choice(self.house_deed_pool)  # nosec B311
+        self.house_deed_pool.remove(deed_index)
+        deed = HOUSE_DEEDS[deed_index]
+        self._ensure_cash(player, deed.price)
+        player.cash -= deed.price
+        player.house_key = deed.key
+        player.house_label_key = deed.label_key
+        player.house_price = deed.price
+        player.house_insurance_cost = deed.insurance_cost
+        user = self.get_user(player)
+        locale = user.locale if user else "en"
+        self._announce(
+            player,
+            "life-house-bought",
+            house=Localization.get(locale, deed.label_key),
+            money=_fmt_money(deed.price),
+        )
+
+    def _ensure_cash(self, player: LifePlayer, amount: int) -> None:
+        if player.cash >= amount:
+            return
+        shortfall = amount - player.cash
+        loan_count = (shortfall + BANK_LOAN_VALUE - 1) // BANK_LOAN_VALUE
+        principal = loan_count * BANK_LOAN_VALUE
+        player.cash += principal
+        player.college_loan += principal
+        self._announce(
+            player,
+            "life-automatic-loan",
+            money=_fmt_money(principal),
+            balance=_fmt_money(player.college_loan),
+        )
+
+    def _pay_amount(self, player: LifePlayer, amount: int) -> None:
+        self._ensure_cash(player, amount)
+        player.cash -= amount
 
     def _apply_event(self, lp: LifePlayer, space: Space) -> None:
         event_key = self.event_layout.get(space.index)
@@ -1568,7 +1999,7 @@ class GameOfLifeGame(Game):
             lp.cash += event.amount
             self._announce(lp, f"life-event-{event.key}", money=_fmt_money(event.amount))
         elif event.effect == EventEffect.CASH_LOSS:
-            lp.cash -= event.amount
+            self._pay_amount(lp, event.amount)
             self._announce(lp, f"life-event-{event.key}", money=_fmt_money(event.amount))
         elif event.effect in (
             EventEffect.INSURABLE_AUTO,
@@ -1578,7 +2009,7 @@ class GameOfLifeGame(Game):
             ins_type = INSURABLE_TO_TYPE[event.effect]
             insured = lp.covers(ins_type)
             if not insured:
-                lp.cash -= event.amount
+                self._pay_amount(lp, event.amount)
             self._announce(
                 lp,
                 f"life-event-{event.key}",
@@ -1586,30 +2017,154 @@ class GameOfLifeGame(Game):
                 insured="yes" if insured else "no",
             )
         elif event.effect == EventEffect.LIFE_TILE:
-            # The event's own message ("...earns a Life tile") is the user-facing
-            # announcement; _grant_life_tile runs silently when triggered by an event.
-            self._grant_life_tile(lp, silent=True)
+            self._grant_life_tile(lp, silent=True, continuation="end")
             self._announce(lp, f"life-event-{event.key}")
+        elif event.effect == EventEffect.CAREER_PAYMENT:
+            holder = next(
+                (
+                    p
+                    for p in self.get_active_players()
+                    if not getattr(p, "retired", False)
+                    and getattr(p, "career_key", "") == event.career_key
+                ),
+                None,
+            )
+            career = next(
+                (c for c in CANONICAL_CAREERS if c.key == event.career_key),
+                None,
+            )
+            user = self.get_user(lp)
+            locale = user.locale if user else "en"
+            career_name = (
+                Localization.get(locale, career.label_key) if career else event.career_key
+            )
+            if holder is lp:
+                self._announce(
+                    lp,
+                    "life-career-payment-self",
+                    career=career_name,
+                )
+            else:
+                self._pay_amount(lp, event.amount)
+                if holder:
+                    holder_lp: LifePlayer = holder  # type: ignore
+                    holder_lp.cash += event.amount
+                    self._announce(
+                        lp,
+                        "life-career-payment-player",
+                        career=career_name,
+                        money=_fmt_money(event.amount),
+                        recipient=holder.name,
+                    )
+                else:
+                    self._announce(
+                        lp,
+                        "life-career-payment-bank",
+                        career=career_name,
+                        money=_fmt_money(event.amount),
+                    )
+        elif event.effect == EventEffect.TAXES:
+            accountant = next(
+                (
+                    p
+                    for p in self.get_active_players()
+                    if not getattr(p, "retired", False)
+                    and getattr(p, "career_key", "") == "accountant"
+                ),
+                None,
+            )
+            if accountant is lp:
+                self._announce(lp, "life-taxes-self")
+            else:
+                self._pay_amount(lp, lp.salary_taxes)
+                if accountant:
+                    accountant_lp: LifePlayer = accountant  # type: ignore
+                    accountant_lp.cash += lp.salary_taxes
+                    self._announce(
+                        lp,
+                        "life-taxes-player",
+                        money=_fmt_money(lp.salary_taxes),
+                        recipient=accountant.name,
+                    )
+                else:
+                    self._announce(
+                        lp,
+                        "life-taxes-bank",
+                        money=_fmt_money(lp.salary_taxes),
+                    )
         elif event.effect == EventEffect.LAWSUIT:
             self._resolve_lawsuit(lp, event.amount)
 
-    def _grant_life_tile(self, lp: LifePlayer, silent: bool = False) -> None:
+    def _grant_life_tile(
+        self,
+        lp: LifePlayer,
+        *,
+        silent: bool = False,
+        continuation: str = "end",
+    ) -> bool:
         if self.options.life_tiles == "off":
-            # Life tiles disabled: give cash instead.
             lp.cash += 30_000
-            return
+            return True
         if not self.life_tile_pool:
-            # Refill pool if exhausted.
-            self.life_tile_pool = list(LIFE_TILE_VALUES)
-            random.shuffle(self.life_tile_pool)  # nosec B311
+            eligible = [
+                p
+                for p in self.get_active_players()
+                if p is not lp
+                and getattr(p, "life_tile_values", [])
+                and not (
+                    getattr(p, "retired", False)
+                    and getattr(p, "retirement_choice", "") == "acres"
+                )
+            ]
+            if not eligible:
+                return True
+            lp.pending = "steal_tile"
+            lp.pending_options = [p.id for p in eligible]
+            lp.pending_event_key = continuation
+            self._announce(lp, "life-tile-steal-prompt")
+            return False
         value = self.life_tile_pool.pop()
         lp.life_tile_values.append(value)
         if silent:
-            return
+            return True
         if self.options.life_tiles == "revealed":
             self._announce(lp, "life-tile-earned-revealed", money=_fmt_money(value))
         else:
             self._announce(lp, "life-tile-earned-hidden")
+        return True
+
+    def _action_steal_tile(self, player: Player, action_id: str) -> None:
+        lp: LifePlayer = player  # type: ignore
+        if lp.pending != "steal_tile":
+            return
+        try:
+            slot = int(action_id.rsplit("_", 1)[-1])
+        except ValueError:
+            return
+        if slot >= len(lp.pending_options):
+            return
+        target = self.get_player_by_id(lp.pending_options[slot])
+        if not target:
+            return
+        target_lp: LifePlayer = target  # type: ignore
+        if not target_lp.life_tile_values:
+            return
+        value = random.choice(target_lp.life_tile_values)  # nosec B311
+        target_lp.life_tile_values.remove(value)
+        lp.life_tile_values.append(value)
+        continuation = lp.pending_event_key
+        lp.pending = ""
+        lp.pending_options = []
+        lp.pending_event_key = ""
+        self._announce(
+            player,
+            "life-tile-stolen",
+            victim=target.name,
+        )
+        if continuation == "continue":
+            self._continue_turn_after_stop(player)
+        else:
+            self.end_turn()
 
     def _resolve_lawsuit(self, lp: LifePlayer, amount: int) -> None:
         """Quick lawsuit: all active players spin, lowest pays highest."""
@@ -1641,93 +2196,39 @@ class GameOfLifeGame(Game):
         )
 
     # ---------------------------------------------------------------------
-    # Endgame — Millionaire Estates spin-off + tally
+    # Endgame — Millionaire Estates reserve tiles + tally
     # ---------------------------------------------------------------------
 
     def _begin_endgame(self) -> None:
-        if self.options.retirement == "classic" and self.estates_players:
-            self.game_phase = "estates_spin"
-            self.estates_index = 0
-            self.is_animating = True
-            self.broadcast_l("life-estates-spin-header")
-            self.schedule_event("estates_spin", {}, delay_ticks=8)
-        else:
-            self.game_phase = "tally"
-            self.schedule_event("tally_start", {}, delay_ticks=6)
-
-    def _handle_estates_spin(self, data: dict) -> None:
-        if self.estates_index >= len(self.estates_players):
-            # Resolve after final spin.
-            self.schedule_event("estates_resolve", {}, delay_ticks=6)
-            return
-        pid = self.estates_players[self.estates_index]
-        player = self.get_player_by_id(pid)
-        if not player:
-            self.estates_index += 1
-            self.schedule_event("estates_spin", {}, delay_ticks=4)
-            return
-        value = random.randint(1, 10)  # nosec B311
-        self.estates_results[pid] = value
-        self.play_standard_dice_roll_sound()
-        self.broadcast_l("life-estates-spin", player=player.name, value=value)
-        self.estates_index += 1
-        self.schedule_event("estates_spin", {}, delay_ticks=10)
-
-    def _handle_estates_resolve(self) -> None:
-        if not self.estates_results:
-            self.schedule_event("tally_start", {}, delay_ticks=4)
-            return
-        highest = max(self.estates_results.values())
-        winners = [pid for pid, v in self.estates_results.items() if v == highest]
-        for pid, v in self.estates_results.items():
-            player = self.get_player_by_id(pid)
-            if not player:
-                continue
-            lp: LifePlayer = player  # type: ignore
-            if pid in winners:
-                lp.cash *= ESTATES_WINNER_MULTIPLIER
-            else:
-                lp.cash -= ESTATES_LOSER_PENALTY
-        if len(winners) == 1:
-            winner = self.get_player_by_id(winners[0])
-            if winner:
-                wlp: LifePlayer = winner  # type: ignore
-                self.broadcast_l(
-                    "life-estates-winner", player=winner.name, money=_fmt_money(wlp.cash)
-                )
-        else:
-            winner_names = ", ".join(
-                (p.name for p in self.players if p.id in winners)
-            )
-            self.broadcast_l("life-estates-tie", players=winner_names)
-
-        for pid, v in self.estates_results.items():
-            if pid in winners:
-                continue
-            player = self.get_player_by_id(pid)
-            if not player:
-                continue
-            lp = player  # type: ignore
-            self.broadcast_l(
-                "life-estates-loser",
-                player=player.name,
-                money=_fmt_money(ESTATES_LOSER_PENALTY),
-                remaining=_fmt_money(lp.cash),
-            )
-
         self.game_phase = "tally"
-        self.schedule_event("tally_start", {}, delay_ticks=8)
+        estates = [
+            self.get_player_by_id(player_id)
+            for player_id in self.estates_players
+        ]
+        estates = [player for player in estates if player is not None]
+        if estates and self.estates_tile_values:
+            richest_cash = max(getattr(player, "cash", 0) for player in estates)
+            winners = [
+                player
+                for player in estates
+                if getattr(player, "cash", 0) == richest_cash
+            ]
+            awarded = {player.id: 0 for player in winners}
+            for index, value in enumerate(self.estates_tile_values):
+                winner = winners[index % len(winners)]
+                winner_lp: LifePlayer = winner  # type: ignore
+                winner_lp.life_tile_values.append(value)
+                awarded[winner.id] += 1
+            for winner in winners:
+                self.broadcast_l(
+                    "life-estates-tiles-awarded",
+                    player=winner.name,
+                    count=awarded[winner.id],
+                )
+            self.estates_tile_values = []
+        self.schedule_event("tally_start", {}, delay_ticks=6)
 
     def _begin_tally(self) -> None:
-        # Countryside Acres bonus for safe-path retirees.
-        for p in self.get_active_players():
-            lp: LifePlayer = p  # type: ignore
-            if lp.retirement_choice == "acres" or (
-                self.options.retirement == "safe" and lp.retired
-            ):
-                lp.cash += ACRES_BONUS
-                self._announce(p, "life-acres-bonus", money=_fmt_money(ACRES_BONUS))
-
         self.broadcast_l("life-end-header")
         self.tally_index = 0
         # Reveal each tile (hidden mode).
@@ -1827,31 +2328,24 @@ class GameOfLifeGame(Game):
             offers = self.career_offers.get(player.id, [])
             if not offers:
                 return None
-            pick = life_bot.pick_career(
-                [(i, CANONICAL_CAREERS[c].salary) for i, c in enumerate(offers)]
-            )
+            pick = life_bot.pick_career(offers)
             return f"pick_career_{pick}"
-        if pending == "insurance":
-            available: list[str] = []
-            mode = self.options.insurance
-            if mode == "full":
-                for t in ("fire", "auto", "life"):
-                    if not player.covers(t):
-                        available.append(t)
-            elif mode == "simplified":
-                if not player.has_full_insurance:
-                    available.append("full")
+        if pending == "salary_pick":
+            offers = self.salary_offers.get(player.id, [])
+            if not offers:
+                return None
+            pick = life_bot.pick_salary(offers)
+            return f"pick_salary_{pick}"
+        if pending == "steal_tile":
+            return "steal_tile_0"
+        if pending == "home_insurance":
+            available = ["full"] if self.options.insurance == "simplified" else ["fire"]
             choice = life_bot.choose_insurance(player, self, available)
             if choice == "skip":
                 return "skip_insurance"
             if choice == "full":
                 return "buy_full_insurance"
             return f"buy_{choice}_insurance"
-        if pending == "stock":
-            choice = life_bot.choose_stock(player)
-            if choice == "skip":
-                return "skip_stock"
-            return "buy_stock"
         if pending == "risk_it":
             return "risk_it" if life_bot.choose_risk_it(player) == "risk" else "skip_risk_it"
         if pending == "retirement":

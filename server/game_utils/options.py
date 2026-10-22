@@ -607,9 +607,15 @@ class GameOptions(DataClassJSONMixin):
         """Return a list of localized label strings for all current option values."""
         lines = []
         for name, meta in self.get_option_metas().items():
+            if not self._is_option_visible(name):
+                continue
             current_value = getattr(self, name)
             lines.append(meta.get_label(locale, current_value))
         return lines
+
+    def is_option_visible(self, name: str) -> bool:
+        """Return whether an option passes its linked visibility conditions."""
+        return self._is_option_visible(name)
 
     def get_option_group_metas(self) -> dict[str, OptionGroupMeta]:
         """Get all option group metadata for this options instance."""

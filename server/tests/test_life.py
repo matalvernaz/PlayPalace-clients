@@ -1,526 +1,616 @@
-"""Tests for The Game of Life."""
+"""Rules-contract and integration tests for the 1991 Game of Life port."""
 
+from collections import Counter
 import random
 
+from server.core.users.bot import Bot
+from server.core.users.test_user import MockUser
+from server.games.life import bot as life_bot
 from server.games.life.game import GameOfLifeGame
 from server.games.life.player import LifePlayer
-from server.games.life.options import LifeOptions
 from server.games.life.state import (
-    ACRES_BONUS,
+    BANK_LOAN_REPAYMENT,
+    BANK_LOAN_VALUE,
     CANONICAL_CAREERS,
+    COLLEGE_LOAN_PRINCIPAL,
     EVENT_DECK,
-    RISK_IT_STAKE,
+    HOUSE_DEEDS,
+    LIFE_TILE_VALUES,
+    SALARY_CARDS,
     STOCK_COST,
     STOCK_PAYOUT,
+    EventEffect,
+    Space,
     SpaceType,
     TRACK_LENGTHS,
     build_track,
-    filter_events_for_options,
 )
-from server.games.life import bot as life_bot
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
 
 
-# ---------------------------------------------------------------------------
-# Unit tests — state module
-# ---------------------------------------------------------------------------
+def make_game(*, college_path: bool = True) -> GameOfLifeGame:
+    game = GameOfLifeGame()
+    game.options.college_path = college_path
+    game.add_player("Alice", MockUser("Alice"))
+    game.add_player("Bob", MockUser("Bob"))
+    game.on_start()
+    return game
 
-class TestTrackBuilder:
-    def test_short_track_length(self):
-        track = build_track("short")
-        assert len(track) == TRACK_LENGTHS["short"]
+
+def make_current(game: GameOfLifeGame, player: LifePlayer) -> None:
+    game.turn_index = game.turn_player_ids.index(player.id)
+
+
+def scheduled_step_target(game: GameOfLifeGame) -> int:
+    return next(
+        data["target"]
+        for _, event_type, data in reversed(game.event_queue)
+        if event_type == "step_move"
+    )
+
+
+class TestOfficialComponents:
+    def test_metadata_and_player_count(self):
+        assert GameOfLifeGame.get_type() == "life"
+        assert GameOfLifeGame.get_min_players() == 2
+        assert GameOfLifeGame.get_max_players() == 6
+
+    def test_default_track_uses_145_space_classic_route(self):
+        game = GameOfLifeGame()
+        assert game.options.track_length == "long"
+        assert TRACK_LENGTHS["long"] == 145
+        track = build_track(game.options.track_length)
+        assert len(track) == 145
         assert track[0].type == SpaceType.START
         assert track[-1].type == SpaceType.FINISH
 
-    def test_standard_track_length(self):
-        track = build_track("standard")
-        assert len(track) == TRACK_LENGTHS["standard"]
+    def test_track_contains_all_rule_bearing_stop_spaces(self):
+        types = {space.type for space in build_track("long")}
+        assert {
+            SpaceType.COLLEGE_GRAD,
+            SpaceType.MARRY,
+            SpaceType.BUY_HOUSE,
+            SpaceType.NIGHT_SCHOOL,
+            SpaceType.STOCK_ZOOMS,
+            SpaceType.STOCK_SLUMPS,
+            SpaceType.FINISH,
+        } <= types
+        assert SpaceType.RETIRE_JUNCTION not in types
 
-    def test_long_track_length(self):
-        track = build_track("long")
-        assert len(track) == TRACK_LENGTHS["long"]
+    def test_baby_spaces_include_one_twins_space(self):
+        babies = [
+            space
+            for space in build_track("long")
+            if space.type == SpaceType.BABY
+        ]
+        assert len(babies) == 3
+        assert [space.event_key for space in babies].count("twins") == 1
 
-    def test_track_has_retire_junction(self):
-        for length_key in ("short", "standard", "long"):
-            track = build_track(length_key)
-            assert any(s.type == SpaceType.RETIRE_JUNCTION for s in track), length_key
+    def test_career_deck_matches_1991_set(self):
+        assert {career.key for career in CANONICAL_CAREERS} == {
+            "artist",
+            "superstar",
+            "teacher",
+            "travel_agent",
+            "athlete",
+            "police_officer",
+            "salesperson",
+            "doctor",
+            "accountant",
+        }
+        assert {
+            career.key
+            for career in CANONICAL_CAREERS
+            if career.degree_required
+        } == {"teacher", "doctor", "accountant"}
 
-    def test_track_has_paydays(self):
-        track = build_track("standard")
-        assert sum(1 for s in track if s.type == SpaceType.PAYDAY) >= 3
-
-    def test_track_has_events(self):
-        track = build_track("standard")
-        assert sum(1 for s in track if s.type == SpaceType.EVENT) >= 3
-
-    def test_unknown_length_defaults_to_standard(self):
-        track = build_track("bogus")
-        assert len(track) == TRACK_LENGTHS["standard"]
-
-
-class TestEventFilter:
-    def test_stock_market_off_drops_lawsuits(self):
-        filtered = filter_events_for_options(EVENT_DECK, False, "full", "hidden")
-        assert not any(e.effect == "lawsuit" for e in filtered)
-
-    def test_stock_market_on_keeps_lawsuits(self):
-        filtered = filter_events_for_options(EVENT_DECK, True, "full", "hidden")
-        assert any(e.effect == "lawsuit" for e in filtered)
-
-    def test_life_tiles_off_converts_tile_events_to_cash(self):
-        filtered = filter_events_for_options(EVENT_DECK, True, "full", "off")
-        tile_converted = [e for e in filtered if e.effect == "cash_gain" and e.amount == 30_000]
-        # At least one of the original four life-tile events became a cash event.
-        assert len(tile_converted) >= 4
-
-
-class TestCareerCards:
-    def test_canonical_has_degree_and_nondegree(self):
-        degree = [c for c in CANONICAL_CAREERS if c.degree_required]
-        nondegree = [c for c in CANONICAL_CAREERS if not c.degree_required]
-        assert len(degree) >= 3
-        assert len(nondegree) >= 3
-
-
-# ---------------------------------------------------------------------------
-# Bot heuristic tests
-# ---------------------------------------------------------------------------
-
-class TestBotHeuristics:
-    def _player(self, **kwargs) -> LifePlayer:
-        p = LifePlayer(id="test", name="Test", is_bot=True)
-        for k, v in kwargs.items():
-            setattr(p, k, v)
-        return p
-
-    def test_pick_career_chooses_highest_salary(self):
-        assert life_bot.pick_career([(0, 50_000), (1, 100_000), (2, 75_000)]) == 1
-
-    def test_choose_risk_it_positive_ev_with_cash(self):
-        p = self._player(cash=1_000_000)
-        assert life_bot.choose_risk_it(p) == "risk"
-
-    def test_choose_risk_it_skips_when_broke(self):
-        p = self._player(cash=5_000)
-        assert life_bot.choose_risk_it(p) == "skip"
-
-    def test_choose_stock_skips_when_already_held(self):
-        p = self._player(cash=100_000, stock_number=3)
-        assert life_bot.choose_stock(p) == "skip"
-
-    def test_should_pay_loan_false_when_no_loan(self):
-        p = self._player(cash=1_000_000, college_loan=0)
-        assert not life_bot.should_pay_loan(p)
-
-    def test_should_pay_loan_true_when_flush(self):
-        p = self._player(cash=500_000, college_loan=100_000)
-        assert life_bot.should_pay_loan(p)
-
-    def test_should_pay_loan_false_when_cash_tight(self):
-        p = self._player(cash=120_000, college_loan=100_000)
-        assert not life_bot.should_pay_loan(p)
-
-    def test_choose_retirement_acres_when_leading(self):
-        p = self._player(cash=800_000)
-        assert life_bot.choose_retirement(p, [800_000, 500_000, 400_000]) == "acres"
-
-    def test_choose_retirement_estates_when_substantially_behind(self):
-        p = self._player(cash=200_000)
-        assert life_bot.choose_retirement(p, [200_000, 900_000]) == "estates"
-
-
-# ---------------------------------------------------------------------------
-# Player insurance helper tests
-# ---------------------------------------------------------------------------
-
-class TestLifePlayer:
-    def test_set_coverage_fire(self):
-        p = LifePlayer(id="x", name="x")
-        assert p.set_coverage("fire") is True
-        assert p.has_fire_insurance
-        assert p.covers("fire")
-        assert not p.covers("auto")
-
-    def test_set_coverage_full(self):
-        p = LifePlayer(id="x", name="x")
-        assert p.set_coverage("full") is True
-        assert p.covers("fire")
-        assert p.covers("auto")
-        assert p.covers("life")
-
-    def test_set_coverage_already_held_returns_false(self):
-        p = LifePlayer(id="x", name="x", has_auto_insurance=True)
-        assert p.set_coverage("auto") is False
-
-    def test_insurance_list_ordering(self):
-        p = LifePlayer(
-            id="x", name="x",
-            has_fire_insurance=True, has_life_insurance=True,
+    def test_salary_cards_match_1991_set(self):
+        assert [card.salary for card in SALARY_CARDS] == list(
+            range(20_000, 110_000, 10_000)
         )
-        assert p.insurance_list() == ["fire", "life"]
+        assert [card.taxes for card in SALARY_CARDS] == list(
+            range(5_000, 50_000, 5_000)
+        )
+
+    def test_house_deeds_match_1991_prices_and_premiums(self):
+        assert [
+            (deed.price, deed.insurance_cost)
+            for deed in HOUSE_DEEDS
+        ] == [
+            (40_000, 10_000),
+            (60_000, 15_000),
+            (80_000, 20_000),
+            (100_000, 25_000),
+            (120_000, 30_000),
+            (140_000, 35_000),
+            (160_000, 40_000),
+            (180_000, 45_000),
+            (200_000, 50_000),
+        ]
+
+    def test_life_tiles_match_1991_distribution(self):
+        assert len(LIFE_TILE_VALUES) == 25
+        assert Counter(LIFE_TILE_VALUES) == Counter(
+            {
+                50_000: 7,
+                100_000: 6,
+                150_000: 5,
+                200_000: 4,
+                250_000: 3,
+            }
+        )
+
+    def test_setup_reserves_four_life_tiles(self):
+        game = make_game()
+        assert len(game.estates_tile_values) == 4
+        assert len(game.life_tile_pool) == 21
+        assert sorted(game.estates_tile_values + game.life_tile_pool) == sorted(
+            LIFE_TILE_VALUES
+        )
 
 
-# ---------------------------------------------------------------------------
-# Game setup & serialization
-# ---------------------------------------------------------------------------
-
-class TestGameSetup:
-    def test_metadata(self):
-        game = GameOfLifeGame()
-        assert game.get_type() == "life"
-        assert game.get_name() == "The Game of Life"
-        assert game.get_min_players() == 1
-        assert game.get_max_players() == 6
-        assert game.get_category() == "category-board-games"
-
-    def test_player_creation(self):
-        game = GameOfLifeGame()
-        user = MockUser("Alice")
-        player = game.add_player("Alice", user)
+class TestStartingPaths:
+    def test_college_costs_two_loan_notes_and_player_spins_same_turn(self):
+        game = make_game()
+        player = game.current_player
         assert isinstance(player, LifePlayer)
-        assert player.position == 0
-        assert player.retired is False
 
-    def test_on_start_builds_track(self):
-        game = GameOfLifeGame()
-        game.add_player("Alice", MockUser("Alice"))
-        game.add_player("Bob", MockUser("Bob"))
-        game.on_start()
-        assert len(game.track) == TRACK_LENGTHS["standard"]
-        assert len(game.event_layout) > 0
+        game._action_choose_college(player, "choose_college")
 
-    def test_on_start_applies_starting_cash(self):
-        game = GameOfLifeGame()
-        game.options.starting_cash = 50_000
-        game.add_player("Alice", MockUser("Alice"))
-        game.add_player("Bob", MockUser("Bob"))
-        game.on_start()
-        for p in game.players:
-            assert p.cash == 50_000
+        assert player.path == "college"
+        assert player.college_loan == COLLEGE_LOAN_PRINCIPAL == 40_000
+        assert player.pending == ""
+        assert player.awaiting_spin
+        assert game.current_player is player
 
-    def test_college_path_off_skips_path_prompt(self):
-        game = GameOfLifeGame()
-        game.options.college_path = False
-        game.add_player("Alice", MockUser("Alice"))
-        game.add_player("Bob", MockUser("Bob"))
-        game.on_start()
-        for p in game.players:
-            assert p.pending == "career_pick"
+    def test_career_path_deals_one_random_nondegree_career_and_salary(self):
+        game = make_game()
+        player = game.current_player
+        assert isinstance(player, LifePlayer)
 
-    def test_college_path_on_starts_with_path_prompt(self):
-        game = GameOfLifeGame()
-        game.options.college_path = True
-        game.add_player("Alice", MockUser("Alice"))
-        game.add_player("Bob", MockUser("Bob"))
-        game.on_start()
-        for p in game.players:
-            assert p.pending == "path"
+        game._action_choose_career_path(player, "choose_career_path")
+
+        career = CANONICAL_CAREERS[player.career_index]
+        assert not career.degree_required
+        assert player.salary_card_index >= 0
+        assert player.salary in range(20_000, 110_000, 10_000)
+        assert player.college_loan == 0
+        assert player.pending == ""
+        assert player.awaiting_spin
+        assert game.current_player is player
+        grad = next(
+            space.index
+            for space in game.track
+            if space.type == SpaceType.COLLEGE_GRAD
+        )
+        assert player.position == grad
+
+    def test_college_job_search_offers_three_careers_then_three_salaries(self):
+        game = make_game()
+        player = game.current_player
+        assert isinstance(player, LifePlayer)
+        player.path = "college"
+        player.pending = ""
+        player.position = next(
+            space.index
+            for space in game.track
+            if space.type == SpaceType.COLLEGE_GRAD
+        )
+
+        game._handle_resolve_landing({"player_id": player.id})
+        assert player.pending == "career_pick"
+        assert len(game.career_offers[player.id]) == 3
+
+        game._action_pick_career(player, "pick_career_0")
+        assert player.pending == "salary_pick"
+        assert len(game.salary_offers[player.id]) == 3
+
+        game._action_pick_salary(player, "pick_salary_0")
+        assert player.career_index >= 0
+        assert player.salary_card_index >= 0
+        assert player.pending == ""
+        assert player.awaiting_spin
+        assert game.current_player is player
+
+    def test_no_college_variant_deals_cards_without_prompt(self):
+        game = make_game(college_path=False)
+        for player in game.players:
+            assert player.path == "career"
+            assert player.career_index >= 0
+            assert player.salary_card_index >= 0
+            assert player.pending == ""
 
 
-class TestSerialization:
-    def test_round_trip_preserves_state(self):
-        game = GameOfLifeGame()
-        game.add_player("Alice", MockUser("Alice"))
-        game.add_player("Bob", MockUser("Bob"))
-        game.on_start()
+class TestMovementAndStops:
+    def test_college_graduation_is_a_mandatory_stop(self):
+        game = make_game()
+        player = game.players[0]
+        make_current(game, player)
+        player.path = "college"
+        player.pending = ""
+        player.position = 0
 
-        # Mutate state.
-        game.players[0].position = 15
-        game.players[0].cash = 123_456
-        game.players[0].career_key = "doctor"
-        game.players[0].career_label_key = "life-career-doctor"
-        game.players[0].salary = 100_000
-        game.players[0].married = True
-        game.players[0].children = 2
-        game.players[0].has_fire_insurance = True
-        game.players[0].stock_number = 7
-        game.players[0].life_tile_values = [50_000, 80_000]
+        game._schedule_movement(player, 50)
+
+        grad = next(
+            space.index
+            for space in game.track
+            if space.type == SpaceType.COLLEGE_GRAD
+        )
+        assert scheduled_step_target(game) == grad
+
+    def test_marriage_and_house_are_mandatory_stops(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        player.pending = ""
+        marriage = next(
+            space.index for space in game.track if space.type == SpaceType.MARRY
+        )
+        house = next(
+            space.index
+            for space in game.track
+            if space.type == SpaceType.BUY_HOUSE
+        )
+
+        player.position = marriage - 2
+        game._schedule_movement(player, 10)
+        assert scheduled_step_target(game) == marriage
+
+        game.event_queue.clear()
+        player.married = True
+        player.position = marriage
+        game._schedule_movement(player, 10)
+        assert scheduled_step_target(game) == house
+
+    def test_occupied_ordinary_space_moves_to_next_open_space(self):
+        game = make_game(college_path=False)
+        player, other = game.players
+        make_current(game, player)
+        player.pending = ""
+        start = next(
+            space.index
+            for space in game.track
+            if space.type == SpaceType.PAYDAY
+        )
+        player.position = start
+        target = start + 1
+        while game.track[target].type != SpaceType.NORMAL:
+            target += 1
+        other.position = target
+
+        game._schedule_movement(player, target - start)
+
+        assert scheduled_step_target(game) == target + 1
+
+    def test_payday_is_collected_when_passed_or_landed_on(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        player.salary = 60_000
+        player.cash = 0
+        payday = next(
+            space.index for space in game.track if space.type == SpaceType.PAYDAY
+        )
+        player.position = payday - 2
+
+        game._handle_step_move({"player_id": player.id, "target": payday + 1})
+
+        assert player.cash == 60_000
+
+    def test_get_married_awards_tile_and_allows_another_spin(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        player.pending = ""
+        player.position = next(
+            space.index for space in game.track if space.type == SpaceType.MARRY
+        )
+        before = len(player.life_tile_values)
+
+        game._handle_resolve_landing({"player_id": player.id})
+
+        assert player.married
+        assert len(player.life_tile_values) == before + 1
+        assert player.awaiting_spin
+        assert game.current_player is player
+
+    def test_baby_and_twins_add_pegs_and_life_tiles(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        babies = [
+            space for space in game.track if space.type == SpaceType.BABY
+        ]
+
+        player.position = babies[0].index
+        game._handle_resolve_landing({"player_id": player.id})
+        assert player.children == 1
+        assert len(player.life_tile_values) == 1
+
+        make_current(game, player)
+        player.pending = ""
+        player.position = next(
+            space.index for space in babies if space.event_key == "twins"
+        )
+        game._handle_resolve_landing({"player_id": player.id})
+        assert player.children == 3
+        assert len(player.life_tile_values) == 2
+
+
+class TestMoneyCardsAndProperty:
+    def test_buy_house_is_mandatory_and_auto_borrows_shortfall(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        player.pending = ""
+        player.cash = 10_000
+        player.position = next(
+            space.index
+            for space in game.track
+            if space.type == SpaceType.BUY_HOUSE
+        )
+
+        game._handle_resolve_landing({"player_id": player.id})
+
+        assert player.house_key
+        assert player.house_price in {deed.price for deed in HOUSE_DEEDS}
+        assert player.cash >= 0
+        assert player.college_loan % BANK_LOAN_VALUE == 0
+        assert player.pending == "home_insurance"
+
+    def test_homeowners_insurance_uses_house_deed_premium(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        player.pending = "home_insurance"
+        player.awaiting_spin = True
+        player.house_key = "victorian"
+        player.house_insurance_cost = 50_000
+        player.cash = 100_000
+
+        game._action_buy_insurance(player, "buy_fire_insurance")
+
+        assert player.has_fire_insurance
+        assert player.cash == 50_000
+        assert player.pending == ""
+        assert player.awaiting_spin
+
+    def test_stock_numbers_are_one_through_nine_and_cost_50000(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        player.pending = ""
+        player.awaiting_spin = True
+        player.cash = 100_000
+
+        assert game._stock_number_options(player) == [
+            str(number) for number in range(1, 10)
+        ]
+        game._action_buy_stock(player, "3", "buy_stock")
+
+        assert player.stock_number == 3
+        assert player.cash == 100_000 - STOCK_COST
+        assert 3 not in game.available_stock_numbers
+        assert game.current_player is player
+
+    def test_stock_pays_on_any_players_matching_spin(self):
+        game = make_game(college_path=False)
+        owner, spinner = game.players
+        owner.stock_number = 5
+        owner.cash = 0
+
+        game._handle_spin_result({"player_id": spinner.id, "value": 5})
+
+        assert owner.cash == STOCK_PAYOUT
+
+    def test_police_officer_collects_5000_when_opponent_spins_ten(self):
+        game = make_game(college_path=False)
+        police, spinner = game.players
+        police.career_key = "police_officer"
+        police.cash = 0
+        spinner.cash = 20_000
+
+        game._handle_spin_result({"player_id": spinner.id, "value": 10})
+
+        assert police.cash == 5_000
+        assert spinner.cash == 15_000
+
+    def test_bank_loans_issue_20000_and_repay_for_25000(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        player.cash = 100_000
+        player.college_loan = 0
+
+        game._action_take_loan(player, "take_loan")
+        assert player.cash == 120_000
+        assert player.college_loan == BANK_LOAN_VALUE
+
+        game._action_pay_loan(player, "pay_loan")
+        assert player.cash == 120_000 - BANK_LOAN_REPAYMENT
+        assert player.college_loan == 0
+
+    def test_career_space_pays_card_holder_or_bank(self):
+        game = make_game(college_path=False)
+        payer, artist = game.players
+        payer.career_key = "teacher"
+        artist.career_key = "artist"
+        payer.cash = 100_000
+        artist.cash = 0
+        event = next(
+            event
+            for event in EVENT_DECK
+            if event.effect == EventEffect.CAREER_PAYMENT
+            and event.career_key == "artist"
+        )
+        space = Space(10, SpaceType.EVENT)
+        game.event_layout[10] = event.key
+
+        game._apply_event(payer, space)
+
+        assert payer.cash == 100_000 - event.amount
+        assert artist.cash == event.amount
+
+    def test_taxes_due_uses_salary_card_and_pays_accountant(self):
+        game = make_game(college_path=False)
+        payer, accountant = game.players
+        payer.salary_taxes = 35_000
+        payer.cash = 100_000
+        accountant.career_key = "accountant"
+        accountant.cash = 0
+        space = Space(11, SpaceType.EVENT)
+        game.event_layout[11] = "taxes"
+
+        game._apply_event(payer, space)
+
+        assert payer.cash == 65_000
+        assert accountant.cash == 35_000
+
+
+class TestLifeTilesAndRetirement:
+    def test_empty_draw_pile_steals_instead_of_refilling(self):
+        game = make_game(college_path=False)
+        player, victim = game.players
+        make_current(game, player)
+        game.life_tile_pool = []
+        player.life_tile_values = []
+        victim.life_tile_values = [150_000]
+
+        completed = game._grant_life_tile(player)
+
+        assert not completed
+        assert player.pending == "steal_tile"
+        assert player.pending_options == [victim.id]
+        assert game.life_tile_pool == []
+
+        game._action_steal_tile(player, "steal_tile_0")
+        assert player.life_tile_values == [150_000]
+        assert victim.life_tile_values == []
+
+    def test_countryside_acres_awards_one_protected_tile_and_retires(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        make_current(game, player)
+        player.pending = "retirement"
+        player.college_loan = 40_000
+        player.cash = 200_000
+        before = len(player.life_tile_values)
+
+        game._resolve_retirement_choice(player, "acres")
+
+        assert player.retired
+        assert player.retirement_choice == "acres"
+        assert player.cash == 150_000
+        assert player.college_loan == 0
+        assert len(player.life_tile_values) == before + 1
+        assert player.career_key == ""
+        assert player.salary == 0
+
+    def test_acres_tiles_cannot_be_stolen(self):
+        game = make_game(college_path=False)
+        player, acres_player = game.players
+        make_current(game, player)
+        game.life_tile_pool = []
+        acres_player.retired = True
+        acres_player.retirement_choice = "acres"
+        acres_player.life_tile_values = [250_000]
+
+        assert game._grant_life_tile(player)
+        assert player.pending == ""
+        assert acres_player.life_tile_values == [250_000]
+
+    def test_richest_estates_retiree_gets_four_reserved_tiles(self):
+        game = make_game(college_path=False)
+        richer, poorer = game.players
+        richer.retired = True
+        poorer.retired = True
+        richer.retirement_choice = "estates"
+        poorer.retirement_choice = "estates"
+        richer.cash = 500_000
+        poorer.cash = 400_000
+        richer.life_tile_values = []
+        poorer.life_tile_values = []
+        game.estates_players = [richer.id, poorer.id]
+        game.estates_tile_values = [50_000, 100_000, 150_000, 250_000]
+
+        game._begin_endgame()
+
+        assert richer.life_tile_values == [50_000, 100_000, 150_000, 250_000]
+        assert poorer.life_tile_values == []
+        assert game.estates_tile_values == []
+
+    def test_estates_cash_tie_splits_four_tiles(self):
+        game = make_game(college_path=False)
+        first, second = game.players
+        for player in (first, second):
+            player.retired = True
+            player.retirement_choice = "estates"
+            player.cash = 500_000
+            player.life_tile_values = []
+        game.estates_players = [first.id, second.id]
+        game.estates_tile_values = [50_000, 100_000, 150_000, 250_000]
+
+        game._begin_endgame()
+
+        assert len(first.life_tile_values) == 2
+        assert len(second.life_tile_values) == 2
+
+
+class TestPersistenceAndBots:
+    def test_round_trip_preserves_official_card_state(self):
+        game = make_game(college_path=False)
+        player = game.players[0]
+        player.house_key = "victorian"
+        player.house_label_key = "life-house-victorian"
+        player.house_price = 200_000
+        player.house_insurance_cost = 50_000
+        player.has_fire_insurance = True
+        player.stock_number = 7
+        player.extra_stock_numbers = [2]
+        player.life_tile_values = [50_000, 250_000]
 
         loaded = GameOfLifeGame.from_json(game.to_json())
-        p = loaded.players[0]
-        assert p.position == 15
-        assert p.cash == 123_456
-        assert p.career_key == "doctor"
-        assert p.salary == 100_000
-        assert p.married is True
-        assert p.children == 2
-        assert p.has_fire_insurance is True
-        assert p.stock_number == 7
-        assert p.life_tile_values == [50_000, 80_000]
-        assert len(loaded.track) == len(game.track)
+        loaded_player = loaded.players[0]
 
+        assert loaded_player.house_key == "victorian"
+        assert loaded_player.house_insurance_cost == 50_000
+        assert loaded_player.has_fire_insurance
+        assert loaded_player.owned_stock_numbers() == [7, 2]
+        assert loaded_player.life_tile_values == [50_000, 250_000]
+        assert len(loaded.track) == 145
 
-# ---------------------------------------------------------------------------
-# Insurance / stock / loan / retirement handlers
-# ---------------------------------------------------------------------------
-
-class TestActions:
-    def setup_method(self):
-        self.game = GameOfLifeGame()
-        self.user1 = MockUser("Alice")
-        self.user2 = MockUser("Bob")
-        self.game.add_player("Alice", self.user1)
-        self.game.add_player("Bob", self.user2)
-        self.game.options.college_path = False  # simpler setup
-        self.game.on_start()
-        # Past the initial career pick — assign a career manually.
-        for p in self.game.players:
-            p.career_key = "teacher"
-            p.career_label_key = "life-career-teacher"
-            p.salary = 40_000
-            p.pending = ""
-        self.game.career_offers.clear()
-
-    def test_pay_loan_partial(self):
-        p = self.game.players[0]
-        p.college_loan = 50_000
-        p.cash = 20_000
-        self.game._action_pay_loan(p, "pay_loan")
-        assert p.college_loan == 30_000
-        assert p.cash == 0
-
-    def test_pay_loan_full(self):
-        p = self.game.players[0]
-        p.college_loan = 50_000
-        p.cash = 200_000
-        self.game._action_pay_loan(p, "pay_loan")
-        assert p.college_loan == 0
-        assert p.cash == 150_000
-
-    def test_pay_loan_no_op_when_zero(self):
-        p = self.game.players[0]
-        p.college_loan = 0
-        p.cash = 100_000
-        self.game._action_pay_loan(p, "pay_loan")
-        assert p.cash == 100_000
-
-    def test_sell_stock_refunds(self):
-        p = self.game.players[0]
-        p.stock_number = 5
-        p.cash = 10_000
-        self.game._action_sell_stock(p, "sell_stock")
-        assert p.stock_number == 0
-        assert p.cash == 10_000 + STOCK_COST
-
-    def test_stock_payout_on_opponent_spin(self):
-        """When an opponent spins my stock number, I collect STOCK_PAYOUT."""
-        alice = self.game.players[0]
-        bob = self.game.players[1]
-        alice.stock_number = 5
-        alice.cash = 0
-        # Simulate a spin_result event for Bob with value=5.
-        self.game._handle_spin_result({"player_id": bob.id, "value": 5})
-        assert alice.cash == STOCK_PAYOUT
-
-
-def _speak_messages(user):
-    """Pull just the speak() events off a MockUser's message log."""
-    return [m for m in user.messages if m.type == "speak"]
-
-
-class TestAnnounceLines:
-    """Burst handlers combine multi-line narration into one speak packet.
-
-    Several Life handlers fire several ``_announce`` calls in a single
-    server tick (e.g. ``_handle_step_move`` crossing two PAYDAY spaces
-    plus the move announcement). Without combining, each line becomes a
-    separate ``speak`` packet, and a client whose TTS interrupts on
-    every new utterance hears only the last line. These tests pin the
-    single-packet behaviour.
-    """
-
-    def setup_method(self):
-        self.game = GameOfLifeGame()
-        self.alice_user = MockUser("Alice")
-        self.bob_user = MockUser("Bob")
-        self.game.add_player("Alice", self.alice_user)
-        self.game.add_player("Bob", self.bob_user)
-        self.game.options.college_path = False
-        self.game.on_start()
-        for p in self.game.players:
-            p.career_key = "teacher"
-            p.career_label_key = "life-career-teacher"
-            p.salary = 40_000
-            p.pending = ""
-
-    def test_announce_lines_emits_one_packet_per_player(self):
-        alice = self.game.players[0]
-        # Drain pre-existing setup speech.
-        self.alice_user.messages.clear()
-        self.bob_user.messages.clear()
-
-        self.game._announce_lines([
-            (alice, "life-spin-result", {"value": 5}),
-            (alice, "life-move", {"position": 7}),
-        ])
-
-        # One packet each, not two.
-        assert len(_speak_messages(self.alice_user)) == 1
-        assert len(_speak_messages(self.bob_user)) == 1
-
-    def test_announce_lines_combines_lines_per_recipient(self):
-        alice = self.game.players[0]
-        self.alice_user.messages.clear()
-
-        self.game._announce_lines([
-            (alice, "life-spin-result", {"value": 5}),
-            (alice, "life-move", {"position": 7}),
-        ])
-
-        spoken = _speak_messages(self.alice_user)[0].data["text"]
-        # Both lines are present in the single packet.
-        assert "5" in spoken
-        assert "7" in spoken
-        # Joined with a newline so the TTS engine gets a natural pause.
-        assert "\n" in spoken
-
-    def test_announce_lines_uses_per_line_perspective(self):
-        """A line about Bob reads "you" to Bob and "Bob" to Alice."""
-        alice = self.game.players[0]
-        bob = self.game.players[1]
-        self.alice_user.messages.clear()
-        self.bob_user.messages.clear()
-
-        # Line 1 is about Alice; line 2 is about Bob. Each recipient
-        # should see the right perspective applied to each line.
-        self.game._announce_lines([
-            (alice, "life-spin-result", {"value": 5}),
-            (bob, "life-stock-paid", {"number": 5, "money": "$10,000"}),
-        ])
-
-        alice_spoken = _speak_messages(self.alice_user)[0].data["text"]
-        bob_spoken = _speak_messages(self.bob_user)[0].data["text"]
-
-        # Alice's first line uses "you" (she's the actor). Bob's first
-        # line uses "Alice" (she's not him).
-        assert "Alice" in bob_spoken or "alice" in bob_spoken.lower() \
-            or "Alice" in bob_spoken, f"expected Alice's name in Bob's view: {bob_spoken!r}"
-        # Bob's name appears in Alice's view of the second line.
-        assert "Bob" in alice_spoken, f"expected Bob's name in Alice's view: {alice_spoken!r}"
-
-    def test_announce_lines_empty_is_noop(self):
-        self.alice_user.messages.clear()
-        self.game._announce_lines([])
-        assert _speak_messages(self.alice_user) == []
-
-    def test_spin_result_emits_single_packet_with_stock_payouts(self):
-        """Spin result + N stock payouts collapse into one speak per player."""
-        alice = self.game.players[0]
-        bob = self.game.players[1]
-        alice.stock_number = 5
-        self.alice_user.messages.clear()
-        self.bob_user.messages.clear()
-
-        self.game._handle_spin_result({"player_id": bob.id, "value": 5})
-
-        # Pre-fix: 2 speak packets per recipient (spin-result + stock-paid).
-        # Post-fix: 1 combined packet per recipient.
-        assert len(_speak_messages(self.alice_user)) == 1
-        assert len(_speak_messages(self.bob_user)) == 1
-
-    def test_step_move_emits_single_packet_with_passed_paydays(self):
-        """Pass-payday lines + life-move collapse into one speak per player."""
-        alice = self.game.players[0]
-        self.alice_user.messages.clear()
-        self.bob_user.messages.clear()
-
-        # Find a stretch of track that crosses at least one PAYDAY space.
-        # The standard track puts paydays at regular intervals; jumping
-        # from 0 to a position past the first payday guarantees ≥1 crossing.
-        first_payday = next(
-            i for i, s in enumerate(self.game.track) if s.type == SpaceType.PAYDAY
+    def test_bot_loan_rule_uses_25000_repayment(self):
+        player = LifePlayer(
+            id="bot",
+            name="Bot",
+            is_bot=True,
+            cash=75_000,
+            college_loan=20_000,
         )
-        target = first_payday + 2  # land past the payday so it counts as "passed"
-        alice.position = 0
+        assert life_bot.should_pay_loan(player)
+        player.cash = 74_999
+        assert not life_bot.should_pay_loan(player)
 
-        self.game._handle_step_move({"player_id": alice.id, "target": target})
-
-        # Both Alice and Bob receive a single combined packet, not two
-        # (passed-payday + life-move).
-        assert len(_speak_messages(self.alice_user)) == 1
-        assert len(_speak_messages(self.bob_user)) == 1
-
-
-class TestEndScreen:
-    def test_format_end_screen_sorts_by_total(self):
-        game = GameOfLifeGame()
-        game.add_player("Alice", MockUser("Alice"))
-        game.add_player("Bob", MockUser("Bob"))
-        game.on_start()
-        game.players[0].cash = 500_000
-        game.players[1].cash = 200_000
-        result = game.build_game_result()
-        # Highest cash first.
-        assert result.player_results[0].player_name == "Alice"
-        assert result.player_results[1].player_name == "Bob"
-
-
-# ---------------------------------------------------------------------------
-# Full play test — bots run a game to completion, save/load mid-game.
-# ---------------------------------------------------------------------------
-
-class TestPlayToCompletion:
-    def test_bots_complete_standard_game(self):
+    def test_two_bots_complete_classic_game_with_reload(self):
         random.seed(42)
         game = GameOfLifeGame()
-        b1 = Bot("Bot1")
-        b2 = Bot("Bot2")
-        game.add_player("Bot1", b1)
-        game.add_player("Bot2", b2)
+        first_user = Bot("Bot1")
+        second_user = Bot("Bot2")
+        game.add_player("Bot1", first_user)
+        game.add_player("Bot2", second_user)
         game.on_start()
 
-        max_ticks = 100_000
-        for tick in range(max_ticks):
+        for tick in range(120_000):
             if not game.game_active:
                 break
-            if tick and tick % 2000 == 0:
-                # Serialize/deserialize to catch persistence bugs.
-                data = game.to_json()
-                game = GameOfLifeGame.from_json(data)
-                game.attach_user("Bot1", b1)
-                game.attach_user("Bot2", b2)
+            if tick and tick % 4_000 == 0:
+                game = GameOfLifeGame.from_json(game.to_json())
+                game.attach_user("Bot1", first_user)
+                game.attach_user("Bot2", second_user)
                 game.rebuild_runtime_state()
-                for p in game.players:
-                    game.setup_player_actions(p)
-            game.on_tick()
-
-        assert not game.game_active, "game should have finished"
-        # All players retired.
-        for p in game.players:
-            assert p.retired, f"{p.name} should be retired"
-
-    def test_bots_complete_short_no_options_game(self):
-        random.seed(7)
-        game = GameOfLifeGame()
-        game.options.track_length = "short"
-        game.options.college_path = False
-        game.options.family_enabled = False
-        game.options.life_tiles = "off"
-        game.options.insurance = "off"
-        game.options.stock_market = False
-        game.options.retirement = "none"
-        b1 = Bot("Bot1")
-        b2 = Bot("Bot2")
-        game.add_player("Bot1", b1)
-        game.add_player("Bot2", b2)
-        game.on_start()
-
-        for _ in range(50_000):
-            if not game.game_active:
-                break
+                for player in game.players:
+                    game.setup_player_actions(player)
             game.on_tick()
 
         assert not game.game_active
-
-    def test_solo_game_completes(self):
-        random.seed(99)
-        game = GameOfLifeGame()
-        b = Bot("Bot1")
-        game.add_player("Bot1", b)
-        game.on_start()
-        for _ in range(50_000):
-            if not game.game_active:
-                break
-            game.on_tick()
-        assert not game.game_active
+        assert all(player.retired for player in game.players)

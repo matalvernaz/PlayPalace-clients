@@ -1,7 +1,7 @@
 import pytest
 
 from server.game_utils.actions import Visibility
-from server.game_utils.cards import Card, Deck, DeckFactory
+from server.game_utils.cards import Card, Deck, DeckFactory, card_name
 from server.games.crazyeights.game import CrazyEightsGame, CrazyEightsOptions
 from server.messages.localization import Localization
 from server.core.users.bot import Bot
@@ -193,7 +193,9 @@ def test_crazyeights_suit_choice_labels_include_hand_counts():
     assert labels["suit_clubs"] == expected_clubs
 
 
-def test_crazyeights_start_new_hand_uses_number_start_card(monkeypatch: pytest.MonkeyPatch):
+def test_crazyeights_start_new_hand_allows_non_eight_face_starter(
+    monkeypatch: pytest.MonkeyPatch,
+):
     game, host_player, host_user = create_game_with_host()
     guest_user = MockUser("Guest")
     guest_player = game.add_player("Guest", guest_user)
@@ -219,7 +221,7 @@ def test_crazyeights_start_new_hand_uses_number_start_card(monkeypatch: pytest.M
                 (2, 2),
                 (3, 3),
                 (8, 1),  # first start candidate (wild)
-                (5, 2),  # actual start card
+                (13, 2),  # actual start card: king of clubs
                 (6, 3),
             ]
         )
@@ -237,8 +239,15 @@ def test_crazyeights_start_new_hand_uses_number_start_card(monkeypatch: pytest.M
     assert game.turn_index == 1  # next player after dealer
     assert game.discard_pile
     start_card = game.discard_pile[-1]
-    assert start_card.rank == 5 and start_card.suit == 2
+    assert start_card.rank == 13 and start_card.suit == 2
     assert game.current_suit == 2
+
+
+def test_crazyeights_face_cards_use_ordinary_card_names():
+    game = CrazyEightsGame()
+    king = make_card(99, 13, 2)
+
+    assert game.format_card(king, "en") == card_name(king, "en")
 
 
 def test_crazyeights_timer_warning_plays_once():
@@ -280,14 +289,18 @@ def test_crazyeights_handle_turn_timeout_executes_bot_action(monkeypatch: pytest
     assert "game_crazyeights/expired.ogg" in host_user.get_sounds_played()
 
 
-def test_crazyeights_action_draw_triggers_new_hand_when_deck_empty(monkeypatch: pytest.MonkeyPatch):
+def test_crazyeights_blocked_table_redeals_after_every_player_passes(
+    monkeypatch: pytest.MonkeyPatch,
+):
     game, host_player, host_user = create_game_with_host()
     guest_user = MockUser("Guest")
     guest_player = game.add_player("Guest", guest_user)
     game.status = "playing"
     game.set_turn_players([host_player, guest_player], reset_index=True)
-    host_player.hand = []
-    game.discard_pile = []
+    host_player.hand = [make_card(190, 3, 1)]
+    guest_player.hand = [make_card(191, 4, 2)]
+    game.discard_pile = [make_card(192, 7, 3)]
+    game.current_suit = 3
     game.deck = Deck(cards=[])
 
     new_hand_called = {"count": 0}
@@ -297,7 +310,9 @@ def test_crazyeights_action_draw_triggers_new_hand_when_deck_empty(monkeypatch: 
 
     monkeypatch.setattr(game, "_start_new_hand", fake_start_new_hand)
 
-    game._action_draw(host_player, "draw")
+    game._action_pass(host_player, "pass")
+    game.turn_index = 1
+    game._action_pass(guest_player, "pass")
 
     assert new_hand_called["count"] == 1
 
@@ -308,8 +323,10 @@ def test_crazyeights_action_pass_requires_draw(monkeypatch: pytest.MonkeyPatch):
     guest_player = game.add_player("Guest", guest_user)
     game.status = "playing"
     game.set_turn_players([host_player, guest_player], reset_index=True)
-    game.turn_has_drawn = True
-    game.turn_drawn_card = make_card(200, 7, 1)
+    game.deck = Deck(cards=[])
+    game.discard_pile = [make_card(199, 5, 2)]
+    game.current_suit = 2
+    host_player.hand = [make_card(200, 7, 1)]
 
     advance_called = {"count": 0}
 
@@ -327,7 +344,7 @@ def test_crazyeights_action_pass_requires_draw(monkeypatch: pytest.MonkeyPatch):
     assert "game_crazyeights/pass.ogg" in host_user.get_sounds_played()
 
 
-def test_crazyeights_apply_card_effects(monkeypatch: pytest.MonkeyPatch):
+def test_crazyeights_face_cards_have_no_action_effects(monkeypatch: pytest.MonkeyPatch):
     game, host_player, host_user = create_game_with_host()
     guest_user = MockUser("Guest")
     guest_player = game.add_player("Guest", guest_user)
@@ -336,12 +353,11 @@ def test_crazyeights_apply_card_effects(monkeypatch: pytest.MonkeyPatch):
 
     skip_card = make_card(300, 12, 1)
     game._apply_card_effects(skip_card)
-    assert game.turn_skip_count == 1
+    assert game.turn_skip_count == 0
 
-    game.turn_skip_count = 0
     reverse_card = make_card(301, 11, 1)
     game._apply_card_effects(reverse_card)
-    assert game.turn_skip_count == 1
+    assert game.turn_skip_count == 0
 
     skip_calls: list[int] = []
     draw_calls: list[tuple[object, int]] = []
@@ -357,8 +373,8 @@ def test_crazyeights_apply_card_effects(monkeypatch: pytest.MonkeyPatch):
     draw_two_card = make_card(302, 13, 4)
     game._apply_card_effects(draw_two_card)
 
-    assert skip_calls == [1]
-    assert draw_calls == [(guest_player, 2)]
+    assert skip_calls == []
+    assert draw_calls == []
 
 
 def test_crazyeights_end_round_scores_and_resets(monkeypatch: pytest.MonkeyPatch):
@@ -375,7 +391,7 @@ def test_crazyeights_end_round_scores_and_resets(monkeypatch: pytest.MonkeyPatch
 
     game._end_round(host_player, last_card=None)
 
-    assert host_player.score == 77
+    assert host_player.score == 67
     assert guest_player.hand == []
     assert bot_player.hand == []
     assert game.hand_wait_ticks == 100
@@ -600,7 +616,9 @@ def test_crazyeights_action_play_card_wild_sets_state(monkeypatch: pytest.Monkey
     assert game.wild_wait_ticks == 0
 
 
-def test_crazyeights_action_play_card_draw_two_finishes(monkeypatch: pytest.MonkeyPatch):
+def test_crazyeights_action_play_card_king_finishes_without_penalty(
+    monkeypatch: pytest.MonkeyPatch,
+):
     game, host_player, host_user = create_game_with_host()
     guest_user = MockUser("Guest")
     guest_player = game.add_player("Guest", guest_user)
@@ -626,7 +644,7 @@ def test_crazyeights_action_play_card_draw_two_finishes(monkeypatch: pytest.Monk
 
     game._action_play_card(host_player, f"play_card_{draw_two.id}")
 
-    assert drawn_for_next == [2]
+    assert drawn_for_next == []
     assert end_round_calls["count"] == 1
 
 
@@ -729,21 +747,21 @@ def test_crazyeights_visibility_helpers_cover_branches():
     host_player.hand = [make_card(250, 7, 2)]
     game.current_suit = 3
     game.discard_pile = [make_card(9999, 5, 3)]
+    game.deck = Deck(cards=[make_card(10000, 2, 4)])
     assert game._has_playable_cards(host_player) is False
     assert game._is_draw_enabled(host_player) is None
     assert game._is_draw_hidden(host_player) == Visibility.VISIBLE
 
     game.turn_has_drawn = True
-    assert game._is_pass_enabled(host_player) is None
-    assert game._is_pass_hidden(host_player) == Visibility.VISIBLE
+    assert game._is_draw_enabled(host_player) is None
+    assert game._is_pass_enabled(host_player) == "action-not-available"
+    assert game._is_pass_hidden(host_player) == Visibility.HIDDEN
     game.turn_has_drawn = False
 
-    game.max_hand_size = 1
-    host_player.hand = [make_card(251, 4, 1)]
+    game.deck = Deck(cards=[])
     assert game._is_pass_enabled(host_player) is None
     assert game._is_pass_hidden(host_player) == Visibility.VISIBLE
 
-    game.turn_has_drawn = True
     assert game._can_draw(host_player) is False
     assert game._is_always_hidden(host_player) == Visibility.HIDDEN
 
@@ -758,9 +776,6 @@ def test_crazyeights_card_helper_methods(monkeypatch: pytest.MonkeyPatch):
     card_number = make_card(260, 6, 1)
     card_wild = make_card(261, 8, 2)
     card_reverse = make_card(262, 11, 3)
-
-    assert game._is_number_card(card_number)
-    assert not game._is_number_card(card_wild)
 
     game.discard_pile = [make_card(4000, 6, 4)]
     assert game._is_card_playable(card_number)
@@ -780,17 +795,6 @@ def test_crazyeights_card_helper_methods(monkeypatch: pytest.MonkeyPatch):
     playable_indices = game.get_playable_indices(host_player)
     assert playable_indices == [0]
 
-    game.discard_pile = [make_card(5001, 5, 1), make_card(5002, 4, 2)]
-    game.deck = Deck(cards=[])
-    monkeypatch.setattr(game.deck, "is_empty", lambda: True)
-    monkeypatch.setattr(game.deck, "draw_one", lambda: None)
-    play_sounds = []
-    monkeypatch.setattr(
-        game, "play_sound", lambda sound, volume=100, pan=0, pitch=100: play_sounds.append(sound)
-    )
-    game._reshuffle_discard_into_deck()
-    assert "game_crazyeights/pileempty.ogg" in play_sounds
-
     sounds = []
     monkeypatch.setattr(
         game, "play_sound", lambda sound, volume=100, pan=0, pitch=100: sounds.append(sound)
@@ -802,29 +806,21 @@ def test_crazyeights_card_helper_methods(monkeypatch: pytest.MonkeyPatch):
     game._play_card_sound(make_card(266, 5, 1))
     assert set(sounds) == {
         "game_crazyeights/discwild.ogg",
-        "game_crazyeights/discdraw.ogg",
-        "game_crazyeights/discskip.ogg",
-        "game_crazyeights/discrev.ogg",
         "game_crazyeights/discarded.ogg",
     }
 
 
-def test_crazyeights_draw_card_reshuffle(monkeypatch: pytest.MonkeyPatch):
+def test_crazyeights_draw_card_does_not_recycle_discard(
+    monkeypatch: pytest.MonkeyPatch,
+):
     game, host_player, host_user = create_game_with_host()
     card_top = make_card(280, 7, 1)
     recycle = [make_card(281, 9, 2), make_card(282, 3, 3)]
     game.discard_pile = recycle + [card_top]
     game.deck = Deck(cards=[])
 
-    shuffled = {"called": False}
-
-    def fake_shuffle():
-        shuffled["called"] = True
-
-    monkeypatch.setattr(game.deck, "shuffle", fake_shuffle)
-
     drawn = game._draw_card()
 
-    assert shuffled["called"]
-    assert drawn is not None
+    assert drawn is None
+    assert game.discard_pile == recycle + [card_top]
     assert game.discard_pile[-1] == card_top

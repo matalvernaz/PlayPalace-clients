@@ -26,7 +26,7 @@ game-life-desc = Spin the wheel, pick a career, buy a house, start a family, and
 
 # Track length (MenuOption: short / standard / long)
 life-set-track-length = Track length: { $length }
-life-desc-track-length = How many spaces the board has. Short is ~50 spaces (fast, roughly 15 minutes). Standard is ~80 spaces (classic pacing). Long is ~125 spaces (faithful to the physical board, slower).
+life-desc-track-length = How many spaces the board has. Short is 50 spaces, standard is 80, and long is the classic 145-space route.
 life-prompt-track-length = Select track length
 life-option-changed-track-length = Track length set to { $length }.
 life-length-short = short
@@ -35,12 +35,12 @@ life-length-long = long
 
 # College path (BoolOption)
 life-toggle-college-path = College path: { $enabled }
-life-desc-college-path = When on, each player chooses College (higher-salary careers available, but a $100,000 loan and extra turns) or Career (start working immediately, no loan, limited to non-degree jobs) at the very start. When off, everyone draws from the full career pool with no loan.
+life-desc-college-path = When on, each player chooses College (two $20,000 bank-loan notes and access to degree careers) or Career (one random non-degree Career Card and one random Salary Card). When off, everyone receives random cards with no tuition debt; this is a house-rule variant.
 life-option-changed-college-path = College path { $enabled }.
 
 # Marriage and children (BoolOption)
 life-toggle-family = Marriage and children: { $enabled }
-life-desc-family = When on, landing on the Get Married or Have a Baby spaces automatically adds a spouse or child to your family, and certain Pay Day spaces reward you per child. When off, those spaces become generic events and family has no effect.
+life-desc-family = When on, Get Married, Baby, and Twins spaces add people pegs and award LIFE tiles. Turning this off is a house-rule variant.
 life-option-changed-family = Marriage and children { $enabled }.
 
 # Life tiles (MenuOption: hidden / revealed / off)
@@ -54,7 +54,7 @@ life-tiles-off = off
 
 # Insurance (MenuOption: full / simplified / off)
 life-set-insurance = Insurance: { $mode }
-life-desc-insurance = In full mode (classic), you can buy fire, auto, and life insurance separately; each protects against matching disaster events. In simplified mode, a single policy covers everything for one premium. In off mode, disaster events always take effect.
+life-desc-insurance = In full mode (classic), automobile insurance costs $10,000 and homeowner's insurance costs the amount on your House Deed. Simplified and off are house-rule variants.
 life-prompt-insurance = Select insurance mode
 life-option-changed-insurance = Insurance set to { $mode }.
 life-insurance-full = full
@@ -63,12 +63,12 @@ life-insurance-off = off
 
 # Stock market (BoolOption)
 life-toggle-stock-market = Stock market: { $enabled }
-life-desc-stock-market = When on, you can buy a stock number (1 through 10) for $50,000; any time someone spins that number, you collect $10,000. Also enables "Risk It" gambling spaces and lawsuit events. When off, none of these are present.
+life-desc-stock-market = When on, you may buy one available Stock numbered 1 through 9 for $50,000 at the beginning of a turn. Collect $10,000 whenever any player spins your number. Stock Market Zooms and Slumps still apply. Turning this off is a house-rule variant.
 life-option-changed-stock-market = Stock market { $enabled }.
 
 # Retirement style (MenuOption: classic / safe / none)
 life-set-retirement = Retirement style: { $mode }
-life-desc-retirement = In classic mode, each player chooses Millionaire Estates (high risk, high reward — all players who chose it spin; highest doubles their money, others lose a large chunk) or Countryside Acres (flat $1,000,000 bonus). In safe mode, everyone gets the flat bonus. In none mode, the game ends on the final space with no retirement bonus.
+life-desc-retirement = In classic mode, Countryside Acres gives one protected LIFE tile; Millionaire Estates leaves tiles exposed, but its richest retiree receives the four reserved LIFE tiles. Safe and none are house-rule variants.
 life-prompt-retirement = Select retirement style
 life-option-changed-retirement = Retirement style set to { $mode }.
 life-retire-classic = classic
@@ -121,11 +121,11 @@ life-path-prompt = Choose your starting path.
 life-action-choose-college = Go to college
 life-action-choose-career = Start a career
 life-chose-college = { $who ->
-    [you] You chose college. You take out a $100,000 loan and will draw 3 career cards — including degree-required jobs — after your first several turns.
+    [you] You chose college. You take two $20,000 bank-loan notes for tuition. Spin now.
     *[player] { $player } chose college.
 }
 life-chose-career = { $who ->
-    [you] You chose to start a career immediately. You will draw 2 career cards from the non-degree pool.
+    [you] You chose to start a career. You received one random non-degree Career Card and one random Salary Card. Spin now.
     *[player] { $player } chose career.
 }
 life-college-graduated = { $who ->
@@ -135,13 +135,18 @@ life-college-graduated = { $who ->
 
 # Career draw (shown as a menu of cards; each card line is a menu item)
 life-career-draw-prompt = Pick your career.
-life-career-card-line = { $career }, salary ${ $salary }{ $degree ->
+life-career-card-line = { $career }{ $degree ->
     [yes] , requires degree
     *[no] {""}
 }
+life-salary-card-line = Salary ${ $salary }, Taxes Due ${ $taxes }
 life-career-chosen = { $who ->
-    [you] You are now a { $career }, earning ${ $salary } per year.
-    *[player] { $player } is now a { $career }, earning ${ $salary } per year.
+    [you] Your Career Card is { $career }.
+    *[player] { $player }'s Career Card is { $career }.
+}
+life-salary-chosen = { $who ->
+    [you] Your Salary Card pays ${ $salary }; Taxes Due is ${ $taxes }.
+    *[player] { $player }'s Salary Card pays ${ $salary }.
 }
 
 # ==========================================================================
@@ -321,6 +326,10 @@ life-event-twins = { $who ->
     [you] It's twins!
     *[player] { $player } has twins.
 }
+life-event-baby = { $who ->
+    [you] You have a baby!
+    *[player] { $player } has a baby.
+}
 life-event-baby-needs-marriage = { $who ->
     [you] You reach a Have a Baby space, but you must be married first. No effect.
     *[player] { $player } reaches a Have a Baby space but is not married; no effect.
@@ -337,6 +346,15 @@ life-tile-earned-revealed = { $who ->
     [you] You earned a Life tile worth ${ $money }.
     *[player] { $player } earned a Life tile worth ${ $money }.
 }
+life-tile-steal-prompt = { $who ->
+    [you] The LIFE-tile draw pile is empty. Choose a player and take one of their unprotected tiles.
+    *[player] { $player } must take an unprotected LIFE tile from another player.
+}
+life-action-steal-tile = Take a LIFE tile from { $player }
+life-tile-stolen = { $who ->
+    [you] You took one LIFE tile from { $victim }.
+    *[player] { $player } took one LIFE tile from { $victim }.
+}
 life-tile-reveal-header = Revealing Life tiles...
 life-tile-reveal-line = { $player }'s tile: ${ $money }.
 life-tile-reveal-total = { $player }'s Life tiles total: ${ $money }.
@@ -344,7 +362,7 @@ life-tile-reveal-total = { $player }'s Life tiles total: ${ $money }.
 # ==========================================================================
 # Insurance
 # ==========================================================================
-life-action-buy-fire = Buy fire insurance (${ $money })
+life-action-buy-fire = Buy homeowner's insurance (${ $money })
 life-action-buy-auto = Buy auto insurance (${ $money })
 life-action-buy-life = Buy life insurance (${ $money })
 life-action-buy-insurance = Buy insurance (${ $money })
@@ -352,6 +370,10 @@ life-action-skip-insurance = Skip
 life-insurance-offer = { $who ->
     [you] You reach an insurance space. Buy insurance?
     *[player] { $player } reaches an insurance space.
+}
+life-home-insurance-offer = { $who ->
+    [you] You may buy homeowner's insurance now for the premium on your House Deed, or skip it and spin again.
+    *[player] { $player } may buy homeowner's insurance.
 }
 life-bought-fire = { $who ->
     [you] You bought fire insurance for ${ $money }.
@@ -386,7 +408,7 @@ life-stock-offer = { $who ->
     [you] You reach a stock space. Buy a stock number?
     *[player] { $player } reaches a stock space.
 }
-life-stock-prompt = Pick a stock number from 1 to 10.
+life-stock-prompt = Pick an available stock number from 1 to 9.
 life-stock-bought = { $who ->
     [you] You bought stock number { $number } for ${ $money }.
     *[player] { $player } bought stock number { $number }.
@@ -399,6 +421,18 @@ life-stock-skipped = { $who ->
 life-stock-paid = { $who ->
     [you] Your stock number { $number } was spun! Collect ${ $money }.
     *[player] { $player }'s stock number { $number } was spun; they collect ${ $money }.
+}
+life-stock-zooms = { $who ->
+    [you] Stock Market Zooms! Take Stock number { $number } free, even if you already own one.
+    *[player] Stock Market Zooms gives { $player } free Stock number { $number }.
+}
+life-stock-slumps = { $who ->
+    [you] Stock Market Slumps! Return Stock number { $number }.
+    *[player] Stock Market Slumps makes { $player } return Stock number { $number }.
+}
+life-police-paid = { $who ->
+    [you] { $spinner } spun 10. As Police Officer, you collect ${ $money } from them.
+    *[player] { $player } collects ${ $money } from { $spinner } for spinning 10.
 }
 life-stock-sold = { $who ->
     [you] You sold your stock for ${ $money }.
@@ -444,10 +478,19 @@ life-loan-interest-due = { $who ->
     [you] Loan interest. You owe ${ $money } on your college loan.
     *[player] { $player } owes ${ $money } in loan interest.
 }
-life-action-pay-loan = Pay off college loan (${ $money })
+life-action-take-loan = Take a $20,000 bank loan
+life-action-pay-loan = Repay one bank loan (${ $money })
+life-loan-taken = { $who ->
+    [you] You borrowed ${ $money }. Outstanding principal: ${ $balance }.
+    *[player] { $player } borrowed ${ $money } from the bank.
+}
+life-automatic-loan = { $who ->
+    [you] You needed ${ $money } in bank loans to make the required payment. Outstanding principal: ${ $balance }.
+    *[player] { $player } took ${ $money } in bank loans for a required payment.
+}
 life-loan-paid = { $who ->
-    [you] You paid off your college loan (${ $money }).
-    *[player] { $player } paid off their college loan.
+    [you] You repaid one $20,000 bank loan for ${ $money }. Outstanding principal: ${ $remaining }.
+    *[player] { $player } repaid one bank loan.
 }
 life-loan-partial = { $who ->
     [you] You paid ${ $money } toward your college loan. Balance: ${ $remaining }.
@@ -455,17 +498,21 @@ life-loan-partial = { $who ->
 }
 life-loan-none = You have no outstanding college loan.
 life-loan-cannot-afford = You cannot afford the payment.
+life-retirement-loans-paid = { $who ->
+    [you] At retirement you repaid all bank loans and interest: ${ $money }.
+    *[player] { $player } repaid all bank loans at retirement.
+}
 
 # ==========================================================================
 # Retirement
 # ==========================================================================
 life-retirement-reached = { $who ->
-    [you] You reach the retirement junction.
-    *[player] { $player } reaches the retirement junction.
+    [you] You reach the RETIRE space.
+    *[player] { $player } reaches the RETIRE space.
 }
 life-retirement-prompt = Choose your retirement.
-life-action-choose-estates = Millionaire Estates (risk it — highest spinner doubles their money, others lose $1,000,000)
-life-action-choose-acres = Countryside Acres (safe — collect a $1,000,000 bonus)
+life-action-choose-estates = Millionaire Estates (tiles can be taken; richest Estates retiree gets 4 reserved tiles)
+life-action-choose-acres = Countryside Acres (take 1 LIFE tile; all your tiles are protected)
 life-chose-estates = { $who ->
     [you] You chose Millionaire Estates.
     *[player] { $player } chose Millionaire Estates.
@@ -474,6 +521,14 @@ life-chose-acres = { $who ->
     [you] You chose Countryside Acres.
     *[player] { $player } chose Countryside Acres.
 }
+life-acres-tile = { $who ->
+    [you] You take one LIFE tile at Countryside Acres. Your LIFE tiles are now protected.
+    *[player] { $player } takes one protected LIFE tile at Countryside Acres.
+}
+life-estates-tiles-awarded = { $player }, the richest Millionaire Estates retiree, receives { $count } reserved LIFE { $count ->
+    [one] tile
+    *[other] tiles
+}.
 life-acres-bonus = { $who ->
     [you] Countryside Acres bonus: you collect ${ $money }.
     *[player] { $player } collects a ${ $money } Countryside Acres bonus.
@@ -507,8 +562,9 @@ life-end-score = { $rank }. { $player }: ${ $total }
 # ==========================================================================
 life-status-space = Space { $current } of { $total }.
 life-status-space-retired = Retired ({ $retirement }).
-life-status-career = Career: { $career }, salary ${ $salary } per year.
+life-status-career = Career: { $career }; salary ${ $salary }; Taxes Due ${ $taxes }.
 life-status-career-none = Career: none yet.
+life-status-house = House: { $house }.
 life-status-cash = Cash: ${ $money }.
 life-status-tiles-hidden = Life tiles: { $count }.
 life-status-tiles-revealed = Life tiles: { $count } ({ $money } total).
@@ -526,9 +582,9 @@ life-status-family-married = Family: married, { $kids ->
 life-status-insurance-full = Insurance: { $list }.
 life-status-insurance-single = Insurance: covered.
 life-status-insurance-none = Insurance: none.
-life-status-loan = College loan balance: ${ $money }.
-life-status-loan-none = College loan: none.
-life-status-stock = Stock number: { $number }.
+life-status-loan = Bank-loan principal: ${ $money }; retirement payoff ${ $repayment }.
+life-status-loan-none = Bank loans: none.
+life-status-stock = Stock numbers: { $numbers }.
 life-status-stock-none = Stock: none.
 
 # Detailed status (Shift+S): one header then one line per player.
@@ -550,7 +606,7 @@ life-status-detailed-family-married-kids = married with { $kids } { $kids ->
 }
 
 # Helper fragments used in status
-life-insurance-fire = fire
+life-insurance-fire = homeowner's
 life-insurance-auto = auto
 life-insurance-life = life
 life-career-none = none
@@ -568,14 +624,62 @@ life-action-view-events = Review recent events
 # Careers (canonical set)
 # ==========================================================================
 life-career-doctor = Doctor
-life-career-lawyer = Lawyer
 life-career-accountant = Accountant
-life-career-computer-consultant = Computer Consultant
 life-career-teacher = Teacher
 life-career-athlete = Athlete
-life-career-entertainer = Entertainer
 life-career-police-officer = Police Officer
 life-career-salesperson = Salesperson
+life-career-artist = Artist
+life-career-superstar = Superstar
+life-career-travel-agent = Travel Agent
+
+# Career, Taxes Due, house, and job-change spaces
+life-career-change = { $who ->
+    [you] You were fired or changed careers. Draw one new eligible Career Card and one new Salary Card.
+    *[player] { $player } draws a new Career Card and Salary Card.
+}
+life-night-school = { $who ->
+    [you] Night School: choose one of two eligible Career Cards or keep your current career, then do the same with Salary Cards.
+    *[player] { $player } may change career and salary at Night School.
+}
+life-career-payment-self = { $who ->
+    [you] This is your own { $career } Career space, so you pay nothing.
+    *[player] { $player } owns the { $career } Career Card and pays nothing.
+}
+life-career-payment-player = { $who ->
+    [you] Pay { $recipient }, the { $career }, ${ $money }.
+    *[player] { $player } pays { $recipient } ${ $money } for the { $career } Career space.
+}
+life-career-payment-bank = { $who ->
+    [you] No player is the { $career }; pay the bank ${ $money }.
+    *[player] No player is the { $career }, so { $player } pays the bank ${ $money }.
+}
+life-taxes-self = { $who ->
+    [you] You are the Accountant, so you pay no Taxes Due.
+    *[player] { $player } is the Accountant and pays no Taxes Due.
+}
+life-taxes-player = { $who ->
+    [you] Taxes Due: pay { $recipient } ${ $money }.
+    *[player] { $player } pays { $recipient } ${ $money } in Taxes Due.
+}
+life-taxes-bank = { $who ->
+    [you] Taxes Due: no player is the Accountant, so pay the bank ${ $money }.
+    *[player] No player is the Accountant, so { $player } pays the bank ${ $money }.
+}
+
+life-house-bought = { $who ->
+    [you] You must buy the { $house } for ${ $money }.
+    *[player] { $player } buys the { $house } for ${ $money }.
+}
+life-house-split-level = Split-Level
+life-house-mobile-home = Mobile Home
+life-house-log-cabin = Log Cabin
+life-house-country-cottage = Country Cottage
+life-house-dutch-colonial = Dutch Colonial
+life-house-beach-house = Beach House
+life-house-farmhouse = Farmhouse
+life-house-tudor = Tudor
+life-house-victorian = Victorian
 
 # ==========================================================================
 # Miscellaneous / validation

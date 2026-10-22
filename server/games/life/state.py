@@ -9,7 +9,7 @@ copied in).
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 
@@ -22,11 +22,13 @@ class SpaceType(str, Enum):
     PAYDAY = "payday"
     MARRY = "marry"
     BABY = "baby"
-    INSURANCE = "insurance"
-    STOCK = "stock"
     RISK_IT = "risk_it"
     COLLEGE_GRAD = "college_grad"
     CAREER_CHANGE = "career_change"
+    NIGHT_SCHOOL = "night_school"
+    BUY_HOUSE = "buy_house"
+    STOCK_ZOOMS = "stock_zooms"
+    STOCK_SLUMPS = "stock_slumps"
     RETIRE_JUNCTION = "retire_junction"
     FINISH = "finish"
 
@@ -49,28 +51,66 @@ class Space:
 
 @dataclass
 class CareerCard:
-    """A career + salary pairing drawn at the start of the game."""
+    """A career card from the 1991 Milton Bradley edition."""
 
     key: str  # localization key suffix, e.g., "doctor"
     label_key: str  # full localization key, e.g., "life-career-doctor"
-    salary: int  # yearly salary in dollars
     degree_required: bool  # True if only available via College path
 
 
+@dataclass
+class SalaryCard:
+    """A salary card and its matching Taxes Due amount."""
+
+    salary: int
+    taxes: int
+
+
+@dataclass
+class HouseDeed:
+    """A house deed with purchase price and homeowner-insurance premium."""
+
+    key: str
+    label_key: str
+    price: int
+    insurance_cost: int
+
+
 # ---------------------------------------------------------------------------
-# Canonical career set
+# 1991 card decks
 # ---------------------------------------------------------------------------
 
 CANONICAL_CAREERS: list[CareerCard] = [
-    CareerCard("doctor", "life-career-doctor", 100_000, True),
-    CareerCard("lawyer", "life-career-lawyer", 90_000, True),
-    CareerCard("accountant", "life-career-accountant", 70_000, True),
-    CareerCard("computer_consultant", "life-career-computer-consultant", 80_000, True),
-    CareerCard("teacher", "life-career-teacher", 40_000, True),
-    CareerCard("athlete", "life-career-athlete", 80_000, False),
-    CareerCard("entertainer", "life-career-entertainer", 60_000, False),
-    CareerCard("police_officer", "life-career-police-officer", 50_000, False),
-    CareerCard("salesperson", "life-career-salesperson", 40_000, False),
+    CareerCard("artist", "life-career-artist", False),
+    CareerCard("superstar", "life-career-superstar", False),
+    CareerCard("teacher", "life-career-teacher", True),
+    CareerCard("travel_agent", "life-career-travel-agent", False),
+    CareerCard("athlete", "life-career-athlete", False),
+    CareerCard("police_officer", "life-career-police-officer", False),
+    CareerCard("salesperson", "life-career-salesperson", False),
+    CareerCard("doctor", "life-career-doctor", True),
+    CareerCard("accountant", "life-career-accountant", True),
+]
+
+SALARY_CARDS: list[SalaryCard] = [
+    SalaryCard(salary, taxes)
+    for salary, taxes in zip(
+        range(20_000, 110_000, 10_000),
+        range(5_000, 50_000, 5_000),
+        strict=True,
+    )
+]
+
+HOUSE_DEEDS: list[HouseDeed] = [
+    HouseDeed("split_level", "life-house-split-level", 40_000, 10_000),
+    HouseDeed("mobile_home", "life-house-mobile-home", 60_000, 15_000),
+    HouseDeed("log_cabin", "life-house-log-cabin", 80_000, 20_000),
+    HouseDeed("country_cottage", "life-house-country-cottage", 100_000, 25_000),
+    HouseDeed("dutch_colonial", "life-house-dutch-colonial", 120_000, 30_000),
+    HouseDeed("beach_house", "life-house-beach-house", 140_000, 35_000),
+    HouseDeed("farmhouse", "life-house-farmhouse", 160_000, 40_000),
+    HouseDeed("tudor", "life-house-tudor", 180_000, 45_000),
+    HouseDeed("victorian", "life-house-victorian", 200_000, 50_000),
 ]
 
 
@@ -87,6 +127,8 @@ class EventEffect(str, Enum):
     INSURABLE_AUTO = "insurable_auto"
     INSURABLE_LIFE = "insurable_life"
     LAWSUIT = "lawsuit"
+    CAREER_PAYMENT = "career_payment"
+    TAXES = "taxes"
 
 
 @dataclass
@@ -104,6 +146,7 @@ class EventDef:
     key: str
     effect: str  # EventEffect value
     amount: int = 0
+    career_key: str = ""
 
 
 EVENT_DECK: list[EventDef] = [
@@ -117,7 +160,6 @@ EVENT_DECK: list[EventDef] = [
     EventDef("promotion", EventEffect.CASH_GAIN, 20_000),
     EventDef("tax-refund", EventEffect.CASH_GAIN, 25_000),
     # Financial losses
-    EventDef("taxes", EventEffect.CASH_LOSS, 15_000),
     EventDef("bought-boat", EventEffect.CASH_LOSS, 30_000),
     EventDef("vacation", EventEffect.CASH_LOSS, 20_000),
     EventDef("broken-leg", EventEffect.CASH_LOSS, 10_000),
@@ -129,15 +171,21 @@ EVENT_DECK: list[EventDef] = [
     # Insurable — fire
     EventDef("house-fire", EventEffect.INSURABLE_FIRE, 50_000),
     EventDef("tornado", EventEffect.INSURABLE_FIRE, 40_000),
-    # Insurable — life (medical)
-    EventDef("hospital", EventEffect.INSURABLE_LIFE, 25_000),
     # Life tile awards
     EventDef("nobel-prize", EventEffect.LIFE_TILE, 0),
     EventDef("design-award", EventEffect.LIFE_TILE, 0),
     EventDef("helped-elderly", EventEffect.LIFE_TILE, 0),
     EventDef("saved-ecosystem", EventEffect.LIFE_TILE, 0),
-    # Lawsuit (stock-market option only; filtered out by game if disabled)
-    EventDef("lawsuit", EventEffect.LAWSUIT, 50_000),
+    # Career spaces. Payment goes to the matching career holder, or to the
+    # bank when nobody holds that career. Taxes Due uses the Salary Card.
+    EventDef("career-artist", EventEffect.CAREER_PAYMENT, 10_000, "artist"),
+    EventDef("career-superstar", EventEffect.CAREER_PAYMENT, 20_000, "superstar"),
+    EventDef("career-teacher", EventEffect.CAREER_PAYMENT, 5_000, "teacher"),
+    EventDef("career-travel-agent", EventEffect.CAREER_PAYMENT, 20_000, "travel_agent"),
+    EventDef("career-athlete", EventEffect.CAREER_PAYMENT, 20_000, "athlete"),
+    EventDef("career-salesperson", EventEffect.CAREER_PAYMENT, 5_000, "salesperson"),
+    EventDef("career-doctor", EventEffect.CAREER_PAYMENT, 5_000, "doctor"),
+    EventDef("taxes", EventEffect.TAXES, 0, "accountant"),
 ]
 
 
@@ -145,7 +193,6 @@ EVENT_DECK: list[EventDef] = [
 INSURABLE_TO_TYPE: dict[str, str] = {
     EventEffect.INSURABLE_AUTO: "auto",
     EventEffect.INSURABLE_FIRE: "fire",
-    EventEffect.INSURABLE_LIFE: "life",
 }
 
 
@@ -154,9 +201,11 @@ INSURABLE_TO_TYPE: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 LIFE_TILE_VALUES: list[int] = [
-    20_000, 20_000, 30_000, 30_000, 40_000, 40_000, 50_000, 50_000,
-    60_000, 60_000, 70_000, 80_000, 90_000, 100_000, 100_000, 120_000,
-    150_000, 200_000,
+    50_000, 50_000, 50_000, 50_000, 50_000, 50_000, 50_000,
+    100_000, 100_000, 100_000, 100_000, 100_000, 100_000,
+    150_000, 150_000, 150_000, 150_000, 150_000,
+    200_000, 200_000, 200_000, 200_000,
+    250_000, 250_000, 250_000,
 ]
 
 
@@ -171,32 +220,31 @@ _TRACK_LAYOUT: list[tuple[float, str]] = [
     (0.00, SpaceType.START),
     (0.10, SpaceType.COLLEGE_GRAD),
     (0.14, SpaceType.MARRY),
-    (0.18, SpaceType.INSURANCE),
+    (0.18, SpaceType.BUY_HOUSE),
     (0.22, SpaceType.PAYDAY),
     (0.26, SpaceType.BABY),
-    (0.30, SpaceType.STOCK),
+    (0.30, SpaceType.STOCK_ZOOMS),
     (0.34, SpaceType.EVENT),
-    (0.38, SpaceType.RISK_IT),
+    (0.38, SpaceType.EVENT),
     (0.42, SpaceType.CAREER_CHANGE),
     (0.46, SpaceType.PAYDAY),
     (0.50, SpaceType.BABY),
-    (0.54, SpaceType.INSURANCE),
+    (0.54, SpaceType.NIGHT_SCHOOL),
     (0.58, SpaceType.EVENT),
-    (0.62, SpaceType.STOCK),
+    (0.62, SpaceType.STOCK_SLUMPS),
     (0.66, SpaceType.PAYDAY),
     (0.70, SpaceType.BABY),
-    (0.74, SpaceType.RISK_IT),
+    (0.74, SpaceType.EVENT),
     (0.78, SpaceType.EVENT),
     (0.82, SpaceType.PAYDAY),
     (0.88, SpaceType.EVENT),
-    (0.94, SpaceType.RETIRE_JUNCTION),
     (1.00, SpaceType.FINISH),
 ]
 
 TRACK_LENGTHS: dict[str, int] = {
     "short": 50,
     "standard": 80,
-    "long": 125,
+    "long": 145,
 }
 
 
@@ -222,15 +270,6 @@ def build_track(length_key: str) -> list[Space]:
     # Guarantee first/last anchors.
     spaces[0] = SpaceType.START
     spaces[-1] = SpaceType.FINISH
-    # Retire junction must precede the finish; guarantee it sits somewhere
-    # in the last 10% if the layout above didn't land it there.
-    if SpaceType.RETIRE_JUNCTION not in spaces:
-        # Find the last NORMAL/None/EVENT slot before the finish and convert.
-        for idx in range(length - 2, length - 2 - max(3, length // 10), -1):
-            if spaces[idx] in (None, SpaceType.NORMAL, SpaceType.EVENT):
-                spaces[idx] = SpaceType.RETIRE_JUNCTION
-                break
-
     # Fill remaining slots with NORMAL + EVENT (~40% events across filler).
     total_filler = sum(1 for s in spaces if s is None)
     target_events = max(3, total_filler * 2 // 5)
@@ -256,7 +295,17 @@ def build_track(length_key: str) -> list[Space]:
                 spaces[idx] = SpaceType.EVENT
                 events_placed += 1
 
-    return [Space(index=i, type=t) for i, t in enumerate(spaces)]  # type: ignore[arg-type]
+    result: list[Space] = []
+    baby_index = 0
+    for index, space_type in enumerate(spaces):
+        event_key = None
+        if space_type == SpaceType.BABY:
+            event_key = "twins" if baby_index == 1 else "baby"
+            baby_index += 1
+        result.append(
+            Space(index=index, type=space_type, event_key=event_key)  # type: ignore[arg-type]
+        )
+    return result
 
 
 def filter_events_for_options(
@@ -267,16 +316,12 @@ def filter_events_for_options(
 ) -> list[EventDef]:
     """Return an event deck pruned according to lobby options.
 
-    - Drops lawsuits if stock market is off.
-    - Drops Life-tile events if Life tiles are off.
-    - Keeps insurable events in all insurance modes (the insurance mode
-      only changes how players buy coverage; the events themselves still
-      fire — just without any insured protection in "off" mode).
+    Life-tile spaces become cash events only when the corresponding lobby
+    variant explicitly disables LIFE tiles. Insurance changes coverage,
+    not the printed board events.
     """
     out: list[EventDef] = []
     for e in deck:
-        if e.effect == EventEffect.LAWSUIT and not stock_market_enabled:
-            continue
         if e.effect == EventEffect.LIFE_TILE and life_tiles_mode == "off":
             # Convert to a cash gain so the space still does something.
             out.append(EventDef(e.key, EventEffect.CASH_GAIN, 30_000))
@@ -287,10 +332,8 @@ def filter_events_for_options(
 
 # Insurance premiums (lobby-option-dependent).
 INSURANCE_PREMIUMS: dict[str, int] = {
-    "fire": 20_000,
     "auto": 10_000,
-    "life": 15_000,
-    "simplified": 35_000,  # single-policy premium in simplified mode
+    "simplified": 50_000,
 }
 
 # Stock number cost
@@ -302,14 +345,7 @@ RISK_IT_STAKE: int = 25_000
 RISK_IT_PRIZE: int = 100_000
 RISK_IT_THRESHOLD: int = 7  # spin 7-10 wins
 
-# College loan
-COLLEGE_LOAN_PRINCIPAL: int = 100_000
-COLLEGE_LOAN_INTEREST: int = 5_000  # charged whenever a loan-interest event fires
-
-# Payday bonus per child
-PAYDAY_PER_CHILD: int = 5_000
-
-# Retirement bonuses
-ACRES_BONUS: int = 1_000_000
-ESTATES_WINNER_MULTIPLIER: int = 2  # doubles money
-ESTATES_LOSER_PENALTY: int = 1_000_000
+# Bank loans are issued in $20,000 units and repaid at $25,000 each.
+BANK_LOAN_VALUE: int = 20_000
+BANK_LOAN_REPAYMENT: int = 25_000
+COLLEGE_LOAN_PRINCIPAL: int = 40_000

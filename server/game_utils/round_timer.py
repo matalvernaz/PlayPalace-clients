@@ -115,3 +115,7 @@ class RoundTransitionTimer:
         if self._game.round_timer_ticks <= 0:
             self._game.round_timer_state = self.IDLE
             self._game.on_round_timer_ready()
+
+
+# PlayAural renamed this helper without changing its contract.
+RoundTimer = RoundTransitionTimer

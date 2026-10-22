@@ -196,3 +196,6 @@ uno-score-line-elimination = { $player }: { $score }/{ $target } điểm phạt.
 
 # Hand value (phím d)
 uno-read-hand-value = { $count } lá, trị giá { $points } điểm.
+
+# English fallback strings for the classic-rules update.
+uno-error-play-drawn-card-only = After choosing to draw, you may play only the card you just drew.

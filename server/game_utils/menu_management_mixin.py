@@ -1,5 +1,7 @@
 """Mixin providing menu management functionality for games."""
 
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -11,6 +13,27 @@ from server.core.users.base import MenuItem, EscapeBehavior
 from ..messages.localization import Localization
 
 TRANSIENT_DISPLAY_MENU_ID = "transient_display"
+
+
+@dataclass
+class StatusBoxBuild:
+    """Status-box content with optional grid layout metadata."""
+
+    items: Sequence[str | MenuItem]
+    grid_kwargs: dict = field(default_factory=dict)
+
+
+StatusBoxBuilder = Callable[
+    ["Player", "User"], StatusBoxBuild | Sequence[str | MenuItem]
+]
+
+
+@dataclass
+class LiveStatusBoxState:
+    """Runtime-only builder for an open live status box."""
+
+    box_id: str
+    builder: StatusBoxBuilder
 
 
 class MenuManagementMixin:
@@ -53,6 +76,8 @@ class MenuManagementMixin:
         multiletter: bool,
         path: list[str] | None = None,
         position: int | None = None,
+        selection_id: str | None = None,
+        grid_kwargs: dict | None = None,
     ) -> None:
         """Show a transient display menu and store its runtime state."""
         user = self.get_user(player)
@@ -74,6 +99,8 @@ class MenuManagementMixin:
             multiletter=multiletter,
             escape_behavior=EscapeBehavior.SELECT_LAST,
             position=position,
+            selection_id=selection_id,
+            **(grid_kwargs or {}),
         )
 
     def _close_transient_display(
@@ -90,6 +117,7 @@ class MenuManagementMixin:
             if speak_key:
                 user.speak_l(speak_key)
         self._transient_display_state.pop(player.id, None)
+        self._live_status_boxes.pop(player.id, None)
         if rebuild_menu:
             self.rebuild_player_menu(player)
 
@@ -99,7 +127,7 @@ class MenuManagementMixin:
         if not state:
             return
 
-        if state.kind == "status_box":
+        if state.kind in ("status_box", "live_status_box"):
             self._close_transient_display(player)
             return
 
@@ -172,6 +200,9 @@ class MenuManagementMixin:
         if self._destroyed:
             return
         if self.status == "finished":
+            return
+        if player.id in self._live_status_boxes:
+            self._paint_live_status_box(player, focus_id=None)
             return
         if self._is_transient_display_open(player):
             return
@@ -284,16 +315,103 @@ class MenuManagementMixin:
         for player in self.players:
             self.update_player_menu(player)
 
+    def _normalize_status_box_content(
+        self,
+        content: StatusBoxBuild | Sequence[str | MenuItem],
+        *,
+        fallback_id_prefix: str,
+    ) -> tuple[list[MenuItem], dict]:
+        """Normalize status-box rows and assign stable, unique item ids."""
+        if isinstance(content, StatusBoxBuild):
+            raw_items = content.items
+            grid_kwargs = dict(content.grid_kwargs)
+        else:
+            raw_items = content
+            grid_kwargs = {}
+
+        items: list[MenuItem] = []
+        seen_ids: dict[str, int] = {}
+        for index, raw_item in enumerate(raw_items):
+            if isinstance(raw_item, MenuItem):
+                item = MenuItem(
+                    text=raw_item.text,
+                    id=raw_item.id or f"{fallback_id_prefix}:line:{index}",
+                    sound=raw_item.sound,
+                )
+            else:
+                item = MenuItem(
+                    text=str(raw_item),
+                    id=f"{fallback_id_prefix}:line:{index}",
+                )
+
+            seen_count = seen_ids.get(item.id, 0)
+            seen_ids[item.id] = seen_count + 1
+            if seen_count:
+                item.id = f"{item.id}:duplicate:{seen_count}"
+            items.append(item)
+
+        return items, grid_kwargs
+
     def status_box(self, player: "Player", lines: list[str]) -> None:
         """Show a status box (menu with text items) to a player.
 
         Press Enter on any item to close. No header or close button needed
         since screen readers speak list items and Enter always closes.
         """
-        items = [MenuItem(text=line, id="status_line") for line in lines]
+        self._live_status_boxes.pop(player.id, None)
+        items, grid_kwargs = self._normalize_status_box_content(
+            lines,
+            fallback_id_prefix="status_box",
+        )
         self._show_transient_display(
             player,
             kind="status_box",
             items=items,
             multiletter=False,
+            grid_kwargs=grid_kwargs,
+        )
+
+    def live_status_box(
+        self,
+        player: "Player",
+        box_id: str,
+        builder: StatusBoxBuilder,
+        *,
+        focus_id: str | None = None,
+    ) -> None:
+        """Open a status box whose rows repaint when the game marks menus dirty."""
+        user = self.get_user(player)
+        if not user:
+            return
+
+        self._live_status_boxes[player.id] = LiveStatusBoxState(
+            box_id=box_id,
+            builder=builder,
+        )
+        self._paint_live_status_box(player, focus_id=focus_id)
+
+    def _paint_live_status_box(
+        self,
+        player: "Player",
+        *,
+        focus_id: str | None,
+    ) -> None:
+        """Paint an open live status box without moving focus on passive updates."""
+        state = self._live_status_boxes.get(player.id)
+        user = self.get_user(player)
+        if not state or not user:
+            return
+
+        content = state.builder(player, user)
+        items, grid_kwargs = self._normalize_status_box_content(
+            content,
+            fallback_id_prefix=f"live_status:{state.box_id}",
+        )
+        self._show_transient_display(
+            player,
+            kind="live_status_box",
+            items=items,
+            multiletter=False,
+            selection_id=focus_id,
+            grid_kwargs=grid_kwargs,
         )

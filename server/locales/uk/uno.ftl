@@ -214,3 +214,6 @@ uno-read-hand-value = { $count ->
     [one] { $points } point
    *[other] { $points } points
  }.
+
+# English fallback strings for the classic-rules update.
+uno-error-play-drawn-card-only = After choosing to draw, you may play only the card you just drew.

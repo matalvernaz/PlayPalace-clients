@@ -39,11 +39,11 @@ def test_uno_game_creation():
 
 def test_uno_options_defaults():
     game = UnoGame()
-    assert game.options.winning_score == 300
+    assert game.options.winning_score == 500
     assert game.options.scoring_mode == "first_to_limit"
     assert game.options.bluff is True
     assert game.options.skip_after_draw is True
-    assert game.options.free_draws == 0
+    assert game.options.free_draws == 1
     assert game.options.interceptions is False
 
 
@@ -162,8 +162,8 @@ def test_uno_score_check_omits_pending_interception_penalty_first_mode():
     game._action_check_scores(alice, "check_scores")
 
     spoken = alice_user.get_spoken_messages()
-    assert "Alice: 12/300 points." in spoken
-    assert "Bob: 4/300 points." in spoken
+    assert "Alice: 12/500 points." in spoken
+    assert "Bob: 4/500 points." in spoken
     assert all("pending interception" not in message for message in spoken)
 
 
@@ -1341,16 +1341,25 @@ def test_stuck_turn_auto_resolves():
 
 
 def test_free_draw_allowed_with_playable_card():
-    game, (a, b) = _n_player_game(["A", "B"], UnoOptions(free_draws=2))
+    game, (a, b) = _n_player_game(["A", "B"])
     a.hand = [_card(1, cards.RED, cards.NUMBER, 5)]  # playable on red top
     b.hand = [_card(3, cards.GREEN, cards.NUMBER, 7)]
+    game.deck = [_card(50, cards.RED, cards.NUMBER, 3)]
     game.refresh_menus()
     game.flush_menus()
 
     game.execute_action(a, "draw")
+    game.flush_menus()
     assert a.free_draws_used == 1
     assert len(a.hand) == 2
     assert game.current_player is a  # still A's turn
+    assert a.drawn_card_id == 50
+
+    game.execute_action(a, "play_card_1")
+    assert len(a.hand) == 2  # only the card drawn this turn may be played
+
+    game.execute_action(a, "play_card_50")
+    assert len(a.hand) == 1
 
 
 def test_draw_unplayable_card_auto_skips_turn():

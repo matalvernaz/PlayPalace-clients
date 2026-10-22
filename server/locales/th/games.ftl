@@ -158,3 +158,97 @@ poker-unknown-hand = ไม่ทราบมือ
 
 # Validation errors (common across games)
 game-error-invalid-team-mode = โหมดทีมที่เลือกไม่ถูกต้องสำหรับจำนวนผู้เล่นปัจจุบัน
+
+game-turn-start-you = It is your turn.
+game-turn-start-player = It is { $player }'s turn.
+game-score-line-target = { $player }: { $score }/{ $target } { $unit }
+game-score-unit-points = { $count ->
+    [one] point
+   *[other] points
+}
+game-score-unit-chips = { $count ->
+    [one] chip
+   *[other] chips
+}
+game-score-unit-coins = { $count ->
+    [one] coin
+   *[other] coins
+}
+game-score-unit-health = health
+game-score-unit-ninetynine-tokens = { $count ->
+    [one] token
+   *[other] tokens
+}
+game-score-unit-tokens-home = { $count ->
+    [one] token home
+   *[other] tokens home
+}
+game-score-unit-pawns-home = { $count ->
+    [one] pawn home
+   *[other] pawns home
+}
+game-score-unit-hand-wins = { $count ->
+    [one] hand win
+   *[other] hand wins
+}
+game-score-unit-light = light
+game-winner-you = You win!
+game-team-name = Team { $index }
+team-arrangement-started = Team arrangement started. Review the teams, swap members if needed, then confirm to start.
+team-arrangement-confirm = Confirm teams and start
+team-arrangement-read = Read teams
+team-arrangement-select-member-action = Select team member
+team-arrangement-select-member = Select a team member
+team-arrangement-select-swap-target = Select a player to swap with
+team-arrangement-swap-member = Choose swap target
+team-arrangement-swap-member-selected = Swap { $player } with...
+team-arrangement-cancel = Cancel team arrangement
+team-arrangement-line = { $team }: { $members }
+team-arrangement-turn-order = Turn order: { $players }
+team-arrangement-member-option = { $player }, { $team }, { $selected }
+team-arrangement-selected = selected
+team-arrangement-not-selected = not selected
+team-arrangement-member-selected = { $player } from { $team } selected. Choose a player from another team to swap with.
+team-arrangement-swapped = { $first } and { $second } have swapped teams.
+team-arrangement-cancelled = Team arrangement cancelled.
+team-arrangement-cancelled-roster = Team arrangement cancelled because the player list changed.
+team-arrangement-refreshed = The player list changed. Team arrangement has been refreshed.
+team-arrangement-in-progress = Finish or cancel team arrangement first.
+team-arrangement-not-active = Team arrangement is not active.
+team-arrangement-select-first = Select a team member first.
+team-arrangement-player-missing = That player is no longer available for team arrangement.
+team-arrangement-same-team = Choose someone from a different team.
+team-arrangement-swap-failed = Could not swap those team members.
+
+status-box-closed = Status information closed.
+
+dice-status-label-locked = { $value } (locked)
+dice-status-label-kept = { $value } (kept)
+
+poker-royal-flush = Royal Flush
+documentation-menu = Documentation
+introduction = Introduction
+community-rules = Community Rules
+global-keys = Global Controls
+game-rules = Game Rules
+changelog = Changelog
+donation = Donation
+contact = Contact
+document-not-found = Document not found.
+help = Help
+
+# Game Info (Ctrl+I)
+game-info = Game Info
+game-info-header = Current Game Information
+game-info-name = Game: {$game}
+game-info-players = Players: {$count}
+game-info-host = Host: {$host}
+game-info-status = Status: {$status}
+game-info-status-waiting = Waiting in lobby
+game-info-status-playing = In progress
+game-info-options-header = Settings:
+game-info-no-options = This game has no custom configuration options.
+
+# How to Play (Ctrl+F1)
+how-to-play = How to Play
+game-rules-not-available = Rules for {$game} are not available yet.

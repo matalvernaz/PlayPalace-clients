@@ -42,7 +42,7 @@ class UnoOptions(GameOptions):
         IntOption(
             min_val=10,
             max_val=2000,
-            default=300,
+            default=500,
             value_key="score",
             label="uno-set-winning-score",
             prompt="uno-enter-winning-score",
@@ -129,8 +129,8 @@ class UnoOptions(GameOptions):
     free_draws: int = option_field(
         IntOption(
             min_val=0,
-            max_val=999,
-            default=0,
+            max_val=1,
+            default=1,
             value_key="count",
             label="uno-set-free-draws",
             prompt="uno-enter-free-draws",
@@ -150,6 +150,7 @@ class UnoPlayer(Player):
     free_draws_used: int = 0
     card_sort_mode: str = "number"  # color | number | none
     turn_has_drawn: bool = False
+    drawn_card_id: int | None = None
 
 
 @register_game
@@ -676,6 +677,7 @@ class UnoGame(Game):
             p.penalty_points = 0
             p.free_draws_used = 0
             p.turn_has_drawn = False
+            p.drawn_card_id = None
 
         for _ in range(7):
             for p in alive:
@@ -771,6 +773,7 @@ class UnoGame(Game):
         if not isinstance(player, UnoPlayer):
             return
         player.turn_has_drawn = False
+        player.drawn_card_id = None
         player.free_draws_used = 0
         # Clear any stale out-of-turn pending action for the new current player.
         player.bot_pending_action = None
@@ -872,6 +875,15 @@ class UnoGame(Game):
                     card=cards.format_card(card, user.locale),
                     reason=self._card_unplayable_reason(card, user.locale),
                 )
+            return
+        if (
+            player.turn_has_drawn
+            and player.drawn_card_id is not None
+            and card.id != player.drawn_card_id
+        ):
+            user = self.get_user(player)
+            if user:
+                user.speak_l("uno-error-play-drawn-card-only", buffer="game")
             return
 
         self._close_uno_windows_for_started_action()
@@ -1047,6 +1059,7 @@ class UnoGame(Game):
         self.last_player_id = player.id
         self.bluff_challenge_available = False
         player.turn_has_drawn = False
+        player.drawn_card_id = None
         self.consecutive_passes = 0
 
         self._play_card_sound(card)
@@ -1054,14 +1067,15 @@ class UnoGame(Game):
 
         is_wild = card.type in cards.WILD_TYPES
 
+        # Record Wild Draw Four legality before the active color changes. This
+        # also clears stale challenge state left by an earlier wild.
+        self.is_bluff = (
+            card.type == cards.WILD_DRAW_FOUR
+            and self.options.bluff
+            and any(c.color == self.current_color for c in player.hand)
+        )
+
         if is_wild and len(player.hand) > 0:
-            # Record bluff potential before the color changes: a Wild Draw Four is
-            # a bluff if the player still holds a card of the current color.
-            self.is_bluff = (
-                card.type == cards.WILD_DRAW_FOUR
-                and self.options.bluff
-                and any(c.color == self.current_color for c in player.hand)
-            )
             self._broadcast_play(player, card)
             # Announce UNO only after the play, so the card is heard first.
             self._maybe_open_uno_window(player)
@@ -1131,6 +1145,14 @@ class UnoGame(Game):
     def _resolve_winning_play(self, player: UnoPlayer, card: UnoCard) -> None:
         """Handle a play that empties the hand (round end)."""
         is_draw_card = card.type in (cards.DRAW_TWO, cards.WILD_DRAW_FOUR)
+        if card.type == cards.WILD_DRAW_FOUR and self.options.bluff:
+            # The next player retains the official right to challenge even when
+            # Wild Draw Four is the round-winning card.
+            self._extend_obligation(card.type)
+            self.bluff_challenge_available = True
+            self.pending_round_winner_id = player.id
+            self._advance_turn()
+            return
         if (
             is_draw_card
             and self.options.wait_for_draw_responses
@@ -1228,6 +1250,7 @@ class UnoGame(Game):
         self._draw_for_player(player, count)
         self.cards_to_draw = 0
         self.draw_type = ""
+        self.is_bluff = False
         player.turn_has_drawn = True
         if self.pending_round_winner_id:
             self._finish_pending_round()
@@ -1419,6 +1442,7 @@ class UnoGame(Game):
         self._close_uno_windows_for_started_action()
         p.hand.append(card)
         p.turn_has_drawn = True
+        p.drawn_card_id = card.id
         if had_playable and self.options.free_draws > 0:
             p.free_draws_used += 1
         playable = self._is_card_playable(card)
@@ -1436,10 +1460,12 @@ class UnoGame(Game):
 
         # Jump focus to the card just drawn, whether or not it can be played, so
         # the player always lands on what they drew.
+        self.refresh_menus()
         self.request_menu_focus(p, f"play_card_{card.id}")
 
-        # A free draw (drawn while already holding playable cards) keeps the turn.
-        if playable or had_playable:
+        # After declining a playable hand card, only the newly drawn card may
+        # be played. An unplayable draw therefore ends the turn.
+        if playable:
             self.consecutive_passes = 0
             if p.is_bot:
                 BotHelper.jolt_bot(p, ticks=random.randint(15, 25))
@@ -1615,6 +1641,19 @@ class UnoGame(Game):
             return "action-not-playing"
         if player.is_spectator:
             return "action-spectator"
+        if (
+            isinstance(player, UnoPlayer)
+            and self.current_player == player
+            and player.turn_has_drawn
+            and player.drawn_card_id is not None
+            and action_id
+        ):
+            try:
+                card_id = int(action_id.split("_")[-1])
+            except ValueError:
+                return "action-not-available"
+            if card_id != player.drawn_card_id:
+                return "uno-error-play-drawn-card-only"
         return None
 
     def _is_play_card_hidden(self, player: Player, *, action_id: str | None = None) -> Visibility:

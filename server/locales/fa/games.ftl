@@ -158,3 +158,97 @@ poker-unknown-hand = دست ناشناخته
 
 # Validation errors (common across games)
 game-error-invalid-team-mode = حالت تیمی انتخاب شده برای تعداد بازیکنان فعلی معتبر نیست.
+
+game-turn-start-you = نوبت شماست.
+game-turn-start-player = نوبت { $player } است.
+game-score-line-target = { $player }: { $score }/{ $target } { $unit }
+game-score-unit-points = { $count ->
+    [one] امتیاز
+   *[other] امتیاز
+}
+game-score-unit-chips = { $count ->
+    [one] تراشه
+   *[other] تراشه
+}
+game-score-unit-coins = { $count ->
+    [one] سکه
+   *[other] سکه
+}
+game-score-unit-health = سلامتی
+game-score-unit-ninetynine-tokens = { $count ->
+    [one] نشان
+   *[other] نشان
+}
+game-score-unit-tokens-home = { $count ->
+    [one] نشان در خانه
+   *[other] نشان در خانه
+}
+game-score-unit-pawns-home = { $count ->
+    [one] مهره در خانه
+   *[other] مهره در خانه
+}
+game-score-unit-hand-wins = { $count ->
+    [one] برد دست
+   *[other] برد دست
+}
+game-score-unit-light = نور
+game-winner-you = شما برنده شدید!
+game-team-name = تیم { $index }
+team-arrangement-started = چینش تیم‌ها آغاز شد. تیم‌ها را بررسی کنید، در صورت نیاز اعضا را جابه‌جا کنید، سپس برای شروع تأیید کنید.
+team-arrangement-confirm = تأیید تیم‌ها و شروع
+team-arrangement-read = مشاهده‌ی تیم‌ها
+team-arrangement-select-member-action = انتخاب عضو تیم
+team-arrangement-select-member = یک عضو تیم انتخاب کنید
+team-arrangement-select-swap-target = یک بازیکن را برای جابه‌جایی انتخاب کنید
+team-arrangement-swap-member = انتخاب هدف جابه‌جایی
+team-arrangement-swap-member-selected = جابه‌جایی { $player } با...
+team-arrangement-cancel = لغو چینش تیم‌ها
+team-arrangement-line = { $team }: { $members }
+team-arrangement-turn-order = ترتیب نوبت: { $players }
+team-arrangement-member-option = { $player }، { $team }، { $selected }
+team-arrangement-selected = انتخاب شد
+team-arrangement-not-selected = انتخاب نشد
+team-arrangement-member-selected = { $player } از { $team } انتخاب شد. یک بازیکن از تیم دیگر را برای جابه‌جایی انتخاب کنید.
+team-arrangement-swapped = { $first } و { $second } تیم‌های خود را عوض کردند.
+team-arrangement-cancelled = چینش تیم‌ها لغو شد.
+team-arrangement-cancelled-roster = چینش تیم‌ها به دلیل تغییر لیست بازیکنان لغو شد.
+team-arrangement-refreshed = لیست بازیکنان تغییر کرد. چینش تیم‌ها به‌روزرسانی شد.
+team-arrangement-in-progress = ابتدا چینش تیم‌ها را تمام یا لغو کنید.
+team-arrangement-not-active = چینش تیم‌ها فعال نیست.
+team-arrangement-select-first = ابتدا یک عضو تیم انتخاب کنید.
+team-arrangement-player-missing = آن بازیکن دیگر برای چینش تیم‌ها در دسترس نیست.
+team-arrangement-same-team = از یک تیم دیگر انتخاب کنید.
+team-arrangement-swap-failed = جابه‌جایی آن اعضای تیم امکان‌پذیر نبود.
+
+status-box-closed = اطلاعات وضعیت بسته شد.
+
+dice-status-label-locked = { $value } (قفل)
+dice-status-label-kept = { $value } (نگهداشته‌شده)
+
+poker-royal-flush = رویال فلاش
+documentation-menu = مستندات
+introduction = مقدمه
+community-rules = قوانین جامعه
+global-keys = کنترل‌های عمومی
+game-rules = قوانین بازی
+changelog = تغییرات
+donation = کمک مالی
+contact = تماس
+document-not-found = سند یافت نشد.
+help = راهنما
+
+# اطلاعات بازی (Ctrl+I)
+game-info = اطلاعات بازی
+game-info-header = اطلاعات بازی فعلی
+game-info-name = بازی: {$game}
+game-info-players = بازیکنان: {$count}
+game-info-host = میزبان: {$host}
+game-info-status = وضعیت: {$status}
+game-info-status-waiting = در انتظار در لابی
+game-info-status-playing = در حال اجرا
+game-info-options-header = تنظیمات:
+game-info-no-options = این بازی گزینه‌های پیکربندی سفارشی ندارد.
+
+# نحوه‌ی بازی (Ctrl+F1)
+how-to-play = نحوه‌ی بازی
+game-rules-not-available = قوانین {$game} هنوز در دسترس نیست.

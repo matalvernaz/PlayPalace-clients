@@ -26,7 +26,6 @@ class MileByMileOptions(GameOptions):
             label="milebymile-set-distance",
             prompt="milebymile-enter-distance",
             change_msg="milebymile-option-changed-distance",
-            description="milebymile-desc-round-distance",
         )
     )
     winning_score: int = option_field(
@@ -38,7 +37,6 @@ class MileByMileOptions(GameOptions):
             label="milebymile-set-winning-score",
             prompt="milebymile-enter-winning-score",
             change_msg="milebymile-option-changed-winning",
-            description="milebymile-desc-winning-score",
         )
     )
     team_mode: str = option_field(
@@ -57,7 +55,6 @@ class MileByMileOptions(GameOptions):
             value_key="enabled",
             label="milebymile-toggle-perfect-crossing",
             change_msg="milebymile-option-changed-crossing",
-            description="milebymile-desc-perfect-crossing",
         )
     )
     allow_stacking_attacks: bool = option_field(
@@ -66,7 +63,6 @@ class MileByMileOptions(GameOptions):
             value_key="enabled",
             label="milebymile-toggle-stacking",
             change_msg="milebymile-option-changed-stacking",
-            description="milebymile-desc-stacking",
         )
     )
     reshuffle_discard_pile: bool = option_field(
@@ -75,7 +71,6 @@ class MileByMileOptions(GameOptions):
             value_key="enabled",
             label="milebymile-toggle-reshuffle",
             change_msg="milebymile-option-changed-reshuffle",
-            description="milebymile-desc-reshuffle",
         )
     )
     karma_rule: bool = option_field(
@@ -84,26 +79,21 @@ class MileByMileOptions(GameOptions):
             value_key="enabled",
             label="milebymile-toggle-karma",
             change_msg="milebymile-option-changed-karma",
-            description="milebymile-desc-karma",
         )
     )
     rig_game: str = option_field(
         MenuOption(
-            default="None",
+            default="none",
             value_key="rig",
-            choices=["None", "No Duplicates", "2x Attacks", "2x Defenses"],
+            choices=["none", "no_duplicates", "2x_attacks", "2x_defenses"],
+            choice_labels={
+                "none": "milebymile-rig-none",
+                "no_duplicates": "milebymile-rig-no-duplicates",
+                "2x_attacks": "milebymile-rig-2x-attacks",
+                "2x_defenses": "milebymile-rig-2x-defenses",
+            },
             label="milebymile-set-rig",
             prompt="milebymile-select-rig",
             change_msg="milebymile-option-changed-rig",
-            description="milebymile-desc-rig",
-        )
-    )
-    always_allow_discarding: bool = option_field(
-        BoolOption(
-            default=True,
-            value_key="enabled",
-            label="milebymile-toggle-always-discard",
-            change_msg="milebymile-option-changed-always-discard",
-            description="milebymile-desc-always-discard",
         )
     )

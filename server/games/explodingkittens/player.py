@@ -3,31 +3,21 @@
 from dataclasses import dataclass, field
 
 from ..base import Player
+from .cards import ExplodingKittensCard
 
 
 @dataclass
-class EKPlayer(Player):
-    """Per-player state.
+class ExplodingKittensPlayer(Player):
+    """Persistent hand, elimination, knowledge, and bot planning state."""
 
-    Attributes:
-        hand: Card identifiers held by this player.
-        eliminated: True once they've drawn an Exploding Kitten with no Defuse.
-        has_streaking_kitten: True if they currently hold the Streaking Kitten
-            (variant). Tracked separately from hand because the rules treat it
-            as "passively held"; if they later draw a real Exploding Kitten,
-            both go off at once.
-        last_peek: The cards they most recently saw via See the Future, top
-            first. Cleared when they end their turn.
-        pending: What menu prompt is currently being asked of this player.
-    """
-
-    hand: list[str] = field(default_factory=list)
+    hand: list[ExplodingKittensCard] = field(default_factory=list)
+    selected_card_ids: list[int] = field(default_factory=list)
+    known_future_card_ids: list[int] = field(default_factory=list)
+    known_kitten_positions: dict[int, int] = field(default_factory=dict)
+    played_card_counts: dict[str, int] = field(default_factory=dict)
     eliminated: bool = False
-    has_streaking_kitten: bool = False
-    last_peek: list[str] = field(default_factory=list)
-
-    # Pending state — drives turn-menu visibility.
-    # "" / "target_for_favor" / "target_for_cat_pair" / "target_for_cat_trio"
-    # / "cat_trio_name" / "defuse_position" / "nope_choice"
-    pending: str = ""
-    pending_card: str = ""  # the card being played (for cat pair/trio target prompts)
+    elimination_order: int = 0
+    bot_combo_kind: str = ""
+    bot_combo_card_ids: list[int] = field(default_factory=list)
+    bot_planned_target_id: str = ""
+    bot_requested_kind: str = ""

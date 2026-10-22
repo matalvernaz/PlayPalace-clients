@@ -23,7 +23,7 @@ class LifeOptions(GameOptions):
 
     track_length: str = option_field(
         MenuOption(
-            default="standard",
+            default="long",
             value_key="length",
             choices=["short", "standard", "long"],
             choice_labels={

@@ -89,6 +89,7 @@ class CrazyEightsGame(Game):
 
     turn_has_drawn: bool = False
     turn_drawn_card: Card | None = None
+    consecutive_passes: int = 0
 
     timer: PokerTurnTimer = field(default_factory=PokerTurnTimer)
     timer_warning_played: bool = False
@@ -96,7 +97,6 @@ class CrazyEightsGame(Game):
     intro_wait_ticks: int = 0
     hand_wait_ticks: int = 0
     _turn_sound_player_id: str | None = None
-    max_hand_size: int = 15  # future removal
 
     def __post_init__(self):
         super().__post_init__()
@@ -419,6 +419,7 @@ class CrazyEightsGame(Game):
         self.wild_wait_ticks = 0
         self.wild_wait_player_id = None
         self.wild_end_round_pending = False
+        self.consecutive_passes = 0
 
         # Replace main menu music with a silent track for this game.
         self.play_music("game_crazyeights/mus.ogg")
@@ -478,7 +479,7 @@ class CrazyEightsGame(Game):
         self.play_sound("game_crazyeights/newhand.ogg")
 
         # Deal new deck
-        self.deck, _ = DeckFactory.standard_deck(num_decks=2)
+        self.deck, _ = DeckFactory.standard_deck()
         self.discard_pile = []
         self.current_suit = None
 
@@ -502,7 +503,7 @@ class CrazyEightsGame(Game):
             self.dealer_index = -1
             self.turn_index = 0
 
-        # Select starting card (numbered only)
+        # The starter may be any card except an eight.
         start_card = self._draw_start_card()
         if start_card:
             self.discard_pile.append(start_card)
@@ -517,7 +518,7 @@ class CrazyEightsGame(Game):
             card = self.deck.draw_one()
             if not card:
                 return None
-            if self._is_number_card(card):
+            if card.rank != 8:
                 return card
             # Put it back and reshuffle
             self.deck.add([card])
@@ -608,6 +609,7 @@ class CrazyEightsGame(Game):
         self.discard_pile.append(card)
         self.turn_has_drawn = False
         self.turn_drawn_card = None
+        self.consecutive_passes = 0
 
         self._play_card_sound(card)
         self._broadcast_play(p, card)
@@ -629,15 +631,6 @@ class CrazyEightsGame(Game):
 
         self.current_suit = card.suit
         self.rebuild_all_menus()
-
-        if card.rank == 13 and len(p.hand) == 0:
-            next_player = self._next_player()
-            if next_player:
-                self._draw_for_player(next_player, 2)
-            self._end_round(p, last_card=card)
-            return
-
-        self._apply_card_effects(card)
 
         if len(p.hand) == 0:
             self._end_round(p, last_card=card)
@@ -682,12 +675,19 @@ class CrazyEightsGame(Game):
         p = self._require_active_player(player)
         if not p:
             return
-        if not self.turn_has_drawn:
+        if self._has_playable_cards(p) or not self.deck.is_empty():
             return
         self.play_sound("game_crazyeights/pass.ogg")
         self._broadcast_pass(p)
         self.turn_has_drawn = False
         self.turn_drawn_card = None
+        self.consecutive_passes += 1
+        if self.consecutive_passes >= len(
+            [q for q in self.players if not q.is_spectator]
+        ):
+            self._stop_turn_loop()
+            self._start_new_hand()
+            return
         self._advance_turn()
 
     def _action_choose_suit(self, player: Player, action_id: str) -> None:
@@ -818,9 +818,7 @@ class CrazyEightsGame(Game):
             return self._is_turn_action_enabled(player)
         if not isinstance(player, CrazyEightsPlayer):
             return "action-not-available"
-        if self.turn_has_drawn:
-            return "action-not-available"
-        if self._has_playable_cards(player):
+        if not self._can_draw(player):
             return "action-not-available"
         return None
 
@@ -831,9 +829,7 @@ class CrazyEightsGame(Game):
             return Visibility.HIDDEN
         if not isinstance(player, CrazyEightsPlayer):
             return Visibility.HIDDEN
-        if self.turn_has_drawn:
-            return Visibility.HIDDEN
-        if self._has_playable_cards(player):
+        if not self._can_draw(player):
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -844,11 +840,7 @@ class CrazyEightsGame(Game):
             return self._is_turn_action_enabled(player)
         if isinstance(player, CrazyEightsPlayer) and self._has_playable_cards(player):
             return "action-not-available"
-        if self.turn_has_drawn:
-            return None
-        if isinstance(player, CrazyEightsPlayer) and len(player.hand) >= self.max_hand_size:
-            return None
-        if not self._can_draw(player if isinstance(player, CrazyEightsPlayer) else None):
+        if isinstance(player, CrazyEightsPlayer) and self.deck.is_empty():
             return None
         return "action-not-available"
 
@@ -859,11 +851,7 @@ class CrazyEightsGame(Game):
             return Visibility.HIDDEN
         if isinstance(player, CrazyEightsPlayer) and self._has_playable_cards(player):
             return Visibility.HIDDEN
-        if self.turn_has_drawn:
-            return Visibility.VISIBLE
-        if isinstance(player, CrazyEightsPlayer) and len(player.hand) >= self.max_hand_size:
-            return Visibility.VISIBLE
-        if not self._can_draw(player if isinstance(player, CrazyEightsPlayer) else None):
+        if isinstance(player, CrazyEightsPlayer) and self.deck.is_empty():
             return Visibility.VISIBLE
         return Visibility.HIDDEN
 
@@ -927,22 +915,15 @@ class CrazyEightsGame(Game):
             return False
         if self.awaiting_wild_suit:
             return False
-        if self.turn_has_drawn:
-            return False
-        if len(player.hand) >= self.max_hand_size:
+        if self.deck.is_empty():
             return False
         if self._has_playable_cards(player):
-            return False
+            return not self.turn_has_drawn
         return True
 
     # ==========================================================================
     # Card helpers
     # ==========================================================================
-
-    def _is_number_card(self, card: Card) -> bool:
-        if card.rank in (8, 11, 12, 13):
-            return False
-        return True
 
     def _is_card_playable(self, card: Card) -> bool:
         if self.awaiting_wild_suit:
@@ -969,50 +950,21 @@ class CrazyEightsGame(Game):
         return self.discard_pile[-1] if self.discard_pile else None
 
     def _draw_card(self) -> Card | None:
-        if self.deck.is_empty():
-            self._reshuffle_discard_into_deck()
         return self.deck.draw_one()
 
     def _handle_empty_draw(self) -> None:
-        # No cards available to draw; end the round with no scoring and start a new hand.
-        self._stop_turn_loop()
-        self._start_new_hand()
-
-    def _reshuffle_discard_into_deck(self) -> None:
-        if len(self.discard_pile) <= 1:
-            return
-        top = self.discard_pile[-1]
-        rest = self.discard_pile[:-1]
-        self.discard_pile = [top]
-        self.deck.add(rest)
-        self.deck.shuffle()
-        self.play_sound("game_crazyeights/pileempty.ogg")
+        player = self.current_player
+        if isinstance(player, CrazyEightsPlayer):
+            self._action_pass(player, "pass")
 
     def _play_card_sound(self, card: Card) -> None:
         if card.rank == 8:
             self.play_sound("game_crazyeights/discwild.ogg")
-        elif card.rank == 13:
-            self.play_sound("game_crazyeights/discdraw.ogg")
-        elif card.rank == 12:
-            self.play_sound("game_crazyeights/discskip.ogg")
-        elif card.rank == 11:
-            self.play_sound("game_crazyeights/discrev.ogg")
         else:
             self.play_sound("game_crazyeights/discarded.ogg")
 
     def _apply_card_effects(self, card: Card) -> None:
-        if card.rank == 12:  # Skip
-            self.skip_next_players(1)
-        elif card.rank == 11:  # Reverse
-            if len(self.turn_player_ids) == 2:
-                self.skip_next_players(1)
-            else:
-                self.reverse_turn_direction()
-        elif card.rank == 13:  # Draw Two
-            next_player = self._next_player()
-            if next_player:
-                self._draw_for_player(next_player, 2)
-            self.skip_next_players(1)
+        """Face cards have no action effect in standard Crazy Eights."""
 
     def _draw_for_player(self, player: CrazyEightsPlayer, count: int) -> None:
         for _ in range(count):
@@ -1099,18 +1051,6 @@ class CrazyEightsGame(Game):
     def format_card(self, card: Card, locale: str) -> str:
         if card.rank == 8:
             return Localization.get(locale, "crazyeights-wild")
-        if card.rank == 11:
-            return Localization.get(
-                locale, "crazyeights-reverse", suit=self._suit_name(card.suit, locale)
-            )
-        if card.rank == 12:
-            return Localization.get(
-                locale, "crazyeights-skip", suit=self._suit_name(card.suit, locale)
-            )
-        if card.rank == 13:
-            return Localization.get(
-                locale, "crazyeights-draw-two", suit=self._suit_name(card.suit, locale)
-            )
         return card_name(card, locale)
 
     def format_top_card(self, locale: str) -> str:
@@ -1177,8 +1117,8 @@ class CrazyEightsGame(Game):
         for card in hand:
             if card.rank == 8:
                 total += 50
-            elif card.rank in (11, 12, 13):
-                total += 20
+            elif card.rank >= 10:
+                total += 10
             elif card.rank == 1:
                 total += 1
             else:

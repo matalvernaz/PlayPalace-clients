@@ -1,77 +1,76 @@
-# Rules Of Crazy Eights
-PlayPalace team, 2026.
+# Crazy Eights Rules
 
-## TL;DR
-Crazy Eights is a classic shedding card game where the goal is to be the first player to get rid of all your cards. It has been a family favorite for generations, and if you have ever played UNO, you already know the basic idea -- Crazy Eights is, in fact, the game that inspired UNO.
+PlayPalace implements the standard one-pack rules published by Bicycle.
 
-Players take turns matching the top card of the discard pile by suit or rank, using eights as wild cards to change the suit at will. The first player to empty their hand wins the round and scores points based on the cards left in their opponents' hands. Play continues across multiple rounds until someone reaches the winning score.
+## Object
 
-This game is in memory of All in Play, likely the first accessible online multiplayer game platform from the early 2000's. All game sounds are from this game, and gameplay matches their version as much as possible.
+Be the first player to empty your hand. The round winner scores the cards
+remaining in every opponent's hand. The first player to reach the table's
+winning score wins the match; the default target is 500 points.
 
-## Gameplay
-The game supports 2 to 8 players and uses two standard 52-card decks shuffled together. Each round, every player is dealt 5 cards, and a starting card is turned face-up from the deck to begin the discard pile. This starting card will always be a numbered card (never a wild or face card).
+## Deal
 
-The dealer rotates each round, and the player to the dealer's left goes first.
+Crazy Eights supports 2 to 8 players and uses one standard 52-card deck.
+Each player receives 5 cards. The rest form the face-down stock.
 
-On your turn, you must play a card from your hand that matches either the suit or the rank of the top card on the discard pile. For example, if the top card is a 7 of Hearts, you can play any Heart or any 7 from another suit.
+The dealer turns one card face up as the starter. If it is an 8, it is
+returned to the stock, the stock is shuffled, and another starter is turned.
+Any other card, including a jack, queen, or king, is a valid starter.
 
-### Special Cards
-Not all cards are created equal. There are four types of special cards that shake things up:
+The player to the dealer's left goes first. The dealer rotates after each
+round.
 
-* **Wild 8:** Eights can be played on top of anything, at any time. When you play a Wild 8, you choose the suit that the next player must follow. This is the most powerful card in the game.
-* **Skip:** Playing a Skip skips the next player's turn entirely.
-* **Reverse:** Playing a reverse  reverses the direction of play. In a two-player game, since reversing direction has the same effect as skipping, it simply skips the other player instead. Skips and reverses have a lot of strategic value.
-* **Draw Two:** Playing a Draw Two forces the next player to draw 2 cards from the deck and lose their turn. Again, if you are in a two-player game, the other player will draw and you will get another turn. They will even have to draw if you play a Draw Two as your last card.
+## Playing a Card
 
-### Drawing and Passing
-If you have no playable cards in your hand, you must draw one card from the deck. If the card you drew is playable, you will hear a sound, and have the option to play it immediately. If it is not playable (or you choose not to play it), you pass and your turn ends.
+Play one card matching either the suit or rank of the top discard.
 
-You cannot draw if you already have a playable card in your hand -- the game requires you to play when you can.
+For example, if the top card is the queen of clubs, you may play any club or
+any queen.
 
-If the draw pile runs out, the discard pile (except for the top card) is reshuffled to form a new draw pile.
+An 8 is wild and may be played at any time. After playing one, choose clubs,
+diamonds, hearts, or spades. The next player must play that suit or another 8.
 
-### Example Turn
-It is the start of the round and you are dealt: 3 of Clubs, 7 of Hearts, Queen of Diamonds, 5 of Hearts, and an Wild 8. The starting card is the 6 of Hearts.
+Jacks, queens, and kings are ordinary matching cards. They do not reverse,
+skip, or make another player draw.
 
-You could play the 7 of Hearts (matching the Hearts suit) or the 5 of Hearts. You could also play your 8, but you have no reason to.
+## Drawing and Passing
 
-You play the 7 of Hearts. The next player now needs to match Hearts or 7. They play the 7 of Spades (matching rank). The player after them plays a King of Spades -- meaning the next person draws two cards and gets skipped.
+If you cannot play, draw from the stock until you can play or the stock is
+empty. Once a playable card is available, play one card.
 
-A few turns later, the top card is the 10 of Clubs and you have no Clubs and no 10s, but you still have that Eight. You play the Eight, choose Hearts as the new suit, and now the next player has to follow Hearts. You are down to your last few cards and well on your way to winning the round.
+You may choose to draw one card even when your hand already contains a legal
+play. After that voluntary draw, play a legal card.
 
-### Scoring
-When a player empties their hand, the round ends and they score points based on what remains in all other players' hands. The card values are:
+The discard pile is not recycled. If the stock is empty and you have no legal
+play, pass. If every player passes consecutively, PlayPalace redeals the round
+without awarding points; this is the digital deadlock rule for a position the
+printed rules do not otherwise resolve.
 
-* **8's (Wild):** 50 points each
-* **Skips, Reverses, and Draw Twos:** 20 points each
-* **Aces:** 1 point each
-* **Number cards (2-7, 9-10):** Face value (e.g., a 5 is worth 5 points)
+## Ending and Scoring a Round
 
-The winner of the round collects points from every opponent. For example, if one opponent is left holding an Eight and a 3, that is 53 points from them alone. All opponents' totals are added together for your round score.
+The first player with no cards wins the round and receives:
 
-The game continues across multiple rounds, with scores accumulating, until a player reaches the winning score which is configurable by the host up to 10,000).
+- 50 points for each 8
+- 10 points for each 10, jack, queen, or king
+- 1 point for each ace
+- Face value for every other card
 
-## Keyboard Shortcuts
-Shortcuts specific to the game of Crazy Eights:
+Scores carry across rounds until someone reaches the configured target.
 
-* **Space:** Draw a card from the deck.
-* **P:** Pass your turn (after drawing).
-* **C:** Read the top card on the discard pile.
-* **E:** Read card counts (how many cards each player holds and how many remain in the deck).
-* **Shift+T:** Check the turn timer.
+## Controls
 
-When choosing a suit after playing a Wild 8:
+- `Space`: draw
+- `P`: pass when the stock is empty and you cannot play
+- `C`: read the top discard
+- `E`: read hand and stock counts
+- `Shift+T`: read the turn timer
 
-* **C:** Choose Clubs.
-* **D:** Choose Diamonds.
-* **H:** Choose Hearts.
-* **S:** Choose Spades.
+After playing an 8:
 
-When arrowing through your list of cards, a short sound will be played if you land on a playable card. This updates as cards are played, even when it's not your turn.
+- `C`: clubs
+- `D`: diamonds
+- `H`: hearts
+- `S`: spades
 
-## Game Theory / Tips
-* Save your eights for when you truly need them. They are your get-out-of-jail-free cards, and playing one early just because you can is a waste.
-* Pay attention to what suits your opponents seem to be short on. If someone keeps drawing, they probably lack the current suit. Changing to that suit (via a wild or natural play) can keep the pressure on them.
-* Draw Twos are best played strategically. Forcing a draw-two on the player who is close to going out can turn the tide of a round.
-* If someone else is about to win the round, try to get rid of your cards in descending order of point value. If they have one card left and have used a wild, even if you could follow suit, you should instead play as many eights as possible.
-* Especially in games with two players, it is sometimes possible to play a combination of cards that allows you to win the round without them being able to do anything about it. This is quite fun, especially making your opponents draw cards that they have no chance to play.
+The legacy All in Play-inspired sounds are audio feedback only; they do not
+give face cards action powers.

@@ -1,0 +1,20 @@
+{
+    "categories": [],
+    "source_locale": "en",
+    "titles": {
+        "en": "Battle Rules",
+        "vi": "Luật Đấu Trường Chiến Kỹ"
+    },
+    "locales": {
+        "en": {
+            "created": "2026-07-23T00:00:00+00:00",
+            "modified_contents": "2026-07-23T00:00:00+00:00",
+            "public": true
+        },
+        "vi": {
+            "created": "2026-07-23T00:00:00+00:00",
+            "modified_contents": "2026-07-23T00:00:00+00:00",
+            "public": true
+        }
+    }
+}

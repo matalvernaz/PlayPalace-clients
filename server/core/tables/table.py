@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 from mashumaro.mixins.json import DataClassJSONMixin
 
 from server.game_utils.game_status import GameStatus
+from server.games.registry import get_game_class
 
 if TYPE_CHECKING:
     from server.games.base import Game
@@ -159,6 +160,59 @@ class Table(DataClassJSONMixin):
         """Destroy this table. Called by Game.destroy()."""
         if self._manager:
             self._manager.on_table_destroy(self)
+
+    def reset_game(self, *, preserve_scheduled_sounds: bool = True) -> bool:
+        """Replace a finished game with a fresh lobby instance."""
+        old_game = self._game
+        game_class = get_game_class(self.game_type)
+        if not old_game or not game_class:
+            return False
+
+        new_game = game_class()
+        if hasattr(old_game, "options") and hasattr(new_game, "options"):
+            options = old_game.options
+            new_game.options = type(new_game.options).from_dict(options.to_dict())
+
+        new_game._table = self
+        new_game.host = self.host
+        new_game.status = GameStatus.WAITING
+        new_game.setup_keybinds()
+
+        for member in self.members:
+            user = self._users.get(member.username)
+            if not user:
+                continue
+            player = new_game.create_player(user.uuid, member.username, is_bot=False)
+            player.is_spectator = member.is_spectator
+            new_game.players.append(player)
+            new_game.attach_user(player.id, user)
+            new_game.setup_player_actions(player)
+
+        for player in old_game.players:
+            if not player.is_bot or player.replaced_human:
+                continue
+            user = old_game.get_user(player)
+            if not user:
+                continue
+            bot = new_game.create_player(player.id, player.name, is_bot=True)
+            new_game.players.append(bot)
+            new_game.attach_user(bot.id, user)
+            new_game.setup_player_actions(bot)
+
+        if preserve_scheduled_sounds:
+            new_game.scheduled_sounds = list(old_game.scheduled_sounds)
+            new_game.sound_scheduler_tick = old_game.sound_scheduler_tick
+
+        old_game._destroyed = True
+        old_game.clear_scheduled_sounds()
+        old_game.cancel_all_sequences()
+        old_game._users.clear()
+        old_game._table = None
+
+        self._game = new_game
+        self.status = GameStatus.WAITING
+        self.game_json = new_game.to_json()
+        return True
 
     def save_and_close(self, username: str) -> None:
         """Save game state and close table. Called by game save action."""

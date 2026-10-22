@@ -21,12 +21,15 @@ class LifePlayer(Player):
 
     # Path
     path: str = "none"  # "none" | "college" | "career"
-    college_loan: int = 0  # remaining balance
+    college_loan: int = 0  # outstanding principal in $20,000 bank-loan units
 
     # Career
+    career_index: int = -1
     career_key: str = ""  # empty until a career is chosen; see CANONICAL_CAREERS
     career_label_key: str = ""
     salary: int = 0
+    salary_taxes: int = 0
+    salary_card_index: int = -1
 
     # Cash
     cash: int = 0
@@ -35,21 +38,28 @@ class LifePlayer(Player):
     married: bool = False
     children: int = 0
 
+    # House
+    house_key: str = ""
+    house_label_key: str = ""
+    house_price: int = 0
+    house_insurance_cost: int = 0
+
     # Insurance
-    has_fire_insurance: bool = False
+    has_fire_insurance: bool = False  # homeowner's insurance
     has_auto_insurance: bool = False
-    has_life_insurance: bool = False
+    has_life_insurance: bool = False  # legacy serialized field; unused by classic rules
     has_full_insurance: bool = False  # simplified mode
 
     # Stocks
     stock_number: int = 0  # 0 means no stock held
+    extra_stock_numbers: list[int] = field(default_factory=list)
 
     # Life tiles — a list of cash values (hidden from player until reveal).
     life_tile_values: list[int] = field(default_factory=list)
 
     # Pending flow state — these are serializable "what is the player being
     # asked right now?" flags so that mid-turn prompts survive a reload.
-    pending: str = ""  # "" | "path" | "career_pick" | "insurance" | "stock" | "risk_it" | "retirement"
+    pending: str = ""
     pending_options: list[str] = field(default_factory=list)  # serialized options for the pending prompt
     pending_event_key: str = ""  # the space event that triggered the prompt (if any)
 
@@ -62,7 +72,6 @@ class LifePlayer(Player):
         return (
             self.has_fire_insurance
             or self.has_auto_insurance
-            or self.has_life_insurance
             or self.has_full_insurance
         )
 
@@ -75,8 +84,6 @@ class LifePlayer(Player):
             out.append("fire")
         if self.has_auto_insurance:
             out.append("auto")
-        if self.has_life_insurance:
-            out.append("life")
         return out
 
     def covers(self, insurable_type: str) -> bool:
@@ -87,8 +94,6 @@ class LifePlayer(Player):
             return self.has_fire_insurance
         if insurable_type == "auto":
             return self.has_auto_insurance
-        if insurable_type == "life":
-            return self.has_life_insurance
         return False
 
     def set_coverage(self, insurable_type: str) -> bool:
@@ -104,8 +109,28 @@ class LifePlayer(Player):
             self.has_fire_insurance = True
         elif insurable_type == "auto":
             self.has_auto_insurance = True
-        elif insurable_type == "life":
-            self.has_life_insurance = True
         else:
             return False
         return True
+
+    def owned_stock_numbers(self) -> list[int]:
+        numbers = list(self.extra_stock_numbers)
+        if self.stock_number:
+            numbers.insert(0, self.stock_number)
+        return numbers
+
+    def add_stock(self, number: int) -> bool:
+        if number in self.owned_stock_numbers():
+            return False
+        if self.stock_number == 0:
+            self.stock_number = number
+        else:
+            self.extra_stock_numbers.append(number)
+        return True
+
+    def remove_stock(self) -> int:
+        if self.extra_stock_numbers:
+            return self.extra_stock_numbers.pop()
+        number = self.stock_number
+        self.stock_number = 0
+        return number

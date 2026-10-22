@@ -214,3 +214,4 @@ uno-read-hand-value = { $count ->
     [one] { $points } point
    *[other] { $points } points
  }.
+uno-error-play-drawn-card-only = After choosing to draw, you may play only the card you just drew.
