@@ -209,6 +209,28 @@ action-spectator = Spectators cannot do this.
 action-not-host = Only the host can do this.
 action-game-in-progress = Cannot do this while the game is in progress.
 action-need-more-players = Need at least { $min_players } players to start.
+action-start-requires-exact-players = { $required ->
+    [one] This game needs exactly 1 player to start.
+   *[other] This game needs exactly { $required } players to start.
+} { $current ->
+    [one] There is 1 player now.
+   *[other] There are { $current } players now.
+}
+action-start-needs-more-players = { $minimum ->
+    [one] This game needs at least 1 player to start.
+   *[other] This game needs at least { $minimum } players to start.
+} { $current ->
+    [one] There is 1 player now.
+   *[other] There are { $current } players now.
+}
+action-start-has-too-many-players = This game allows at most { $maximum } players. { $current ->
+    [one] There is 1 player now.
+   *[other] There are { $current } players now.
+}
+action-wait = Please wait a moment.
+action-wait-for-hand = Wait until the cards have been dealt.
+action-wait-for-intro = Wait until the round has started.
+unknown-player = Unknown player
 action-table-full = The table is full.
 action-no-bots = There are no bots to remove.
 action-bots-cannot = Bots cannot do this.
