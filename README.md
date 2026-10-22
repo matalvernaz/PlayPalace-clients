@@ -444,4 +444,4 @@ This setup is ideal when you want to observe repeated starts/finishes of one gam
 
 ## License
 
-Licensing is per directory: `server/` is GPL-2.0 (it incorporates code adapted from [PlayAural](https://github.com/Daoductrung/PlayAural)), and everything else — including all clients — is MIT. See the root `LICENSE` file for the breakdown, `server/LICENSE` for the GPL text, and `LICENSE.MIT` for the MIT text.
+Licensing is per directory: `server/` is GPL-3.0-or-later (it incorporates code adapted from [PlayAural](https://github.com/Daoductrung/PlayAural)), and everything else — including all clients — is MIT. See the root `LICENSE` file for the breakdown, `server/LICENSE` for the GPL text, and `LICENSE.MIT` for the MIT text.

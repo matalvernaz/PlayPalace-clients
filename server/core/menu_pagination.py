@@ -1,6 +1,7 @@
 """Reusable helpers for server-owned paginated menus.
 
-Ported from PlayAural (https://github.com/Daoductrung/PlayAural, GPL-2.0).
+Ported from PlayAural (https://github.com/Daoductrung/PlayAural), GPL-2.0 at the
+time; PlayAural is now GPL-3.0-or-later.
 """
 
 from __future__ import annotations

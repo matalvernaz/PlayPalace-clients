@@ -55,6 +55,6 @@ This repo uses Python 3.13+ and `uv` for dependency management.
 - If you change networking or auth flows, update both server and client paths and add tests when possible.
 
 ## Licensing
-- `server/` is GPL-2.0 (see `server/LICENSE`); everything outside `server/` is MIT (see `LICENSE.MIT`). The root `LICENSE` file explains the split.
-- Code adapted from PlayAural (https://github.com/Daoductrung/PlayAural) is GPL-2.0 and may only be added under `server/`.
-- Never move or copy GPL-derived code from `server/` into `clients/` — the iOS client ships through TestFlight/App Store, whose distribution terms conflict with GPL-2.0.
+- `server/` is GPL-3.0-or-later (see `server/LICENSE`); everything outside `server/` is MIT (see `LICENSE.MIT`). The root `LICENSE` file explains the split.
+- Code adapted from PlayAural (https://github.com/Daoductrung/PlayAural) is GPL-3.0-or-later (GPL-2.0 before 2026-10-06) and may only be added under `server/`.
+- Never move or copy GPL-derived code from `server/` into `clients/` — the iOS client ships through TestFlight/App Store, whose distribution terms conflict with the GPL.

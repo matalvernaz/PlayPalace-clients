@@ -1,15 +1,23 @@
 PlayPalace-clients is licensed per directory:
 
-- server/ — GNU General Public License v2.0. See server/LICENSE.
+- server/ — GNU General Public License, version 3 or (at your option)
+  any later version. See server/LICENSE.
   The server incorporates code adapted from PlayAural
-  (https://github.com/Daoductrung/PlayAural), which is GPL-2.0.
+  (https://github.com/Daoductrung/PlayAural), which is licensed
+  GPL-3.0-or-later (GPL-2.0 before 2026-10-06).
   Code inherited from the original MIT-licensed PlayPalace remains
   available under MIT terms (see server/LICENSE.MIT); the server as
-  a combined work is distributed under GPL-2.0.
+  a combined work is distributed under GPL-3.0-or-later.
 
 - Everything outside server/ (clients/, scripts/, packaging/, docs/)
   — MIT License. See LICENSE.MIT.
 
 Do not move GPL-derived code from server/ into clients/. The iOS
 client is distributed through TestFlight and the App Store, whose
-terms conflict with GPL-2.0.
+terms conflict with the GPL.
+
+Third-party content keeps its own license: the Cards Against Humanity
+card text in server/games/humanitycards/ is licensed by its publisher
+under Creative Commons BY-NC-SA, and the third-party sound effects
+added in this fork are credited in
+clients/desktop/sounds/THIRD_PARTY_AUDIO.md.
