@@ -107,10 +107,11 @@ class TestBroadcastPersonalL:
         assert len(u1.spoken_l) == 1
         assert u1.spoken_l[0][0] == "pig-you-rolled"
         assert u1.spoken_l[0][2] == {"value": 5}
-        # Player 2 gets the others message with player kwarg injected
+        # Player 2 gets the others message with player kwarg injected, plus the
+        # gender selector GENDER_TERM reads (neutral, since accounts have no gender)
         assert len(u2.spoken_l) == 1
         assert u2.spoken_l[0][0] == "pig-player-rolled"
-        assert u2.spoken_l[0][2] == {"player": "Alice", "value": 5}
+        assert u2.spoken_l[0][2] == {"player": "Alice", "player_gender": "unspecified", "value": 5}
 
     def test_personal_records_transcript_for_all(self):
         game = DummyGame()

@@ -16,6 +16,23 @@ TRANSIENT_DISPLAY_MENU_ID = "transient_display"
 
 
 @dataclass
+class MenuBuild:
+    """Turn-menu items for one player, returned by ``build_menu_items``.
+
+    ``grid_kwargs`` carries grid layout for ``show_menu``; only the keys our
+    clients understand (``grid_enabled``, ``grid_width``) are forwarded.
+    """
+
+    items: list[MenuItem]
+    grid_kwargs: dict = field(default_factory=dict)
+
+
+# Grid layout keys our show_menu accepts. PlayAural games may also send
+# grid_height, which our clients have no use for.
+_SUPPORTED_GRID_KWARGS = ("grid_enabled", "grid_width")
+
+
+@dataclass
 class StatusBoxBuild:
     """Status-box content with optional grid layout metadata."""
 
@@ -58,6 +75,23 @@ class MenuManagementMixin:
                 label = f"{label}; {unavailable}"
             items.append(MenuItem(text=label, id=resolved.action.id, sound=resolved.sound))
         return items
+
+    def build_menu_items(self, player: "Player", user: "User") -> MenuBuild:
+        """Hook: build the turn-menu items for ``player``.
+
+        Both the full repaint and the in-place update ask this hook, so an
+        override (such as a read-only header row) survives either path. The
+        default is one item per visible action, exactly as before the hook.
+        """
+        return MenuBuild(items=self._build_action_menu_items(player, user))
+
+    def _turn_menu_build(self, player: "Player", user: "User") -> tuple[list[MenuItem], dict]:
+        """Return the hook's items and the grid kwargs our clients support."""
+        build = self.build_menu_items(player, user)
+        grid_kwargs = {
+            key: value for key, value in build.grid_kwargs.items() if key in _SUPPORTED_GRID_KWARGS
+        }
+        return build.items, grid_kwargs
 
     def _get_transient_display_state(self, player: "Player") -> "TransientDisplayState | None":
         """Return the open transient display state for a player, if any."""
@@ -210,7 +244,7 @@ class MenuManagementMixin:
         if not user:
             return
 
-        items = self._build_action_menu_items(player, user)
+        items, grid_kwargs = self._turn_menu_build(player, user)
 
         help_text = None
         if hasattr(self, "get_help_text"):
@@ -233,6 +267,7 @@ class MenuManagementMixin:
             selection_id=selection_id,
             help_text=help_text,
             primary_action_id=primary_action_id,
+            **grid_kwargs,
         )
 
     def rebuild_all_menus(self) -> None:
@@ -303,7 +338,7 @@ class MenuManagementMixin:
         if not user:
             return
 
-        items = self._build_action_menu_items(player, user)
+        items, _grid_kwargs = self._turn_menu_build(player, user)
         user.update_menu(
             "turn_menu", items, selection_id=selection_id, play_selection_sound=play_selection_sound
         )

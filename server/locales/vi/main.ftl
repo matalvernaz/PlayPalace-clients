@@ -419,3 +419,74 @@ menu-page-first = First page
 menu-page-previous = Previous page
 menu-page-next = Next page
 menu-page-last = Last page
+
+# Grammatical forms for GENDER_TERM, from PlayAural's gender-aware localization.
+# Các dạng ngữ pháp dùng chung theo giới tính tài khoản. Trò chơi có thể ghi
+# đè từng dạng bằng <context>-gender-term-<form> khi gọi GENDER_TERM; tên khóa
+# kỹ thuật context và form phải giữ nguyên, không dịch.
+gender-term-subject =
+    { $gender ->
+        [male] anh ấy
+        [female] cô ấy
+       *[other] họ
+    }
+gender-term-subject-capitalized =
+    { $gender ->
+        [male] Anh ấy
+        [female] Cô ấy
+       *[other] Họ
+    }
+gender-term-subject-be =
+    { $gender ->
+        [male] anh ấy
+        [female] cô ấy
+       *[other] họ
+    }
+gender-term-subject-be-capitalized =
+    { $gender ->
+        [male] Anh ấy
+        [female] Cô ấy
+       *[other] Họ
+    }
+gender-term-subject-have =
+    { $gender ->
+        [male] anh ấy có
+        [female] cô ấy có
+       *[other] họ có
+    }
+gender-term-subject-have-capitalized =
+    { $gender ->
+        [male] Anh ấy có
+        [female] Cô ấy có
+       *[other] Họ có
+    }
+gender-term-object =
+    { $gender ->
+        [male] anh ấy
+        [female] cô ấy
+       *[other] họ
+    }
+gender-term-possessive-determiner =
+    { $gender ->
+        [male] của anh ấy
+        [female] của cô ấy
+       *[other] của họ
+    }
+gender-term-possessive-determiner-capitalized =
+    { $gender ->
+        [male] Của anh ấy
+        [female] Của cô ấy
+       *[other] Của họ
+    }
+gender-term-possessive-pronoun =
+    { $gender ->
+        [male] của anh ấy
+        [female] của cô ấy
+       *[other] của họ
+    }
+gender-term-reflexive =
+    { $gender ->
+        [male] chính anh ấy
+        [female] chính cô ấy
+       *[other] chính họ
+    }

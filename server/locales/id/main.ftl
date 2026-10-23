@@ -419,3 +419,73 @@ menu-page-first = First page
 menu-page-previous = Previous page
 menu-page-next = Next page
 menu-page-last = Last page
+
+# Grammatical forms for GENDER_TERM, from PlayAural's gender-aware localization.
+# Shared grammatical forms for account gender. Games may override any form by
+# defining <context>-gender-term-<form> and passing that context to GENDER_TERM.
+gender-term-subject =
+    { $gender ->
+        [male] dia
+        [female] dia
+       *[other] dia
+    }
+gender-term-subject-capitalized =
+    { $gender ->
+        [male] Dia
+        [female] Dia
+       *[other] Dia
+    }
+gender-term-subject-be =
+    { $gender ->
+        [male] dia
+        [female] dia
+       *[other] dia
+    }
+gender-term-subject-be-capitalized =
+    { $gender ->
+        [male] Dia
+        [female] Dia
+       *[other] Dia
+    }
+gender-term-subject-have =
+    { $gender ->
+        [male] dia memiliki
+        [female] dia memiliki
+       *[other] dia memiliki
+    }
+gender-term-subject-have-capitalized =
+    { $gender ->
+        [male] Dia memiliki
+        [female] Dia memiliki
+       *[other] Dia memiliki
+    }
+gender-term-object =
+    { $gender ->
+        [male] dia
+        [female] dia
+       *[other] dia
+    }
+gender-term-possessive-determiner =
+    { $gender ->
+        [male] miliknya
+        [female] miliknya
+       *[other] miliknya
+    }
+gender-term-possessive-determiner-capitalized =
+    { $gender ->
+        [male] Miliknya
+        [female] Miliknya
+       *[other] Miliknya
+    }
+gender-term-possessive-pronoun =
+    { $gender ->
+        [male] miliknya
+        [female] miliknya
+       *[other] miliknya
+    }
+gender-term-reflexive =
+    { $gender ->
+        [male] dirinya sendiri
+        [female] dirinya sendiri
+       *[other] dirinya sendiri
+    }

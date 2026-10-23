@@ -1,9 +1,38 @@
 """Mixin providing sound scheduling, event scheduling, and playback for games."""
 
+import logging
 import random
 
 
 _SOUND_RANDOM = random.Random()
+_LOG = logging.getLogger("playpalace.sound")
+
+# How many numbered variants each sound family has in clients/desktop/sounds.
+# PlayAural's clients pick a variant themselves; ours need a concrete file, so
+# the server picks one. tests/test_sound_families.py checks these counts
+# against the files, so a family must be listed here before a game uses it.
+SOUND_FAMILY_VARIANTS: dict[str, int] = {
+    "game_cards/draw": 4,
+    "game_humanitycards/judgechoice": 3,
+    "game_humanitycards/submit": 2,
+}
+_warned_families: set[str] = set()
+
+
+def resolve_sound_family(family: str) -> str:
+    """Return one concrete sound file for a sound family.
+
+    An unknown family is logged once and played as ``family.ogg``, which
+    keeps a missing registry entry visible in the logs instead of silent.
+    """
+    variant_count = SOUND_FAMILY_VARIANTS.get(family)
+    if variant_count is None:
+        if family not in _warned_families:
+            _warned_families.add(family)
+            _LOG.warning("Unknown sound family %r; add it to SOUND_FAMILY_VARIANTS", family)
+        return f"{family}.ogg"
+    variant = _SOUND_RANDOM.randint(1, variant_count)
+    return f"{family}{variant}.ogg"
 
 from typing import TYPE_CHECKING
 
@@ -184,6 +213,20 @@ class GameSoundMixin:
     def play_sound(self, name: str, volume: int = 100, pan: int = 0, pitch: int = 100) -> None:
         """Alias for broadcast_sound."""
         self.broadcast_sound(name, volume, pan, pitch)
+
+    def broadcast_sound_family(
+        self, family: str, volume: int = 100, pan: int = 0, pitch: int = 100
+    ) -> str:
+        """Play one random variant of a sound family to everyone and return its file."""
+        sound = resolve_sound_family(family)
+        self.broadcast_sound(sound, volume, pan, pitch)
+        return sound
+
+    def play_sound_family(
+        self, family: str, volume: int = 100, pan: int = 0, pitch: int = 100
+    ) -> str:
+        """Alias for broadcast_sound_family."""
+        return self.broadcast_sound_family(family, volume, pan, pitch)
 
     def play_music(self, name: str, looping: bool = True) -> None:
         """Play music for all players and store as current."""

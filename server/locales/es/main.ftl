@@ -419,3 +419,80 @@ menu-page-first = First page
 menu-page-previous = Previous page
 menu-page-next = Next page
 menu-page-last = Last page
+
+# Grammatical forms for GENDER_TERM, from PlayAural's gender-aware localization.
+# Formas gramaticales compartidas para el género de la cuenta. Los juegos
+# pueden sustituir una forma mediante <context>-gender-term-<form> al llamar a
+# GENDER_TERM; los nombres técnicos context y form no deben traducirse.
+# Sujeto opcional. Incluye el espacio final: "él ", "ella " o nada. Escribe el
+# mensaje pegado al verbo ("así que { GENDER_TERM(...) }intercambia"). Sin género
+# definido (también los bots) el sujeto se omite, como es natural en español.
+gender-term-subject =
+    { $gender ->
+        [male] { "él " }
+        [female] { "ella " }
+       *[other] { "" }
+    }
+gender-term-subject-capitalized =
+    { $gender ->
+        [male] Él
+        [female] Ella
+       *[other] Esa persona
+    }
+gender-term-subject-be =
+    { $gender ->
+        [male] él está
+        [female] ella está
+       *[other] está
+    }
+gender-term-subject-be-capitalized =
+    { $gender ->
+        [male] Él está
+        [female] Ella está
+       *[other] Está
+    }
+gender-term-subject-have =
+    { $gender ->
+        [male] él tiene
+        [female] ella tiene
+       *[other] tiene
+    }
+gender-term-subject-have-capitalized =
+    { $gender ->
+        [male] Él tiene
+        [female] Ella tiene
+       *[other] Tiene
+    }
+# Pronombre átono de objeto: "lo", "la" o "le" (sin género definido, también los
+# bots). Va delante del verbo ("{ GENDER_TERM(...) } deja") o pegado al gerundio,
+# infinitivo o imperativo ("dejándo{ GENDER_TERM(...) }"). No se escribe tras "a".
+gender-term-object =
+    { $gender ->
+        [male] lo
+        [female] la
+       *[other] le
+    }
+gender-term-possessive-determiner =
+    { $gender ->
+        [male] su
+        [female] su
+       *[other] su
+    }
+gender-term-possessive-determiner-capitalized =
+    { $gender ->
+        [male] Su
+        [female] Su
+       *[other] Su
+    }
+gender-term-possessive-pronoun =
+    { $gender ->
+        [male] el suyo
+        [female] el suyo
+       *[other] el suyo
+    }
+gender-term-reflexive =
+    { $gender ->
+        [male] a sí mismo
+        [female] a sí misma
+       *[other] a sí
+    }

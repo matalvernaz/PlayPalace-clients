@@ -194,11 +194,27 @@ class EventHandlingMixin:
                             user.speak_l(resolved.disabled_reason)
             return
 
+        if selection_id:
+            # An id that names no action is a read-only row (such as the Card
+            # Czar's prompt header) or a row from a menu that has since changed.
+            # Running whatever action now sits at its position would be wrong.
+            return
+
+        # A position alone counts rows as the menu shows them, read-only rows
+        # included, so resolve it against those rows rather than the actions.
         selection = event.get("selection", 1) - 1
-        visible = self.get_all_visible_actions(player)
-        if 0 <= selection < len(visible):
-            resolved = visible[selection]
-            self.execute_action(player, resolved.action.id)
+        user = self.get_user(player)
+        turn_menu_build = getattr(self, "_turn_menu_build", None)
+        if user is not None and turn_menu_build is not None:
+            rows, _grid_kwargs = turn_menu_build(player, user)
+            row_ids = [row.id for row in rows]
+        else:
+            row_ids = [resolved.action.id for resolved in self.get_all_visible_actions(player)]
+        if 0 <= selection < len(row_ids):
+            action_id = row_ids[selection]
+            if not action_id or not self.find_action(player, action_id):
+                return
+            self.execute_action(player, action_id)
             if player.id not in self._pending_actions:
                 self.rebuild_all_menus()
 
@@ -319,7 +335,11 @@ class EventHandlingMixin:
                         if resolved.disabled_reason != "action-not-available":
                             user = self.get_user(player)
                             if user:
-                                user.speak_l(resolved.disabled_reason)
+                                if isinstance(resolved.disabled_reason, tuple):
+                                    key, kwargs = resolved.disabled_reason
+                                    user.speak_l(key, **kwargs)
+                                else:
+                                    user.speak_l(resolved.disabled_reason)
         return executed_any
 
     def _should_rebuild_after_keybind(self, player: "Player", executed_any: bool) -> bool:

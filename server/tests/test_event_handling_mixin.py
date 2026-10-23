@@ -259,6 +259,37 @@ def test_turn_menu_selection_by_index_fallback():
     assert game.rebuild_all_calls == 1
 
 
+def test_turn_menu_selection_with_an_id_that_names_no_action_runs_nothing():
+    game = DummyGame()
+    player = make_player("p3")
+    defend = DummyResolved(DummyAction("defend"), enabled=True)
+    game.set_visible_actions([defend])
+    game.register_action("defend")
+
+    # A read-only row sits where "defend" would be if positions counted actions.
+    game.handle_event(
+        player,
+        {"type": "menu", "menu_id": "turn_menu", "selection": 1, "selection_id": "prompt_header"},
+    )
+
+    assert game.executed == []
+    assert game.rebuild_all_calls == 0
+
+
+def test_keybind_speaks_a_disabled_reason_that_has_arguments():
+    game = DummyGame()
+    player = make_player()
+    user = DummyUser()
+    game._users[player.id] = user
+    game._keybinds["space"] = [DummyKeybind(["submit"])]
+    game.register_action("submit", enabled=False, disabled_reason=("pick-more-cards", {"count": 2}))
+
+    game.handle_event(player, {"type": "keybind", "key": "SPACE"})
+
+    assert user.spoken == ["pick-more-cards"]
+    assert game.executed == []
+
+
 def test_action_input_menu_executes_and_clears_pending():
     game = DummyGame()
     player = make_player()

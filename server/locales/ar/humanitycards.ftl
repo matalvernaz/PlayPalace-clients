@@ -1,109 +1,160 @@
-# Humanity Cards - English localization
+# Humanity Cards - Arabic localization
 
-# Options
-hc-set-winning-score = Winning score: { $score }
-hc-enter-winning-score = Enter winning score:
-hc-option-changed-winning-score = Winning score set to { $score }.
+game-name-humanitycards = بطاقات ضد الإنسانية
 
-hc-set-hand-size = Hand size: { $count }
-hc-enter-hand-size = Enter hand size:
-hc-option-changed-hand-size = Hand size set to { $count }.
+# الخيارات
+hc-set-winning-score = النتيجة الفائزة: { $score }
+hc-enter-winning-score = أدخل النتيجة الفائزة:
+hc-option-changed-winning-score = تم ضبط النتيجة الفائزة على { $score }.
+hc-desc-winning-score = عدد البطاقات الفائزة التي يحتاج اللاعب إلى جمعها للفوز بالمباراة (الافتراضي 7، النطاق 3-20).
 
-hc-set-card-packs = Card packs ({ $count } of { $total } selected)
-hc-option-changed-card-packs = Card pack selection changed.
+hc-set-hand-size = حجم اليد: { $count }
+hc-enter-hand-size = أدخل حجم اليد:
+hc-option-changed-hand-size = تم ضبط حجم اليد على { $count }.
+hc-desc-hand-size = عدد بطاقات الإجابة التي يحملها كل لاعب بعد كل إعادة تعبئة. اليد الأكبر تمنح خيارات أكثر لكنها تجعل الجولات أطول (الافتراضي 10، النطاق 5-15).
 
-hc-set-czar-selection = Card Czar selection: { $mode }
-hc-select-czar-selection = Select Card Czar selection mode
-hc-option-changed-czar-selection = Card Czar selection set to { $mode }.
+hc-set-card-language = لغة البطاقات: { $language }
+hc-select-card-language = اختر لغة البطاقات
+hc-option-changed-card-language = تم ضبط لغة البطاقات على { $language }.
+hc-desc-card-language = تحدد لغة كل بطاقة محفِّز وإجابة في المباراة. هذا مستقل عن لغة واجهة كل لاعب (الافتراضي الإنجليزية؛ الخيارات: الإنجليزية والإسبانية والبرتغالية البرازيلية).
+hc-card-language-pt-br = البرتغالية البرازيلية
+hc-card-blank = فارغة
+hc-card-same-again = البطاقة نفسها مرة أخرى
 
-hc-set-num-judges = Number of judges: { $count }
-hc-enter-num-judges = Enter number of judges:
-hc-option-changed-num-judges = Number of judges set to { $count }.
+hc-set-card-packs = حزم البطاقات ({ $count } من { $total } محددة)
+hc-option-changed-card-packs = تم تغيير اختيار حزم البطاقات.
+hc-desc-card-packs = اختر حزم الإجابات والمحفِّزات الإنجليزية التي تُخلط في اللعبة. البطاقات المكررة تمامًا من الحزم المتداخلة تُدرج مرة واحدة فقط. يجب أن تبقى حزمة واحدة على الأقل محددة.
+hc-pack-group-current = مجموعة الأوراق الأمريكية الرئيسية الحالية
+hc-pack-group-main-decks = إصدارات المجموعة الرئيسية
+hc-pack-group-official-add-ons = التوسعات والحزم الرسمية
+hc-pack-group-family = إصدار العائلة
+hc-pack-group-community = حزم المجتمع
+hc-pack-group-all = كل الحزم
 
-hc-czar-rotating = Rotating
-hc-czar-random = Random
-hc-czar-winner = Most Recent Winner
+hc-set-czar-selection = اختيار الحَكَم: { $mode }
+hc-select-czar-selection = اختر وضع اختيار الحَكَم
+hc-option-changed-czar-selection = تم ضبط اختيار الحَكَم على { $mode }.
+hc-desc-czar-selection = يتحكم في من يحكم كل جولة: بالتناوب حسب ترتيب الجلوس، أو بالاختيار العشوائي، أو الفائز بالجولة الأخيرة.
 
-# Game flow
-hc-game-starting = Shuffling the decks...
-hc-dealing-cards = Dealing { $count } cards to each player.
-hc-round-start = Round { $round }.
+hc-set-num-judges = عدد الحُكَّام: { $count }
+hc-enter-num-judges = أدخل عدد الحُكَّام:
+hc-option-changed-num-judges = تم ضبط عدد الحُكَّام على { $count }.
+hc-desc-num-judges = كم عدد الحُكَّام الذين يحكمون كل جولة. يجب أن يكون العدد أقل من عدد اللاعبين كي يتمكن لاعب واحد غير حَكَم على الأقل من التقديم؛ مع تعدد الحُكَّام، يمكن لأي حَكَم اختيار الفائز (الافتراضي 1، النطاق 1-3).
 
-# Judge announcement
-hc-judge-is = { $count ->
-    [one] { $names } هو قيصر البطاقات.
-   *[other] { $names } هم قياصرة البطاقات.
-}
-hc-you-are-judge = You are the Card Czar this round.
-hc-you-are-not-judge = You are not the Card Czar this round.
+hc-czar-rotating = بالتناوب
+hc-czar-random = عشوائي
+hc-czar-winner = الفائز الأحدث
 
-# Black card
-hc-black-card = The prompt is: { $text }
-hc-black-card-pick = Pick { $count }.
-hc-view-black-card = View the question card
+# سير اللعبة
+hc-game-starting = جارٍ خلط مجموعات الأوراق...
+hc-dealing-cards = توزيع { $count } بطاقة لكل لاعب.
+hc-round-start = الجولة { $round }.
 
-# Submission phase
-hc-select-cards = Select { $count } { $count ->
-    [one] card
-   *[other] cards
-} from your hand.
-hc-card-selected = { $text }, selected
-hc-card-not-selected = { $text }
-hc-submit-cards = Submit ({ $selected } of { $required } selected)
-hc-submitted = You submitted your cards.
-hc-player-submitted = { $player } submitted.
-hc-submission-progress = { $submitted } of { $total } players submitted.
-hc-waiting-for-submissions = Waiting for submissions...
-hc-already-submitted = You already submitted your cards.
-hc-wrong-card-count = You need to select exactly { $count } { $count ->
-    [one] card
-   *[other] cards
+# إعلان الحَكَم
+hc-judge-is = { $judges } { $count ->
+    [1] هو الحَكَم
+   *[other] هم الحُكَّام
 }.
+hc-you-are-judge = أنت الحَكَم في هذه الجولة.
+hc-you-and-others-are-judges = أنت و{ $judges } الحُكَّام في هذه الجولة.
 
-# Judging phase
-hc-judging-start = All cards are in! Time to judge.
-hc-select-winner-prompt = Select the winning submission
-hc-submission-option = { $text }
+# البطاقة السوداء
+hc-black-card = المحفِّز هو: { $text }
+hc-black-card-draw = اسحب أولًا { $count } { $count ->
+    [one] بطاقة
+   *[other] بطاقات
+} إضافية.
+hc-black-card-pick = اختر { $count }.
+hc-view-black-card = عرض بطاقة السؤال
+hc-no-question-card = لا توجد بطاقة سؤال نشطة الآن.
 
-# Results
-hc-winner-announcement = يحصل { $player } على { $points } { $points ->
+# مرحلة التقديم
+hc-select-cards = اختر { $count } { $count ->
+    [one] بطاقة
+   *[other] بطاقات
+} من يدك.
+hc-card-selected = { $text }، محددة
+hc-card-selected-position = { $text }، محددة كإجابة { $position }
+hc-card-not-selected = { $text }
+hc-submit-cards = تقديم ({ $selected } من { $required } محددة)
+hc-submission-progress = قدّم { $submitted } من { $total } لاعبين.
+hc-already-submitted = لقد قدّمت بطاقاتك بالفعل.
+hc-you-submitted = قدّمت بطاقاتك.
+hc-player-submitted = قدّم { $player } البطاقات { GENDER_TERM($player_gender, "possessive-determiner") }.
+hc-judge-cannot-submit = أنت الحَكَم في هذه الجولة، لذا لا يمكنك تقديم إجابة.
+hc-not-submission-phase = يمكنك اختيار البطاقات البيضاء وتقديمها فقط أثناء مرحلة التقديم.
+hc-card-not-in-hand = خانة البطاقة تلك ليست في يدك.
+hc-judge-has-no-submission = ليس لدى الحَكَم تقديم لمعاينته في هذه الجولة.
+hc-no-submission-active = لا يوجد تقديم نشط لمعاينته الآن.
+hc-wrong-card-count = يجب أن تختار { $count } { $count ->
+    [one] بطاقة
+   *[other] بطاقات
+} بالضبط.
+hc-selection-full = لقد اخترت { $count } { $count ->
+    [one] بطاقة
+   *[other] بطاقات
+} بالفعل. ألغِ تحديد واحدة قبل اختيار أخرى.
+
+# مرحلة الحكم
+hc-judging-start = وصلت كل البطاقات! حان وقت الحكم.
+hc-choose-best-card = اختر أفضل بطاقة
+hc-choose-best-card-for = اختر أفضل بطاقة تناسب: { $prompt }
+hc-card-number = البطاقة { $number }
+hc-submission-number = التقديم { $number }
+hc-only-judges-pick = الحَكَم وحده يمكنه اختيار التقديم الفائز.
+hc-not-judging-phase = يمكنك اختيار تقديم فائز فقط أثناء مرحلة الحكم.
+hc-submission-not-available = لم يعد ذلك التقديم متاحًا.
+
+# النتائج
+hc-you-win-round = تفوز بالجولة! نتيجتك الآن { $score }.
+hc-player-wins-round = يفوز { $player } بالجولة! النتيجة: { $score }.
+hc-score-line = { $player }: { $score } { $score ->
     [one] نقطة
    *[other] نقاط
-} عن { $text }.
-hc-winner-card = Winning answer: { $text }
-hc-round-scores = Scores after round { $round }:
-hc-score-line = { $player }: { $score } { $score ->
-    [one] point
-   *[other] points
 }
-hc-all-submissions = Other submissions:
-hc-submission-reveal = { $player }: { $text }
+hc-final-score-line = { $rank }. { $player }: { $score } { $score ->
+    [one] نقطة
+   *[other] نقاط
+}
+hc-all-submissions = تقديمات أخرى:
+hc-your-winning-answer = إجابتك الفائزة: { $text }
+hc-winning-answer-player = إجابة { $player } الفائزة: { $text }
+hc-your-other-submission = تقديمك الآخر: { $text }
+hc-other-submission-player = { $player }: { $text }
 
-# View
-hc-preview-submission = Preview your submission
-hc-view-submission = View your submission
-hc-preview-submission-text = Preview: { $text }
-hc-your-submission = Your submission: { $text }
-hc-select-cards-first = Select at least 1 card first.
+# العرض
+hc-preview-submission = عاين تقديمك
+hc-view-submission = عرض تقديمك
+hc-preview-submission-text = معاينة: { $text }
+hc-your-submission = تقديمك: { $text }
+hc-select-cards-first = اختر بطاقة واحدة على الأقل أولًا.
+hc-review-hand = راجع يدك
+hc-hand-empty = يدك فارغة.
+hc-hand-card = { $number }. { $text }
+hc-hand-card-selected = { $number }. { $text }، محددة كإجابة { $position }
+hc-review-answers = راجع الإجابات
+hc-answer-line = الإجابة { $number }: { $text }
+hc-no-answers-to-review = لا توجد إجابات للمراجعة الآن.
 
-# Win
-hc-game-winner = { $player } wins with { $score } points!
-hc-you-win = You win with { $score } points!
+# الفوز
+hc-game-winner = يفوز { $player } بـ { $score } نقطة!
+hc-you-win = تفوز بـ { $score } نقطة!
 
-# Deck management
-hc-deck-reshuffled = White card discard pile reshuffled into the deck.
-hc-black-deck-reshuffled = Black card discard pile reshuffled into the deck.
-hc-not-enough-cards = Not enough cards. Try enabling more packs.
+# إدارة مجموعة الأوراق
+hc-deck-reshuffled = أُعيد خلط كومة رمي البطاقات البيضاء في المجموعة.
+hc-black-deck-reshuffled = أُعيد خلط كومة رمي البطاقات السوداء في المجموعة.
+hc-not-enough-cards = لا توجد بطاقات كافية. جرّب تفعيل حزم أكثر.
+hc-error-too-many-judges = يتطلب { $judges } حُكَّام { $required } لاعبين على الأقل، لكن هذه الطاولة بها { $players }. قلّل عدد الحُكَّام أو أضف لاعبين.
+hc-error-no-valid-packs = لم تُحدَّد أي حزمة بطاقات صالحة. حدد حزمة واحدة على الأقل قبل البدء.
+hc-error-no-black-cards = لا تحتوي حزم البطاقات المحددة على أي بطاقات محفِّز سوداء. اختر حزمة أخرى قبل البدء.
+hc-error-not-enough-white-cards = يحتاج { $players } لاعبين بحجم يد { $hand_size } إلى { $needed } بطاقة بيضاء على الأقل، لكن الحزم المحددة توفر { $available } فقط. فعّل حزمًا أكثر أو قلّل حجم اليد.
+hc-error-pick-exceeds-hand-size = تتضمن الحزم المحددة محفِّزًا يتطلب { $pick } إجابات، لكن حجم اليد { $hand_size } فقط. زِد حجم اليد أو اختر حزمًا مختلفة.
 
-# Hand management
-hc-view-hand = View hand
+# إدارة اليد
+hc-toggle-card-keybind = تبديل البطاقة { $number }
+hc-submit-cards-keybind = تقديم البطاقات
 
-# Scores
-hc-view-scores = View scores
-hc-no-scores = No scores yet.
-
-# Whose turn / whose judge
-hc-whose-judge = Who is judging
-hc-waiting-for = بانتظار { $names } لتقديم الإجابة.
-hc-all-submitted-waiting-judge = قدّم جميع اللاعبين إجاباتهم. بانتظار { $judge } للحكم.
-hc-waiting-for-judges = بانتظار { $names } ليحكموا.
+# دور من / حَكَم من
+hc-whose-judge = من يحكم
+hc-waiting-for = بانتظار تقديم { $names }.
+hc-all-submitted-waiting-judge = قدّم كل اللاعبين. بانتظار حكم { $judge }.

@@ -9,9 +9,12 @@ Provides a structured way to capture game results, enabling:
 
 from dataclasses import dataclass, field
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from mashumaro.mixins.json import DataClassJSONMixin
+
+if TYPE_CHECKING:
+    from ..games.base import Player
 
 
 @dataclass
@@ -29,6 +32,20 @@ class PlayerResult(DataClassJSONMixin):
     player_name: str
     is_bot: bool
     is_virtual_bot: bool = False  # True for server-level virtual bots (include in stats)
+
+    @classmethod
+    def from_player(cls, player: "Player") -> "PlayerResult":
+        """Snapshot one seat for the result, as PlayAural's games expect.
+
+        A disconnected human's replacement bot still owns that account's seat,
+        so it counts as human here; dedicated bots stay bots.
+        """
+        return cls(
+            player_id=player.id,
+            player_name=player.name,
+            is_bot=player.is_bot and not player.replaced_human,
+            is_virtual_bot=getattr(player, "is_virtual_bot", False),
+        )
 
 
 @dataclass

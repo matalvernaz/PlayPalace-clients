@@ -4,6 +4,7 @@ import hashlib
 import json
 import logging
 import os
+import re
 import sys
 from pathlib import Path
 
@@ -12,8 +13,33 @@ from fluent_compiler.bundle import FluentBundle
 from fluent_compiler.compiler import compile_messages
 from fluent_compiler.resource import FtlResource
 
+from ..gender import normalize_gender
+
 
 LOG = logging.getLogger("playpalace.localization")
+
+# Grammatical forms GENDER_TERM can render, ported with PlayAural's
+# gender-aware localization. Each form is a gender-term-<form> message that
+# selects on $gender (male, female, non-binary, unspecified).
+GENDER_TERM_FORMS = frozenset(
+    {
+        "subject",
+        "subject-capitalized",
+        "subject-be",
+        "subject-be-capitalized",
+        "subject-have",
+        "subject-have-capitalized",
+        "object",
+        "possessive-determiner",
+        "possessive-determiner-capitalized",
+        "possessive-pronoun",
+        "reflexive",
+    }
+)
+GENDER_TERM_CONTEXT_MAX_LENGTH = 64
+GENDER_TERM_CONTEXT_PATTERN = re.compile(
+    rf"[a-z][a-z0-9-]{{0,{GENDER_TERM_CONTEXT_MAX_LENGTH - 1}}}\Z"
+)
 
 
 class Localization:
@@ -112,6 +138,12 @@ class Localization:
 
         locale_dir = cls._locales_dir / locale
         actual_locale = locale
+        base_language = locale.replace("_", "-").split("-")[0]
+        if not locale_dir.exists() and base_language != locale and (cls._locales_dir / base_language).exists():
+            # A regional tag such as pt-BR uses its language's bundle, compiled once.
+            bundle = cls._get_bundle(base_language)
+            cls._bundles[locale] = bundle
+            return bundle
         if not locale_dir.exists():
             # Fall back to English
             locale_dir = cls._locales_dir / "en"
@@ -199,7 +231,15 @@ class Localization:
     ) -> FluentBundle:
         """Compile locale files and persist cache entry."""
         resources = [FtlResource.from_string(text) for text in payloads]
-        compiled = compile_messages(actual_locale, resources)
+        compiled = compile_messages(
+            actual_locale,
+            resources,
+            functions={
+                "GENDER_TERM": lambda gender, form, context="": cls._format_gender_term(
+                    actual_locale, gender, form, context
+                )
+            },
+        )
         bundle = object.__new__(FluentBundle)
         bundle.locale = actual_locale
         bundle._compiled_messages = compiled.message_functions
@@ -251,6 +291,38 @@ class Localization:
                 cached.unlink()
             except OSError:
                 pass
+
+    @classmethod
+    def _format_gender_term(cls, locale: str, gender: object, form: object, context: object = "") -> str:
+        """Render one grammatical form of a gender for GENDER_TERM.
+
+        A game may define <context>-gender-term-<form> and pass that context;
+        a missing contextual form falls back to the shared gender-term-<form>.
+        The listener's locale is tried first, then English, so a sentence stays
+        in one language whenever the shared form is translated.
+        """
+        normalized_form = str(form).strip().lower()
+        if normalized_form not in GENDER_TERM_FORMS:
+            normalized_form = "subject"
+        normalized_context = str(context).strip().lower()
+        if not GENDER_TERM_CONTEXT_PATTERN.fullmatch(normalized_context):
+            normalized_context = ""
+        message_ids = []
+        if normalized_context:
+            message_ids.append(f"{normalized_context}-gender-term-{normalized_form}")
+        message_ids.append(f"gender-term-{normalized_form}")
+        locale_order = [locale] if locale == "en" else [locale, "en"]
+        kwargs = {"gender": normalize_gender(gender).selector}
+        for candidate_locale in locale_order:
+            bundle = cls._get_bundle(candidate_locale)
+            for message_id in message_ids:
+                if message_id not in bundle._compiled_messages:
+                    continue
+                result, _errors = bundle.format(message_id, kwargs)
+                for char in cls._BIDI_CHARS:
+                    result = result.replace(char, "")
+                return result
+        return ""
 
     # Unicode bidi isolation characters that Fluent adds around variables
     _BIDI_CHARS = "\u2068\u2069"  # FIRST STRONG ISOLATE, POP DIRECTIONAL ISOLATE

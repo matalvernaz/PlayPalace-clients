@@ -360,3 +360,74 @@ menu-page-first = First page
 menu-page-previous = Previous page
 menu-page-next = Next page
 menu-page-last = Last page
+
+# Grammatical forms for GENDER_TERM, from PlayAural's gender-aware localization.
+# Formas gramaticais compartilhadas para o gênero da conta. Os jogos podem
+# substituir uma forma por <context>-gender-term-<form> ao chamar GENDER_TERM;
+# os nomes técnicos context e form devem permanecer inalterados.
+gender-term-subject =
+    { $gender ->
+        [male] ele
+        [female] ela
+       *[other] essa pessoa
+    }
+gender-term-subject-capitalized =
+    { $gender ->
+        [male] Ele
+        [female] Ela
+       *[other] Essa pessoa
+    }
+gender-term-subject-be =
+    { $gender ->
+        [male] ele está
+        [female] ela está
+       *[other] essa pessoa está
+    }
+gender-term-subject-be-capitalized =
+    { $gender ->
+        [male] Ele está
+        [female] Ela está
+       *[other] Essa pessoa está
+    }
+gender-term-subject-have =
+    { $gender ->
+        [male] ele tem
+        [female] ela tem
+       *[other] essa pessoa tem
+    }
+gender-term-subject-have-capitalized =
+    { $gender ->
+        [male] Ele tem
+        [female] Ela tem
+       *[other] Essa pessoa tem
+    }
+gender-term-object =
+    { $gender ->
+        [male] ele
+        [female] ela
+       *[other] essa pessoa
+    }
+gender-term-possessive-determiner =
+    { $gender ->
+        [male] dele
+        [female] dela
+       *[other] dessa pessoa
+    }
+gender-term-possessive-determiner-capitalized =
+    { $gender ->
+        [male] Dele
+        [female] Dela
+       *[other] Dessa pessoa
+    }
+gender-term-possessive-pronoun =
+    { $gender ->
+        [male] o dele
+        [female] o dela
+       *[other] o dessa pessoa
+    }
+gender-term-reflexive =
+    { $gender ->
+        [male] a si mesmo
+        [female] a si mesma
+       *[other] a si
+    }

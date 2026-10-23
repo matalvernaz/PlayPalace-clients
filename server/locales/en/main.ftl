@@ -664,3 +664,73 @@ menu-page-first = First page
 menu-page-previous = Previous page
 menu-page-next = Next page
 menu-page-last = Last page
+
+# Grammatical forms for GENDER_TERM, from PlayAural's gender-aware localization.
+# Shared grammatical forms for account gender. Games may override any form by
+# defining <context>-gender-term-<form> and passing that context to GENDER_TERM.
+gender-term-subject =
+    { $gender ->
+        [male] he
+        [female] she
+       *[other] they
+    }
+gender-term-subject-capitalized =
+    { $gender ->
+        [male] He
+        [female] She
+       *[other] They
+    }
+gender-term-subject-be =
+    { $gender ->
+        [male] he is
+        [female] she is
+       *[other] they are
+    }
+gender-term-subject-be-capitalized =
+    { $gender ->
+        [male] He is
+        [female] She is
+       *[other] They are
+    }
+gender-term-subject-have =
+    { $gender ->
+        [male] he has
+        [female] she has
+       *[other] they have
+    }
+gender-term-subject-have-capitalized =
+    { $gender ->
+        [male] He has
+        [female] She has
+       *[other] They have
+    }
+gender-term-object =
+    { $gender ->
+        [male] him
+        [female] her
+       *[other] them
+    }
+gender-term-possessive-determiner =
+    { $gender ->
+        [male] his
+        [female] her
+       *[other] their
+    }
+gender-term-possessive-determiner-capitalized =
+    { $gender ->
+        [male] His
+        [female] Her
+       *[other] Their
+    }
+gender-term-possessive-pronoun =
+    { $gender ->
+        [male] his
+        [female] hers
+       *[other] theirs
+    }
+gender-term-reflexive =
+    { $gender ->
+        [male] himself
+        [female] herself
+       *[other] themself
+    }
