@@ -1054,7 +1054,13 @@ final class MainViewModel: ObservableObject, WebSocketDelegate {
         editReadOnly = readOnly
         editCallback = callback
         isEditMode = true
-        speechManager.speakAnnouncement(prompt)
+        // The edit field's accessibility label carries the prompt, so a
+        // screen reader announces it when focus lands on the field —
+        // announcing it here too read the prompt twice. Self-voicing users
+        // still need it spoken; forceSelfVoicing is cleared first so the
+        // transition guard sees the screen reader as the speech owner.
+        speechManager.forceSelfVoicing = false
+        speechManager.speakTransition(prompt)
     }
 
     func submitEdit() {

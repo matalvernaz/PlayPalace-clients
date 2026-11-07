@@ -278,7 +278,10 @@ final class SpeechManager: NSObject, ObservableObject {
 
         let voOn = isVoiceOverRunning
         let useVOPath = voOn && !forceSelfVoicing
-        speechLog.debug("enqueue voOn=\(voOn, privacy: .public) forceSelfVoicing=\(self.forceSelfVoicing, privacy: .public) channel=\(String(describing: channel), privacy: .public) interrupting=\(interrupting, privacy: .public) text=\(text, privacy: .public)")
+        // .notice so speech-routing decisions persist in the device log
+        // archive — the forceSelfVoicing value here discriminates the
+        // "gestures work but responses are silent" failure after the fact.
+        speechLog.notice("enqueue voOn=\(voOn, privacy: .public) forceSelfVoicing=\(self.forceSelfVoicing, privacy: .public) channel=\(String(describing: channel), privacy: .public) interrupting=\(interrupting, privacy: .public) text=\(text, privacy: .public)")
         if useVOPath {
             postVoiceOverAnnouncement(text, channel: channel, interrupting: interrupting)
         } else {
