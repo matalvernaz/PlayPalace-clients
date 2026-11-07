@@ -24,7 +24,7 @@ def test_localization_get_returns_the_id_and_logs_a_missing_key(caplog):
 
     localization_logging.install()
     fake_id = "nonexistent-message-id-xyz-test-only"
-    with caplog.at_level(logging.WARNING, logger="playpalace.localization"):
+    with caplog.at_level(logging.ERROR, logger="playpalace.localization"):
         result = Localization.get("en", fake_id)
         Localization.get("en", fake_id)
     assert result == fake_id
@@ -38,7 +38,7 @@ def test_localization_get_logs_fluent_format_errors(caplog):
     localization_logging.install()
     localization_logging._already_logged.clear()
     # game-player-skipped uses $player — omitting it triggers a Fluent format error
-    with caplog.at_level(logging.WARNING, logger="playpalace.localization"):
+    with caplog.at_level(logging.ERROR, logger="playpalace.localization"):
         result = Localization.get("en", "game-player-skipped")
         Localization.get("en", "game-player-skipped")
     # Should still return *something* (Fluent partial result), not crash

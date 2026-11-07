@@ -72,7 +72,6 @@ class NetworkUser(User):
         # Supplies the iOS app's turn-menu extras (rules text, primary
         # action) from the user's current game; set by the server.
         self.turn_menu_extras: Any = None
-        self._last_help_text_sent: str | None = None
         self._connected_at: float = time.time()
         self._client_type: str = client_type
         self._platform: str = ""
@@ -137,9 +136,9 @@ class NetworkUser(User):
         return self._connection
 
     def set_connection(self, connection: "ClientConnection") -> None:
+        """Update the active client connection."""
         # A fresh socket has no UI; the next menu paint must go out in full.
         self._last_menu_packet_id = None
-        """Update the active client connection."""
         self._connection = connection
 
     @property

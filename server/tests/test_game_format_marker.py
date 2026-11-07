@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import sqlite3
 from types import SimpleNamespace
 
@@ -79,13 +80,16 @@ def server_on(database: Database, tmp_path) -> Server:
 # Startup restore of live tables.
 
 
-def test_startup_retires_a_table_saved_by_the_old_engine(tmp_path):
+def test_startup_retires_a_table_saved_by_the_old_engine(tmp_path, caplog):
     database = make_db(tmp_path)
     insert_live_row(database, "old1", OLD_ENGINE_PIG, "")
     srv = server_on(database, tmp_path)
 
-    srv._load_tables()
+    # The server's log keeps only errors, so a retirement must be one to be seen.
+    with caplog.at_level(logging.ERROR, logger="playpalace.server"):
+        srv._load_tables()
 
+    assert any("Retiring table old1" in record.message for record in caplog.records)
     assert srv._tables.get_table("old1") is None
     assert row_counts(database, "old1") == (0, 1)
     reason = database._get_conn().execute("SELECT reason FROM retired_tables WHERE table_id = 'old1'").fetchone()[0]

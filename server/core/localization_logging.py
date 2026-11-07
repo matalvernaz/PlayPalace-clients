@@ -23,7 +23,9 @@ def _log_once(key: tuple, message: str, *args) -> None:
     if key in _already_logged:
         return
     _already_logged.add(key)
-    LOG.warning(message, *args)
+    # Error level: the server's log only keeps errors, and these are bugs a
+    # player hears as raw ids.
+    LOG.error(message, *args)
 
 
 def install() -> None:

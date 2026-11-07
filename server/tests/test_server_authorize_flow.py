@@ -151,3 +151,43 @@ def test_sanitize_credentials_handles_none():
     username, password = Server._sanitize_credentials(None, None)
     assert username == ""
     assert password == ""
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("client_type, expects_extras", [("mobile", True), ("macos", False), ("Desktop", False), ("Web", False), ("", False)])
+async def test_only_the_ios_app_gets_turn_menu_extras(server, client_type, expects_extras):
+    """Stock clients run from source drop menus with help_text or primary_action_id."""
+    client = DummyClient()
+    server._auth.sessions["token"] = "alice"
+
+    await server._handle_authorize(
+        client,
+        {"type": "authorize", "session_token": "token", "username": "alice", "client_type": client_type},
+    )
+
+    user = server._users["alice"]
+    assert (user.turn_menu_extras is not None) is expects_extras
+
+
+class ClosableClient(DummyClient):
+    async def close(self):
+        self.closed = True
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("first, second, expects_extras", [("mobile", "Desktop", False), ("Desktop", "mobile", True)])
+async def test_signing_in_from_another_app_updates_turn_menu_extras(server, first, second, expects_extras):
+    """A second sign-in takes over the same session; the extras follow the new app, not the old one."""
+    server._auth.sessions["token"] = "alice"
+    signed_in = []
+    for client_type in (first, second):
+        await server._handle_authorize(
+            ClosableClient(),
+            {"type": "authorize", "session_token": "token", "username": "alice", "client_type": client_type},
+        )
+        signed_in.append(server._users["alice"])
+
+    user = signed_in[-1]
+    assert user is signed_in[0], "the second sign-in should take over the first session"
+    assert user.client_type == second
+    assert (user.turn_menu_extras is not None) is expects_extras

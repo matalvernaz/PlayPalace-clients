@@ -130,6 +130,10 @@ def _ensure_var_server_dir() -> Path:
     return _VAR_SERVER_DIR
 
 
+# Clients that read the turn menu's help_text and primary_action_id: the iOS app.
+TURN_MENU_EXTRAS_CLIENT_TYPES = frozenset({"mobile"})
+
+
 class _MenusOutsideTheGame:
     """Answers "is this a server menu rather than the game's?" for the game engine.
 
@@ -803,7 +807,8 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         for table in tables:
             reason = self._restore_live_table(table)
             if reason:
-                LOG.warning("Retiring table %s (%s): %s", table.table_id, table.game_type, reason)
+                # Logged as an error so it reaches errors.log; it happens once per row.
+                LOG.error("Retiring table %s (%s): %s", table.table_id, table.game_type, reason)
                 self._db.retire_table(table.table_id, reason)
                 continue
             restored += 1
@@ -1307,6 +1312,8 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             existing_user.set_approved(is_approved)
             existing_user.set_client_type(client.client_type)
             existing_user.set_platform(client.platform)
+            # The new connection may be a different app than the one it replaces.
+            self._set_turn_menu_extras(existing_user, client.client_type)
             existing_user.set_fluent_languages(user_record.fluent_languages)
             if self._ws_server:
                 client.username = username
@@ -1329,9 +1336,21 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         )
         user.set_client_type(client.client_type)
         user.set_platform(client.platform)
-        user.turn_menu_extras = self._turn_menu_extras_for
+        self._set_turn_menu_extras(user, client.client_type)
         self._users[username] = user
         return user, True
+
+    def _set_turn_menu_extras(self, user: NetworkUser, client_type: str | None) -> None:
+        """Give the iOS app its turn-menu extras and every other client none.
+
+        Only the iOS app reads the turn menu's rules text and primary action.
+        A stock PlayPalace client run from source checks every packet against
+        its schema and drops a menu with fields it doesn't know.
+        """
+        if (client_type or "").lower() in TURN_MENU_EXTRAS_CLIENT_TYPES:
+            user.turn_menu_extras = self._turn_menu_extras_for
+        else:
+            user.turn_menu_extras = None
 
     def _turn_menu_extras_for(self, user: NetworkUser) -> dict[str, str | None]:
         """Rules text and primary action for the turn menu of the user's current game."""
