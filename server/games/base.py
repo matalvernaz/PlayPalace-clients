@@ -1,133 +1,151 @@
 """Base game class and player dataclass."""
 
-from dataclasses import dataclass, field
-from typing import Any, ClassVar, TYPE_CHECKING, Protocol, runtime_checkable
+from dataclasses import (
+    FrozenInstanceError,
+    dataclass,
+    field,
+    fields,
+    is_dataclass,
+    replace,
+)
+from typing import Any, ClassVar
 from abc import ABC, abstractmethod
-import logging
-import threading
 
 from mashumaro.mixins.json import DataClassJSONMixin
 from mashumaro.config import BaseConfig
 
-from server.core.users.base import User
-from server.core.users.bot import Bot
+from ..users.base import User
+from ..gender import Gender, gender_localization_kwargs, normalize_gender
 from ..game_utils.actions import ActionSet
 from ..game_utils.options import (
     GameOptions as DeclarativeGameOptions,
     OptionsHandlerMixin,
 )
-from ..game_utils.game_result import GameResult, PlayerResult
 from ..game_utils.teams import TeamManager
 from ..game_utils.game_sound_mixin import GameSoundMixin
+from ..audio import AudioPlaybackState
 from ..game_utils.game_communication_mixin import GameCommunicationMixin
 from ..game_utils.game_result_mixin import GameResultMixin
-from ..game_utils.duration_estimate_mixin import DurationEstimateMixin
 from ..game_utils.game_scores_mixin import GameScoresMixin
-from ..game_utils.game_prediction_mixin import GamePredictionMixin
 from ..game_utils.sequence_runner_mixin import SequenceRunnerMixin, SequenceState
 from ..game_utils.turn_management_mixin import TurnManagementMixin
-from ..game_utils.menu_management_mixin import LiveStatusBoxState, MenuManagementMixin
+from ..game_utils.menu_management_mixin import MenuManagementMixin
 from ..game_utils.action_visibility_mixin import ActionVisibilityMixin
-from ..game_utils.lobby_actions_mixin import LobbyActionsMixin, BOT_NAMES
+from ..game_utils.lobby_actions_mixin import LobbyActionsMixin
+from ..game_utils.bot_names import (
+    bot_name_key,
+    normalize_bot_name,
+    plan_bot_display_names,
+)
 from ..game_utils.event_handling_mixin import EventHandlingMixin
 from ..game_utils.action_set_creation_mixin import ActionSetCreationMixin
 from ..game_utils.action_execution_mixin import ActionExecutionMixin
 from ..game_utils.action_set_system_mixin import ActionSetSystemMixin
-from ..game_utils.game_status import GameStatus
+from ..game_utils.action_context import ActionContext
 from ..game_utils.client_types import (
-    is_touch_client_type as _is_touch_client_type,
-    user_is_touch_client,
+    is_touch_client as user_is_touch_client,
+    is_touch_client_type,
 )
-from server.core.ui.keybinds import Keybind
+from ..game_utils.player import Player
+from ..messages.localization import DEFAULT_LOCALE, Localization
+from ..ui.keybinds import Keybind
+from ..users.bot import Bot
+from .categories import CATEGORY_MISC, normalize_category
 
+def _replace_exact_state_value(value: Any, old_value: str, new_value: str) -> Any:
+    """Replace one exact player identity value inside Mashumaro-safe state.
 
-@dataclass
-class ActionContext:
-    """Context passed to action handlers when triggered by keybind.
-
-    Attributes:
-        menu_item_id: ID of the selected menu item when the keybind fired.
-        menu_index: 1-based index of the selected menu item.
-        from_keybind: True if triggered via keybind, False if via menu.
+    Player UUIDs and, in a few legacy game fields, display names occur both as
+    values and mapping keys. A seat substitution changes both, so every exact
+    reference must move together. This helper deliberately does not perform
+    substring replacement; historical prose remains historical prose.
     """
+    if isinstance(value, str):
+        return new_value if value == old_value else value
+    if isinstance(value, list):
+        for index, item in enumerate(value):
+            value[index] = _replace_exact_state_value(item, old_value, new_value)
+        return value
+    if isinstance(value, dict):
+        replaced_items = [
+            (
+                _replace_exact_state_value(key, old_value, new_value),
+                _replace_exact_state_value(item, old_value, new_value),
+            )
+            for key, item in value.items()
+            if old_value not in value or key not in {old_value, new_value}
+        ]
+        if old_value in value:
+            # A newly joined spectator can have disposable view state under
+            # the destination value. The retained seat always wins a key
+            # collision.
+            replaced_items.insert(
+                0,
+                (
+                    new_value,
+                    _replace_exact_state_value(
+                        value[old_value],
+                        old_value,
+                        new_value,
+                    ),
+                ),
+            )
+        value.clear()
+        value.update(replaced_items)
+        return value
+    if isinstance(value, set):
+        replaced_values = {
+            _replace_exact_state_value(item, old_value, new_value)
+            for item in value
+        }
+        value.clear()
+        value.update(replaced_values)
+        return value
+    if isinstance(value, frozenset):
+        updated = frozenset(
+            _replace_exact_state_value(item, old_value, new_value)
+            for item in value
+        )
+        return value if updated == value else updated
+    if isinstance(value, tuple):
+        updated_items = tuple(
+            _replace_exact_state_value(item, old_value, new_value)
+            for item in value
+        )
+        if all(updated is current for updated, current in zip(updated_items, value)):
+            return value
+        if hasattr(value, "_fields"):
+            return type(value)(*updated_items)
+        return updated_items
+    if is_dataclass(value) and not isinstance(value, type):
+        replacements: dict[str, Any] = {}
+        for declared_field in fields(value):
+            current = getattr(value, declared_field.name)
+            updated = _replace_exact_state_value(current, old_value, new_value)
+            if updated is not current:
+                replacements[declared_field.name] = updated
+        if not replacements:
+            return value
+        try:
+            for name, updated in replacements.items():
+                setattr(value, name, updated)
+            return value
+        except FrozenInstanceError:
+            return replace(value, **replacements)
+    return value
 
-    menu_item_id: str | None = None  # ID of selected menu item when keybind pressed
-    menu_index: int | None = None  # 1-based index of selected menu item
-    from_keybind: bool = False  # True if triggered by keybind, False if by menu selection
 
+@dataclass(frozen=True)
+class SeatSubstitutionResult:
+    """The identities affected by one completed in-game substitution."""
 
-@dataclass
-class TransientDisplayState:
-    """Runtime-only state for an in-game transient display."""
-
-    kind: str
-    path: list[str] = field(default_factory=list)
-    positions: dict[tuple[str, ...], int] = field(default_factory=dict)
-
-
-@dataclass
-class Player(DataClassJSONMixin):
-    """A player in a game (serialized with game state).
-
-    The associated User object is not serialized and is reattached after load.
-
-    Attributes:
-        id: Unique identifier (user UUID for humans, generated for bots).
-        name: Display name.
-        is_bot: True for bot players.
-        is_virtual_bot: True for server-level virtual bots (count in stats).
-        is_spectator: True if spectating.
-        bot_think_ticks: Ticks until bot can act.
-        bot_pending_action: Action to execute when ready.
-        bot_target: Game-specific target (e.g., score to reach).
-    """
-
-    id: str  # UUID - unique identifier (from user.uuid for humans, generated for bots)
-    name: str  # Display name
-    is_bot: bool = False
-    is_virtual_bot: bool = False  # True for server-level virtual bots (should appear in stats)
-    is_spectator: bool = False
-    # Bot AI state (serialized for persistence)
-    bot_think_ticks: int = 0  # Ticks until bot can act
-    bot_pending_action: str | None = None  # Action to execute when ready
-    bot_target: int | None = None  # Game-specific target (e.g., score to reach)
-    replaced_human: bool = False  # True if this slot was a human replaced by a bot
-    replaced_human_name: str = ""
-    replacement_bot_name: str = ""
-    reconnect_grace_ticks: int = 0
+    previous_controller_name: str
+    replaced_human_name: str
+    outgoing_spectator: Player | None
 
 
 # Re-export GameOptions from options module for backwards compatibility
 GameOptions = DeclarativeGameOptions
-
-
-if TYPE_CHECKING:
-
-    @runtime_checkable
-    class GameProtocol(Protocol):
-        """Protocol documenting the interface that Game mixins expect.
-
-        This is a compile-time-only contract. Each mixin in the Game class
-        assumes these attributes and methods exist on ``self``. Defining them
-        here lets type-checkers verify that the concrete Game class (and its
-        subclasses) satisfy the contract.
-        """
-
-        players: list[Player]
-        status: GameStatus
-        game_active: bool
-        host: str
-        round: int
-        turn_index: int
-        turn_direction: int
-
-        def get_user(self, player: Player) -> User | None: ...
-        def broadcast_l(self, message_id: str, **kwargs: Any) -> None: ...
-        def broadcast_personal_l(
-            self, player: Player, message_id: str, **kwargs: Any
-        ) -> None: ...
-        def advance_turn(self) -> None: ...
-        def finish_game(self) -> None: ...
 
 
 @dataclass
@@ -137,9 +155,7 @@ class Game(
     GameSoundMixin,
     GameCommunicationMixin,
     GameResultMixin,
-    DurationEstimateMixin,
     GameScoresMixin,
-    GamePredictionMixin,
     SequenceRunnerMixin,
     TurnManagementMixin,
     MenuManagementMixin,
@@ -151,39 +167,45 @@ class Game(
     OptionsHandlerMixin,
     ActionSetSystemMixin,
 ):
-    """Abstract base class for all games.
+    """
+    Abstract base class for all games.
 
-    Games are dataclasses serialized with Mashumaro. All authoritative state
-    must live in dataclass fields; runtime-only objects are rebuilt after load.
+    Games are dataclasses that can be serialized with Mashumaro.
+    All game state must be stored in dataclass fields.
 
-    Responsibilities:
-        - Maintain authoritative game state.
-        - Expose actions and keybinds for players.
-        - Advance turns and manage lifecycle (waiting/playing/finished).
-        - Provide menu content for the client.
+    Games are synchronous and state-based. They expose actions that
+    players can take, and these actions modify state imperatively.
 
-    Phases:
-        - waiting: Lobby phase; host can add bots and start.
-        - playing: Game in progress.
-        - finished: Game over.
-
-    Notes:
-        - Use broadcast_l / broadcast_personal_l for table transcript messages.
-        - Use user.speak_l for command responses or private status checks.
+    Games have three phases:
+    - waiting: Lobby phase, host can add bots and start
+    - playing: Game in progress
+    - finished: Game over
     """
 
     class Config(BaseConfig):
         # Serialize all fields (don't omit defaults - breaks state restoration)
         serialize_by_alias = True
+        lazy_compilation = True
+
+    #: User preference names this game is relevant to (for per-game overrides).
+    relevant_preferences: ClassVar[list[str]] = []
+    #: Action sets whose pure visibility callbacks may run before enabled-state
+    #: callbacks so contextually hidden rows can be discarded cheaply.
+    visibility_first_action_sets: ClassVar[frozenset[str]] = frozenset()
 
     # Game state
     players: list[Player] = field(default_factory=list)
     round: int = 0
     game_active: bool = False
-    status: GameStatus = GameStatus.WAITING
+    status: str = "waiting"  # waiting, playing, finished
     host: str = ""  # Username of the host
-    current_music: str = ""  # Currently playing music track
-    current_ambience: str = ""  # Currently playing ambience loop
+    # Read-only migration inputs retained so pre-protocol saves deserialize.
+    current_music: str = ""
+    current_ambience: str = ""
+    current_ambience_outro: str = ""
+    # Canonical reconnect/save state for independently managed audio layers.
+    # The three fields above remain a read-migration bridge for older saves.
+    active_audio: dict[str, AudioPlaybackState] = field(default_factory=dict)
     turn_index: int = 0  # Current turn index (serialized for persistence)
     turn_direction: int = 1  # Turn direction: 1 = forward, -1 = reverse
     turn_skip_count: int = 0  # Number of players to skip on next advance
@@ -194,19 +216,18 @@ class Game(
     round_timer_state: str = "idle"  # idle, counting, paused
     round_timer_ticks: int = 0  # Remaining ticks in countdown
     # Sound scheduler state (serialized for persistence)
-    scheduled_sounds: list = field(default_factory=list)  # [[tick, sound, vol, pan, pitch], ...]
-    sound_scheduler_tick: int = 0  # Current tick counter
-    # Cinematic sequence runner state (serialized for persistence)
-    active_sequences: list[SequenceState] = field(default_factory=list)
-    # Event queue state (serialized for persistence)
-    event_queue: list[tuple[int, str, dict]] = field(
+    scheduled_sounds: list = field(
         default_factory=list
-    )  # [(tick, event_type, data), ...]
-    is_animating: bool = False  # True while event sequence is playing
+    )  # [[tick, sound, vol, pan, pitch], ...]
+    sound_scheduler_tick: int = 0  # Current tick counter
+    active_sequences: list[SequenceState] = field(default_factory=list)
     # Action sets (serialized - actions are pure data now)
     player_action_sets: dict[str, list[ActionSet]] = field(default_factory=dict)
     # Team manager (serialized for persistence)
     _team_manager: TeamManager = field(default_factory=TeamManager)
+    team_arrangement_active: bool = False
+    team_arrangement_selected_player_id: str = ""
+    team_arrangement_team_mode: str = ""
 
     def __post_init__(self):
         """Initialize non-serialized state."""
@@ -216,65 +237,107 @@ class Game(
         self._keybinds: dict[
             str, list[Keybind]
         ] = {}  # key -> list of Keybinds (allows same key for different states)
-        self._pending_actions: dict[str, str] = {}  # player_id -> action_id (waiting for input)
-        self._pending_action_return_focus: dict[
+        self._pending_actions: dict[
             str, str
-        ] = {}  # player_id -> menu item to refocus after an input overlay closes
-        self._pending_menu_focus: dict[
-            str, str
-        ] = {}  # player_id -> one-shot focus intent for the next menu paint
-        self._menu_dirty: set[str] = set()  # player_ids needing a menu repaint
-        self._menu_dirty_all: bool = False  # every player needs a repaint
+        ] = {}  # player_id -> action_id (waiting for input)
         self._action_context: dict[
             str, ActionContext
         ] = {}  # player_id -> context during action execution
-        self._transient_display_state: dict[str, TransientDisplayState] = {}
-        self._live_status_boxes: dict[str, LiveStatusBoxState] = {}
+        self._status_box_open: set[str] = set()  # player_ids with status box open
+        self._live_status_boxes: dict[str, Any] = {}  # player_id -> live status state
         self._actions_menu_open: set[str] = set()  # player_ids with actions menu open
+        self._actions_menu_return_focus: dict[str, str] = {}
+        self._pending_action_return_focus: dict[str, str] = {}
+        self._status_box_return_focus: dict[str, str] = {}
+        # Menu refresh recording (runtime-only). refresh_menus() and
+        # request_menu_focus() mark intent here; the framework-driven
+        # flush_menus() consumes it (end of handle_event + once per tick).
+        self._menu_dirty: set[str] = set()  # player_ids needing a repaint
+        self._menu_dirty_all: bool = False  # repaint everyone at next flush
+        # player_id -> item id for a one-shot focus jump at the next flush.
+        self._pending_menu_focus: dict[str, str] = {}
+        # Runtime-only options navigation stack for multi-select options
+        # (player_id -> list of path segments). Transient lobby state; not
+        # serialized, so it safely resets to top-level on reconnect/restore.
+        self._options_path: dict[str, list[str]] = {}
         self._destroyed: bool = False  # Whether game has been destroyed
-        # Duration estimation state
-        self._estimate_threads: list[threading.Thread] = []  # Running simulation threads
-        self._estimate_results: list[int] = []  # Collected tick counts
-        self._estimate_errors: list[str] = []  # Collected errors
-        self._estimate_running: bool = False  # Whether estimation is in progress
-        self._estimate_lock: threading.Lock = threading.Lock()  # Protect results list
+        self._last_game_result = None  # Stored for end-screen restoration
+        self._end_screen_open_player_ids: set[str] = set()
+        # Per-player transcript of table events (runtime-only). Games that want a
+        # reviewable history call record_transcript_event(); see get_transcript().
         self._transcripts: dict[str, list[dict[str, str]]] = {}
-        self._options_path: dict[str, list[str]] = {}  # player_id -> options nav stack
 
     def rebuild_runtime_state(self) -> None:
-        """Rebuild runtime-only state after deserialization.
-
-        Subclasses can override to rebuild non-serialized objects. Base turn
-        management and sound scheduling are stored in serialized fields, so
-        they do not require rebuilding.
         """
-        pass
+        Rebuild non-serialized runtime state after deserialization.
 
-    def validate_actions(self) -> None:
-        """Verify all action handler/callback strings resolve to methods.
+        Called after loading a game from JSON. Subclasses should override
+        this to rebuild any runtime-only objects not stored in serialized fields.
+        Turn management and sound scheduling are now built into the base class
+        using serialized fields, so they don't need rebuilding.
 
-        Logs warnings for any handler strings that cannot be found on the
-        game instance via ``getattr``.  Called after ``on_start()`` so that
-        typos in handler names are caught early during development.
+        Note: Estimation state is initialized clean by __post_init__.
         """
-        _LOG = logging.getLogger("playpalace.actions")
-        for action_sets in self.player_action_sets.values():
-            for action_set in action_sets:
-                for action in action_set._actions.values():
-                    for attr_name in ("handler", "is_enabled", "is_hidden", "get_label", "get_sound"):
-                        method_name = getattr(action, attr_name, None)
-                        if method_name and getattr(self, method_name, None) is None:
-                            _LOG.warning(
-                                "Action '%s': %s='%s' does not resolve on %s",
-                                action.id, attr_name, method_name, type(self).__name__,
-                            )
+        # Waiting lobbies are intentionally silent. Drop replayable audio from
+        # older saves/checkpoints so a pre-change lobby track cannot return
+        # when users attach to the restored game.
+        if self.status == "waiting":
+            self.active_audio.clear()
+            self.current_music = ""
+            self.current_ambience = ""
+            self.current_ambience_outro = ""
+        else:
+            self.migrate_legacy_audio_state()
+
+    def on_discard(self) -> None:
+        """Release game-specific memory before this instance is abandoned.
+
+        The framework calls this idempotent lifecycle hook whenever an instance
+        is abandoned, including table closure, restart, game switching, and
+        failed replacement preparation. Persistent fields that exist only to
+        inform the current match may be cleared here so stale references cannot
+        retain them while the discarded game instance awaits garbage collection.
+        """
+        table_audio_batcher = getattr(self, "_table_presence_audio_batcher", None)
+        if table_audio_batcher is not None:
+            # A lifecycle boundary may occur in the same synchronous action
+            # that queued a legitimate final departure cue. Flush it before
+            # detaching the game's users so the event is not lost or replayed
+            # later in an unrelated menu.
+            try:
+                table_audio_batcher.flush()
+            finally:
+                # ``flush`` consumes callbacks but deliberately retains its
+                # event-loop affinity for ordinary reuse. A discarded game
+                # will never reuse it, so release that final runtime reference.
+                table_audio_batcher.cancel()
+
+    def _reset_transcripts(self) -> None:
+        """Initialize transcript storage for seated players."""
+        self._transcripts = {
+            player.id: [] for player in self.players if not player.is_spectator
+        }
+
+    def record_transcript_event(
+        self, player: "Player | None", text: str, buffer: str = "table"
+    ) -> None:
+        """Store a transcript entry for a player."""
+        if not player or player.is_spectator:
+            return
+        self._transcripts.setdefault(player.id, []).append(
+            {"text": text, "buffer": buffer}
+        )
+
+    def get_transcript(self, player_id: str) -> list[dict[str, str]]:
+        """Return the transcript history for a player."""
+        return list(self._transcripts.get(player_id, []))
 
     @staticmethod
     def is_touch_client_type(client_type: str | None) -> bool:
         """Return True for touch-oriented clients."""
-        return _is_touch_client_type(client_type or "")
+        return is_touch_client_type(client_type)
 
-    def is_touch_client(self, user: "User | None") -> bool:
+    def is_touch_client(self, user: User | None) -> bool:
         """Return True if the provided user is on a touch-oriented client."""
         return bool(user and user_is_touch_client(user))
 
@@ -296,9 +359,6 @@ class Game(
         """Return the type identifier for this game."""
         ...
 
-    #: User preferences this game is relevant to (for per-game overrides).
-    relevant_preferences: ClassVar[list[str]] = []
-
     @classmethod
     def get_name_key(cls) -> str:
         """Return the localization key for this game's name."""
@@ -306,8 +366,13 @@ class Game(
 
     @classmethod
     def get_category(cls) -> str:
-        """Return the category localization key for this game."""
-        return "category-uncategorized"
+        """Return the backend category id for this game."""
+        return CATEGORY_MISC
+
+    @classmethod
+    def get_categories(cls) -> tuple[str, ...]:
+        """Return all backend category ids this game belongs to."""
+        return (normalize_category(cls.get_category()),)
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -318,41 +383,6 @@ class Game(
     def get_max_players(cls) -> int:
         """Return maximum number of players."""
         return 4
-
-    # Common primary action IDs — first match in the action set wins.
-    # Games can override ``get_primary_action_id`` to return something else.
-    PRIMARY_ACTION_CANDIDATES = (
-        "roll", "draw", "draw_card", "hit", "shoot", "play",
-        "attack", "deal", "bid", "spin",
-    )
-
-    def get_primary_action_id(self, player: "Player") -> str | None:
-        """Return the primary action ID for this turn, or None.
-
-        The primary action is what two-finger double-tap (or equivalent
-        client "primary action" gesture) activates.  Default heuristic
-        scans the player's action set for well-known action IDs.
-        Games should override if their primary action has a non-standard
-        ID or varies by phase.
-        """
-        action_sets = self.player_action_sets.get(player.id, [])
-        for action_set in action_sets:
-            for candidate in self.PRIMARY_ACTION_CANDIDATES:
-                if candidate in action_set._actions:
-                    return candidate
-        return None
-
-    def get_help_text(self, locale: str) -> str | None:
-        """Return game rules/help text for the given locale.
-
-        Override in subclasses to provide game-specific rules that
-        clients can show in their help screens.  The default
-        implementation looks up ``{game_type}-rules`` in the
-        localization files and returns None if the key is missing.
-        """
-        from ..messages.localization import Localization
-
-        return Localization.get_optional(locale, f"{self.get_type()}-rules")
 
     @classmethod
     def get_leaderboard_types(cls) -> list[dict]:
@@ -379,6 +409,15 @@ class Game(
         """
         return []
 
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        """Return list of supported built-in leaderboard types.
+
+        Options: "wins", "total_score", "high_score", "rating", "games_played"
+        Games must opt in to the types that match their GameResult data.
+        """
+        return []
+
     def prestart_validate(self) -> list[str] | list[tuple[str, dict]]:
         """Validate game configuration before starting.
 
@@ -390,19 +429,15 @@ class Game(
             return ["pig-error-min-bank-too-high"]
             return [("scopa-error-not-enough-cards", {"decks": 1, "players": 4})]
         """
-        errors: list[str] = []
-        active_count = len([p for p in self.players if not p.is_spectator])
-        if active_count < self.get_min_players():
-            errors.append(
-                (
-                    "action-need-more-players",
-                    {"min_players": self.get_min_players()},
-                )
-            )
-        return errors
+        return []
 
     def validate_start(self) -> list[str | tuple[str, dict]]:
-        """Return framework player-count errors plus game-specific checks."""
+        """Return complete framework and game-specific start errors.
+
+        Player-count validation is framework-owned so a game cannot bypass it
+        by omitting ``super().prestart_validate()``. ``prestart_validate()``
+        remains the game hook for option, deal, team, and ruleset checks.
+        """
         active_count = self.get_active_player_count()
         minimum = self.get_min_players()
         maximum = self.get_max_players()
@@ -430,6 +465,9 @@ class Game(
                 )
             )
 
+        if not self.get_active_human_players():
+            errors.append("action-start-needs-human-player")
+
         legacy_count_keys = {"action-need-more-players", "action-table-full"}
         for error in self.prestart_validate():
             key = error[0] if isinstance(error, tuple) else error
@@ -437,6 +475,7 @@ class Game(
                 continue
             if error not in errors:
                 errors.append(error)
+
         return errors
 
     def _validate_team_mode(self, team_mode: str) -> str | None:
@@ -451,20 +490,175 @@ class Game(
         active_players = self.get_active_players()
         num_players = len(active_players)
 
-        # Parse old display format if needed
-        if " " in team_mode or any(c.isupper() for c in team_mode if c != "v"):
-            team_mode = TeamManager.parse_display_to_team_mode(team_mode)
-
         # Check if team mode is valid for player count
         if not TeamManager.is_valid_team_mode(team_mode, num_players):
             return "game-error-invalid-team-mode"
 
         return None
 
+    @abstractmethod
+    def on_start(self) -> None:
+        """Called when the game starts."""
+        ...
+
+    def on_tick(self) -> None:
+        """Called every tick (50ms). Handle bot AI here.
+
+        Subclasses should call super().on_tick() to ensure base functionality runs.
+        """
+        self.process_audio_automations()
+        self._sync_replacement_team_members()
+        for player in self.players:
+            if getattr(player, "reconnect_grace_ticks", 0) > 0:
+                player.reconnect_grace_ticks -= 1
+
     def _sync_table_status(self) -> None:
-        """Synchronize table status with game status."""
+        """Synchronize table status with game status.
+        
+        Call this when game status changes (e.g., waiting -> playing -> finished)
+        to keep table and game status in sync.
+        """
         if self._table:
+            if (
+                getattr(self._table, "game", None) is self
+                and hasattr(self._table, "_sync_status_from_game")
+            ):
+                self._table._sync_status_from_game()
+                return
+
+            status_changed = self._table.status != self.status
             self._table.status = self.status
+            if (
+                status_changed
+                and self.status != "waiting"
+                and hasattr(self._table, "_member_offline_since")
+            ):
+                self._table._member_offline_since.clear()
+            if (
+                status_changed
+                and self._table._server
+                and hasattr(self._table._server, "on_tables_changed")
+            ):
+                self._table._server.on_tables_changed()
+
+    def _notify_table_presence_changed(self) -> None:
+        """Notify server-owned table overlays that the game roster changed."""
+        server = getattr(getattr(self, "_table", None), "_server", None)
+        if server and hasattr(server, "on_tables_changed"):
+            server.on_tables_changed()
+
+    def on_round_timer_ready(self) -> None:
+        """Called when round timer expires. Override in subclasses that use RoundTimer."""
+        pass
+
+    def on_player_disconnect(self, player_id: str) -> None:
+        """Handle player disconnection.
+        
+        If game is playing, replace human with bot to keep game going.
+        """
+        if self.status != "playing":
+            return
+
+        player = self.get_player_by_id(player_id)
+        if not player or player.is_bot:
+            return
+
+        self.play_table_disconnect_sound(player)
+
+        # Spectators should just be removed, not replaced by bots
+        if player.is_spectator:
+            user = self.get_user(player)
+            username = user.username if user else player.name
+            self.remove_spectator(player_id)
+            remove_member = getattr(self._table, "remove_member", None)
+            if callable(remove_member):
+                remove_member(
+                    username,
+                    voice_reason="voice-status-connection-lost",
+                )
+            return
+
+        # A present spectator host can supervise continued bot play without
+        # occupying a seat.  Otherwise the last active human retains their
+        # seat so the bounded reconnect grace can pause the game safely.
+        remaining_humans = sum(
+            1
+            for candidate in self.players
+            if not candidate.is_bot
+            and not candidate.is_spectator
+            and candidate.id != player_id
+        )
+        spectator_host_online = bool(
+            self._table and self._table.has_online_spectator_host()
+        )
+
+        if remaining_humans == 0 and not spectator_host_online:
+            self.broadcast_l(
+                "game-paused-host-disconnect",
+                buffer="system",
+                player=player.name,
+            )
+            return
+
+        if self._replace_with_bot(player):
+            self.refresh_menus()
+
+    def remove_spectator(self, player_id: str) -> None:
+        """Remove a spectator from the game state entirely."""
+        player = self.get_player_by_id(player_id)
+        if not player:
+            return
+
+        # Release modal/runtime intent while the player's declarative actions
+        # are still available for lock detection and game-owned cleanup hooks.
+        self._clear_player_ui_runtime_state(player_id, player=player)
+
+        # Remove from players list and game-specific action state.
+        self.players = [p for p in self.players if p.id != player_id]
+        self.player_action_sets.pop(player_id, None)
+        self._users.pop(player_id, None)
+        self.prune_audio_recipient(player_id)
+        discard_end_screen = getattr(self, "_discard_end_screen_player_id", None)
+        if discard_end_screen:
+            discard_end_screen(player_id)
+
+        self.ensure_bot_display_names()
+        
+        # Notify others
+        self.broadcast_l("spectator-left", buffer="system", player=player.name)
+        self._notify_table_presence_changed()
+
+    def remove_player(self, player_id: str) -> None:
+        """Remove a player from the game state entirely.
+        
+        Use this only during lobby phase or forced removal where 
+        bot replacement is NOT desired.
+        """
+        player = self.get_player_by_id(player_id)
+        if not player:
+            return
+
+        if self.team_arrangement_active and not player.is_spectator:
+            self._cancel_team_arrangement_for_roster_change()
+
+        # Release modal/runtime intent while the player's declarative actions
+        # are still available for lock detection and game-owned cleanup hooks.
+        self._clear_player_ui_runtime_state(player_id, player=player)
+
+        # Remove from players list and game-specific action state.
+        self.players = [p for p in self.players if p.id != player_id]
+        self.player_action_sets.pop(player_id, None)
+        self._users.pop(player_id, None)
+        self.prune_audio_recipient(player_id)
+        discard_end_screen = getattr(self, "_discard_end_screen_player_id", None)
+        if discard_end_screen:
+            discard_end_screen(player_id)
+
+        self.ensure_bot_display_names()
+        
+        # Notify others
+        self.broadcast_l("table-left", buffer="system", player=player.name)
+        self._notify_table_presence_changed()
 
     def _replace_with_bot(
         self,
@@ -480,68 +674,547 @@ class Game(
         if player.is_bot:
             return False
 
+        naming_locale = self._bot_naming_locale(player)
         human_name = player.replaced_human_name or player.name
-        reserved_names = {
-            current.name.casefold()
-            for current in self.players
-            if current.id != player.id
-        }
-        reserved_names.add(human_name.casefold())
-        bot_name = next(
-            (name for name in BOT_NAMES if name.casefold() not in reserved_names),
-            f"Bot {len(self.players)}",
+        bot_base_name = self._generate_available_bot_base_name(
+            player=player,
+            exclude_player_id=player.id,
+        )
+        bot_name = self._allocate_bot_display_name(
+            bot_base_name,
+            player=player,
+            exclude_player_id=player.id,
         )
 
         player.replaced_human = True
         player.is_bot = True
+        player.bot_name_base = bot_base_name
         player.replaced_human_name = human_name
         player.replacement_bot_name = bot_name
         player.name = bot_name
-        self._team_manager.rename_member(human_name, bot_name)
+        self._rename_team_member(human_name, bot_name)
+        self._clear_player_ui_runtime_state(player.id, player=player)
         self._users.pop(player.id, None)
 
+        # Use same UUID so user can reclaim it
         bot_user = Bot(bot_name, uuid=player.id)
         self.attach_user(player.id, bot_user)
+        self.ensure_bot_display_names(naming_locale)
+        bot_name = player.name
+        
         self.broadcast_l(
             "player-replaced-by-bot",
             buffer="system",
             player=human_name,
             bot=bot_name,
         )
+        self._notify_table_presence_changed()
+        # Note: Caller is responsible for playing sounds if needed
         return True
 
-    @abstractmethod
-    def on_start(self) -> None:
-        """Start game logic after lobby transitions to playing."""
-        ...
+    def _prepare_seat_substitution(self, player: "Player") -> None:
+        """Cancel game-specific work before another human takes control.
 
-    def on_tick(self) -> None:
-        """Run per-tick logic (50ms). Override for bots/timers.
-
-        Subclasses should call super().on_tick() to ensure base functionality runs.
+        Most bots are tick-driven and need no extra cleanup. Games with
+        asynchronous bot work may override this hook, cancel only work owned by
+        ``player``, and then call ``super()``.
         """
-        self.process_scheduled_sounds()
-        # Check if duration estimation has completed
-        self.check_estimate_completion()
 
-    def on_round_timer_ready(self) -> None:
-        """Handle round-timer expiry for games using RoundTransitionTimer."""
-        pass
+    def permanently_release_player_seat(self, player: "Player") -> str:
+        """Convert a human-owned active seat into a dedicated bot.
+
+        Ordinary disconnects retain the immutable account id so the player can
+        reclaim the seat and cannot evade the eventual result. A permanent
+        removal first creates a replacement when the human is still live, then
+        ends that reservation: the live game state stays in place, but every
+        identity reference moves to a fresh bot UUID so no later result,
+        statistic, or rating is attributed to the departed account.
+        """
+        if (
+            not any(current is player for current in self.players)
+            or self.status != "playing"
+            or player.is_spectator
+        ):
+            raise ValueError("The requested player does not own an active seat")
+        if not player.is_bot and not self._replace_with_bot(player):
+            raise RuntimeError("The active human seat could not be preserved")
+        if not player.replaced_human:
+            raise ValueError("The requested seat is not owned by a human account")
+
+        old_id = str(player.id)
+        old_user = self._users.get(old_id)
+        bot_user = Bot(
+            player.name,
+            locale=getattr(old_user, "locale", DEFAULT_LOCALE),
+            gender=getattr(old_user, "gender", Gender.UNSPECIFIED),
+        )
+        new_id = bot_user.uuid
+        if any(current.id == new_id for current in self.players):
+            raise RuntimeError("Generated bot identity collides with the roster")
+
+        self._prepare_seat_substitution(player)
+        self._clear_player_ui_runtime_state(old_id, player=player)
+        self._users.pop(old_id, None)
+        self.prune_audio_recipient(old_id)
+        self._transcripts.pop(old_id, None)
+        discard_end_screen = getattr(self, "_discard_end_screen_player_id", None)
+        if discard_end_screen:
+            discard_end_screen(old_id)
+
+        self._rekey_game_state_value(old_id, new_id)
+        self._reindex_active_audio()
+        player.replaced_human = False
+        player.replaced_human_name = ""
+        player.replacement_bot_name = ""
+        player.bot_pending_action = None
+        player.bot_think_ticks = 0
+        player.reconnect_grace_ticks = 0
+        self.attach_user(new_id, bot_user)
+        self.refresh_menus()
+        self._notify_table_presence_changed()
+        return new_id
+
+    def _rekey_game_state_value(self, old_value: str, new_value: str) -> None:
+        """Move one exact UUID or legacy display-name reference everywhere."""
+        serialized_names = {declared_field.name for declared_field in fields(self)}
+        for declared_field in fields(self):
+            current = getattr(self, declared_field.name)
+            updated = _replace_exact_state_value(current, old_value, new_value)
+            if updated is not current:
+                setattr(self, declared_field.name, updated)
+
+        # Runtime-only game containers can also key harmless view/history state
+        # by player id. Restrict traversal to built-in containers so sockets,
+        # tasks, users, and the table/server object graph are never inspected.
+        for name, current in list(vars(self).items()):
+            if name in serialized_names or name in {"_table", "_users"}:
+                continue
+            if isinstance(current, (dict, list, set, frozenset, tuple)):
+                updated = _replace_exact_state_value(
+                    current,
+                    old_value,
+                    new_value,
+                )
+                if updated is not current:
+                    setattr(self, name, updated)
+
+    def substitute_player_with_spectator(
+        self,
+        seat_player: "Player",
+        spectator: "Player",
+        spectator_user: User,
+        *,
+        outgoing_user: User | None = None,
+    ) -> SeatSubstitutionResult:
+        """Atomically give an active seat to a consenting spectator.
+
+        The seat player object is retained so every game-specific attribute on
+        it survives. A relinquishing human receives a fresh spectator object;
+        bot-held seats have no outgoing spectator. Exact UUID and legacy-name
+        references move with the seat across serialized state and bounded
+        runtime containers.
+        """
+        if self.status != "playing":
+            raise ValueError("Player substitution requires an active game")
+        if (
+            not any(player is seat_player for player in self.players)
+            or seat_player.is_spectator
+        ):
+            raise ValueError("The requested player seat is no longer available")
+        if (
+            not any(player is spectator for player in self.players)
+            or spectator.is_bot
+            or not spectator.is_spectator
+        ):
+            raise ValueError("The recipient is no longer a human spectator")
+
+        old_id = str(seat_player.id)
+        new_id = str(spectator.id)
+        if not old_id or not new_id or old_id == new_id:
+            raise ValueError("Player substitution requires distinct identifiers")
+        if str(getattr(spectator_user, "uuid", "")) != new_id:
+            raise ValueError(
+                "The spectator session does not own the requested identity"
+            )
+        if any(
+            player is not spectator
+            and player is not seat_player
+            and player.id == new_id
+            for player in self.players
+        ):
+            raise ValueError(
+                "The spectator identity is already assigned to another seat"
+            )
+        if seat_player.is_bot:
+            if outgoing_user is not None:
+                raise ValueError("A bot-controlled seat cannot have an outgoing user")
+        elif (
+            outgoing_user is None
+            or str(getattr(outgoing_user, "uuid", "")) != old_id
+            or self._users.get(old_id) is not outgoing_user
+        ):
+            raise ValueError("The outgoing session does not own the requested seat")
+
+        previous_controller_name = seat_player.name
+        replaced_human_name = seat_player.replaced_human_name
+        spectator_name = spectator.name
+        outgoing_name = "" if seat_player.is_bot else seat_player.name
+        retained_host = self.host
+
+        self._prepare_seat_substitution(seat_player)
+        self._clear_player_ui_runtime_state(new_id, player=spectator)
+        self._clear_player_ui_runtime_state(old_id, player=seat_player)
+
+        # Clear role-specific gameplay sources before authoritative public and
+        # private layers are replayed for each new role. Table voice is a
+        # separate LiveKit context and is deliberately unaffected.
+        spectator_user.stop_all_audio(fade_ms=0)
+        if outgoing_user is not None:
+            outgoing_user.stop_all_audio(fade_ms=0)
+
+        # Retire the spectator slot without emitting a misleading leave event.
+        self.players = [player for player in self.players if player is not spectator]
+        self.player_action_sets.pop(new_id, None)
+        self._users.pop(new_id, None)
+        self.prune_audio_recipient(new_id)
+        self._transcripts.pop(new_id, None)
+        discard_end_screen = getattr(self, "_discard_end_screen_player_id", None)
+        if discard_end_screen:
+            discard_end_screen(new_id)
+
+        # The old controller must never remain attached to the retained seat.
+        self._users.pop(old_id, None)
+
+        # Rekey every serialized/runtime identity reference. This includes the
+        # retained Player.id plus legacy name-based turn/tiebreak state.
+        self._rekey_game_state_value(old_id, new_id)
+        self._rekey_game_state_value(previous_controller_name, spectator_name)
+        self._reindex_active_audio()
+        # Table ownership is independent of the seat. A host who voluntarily
+        # becomes a spectator retains host permissions and identity.
+        self.host = retained_host
+
+        seat_player.is_bot = False
+        seat_player.bot_name_base = ""
+        seat_player.replaced_human = False
+        seat_player.replaced_human_name = ""
+        seat_player.replacement_bot_name = ""
+        seat_player.is_spectator = False
+        seat_player.bot_pending_action = None
+        seat_player.bot_think_ticks = 0
+
+        self.attach_user(new_id, spectator_user)
+        # This explicit synchronized action must not reset or extend any
+        # authoritative game/turn timer with reconnect grace.
+        seat_player.reconnect_grace_ticks = 0
+
+        # Rebuild labels and declarative actions using the incoming user's
+        # locale and client capabilities.
+        self.player_action_sets.pop(new_id, None)
+        self.setup_player_actions(seat_player)
+        self._on_replacement_slot_reclaimed(
+            previous_controller_name,
+            spectator_name,
+        )
+
+        outgoing_spectator = None
+        if outgoing_user is not None:
+            outgoing_spectator = self.create_player(
+                old_id,
+                outgoing_name,
+                is_bot=False,
+            )
+            outgoing_spectator.is_spectator = True
+            self.players.append(outgoing_spectator)
+            self.attach_user(old_id, outgoing_user)
+            self.setup_player_actions(outgoing_spectator)
+
+        self.ensure_bot_display_names()
+
+        self.refresh_menus()
+        return SeatSubstitutionResult(
+            previous_controller_name=previous_controller_name,
+            replaced_human_name=replaced_human_name,
+            outgoing_spectator=outgoing_spectator,
+        )
+
+    def _clear_player_ui_runtime_state(
+        self,
+        player_id: str,
+        *,
+        player: "Player | None" = None,
+    ) -> None:
+        """Release transient UI intent that must not outlive a human seat."""
+        player = player or self.get_player_by_id(player_id)
+        if player and player_id in self._pending_actions:
+            self._discard_pending_action_input(player)
+        else:
+            self._pending_actions.pop(player_id, None)
+            self._pending_action_return_focus.pop(player_id, None)
+        self._action_context.pop(player_id, None)
+        self._actions_menu_open.discard(player_id)
+        self._actions_menu_return_focus.pop(player_id, None)
+        self._status_box_open.discard(player_id)
+        self._live_status_boxes.pop(player_id, None)
+        self._status_box_return_focus.pop(player_id, None)
+        self._menu_dirty.discard(player_id)
+        self._pending_menu_focus.pop(player_id, None)
+        self._options_path.pop(player_id, None)
+
+    def _reserved_table_names(self, *, exclude_player_id: str | None = None) -> list[str]:
+        """Return all names currently reserved by the table and game state."""
+        names: list[str] = []
+        if self._table and hasattr(self._table, "reserved_names"):
+            names.extend(self._table.reserved_names(exclude_player_id=exclude_player_id))
+        else:
+            for existing_player in self.players:
+                if getattr(existing_player, "id", None) == exclude_player_id:
+                    continue
+                names.append(existing_player.name)
+                if existing_player.replaced_human_name:
+                    names.append(existing_player.replaced_human_name)
+        return names
+
+    def ensure_bot_display_names(
+        self,
+        locale: str | None = None,
+        *,
+        additional_human_names: tuple[str, ...] = (),
+    ) -> None:
+        """Reconcile conditional bot labels across the complete game state.
+
+        Current saves carry ``bot_name_base``. Pre-feature saves carry only a
+        bare ``name`` and acquire that base during this pass. Display-name
+        changes are rekeyed through serialized and bounded runtime state using
+        temporary values so duplicate-base bots cannot overwrite one another.
+        """
+        occupied: dict[str, str] = {}
+        for current_player in self.players:
+            key = bot_name_key(current_player.name)
+            if not key:
+                raise ValueError("A player has an empty display name")
+            if key in occupied:
+                raise ValueError("Player display names must be unique")
+            occupied[key] = current_player.id
+
+        bots: list[Player] = []
+        bot_bases: list[str] = []
+        human_names = [
+            current_player.name
+            for current_player in self.players
+            if not current_player.is_bot
+        ]
+        human_names.extend(additional_human_names)
+
+        for current_player in self.players:
+            if not current_player.is_bot:
+                if current_player.bot_name_base:
+                    raise ValueError("A human player cannot own a bot base name")
+                continue
+
+            base_name = normalize_bot_name(current_player.bot_name_base)
+            if not base_name:
+                base_name = normalize_bot_name(current_player.name)
+            if not base_name:
+                raise ValueError("A bot has an empty legacy display name")
+            current_player.bot_name_base = base_name
+            bots.append(current_player)
+            bot_bases.append(base_name)
+            if current_player.replaced_human_name:
+                human_names.append(current_player.replaced_human_name)
+
+        naming_locale = Localization.resolve_locale(
+            locale or self._bot_naming_locale()
+        )
+        planned_names = plan_bot_display_names(
+            bot_bases,
+            human_names,
+            naming_locale,
+        )
+        renames = [
+            (bot, bot.name, planned_name)
+            for bot, planned_name in zip(bots, planned_names, strict=True)
+            if bot.name != planned_name
+        ]
+
+        # All current display labels are unique, so a two-phase rekey safely
+        # handles swaps and chains. Bot bases and reclaim identities are
+        # presentation metadata, not live name references, and are restored
+        # after the shared legacy-state walker has done its work.
+        protected_metadata = [
+            (bot, bot.bot_name_base, bot.replaced_human_name)
+            for bot in bots
+        ]
+        temporary_names: list[tuple[str, str]] = []
+        for index, (_bot, old_name, _new_name) in enumerate(renames):
+            temporary_name = f"\x00bot-label:{index}:{old_name}"
+            self._rekey_game_state_value(old_name, temporary_name)
+            temporary_names.append((temporary_name, _new_name))
+        for temporary_name, new_name in temporary_names:
+            self._rekey_game_state_value(temporary_name, new_name)
+
+        for bot, base_name, replaced_human_name in protected_metadata:
+            bot.bot_name_base = base_name
+            bot.replaced_human_name = replaced_human_name
+            bot.replacement_bot_name = bot.name if bot.replaced_human else ""
+            bot_user = self._users.get(bot.id)
+            if isinstance(bot_user, Bot) and bot_user.username != bot.name:
+                bot_user.set_display_name(bot.name)
+
+        final_keys = [bot_name_key(player.name) for player in self.players]
+        if len(final_keys) != len(set(final_keys)):
+            raise ValueError("Bot display-name reconciliation produced a collision")
+
+    def prepare_human_name_for_roster(self, name: str) -> None:
+        """Disambiguate any matching bots before a human joins the roster."""
+        normalized = normalize_bot_name(name)
+        if not normalized:
+            raise ValueError("A human player cannot have an empty display name")
+        self.ensure_bot_display_names(additional_human_names=(normalized,))
 
     # Player management
 
-    def attach_user(self, player_id: str, user: User) -> None:
-        """Attach a user to a player by ID."""
+    def attach_user(
+        self,
+        player_id: str,
+        user: User,
+        *,
+        session_handover: bool = False,
+    ) -> None:
+        """Attach a user to a player by ID.
+
+        ``session_handover`` replaces one live device with another without
+        treating the player as having left gameplay. Authoritative timers and
+        sequences continue, active audio is replayed, and no reconnect grace or
+        table-wide resume announcement is introduced.
+        """
         self._users[player_id] = user
         # Play current music/ambience for the joining user
-        if self.current_music:
-            user.play_music(self.current_music)
-        if self.current_ambience:
-            user.play_ambience(self.current_ambience)
+        for state in self.active_audio.values():
+            if state.recipient_ids and player_id not in state.recipient_ids:
+                continue
+            for command in state.replay_commands():
+                user.send_audio_command(command)
+            if state.paused and state.kind == "music":
+                user.pause_music(handle=state.handle, fade_ms=0)
+        # Check for game resume (if this was a paused-table reconnect scenario).
+        if self.status == "playing":
+            player = self.get_player_by_id(player_id)
+            if player and not player.is_bot and not player.is_spectator:
+                # Clear pending bot actions.
+                player.bot_pending_action = None
+                player.bot_think_ticks = 0
+
+                table = getattr(self, "_table", None)
+                power_restore_active = bool(
+                    table
+                    and hasattr(table, "is_power_restore_grace_active")
+                    and table.is_power_restore_grace_active()
+                )
+
+                # Normal reconnects keep a short sync grace. Planned reboot
+                # restores use a table-level grace with explicit feedback, so
+                # do not leave a second silent per-player block behind. A live
+                # session handover never disconnected from authoritative game
+                # state and therefore must not reset or extend this gate.
+                if not session_handover:
+                    player.reconnect_grace_ticks = (
+                        0 if power_restore_active else 20
+                    )
+
+                # Count humans including this new one (already in _users).
+                # During planned reboot restore grace, the table owns the
+                # resume announcement after all returning players are handled.
+                human_count = sum(
+                    1
+                    for p in self.players
+                    if not p.is_bot and not p.is_spectator and p.id in self._users
+                )
+                if (
+                    human_count == 1
+                    and not power_restore_active
+                    and not session_handover
+                ):
+                    self.broadcast_l(
+                        "game-resumed",
+                        buffer="system",
+                        player=user.username,
+                    )
+
+                # Mark the player's menu for repaint so they have UI state
+                # at the next flush (within the current tick).
+                self.refresh_menus(player)
+
+    def on_player_locale_changed(self, player: Player) -> None:
+        """Rebuild locale-bound actions and repaint one player's live UI.
+
+        Action ids and runtime input intent are semantic and remain stable;
+        labels are presentation data captured when action sets are created.
+        Replacing only this player's declarative sets updates turn menus,
+        actions menus, and live selectors without disturbing game state or
+        another participant's focus.
+        """
+        if player.is_bot or not self.get_user(player):
+            return
+        self.player_action_sets.pop(player.id, None)
+        self.setup_player_actions(player)
+        self.refresh_menus(player)
 
     def get_user(self, player: Player) -> User | None:
         """Get the user for a player."""
         return self._users.get(player.id)
+
+    def get_player_gender(self, player: Player) -> Gender:
+        """Return current account gender for a game seat.
+
+        Connected humans carry their live account value. Disconnected seats
+        and bots temporarily controlling a human seat resolve through the
+        immutable account UUID, keeping saved games free of duplicated profile
+        data while still supporting announcements and future audio choices.
+        Synthetic bots and deleted accounts use the neutral default.
+        """
+        user = self.get_user(player)
+        if user is not None and not player.is_bot:
+            return normalize_gender(getattr(user, "gender", None))
+
+        bot_gender = (
+            normalize_gender(getattr(user, "gender", None))
+            if user is not None
+            else None
+        )
+        if bot_gender is not None and bot_gender is not Gender.UNSPECIFIED:
+            return bot_gender
+
+        # Native bots do not represent an account. Avoid an unnecessary
+        # database query for every announcement involving one; only a bot
+        # explicitly holding a disconnected human's seat needs UUID lookup.
+        if player.is_bot and not player.replaced_human:
+            return Gender.UNSPECIFIED
+
+        table = getattr(self, "_table", None)
+        database = getattr(table, "_db", None) if table is not None else None
+        lookup_gender = (
+            getattr(database, "get_user_gender_by_uuid", None)
+            if database is not None
+            else None
+        )
+        if callable(lookup_gender):
+            return normalize_gender(lookup_gender(player.id))
+        return bot_gender or Gender.UNSPECIFIED
+
+    def player_localization_kwargs(
+        self,
+        player: Player,
+        variable: str = "player",
+    ) -> dict[str, str]:
+        """Build the canonical Fluent name and gender arguments for a player."""
+        return {
+            variable: player.name,
+            **gender_localization_kwargs(
+                self.get_player_gender(player),
+                variable,
+            ),
+        }
 
     def get_player_by_id(self, player_id: str) -> Player | None:
         """Get a player by ID (UUID)."""
@@ -551,27 +1224,16 @@ class Game(
         return None
 
     def get_player_by_name(self, name: str) -> Player | None:
-        """Get a player by display name. Note: Names may not be unique."""
+        """Get a player by the table-unique full display label.
+
+        Bot base names may repeat or match a human username; the full bot
+        label is marked and ordinal-disambiguated whenever a collision exists.
+        Identity-sensitive code should still prefer ``get_player_by_id``.
+        """
         for player in self.players:
             if player.name == name:
                 return player
         return None
-
-    def _reset_transcripts(self) -> None:
-        """Initialize transcript storage for seated players."""
-        self._transcripts = {player.id: [] for player in self.players if not player.is_spectator}
-
-    def record_transcript_event(
-        self, player: Player | None, text: str, buffer: str = "table"
-    ) -> None:
-        """Store a transcript entry for a player."""
-        if not player or player.is_spectator:
-            return
-        self._transcripts.setdefault(player.id, []).append({"text": text, "buffer": buffer})
-
-    def get_transcript(self, player_id: str) -> list[dict[str, str]]:
-        """Return the transcript history for a player."""
-        return list(self._transcripts.get(player_id, []))
 
     @property
     def team_manager(self) -> TeamManager:

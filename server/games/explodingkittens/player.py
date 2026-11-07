@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass, field
 
-from ..base import Player
+from ...game_utils.player import Player
 from .cards import ExplodingKittensCard
 
 

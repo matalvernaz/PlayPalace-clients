@@ -1,3 +1,6 @@
+# languages.ftl for locale ko. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # 이 언어로 번역된 언어 이름
 language-ar = 아랍어
 language-cs = 체코어
@@ -11,7 +14,6 @@ language-hr = 크로아티아어
 language-hu = 헝가리어
 language-id = 인도네시아어
 language-it = 이탈리아어
-language-ja = 일본어
 language-ko = 한국어
 language-mk = 마케도니아어
 language-mn = 몽골어
@@ -30,3 +32,4 @@ language-uk = 우크라이나어
 language-vi = 베트남어
 language-zh = 중국어
 language-zu = 줄루어
+language-ja = 일본어

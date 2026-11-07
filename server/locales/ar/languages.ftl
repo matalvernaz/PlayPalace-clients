@@ -1,4 +1,6 @@
-# Language names translated into this language
+# languages.ftl for locale ar. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 language-ar = العربية
 language-cs = التشيكية
 language-de = الألمانية
@@ -11,7 +13,7 @@ language-hr = الكرواتية
 language-hu = المجرية
 language-id = الإندونيسية
 language-it = الإيطالية
-language-ja = اليابانية
+language-jp = اليابانية
 language-ko = الكورية
 language-mk = المقدونية
 language-mn = المنغولية
@@ -24,9 +26,10 @@ language-sk = السلوفاكية
 language-sl = السلوفينية
 language-sr = الصربية
 language-sv = السويدية
-language-th = التايلاندية
+language-th = التايلندية
 language-tr = التركية
 language-uk = الأوكرانية
 language-vi = الفيتنامية
 language-zh = الصينية
-language-zu = الزولو
+language-zu = الزولوية
+language-ja = اليابانية

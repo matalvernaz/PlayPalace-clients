@@ -1,30 +1,13 @@
-# Main UI messages for PlayPalace
+# main.ftl for locale hi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game categories
-category-card-games = ताश के खेल
-category-dice-games = पासे के खेल
-category-rb-play-center = आरबी प्ले सेंटर
-category-poker = पोकर
-category-uncategorized = अवर्गीकृत
-
-# Menu titles
-main-menu-title = मुख्य मेनू
-play-menu-title = खेलें
-categories-menu-title = खेल श्रेणियाँ
-tables-menu-title = उपलब्ध टेबल
-
-# Menu items
 play = खेलें
-view-active-tables = सक्रिय टेबल देखें
 options = विकल्प
 logout = लॉगआउट
 back = वापस
 go-back = वापस जाएं
 context-menu = संदर्भ मेनू।
 no-actions-available = कोई क्रिया उपलब्ध नहीं है।
-create-table = नई टेबल बनाएं
-join-as-player = खिलाड़ी के रूप में शामिल हों
-join-as-spectator = दर्शक के रूप में शामिल हों
 leave-table = टेबल छोड़ें
 start-game = खेल शुरू करें
 add-bot = बॉट जोड़ें
@@ -35,19 +18,96 @@ whose-turn = किसकी बारी है
 whos-at-table = टेबल पर कौन है
 check-scores = स्कोर देखें
 check-scores-detailed = विस्तृत स्कोर
-check-game-options = खेल विकल्प देखें
-no-game-options = कोई खेल विकल्प उपलब्ध नहीं है।
-
 # Turn messages
 game-player-skipped = { $player } को छोड़ दिया गया है।
-
-# Table messages
-table-created = { $host } ने एक नया { $game } टेबल बनाया।
 table-joined = { $player } टेबल में शामिल हुए।
 table-left = { $player } ने टेबल छोड़ दी।
 new-host = { $player } अब होस्ट हैं।
-waiting-for-players = खिलाड़ियों का इंतजार है। न्यूनतम {$min}, अधिकतम { $max }।
 game-starting = खेल शुरू हो रहा है!
+table-full = टेबल भरी हुई है।
+player-replaced-by-bot = { $player } ने छोड़ दिया और एक बॉट द्वारा प्रतिस्थापित किया गया।
+# Spectator mode
+spectate = देखें
+now-playing = { $player } अब खेल रहे हैं।
+now-spectating = { $player } अब देख रहे हैं।
+spectator-left = { $player } ने देखना बंद कर दिया।
+# General
+welcome = प्लेपैलेस में आपका स्वागत है!
+goodbye = अलविदा!
+# Options
+language = भाषा
+# Boolean option values
+option-on = चालू
+option-off = बंद
+dice-keeping-style-option = पासा रखने की शैली: { $style }
+# Bot names
+cancel = रद्द करें
+enter-bot-name = बॉट का नाम दर्ज करें
+no-options-available = कोई विकल्प उपलब्ध नहीं है।
+no-scores-available = कोई स्कोर उपलब्ध नहीं है।
+# Action disabled reasons
+action-not-your-turn = यह आपकी बारी नहीं है।
+action-not-playing = खेल शुरू नहीं हुआ है।
+action-spectator = दर्शक यह नहीं कर सकते।
+action-not-host = केवल होस्ट ही यह कर सकता है।
+action-game-in-progress = खेल चल रहे समय ऐसा नहीं किया जा सकता।
+action-need-more-players = शुरू करने के लिए अधिक खिलाड़ियों की आवश्यकता है।
+action-table-full = टेबल भरी हुई है।
+action-no-bots = हटाने के लिए कोई बॉट नहीं है।
+action-bots-cannot = बॉट यह नहीं कर सकते।
+# Dice actions
+dice-not-rolled = आपने अभी तक पासा नहीं फेंका है।
+dice-no-dice = कोई पासा उपलब्ध नहीं है।
+table-no-players = कोई खिलाड़ी नहीं।
+table-players-one = { $count } खिलाड़ी: { $players }।
+table-players-many = { $count } खिलाड़ी: { $players }।
+table-spectators = दर्शक: { $spectators }।
+game-over = खेल समाप्त
+game-final-scores = अंतिम स्कोर
+game-points =
+    { $count } { $count ->
+        [one] अंक
+       *[other] अंक
+    }
+# Leaderboards
+leaderboards = लीडरबोर्ड
+leaderboard-type-avg-points-per-turn = प्रति बारी औसत अंक
+leaderboard-type-best-single-turn = सर्वश्रेष्ठ एकल बारी
+leaderboard-type-score-per-round = प्रति राउंड स्कोर
+leaderboard-score-entry = { $rank }. { $player }: { $value }
+leaderboard-avg-entry = { $rank }. { $player }: { $value } औसत
+leaderboard-no-player-stats = आपने अभी तक यह खेल नहीं खेला है।
+leaderboard-no-player-rating = इस खेल के लिए आपकी अभी तक कोई रेटिंग नहीं है।
+my-stats-select-game = अपने आंकड़े देखने के लिए एक खेल चुनें
+my-stats-header = { $game } - आपके आंकड़े
+my-stats-avg-per-turn = प्रति बारी औसत अंक: { $value }
+my-stats-best-turn = सर्वश्रेष्ठ एकल बारी: { $value }
+confirm-leave-game = क्या आप वाकई टेबल छोड़ना चाहते हैं?
+confirm-yes = हाँ
+confirm-no = नहीं
+# Administration
+administration = प्रशासन
+voice-status-connection-lost = { $player } lost the voice connection.
+# Game categories
+category-card-games = ताश के खेल
+category-dice-games = पासे के खेल
+category-rb-play-center = आरबी प्ले सेंटर
+category-poker = पोकर
+category-uncategorized = अवर्गीकृत
+# Menu titles
+main-menu-title = मुख्य मेनू
+play-menu-title = खेलें
+categories-menu-title = खेल श्रेणियाँ
+tables-menu-title = उपलब्ध टेबल
+view-active-tables = सक्रिय टेबल देखें
+create-table = नई टेबल बनाएं
+join-as-player = खिलाड़ी के रूप में शामिल हों
+join-as-spectator = दर्शक के रूप में शामिल हों
+check-game-options = खेल विकल्प देखें
+no-game-options = कोई खेल विकल्प उपलब्ध नहीं है।
+# Table messages
+table-created = { $host } ने एक नया { $game } टेबल बनाया।
+waiting-for-players = खिलाड़ियों का इंतजार है। न्यूनतम { $min }, अधिकतम { $max }।
 table-listing = { $host } की टेबल ({ $count } उपयोगकर्ता)
 table-listing-one = { $host } की टेबल ({ $count } उपयोगकर्ता)
 table-listing-with = { $host } की टेबल ({ $count } उपयोगकर्ता) { $members } के साथ
@@ -55,21 +115,8 @@ table-listing-game = { $game }: { $host } की टेबल ({ $count } उप
 table-listing-game-one = { $game }: { $host } की टेबल ({ $count } उपयोगकर्ता)
 table-listing-game-with = { $game }: { $host } की टेबल ({ $count } उपयोगकर्ता) { $members } के साथ
 table-not-exists = टेबल अब मौजूद नहीं है।
-table-full = टेबल भरी हुई है।
-player-replaced-by-bot = { $player } ने छोड़ दिया और एक बॉट द्वारा प्रतिस्थापित किया गया।
 player-took-over = { $player } ने बॉट से पदभार संभाला।
 spectator-joined = { $host } की टेबल में दर्शक के रूप में शामिल हुए।
-
-# Spectator mode
-spectate = देखें
-now-playing = { $player } अब खेल रहे हैं।
-now-spectating = { $player } अब देख रहे हैं।
-spectator-left = { $player } ने देखना बंद कर दिया।
-
-# General
-welcome = प्लेपैलेस में आपका स्वागत है!
-goodbye = अलविदा!
-
 # User presence announcements
 user-online = { $player } ऑनलाइन आए।
 user-offline = { $player } ऑफलाइन हो गए।
@@ -80,41 +127,23 @@ online-users-one = 1 उपयोगकर्ता: { $users }
 online-users-many = { $count } उपयोगकर्ता: { $users }
 online-user-not-in-game = खेल में नहीं हैं
 online-user-waiting-approval = अनुमोदन की प्रतीक्षा में
-
-# Options
-language = भाषा
 language-option = भाषा: { $language }
 language-changed = भाषा { $language } पर सेट की गई।
-
-# Boolean option states
-option-on = चालू
-option-off = बंद
-
 # Sound options
 turn-sound-option = बारी की ध्वनि: { $status }
-
 # Dice options
 clear-kept-option = पासा फेंकते समय रखे गए पासे साफ़ करें: { $status }
-dice-keeping-style-option = पासा रखने की शैली: { $style }
 dice-keeping-style-changed = पासा रखने की शैली { $style } पर सेट की गई।
 dice-keeping-style-indexes = पासा सूचकांक
 dice-keeping-style-values = पासा मान
-
-# Bot names
-cancel = रद्द करें
 no-bot-names-available = कोई बॉट नाम उपलब्ध नहीं है।
 select-bot-name = बॉट के लिए एक नाम चुनें
-enter-bot-name = बॉट का नाम दर्ज करें
-no-options-available = कोई विकल्प उपलब्ध नहीं है।
-no-scores-available = कोई स्कोर उपलब्ध नहीं है।
-
 # Duration estimation
 estimate-duration = अनुमानित अवधि
 estimate-computing = अनुमानित खेल अवधि की गणना की जा रही है...
 estimate-result = बॉट औसत: { $bot_time } (± { $std_dev })। { $outlier_info }अनुमानित मानव समय: { $human_time }।
 estimate-error = अवधि का अनुमान नहीं लगाया जा सका।
 estimate-already-running = अवधि अनुमान पहले से ही प्रगति में है।
-
 # Save/Restore
 saved-tables = सहेजी गई टेबल
 no-saved-tables = आपके पास कोई सहेजी गई टेबल नहीं है।
@@ -126,56 +155,16 @@ missing-players = पुनर्स्थापित नहीं किया
 table-restored = टेबल पुनर्स्थापित! सभी खिलाड़ियों को स्थानांतरित कर दिया गया है।
 table-saved-destroying = टेबल सहेजी गई! मुख्य मेनू पर लौट रहे हैं।
 game-type-not-found = खेल प्रकार अब मौजूद नहीं है।
-
-# Action disabled reasons
-action-not-your-turn = यह आपकी बारी नहीं है।
-action-not-playing = खेल शुरू नहीं हुआ है।
-action-spectator = दर्शक यह नहीं कर सकते।
-action-not-host = केवल होस्ट ही यह कर सकता है।
-action-game-in-progress = खेल चल रहे समय ऐसा नहीं किया जा सकता।
-action-need-more-players = शुरू करने के लिए अधिक खिलाड़ियों की आवश्यकता है।
-action-table-full = टेबल भरी हुई है।
-action-no-bots = हटाने के लिए कोई बॉट नहीं है।
-action-bots-cannot = बॉट यह नहीं कर सकते।
 action-no-scores = अभी तक कोई स्कोर उपलब्ध नहीं है।
-
-# Dice actions
-dice-not-rolled = आपने अभी तक पासा नहीं फेंका है।
-dice-locked = यह पासा बंद है।
-dice-no-dice = कोई पासा उपलब्ध नहीं है।
-
-# Game actions
-game-turn-start = { $player } की बारी।
-game-no-turn = अभी किसी की बारी नहीं है।
-table-no-players = कोई खिलाड़ी नहीं।
-table-players-one = { $count } खिलाड़ी: { $players }।
-table-players-many = { $count } खिलाड़ी: { $players }।
-table-spectators = दर्शक: { $spectators }।
-game-leave = छोड़ें
-game-over = खेल समाप्त
-game-final-scores = अंतिम स्कोर
-game-points = { $count } { $count ->
-    [one] अंक
-   *[other] अंक
-}
-play = खेलें
-
-# Leaderboards
-leaderboards = लीडरबोर्ड
 leaderboards-menu-title = लीडरबोर्ड
 leaderboards-select-game = लीडरबोर्ड देखने के लिए एक खेल चुनें
 leaderboard-no-data = इस खेल के लिए अभी तक कोई लीडरबोर्ड डेटा नहीं है।
-
 # Leaderboard types
 leaderboard-type-wins = जीत के नेता
 leaderboard-type-rating = कौशल रेटिंग
 leaderboard-type-total-score = कुल स्कोर
 leaderboard-type-high-score = उच्च स्कोर
 leaderboard-type-games-played = खेले गए खेल
-leaderboard-type-avg-points-per-turn = प्रति बारी औसत अंक
-leaderboard-type-best-single-turn = सर्वश्रेष्ठ एकल बारी
-leaderboard-type-score-per-round = प्रति राउंड स्कोर
-
 # Leaderboard headers
 leaderboard-wins-header = { $game } - जीत के नेता
 leaderboard-total-score-header = { $game } - कुल स्कोर
@@ -185,35 +174,26 @@ leaderboard-rating-header = { $game } - कौशल रेटिंग
 leaderboard-avg-points-header = { $game } - प्रति बारी औसत अंक
 leaderboard-best-turn-header = { $game } - सर्वश्रेष्ठ एकल बारी
 leaderboard-score-per-round-header = { $game } - प्रति राउंड स्कोर
-
 # Leaderboard entries
-leaderboard-wins-entry = { $rank }: { $player }, { $wins } { $wins ->
-    [one] जीत
-   *[other] जीत
-} { $losses } { $losses ->
-    [one] हार
-   *[other] हार
-}, { $percentage }% जीत दर
-leaderboard-score-entry = { $rank }. { $player }: { $value }
-leaderboard-avg-entry = { $rank }. { $player }: { $value } औसत
+leaderboard-wins-entry =
+    { $rank }: { $player }, { $wins } { $wins ->
+        [one] जीत
+       *[other] जीत
+    } { $losses } { $losses ->
+        [one] हार
+       *[other] हार
+    }, { $percentage }% जीत दर
 leaderboard-games-entry = { $rank }. { $player }: { $value } खेल
-
 # Player stats
 leaderboard-player-stats = आपके आंकड़े: { $wins } जीत, { $losses } हार ({ $percentage }% जीत दर)
-leaderboard-no-player-stats = आपने अभी तक यह खेल नहीं खेला है।
-
 # Skill rating leaderboard
 leaderboard-no-ratings = इस खेल के लिए अभी तक कोई रेटिंग डेटा नहीं है।
 leaderboard-rating-entry = { $rank }. { $player }: { $rating } रेटिंग ({ $mu } ± { $sigma })
 leaderboard-player-rating = आपकी रेटिंग: { $rating } ({ $mu } ± { $sigma })
-leaderboard-no-player-rating = इस खेल के लिए आपकी अभी तक कोई रेटिंग नहीं है।
-
 # My Stats menu
 my-stats = मेरे आंकड़े
-my-stats-select-game = अपने आंकड़े देखने के लिए एक खेल चुनें
 my-stats-no-data = आपने अभी तक यह खेल नहीं खेला है।
 my-stats-no-games = आपने अभी तक कोई खेल नहीं खेला है।
-my-stats-header = { $game } - आपके आंकड़े
 my-stats-wins = जीत: { $value }
 my-stats-losses = हार: { $value }
 my-stats-winrate = जीत दर: { $value }%
@@ -222,9 +202,6 @@ my-stats-total-score = कुल स्कोर: { $value }
 my-stats-high-score = उच्च स्कोर: { $value }
 my-stats-rating = कौशल रेटिंग: { $value } ({ $mu } ± { $sigma })
 my-stats-no-rating = अभी तक कोई कौशल रेटिंग नहीं
-my-stats-avg-per-turn = प्रति बारी औसत अंक: { $value }
-my-stats-best-turn = सर्वश्रेष्ठ एकल बारी: { $value }
-
 # Prediction system
 predict-outcomes = परिणामों की भविष्यवाणी करें
 predict-header = अनुमानित परिणाम (कौशल रेटिंग के अनुसार)
@@ -233,14 +210,7 @@ predict-entry-2p = { $rank }. { $player } (रेटिंग: { $rating }, { $p
 predict-unavailable = रेटिंग भविष्यवाणियाँ उपलब्ध नहीं हैं।
 predict-need-players = भविष्यवाणियों के लिए कम से कम 2 मानव खिलाड़ियों की आवश्यकता है।
 action-need-more-humans = अधिक मानव खिलाड़ियों की आवश्यकता है।
-confirm-leave-game = क्या आप वाकई टेबल छोड़ना चाहते हैं?
-confirm-yes = हाँ
-confirm-no = नहीं
-
-# Administration
-administration = प्रशासन
 admin-menu-title = प्रशासन
-
 # Account approval
 account-approval = खाता अनुमोदन
 account-approval-menu-title = खाता अनुमोदन
@@ -249,51 +219,42 @@ approve-account = अनुमोदित करें
 decline-account = अस्वीकार करें
 account-approved = { $player } के खाते को अनुमोदित कर दिया गया है।
 account-declined = { $player } के खाते को अस्वीकार कर दिया गया है और हटा दिया गया है।
-
 # Waiting for approval (shown to unapproved users)
 waiting-for-approval = आपका खाता प्रशासक द्वारा अनुमोदन की प्रतीक्षा में है।
 account-approved-welcome = आपके खाते को अनुमोदित कर दिया गया है! प्लेपैलेस में आपका स्वागत है!
-account-declined-goodbye = आपके खाते के अनुरोध को अस्वीकार कर दिया गया है।
+account-declined-goodbye =
+    आपके खाते के अनुरोध को अस्वीकार कर दिया गया है।
     कारण:
 account-banned = आपका खाता प्रतिबंधित है और इसे एक्सेस नहीं किया जा सकता।
-
 # Login errors
 incorrect-username = आपके द्वारा दर्ज किया गया उपयोगकर्ता नाम मौजूद नहीं है।
 incorrect-password = आपके द्वारा दर्ज किया गया पासवर्ड गलत है।
 already-logged-in = यह खाता पहले से लॉग इन है।
-
 # क्रेडेंशियल सत्यापन
 credential-username-length = उपयोगकर्ता नाम { $min } से { $max } अक्षरों के बीच होना चाहिए।
 credential-password-length = पासवर्ड { $min } से { $max } अक्षरों के बीच होना चाहिए।
-
 # दर सीमा
 rate-limit-login-ip = इस पते से बहुत अधिक लॉगिन प्रयास किए गए हैं। कृपया प्रतीक्षा करें और पुनः प्रयास करें।
 rate-limit-login-user = इस उपयोगकर्ता नाम के लिए बहुत अधिक विफल लॉगिन प्रयास किए गए हैं। कृपया प्रतीक्षा करें और पुनः प्रयास करें।
 rate-limit-registration = इस पते से बहुत अधिक पंजीकरण प्रयास किए गए हैं। कृपया प्रतीक्षा करें और पुनः प्रयास करें।
 rate-limit-refresh = इस पते से बहुत अधिक रिफ्रेश प्रयास किए गए हैं। कृपया प्रतीक्षा करें और पुनः प्रयास करें।
-
 # सत्र और प्रमाणीकरण त्रुटियाँ
 account-not-found = खाता नहीं मिला।
 session-expired = सत्र समाप्त हो गया। कृपया पुनः लॉग इन करें।
 session-token-mismatch = सत्र टोकन उपयोगकर्ता नाम से मेल नहीं खाता।
 refresh-token-expired = रिफ्रेश टोकन समाप्त हो गया। कृपया पुनः लॉग इन करें।
 refresh-token-mismatch = रिफ्रेश टोकन उपयोगकर्ता नाम से मेल नहीं खाता।
-
 # पंजीकरण
 registration-success = पंजीकरण सफल! आपका खाता अनुमोदन की प्रतीक्षा में है।
 registration-username-taken = यह उपयोगकर्ता नाम पहले से लिया जा चुका है। कृपया कोई अलग उपयोगकर्ता नाम चुनें।
-
 # प्राथमिकता वापसी
 pref-invalid-value = अमान्य चयन, डिफ़ॉल्ट का उपयोग किया जा रहा है।
-
 # Decline reason
 decline-reason-prompt = अस्वीकार करने का कारण दर्ज करें (या रद्द करने के लिए Escape दबाएं):
 account-action-empty-reason = कोई कारण नहीं दिया गया।
-
 # Admin notifications for account requests
 account-request = खाता अनुरोध
 account-action = खाता कार्रवाई की गई
-
 # Admin promotion/demotion
 promote-admin = प्रशासक पदोन्नत करें
 demote-admin = प्रशासक पदावनत करें
@@ -312,7 +273,6 @@ demote-announcement = { $player } को प्रशासक से पदा�
 demote-announcement-you = आपको प्रशासक से पदावनत कर दिया गया है।
 not-admin-anymore = आप अब प्रशासक नहीं हैं और यह कार्रवाई नहीं कर सकते।
 not-server-owner = केवल सर्वर स्वामी ही यह कार्रवाई कर सकता है।
-
 # Server ownership transfer
 transfer-ownership = स्वामित्व स्थानांतरित करें
 transfer-ownership-menu-title = स्वामित्व स्थानांतरित करें
@@ -320,7 +280,6 @@ no-admins-for-transfer = स्वामित्व स्थानांतर
 confirm-transfer-ownership = क्या आप वाकई { $player } को सर्वर स्वामित्व स्थानांतरित करना चाहते हैं? आपको प्रशासक के रूप में पदावनत कर दिया जाएगा।
 transfer-ownership-announcement = { $player } अब प्ले पैलेस सर्वर स्वामी हैं!
 transfer-ownership-announcement-you = आप अब प्ले पैलेस सर्वर स्वामी हैं!
-
 # User banning
 ban-user = उपयोगकर्ता प्रतिबंधित करें
 unban-user = उपयोगकर्ता प्रतिबंध हटाएं
@@ -332,12 +291,13 @@ ban-reason-prompt = प्रतिबंध के लिए कारण द�
 unban-reason-prompt = प्रतिबंध हटाने के लिए कारण दर्ज करें (वैकल्पिक):
 user-banned = { $player } को प्रतिबंधित कर दिया गया है।
 user-unbanned = { $player } का प्रतिबंध हटा दिया गया है।
-you-have-been-banned = आपको इस सर्वर से प्रतिबंधित कर दिया गया है।
+you-have-been-banned =
+    आपको इस सर्वर से प्रतिबंधित कर दिया गया है।
     कारण:
-you-have-been-unbanned = आपका इस सर्वर से प्रतिबंध हटा दिया गया है।
+you-have-been-unbanned =
+    आपका इस सर्वर से प्रतिबंध हटा दिया गया है।
     कारण:
 ban-no-reason = कोई कारण नहीं दिया गया।
-
 # Virtual bots (server owner only)
 virtual-bots = आभासी बॉट
 virtual-bots-fill = सर्वर भरें
@@ -347,10 +307,11 @@ virtual-bots-clear-confirm = क्या आप वाकई सभी आभ�
 virtual-bots-not-available = आभासी बॉट उपलब्ध नहीं हैं।
 virtual-bots-filled = { $added } आभासी बॉट जोड़े गए। { $online } अब ऑनलाइन हैं।
 virtual-bots-already-filled = कॉन्फ़िगरेशन से सभी आभासी बॉट पहले से ही सक्रिय हैं।
-virtual-bots-cleared = { $bots } आभासी बॉट साफ़ किए गए और { $tables } { $tables ->
-    [one] टेबल
-   *[other] टेबल
-} नष्ट की गईं।
+virtual-bots-cleared =
+    { $bots } आभासी बॉट साफ़ किए गए और { $tables } { $tables ->
+        [one] टेबल
+       *[other] टेबल
+    } नष्ट की गईं।
 virtual-bot-table-closed = टेबल प्रशासक द्वारा बंद की गई।
 virtual-bots-none-to-clear = साफ़ करने के लिए कोई आभासी बॉट नहीं है।
 virtual-bots-status-report = आभासी बॉट: { $total } कुल, { $online } ऑनलाइन, { $offline } ऑफलाइन, { $in_game } खेल में।
@@ -378,9 +339,7 @@ virtual-bots-profiles-header = प्रोफाइल: { $count } परिभ
 virtual-bots-profiles-empty = कोई प्रोफाइल परिभाषित नहीं हैं।
 virtual-bots-profiles-line = { $profile } ({ $bot_count } बॉट) ओवरराइड: { $overrides }।
 virtual-bots-profiles-no-overrides = आधार कॉन्फ़िगरेशन विरासत में मिलता है
-
 localization-in-progress-try-again = स्थानीयकरण जारी है। कृपया एक मिनट बाद फिर प्रयास करें।
-
 # Voice chat
 voice-room-table-label = { $game } table
 voice-not-at-table = Join a table before starting voice chat.
@@ -393,9 +352,7 @@ voice-muted-minutes = You are muted for { $minutes } more minute(s).
 voice-muted-seconds = You are muted for { $seconds } more second(s).
 voice-status-connected = { $player } connected to voice.
 voice-status-disconnected = { $player } disconnected from voice.
-voice-status-connection-lost = { $player } lost the voice connection.
 voice-status-left-table = { $player } left the table.
-
 # Mute (admin moderation)
 mute-user = Mute user
 unmute-user = Unmute user
@@ -411,7 +368,6 @@ user-muted = Muted { $player } from voice chat.
 user-unmuted = Unmuted { $player }.
 you-have-been-muted = You have been muted from voice chat.
 you-have-been-unmuted = Your mute has been lifted.
-
 # Pagination controls for large server menus
 menu-page-summary = Showing { $start }-{ $end } of { $total } entries. Page { $page } of { $pages }.
 menu-page-refresh = Refresh list

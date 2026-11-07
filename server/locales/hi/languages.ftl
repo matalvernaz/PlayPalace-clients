@@ -1,3 +1,6 @@
+# languages.ftl for locale hi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # भाषा के नाम इस भाषा में अनुवादित
 language-ar = अरबी
 language-cs = चेक
@@ -11,7 +14,6 @@ language-hr = क्रोएशियाई
 language-hu = हंगेरियाई
 language-id = इंडोनेशियाई
 language-it = इतालवी
-language-ja = जापानी
 language-ko = कोरियाई
 language-mk = मैसेडोनियाई
 language-mn = मंगोलियाई
@@ -30,3 +32,4 @@ language-uk = यूक्रेनियाई
 language-vi = वियतनामी
 language-zh = चीनी
 language-zu = ज़ुलु
+language-ja = जापानी

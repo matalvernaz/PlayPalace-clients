@@ -1,32 +1,26 @@
-# Mancala game messages — hu
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale hu. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mankala
-
 # Actions
 mancala-pit-label = { $pit }. gödör: { $stones } kő
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } { $stones } követ vet a { $pit }. gödörből
 mancala-capture = { $player } elfog { $captured } követ!
 mancala-extra-turn = Utolsó kő a tárban! { $player } újra jön.
 mancala-winner = { $player } nyer { $score } kővel!
 mancala-draw = Döntetlen! Mindkét játékosnak { $score } köve van.
-
 # Board status
-mancala-board-status =
-    Gödreid: { $own_pits }. Tárad: { $own_store }. Ellenfél gödrei: { $opp_pits }. Ellenfél tára: { $opp_store }.
-
+mancala-board-status = Gödreid: { $own_pits }. Tárad: { $own_store }. Ellenfél gödrei: { $opp_pits }. Ellenfél tára: { $opp_store }.
 # Options
 mancala-set-stones = Kő gödrönként: { $stones }
 mancala-desc-stones = Kövek száma minden gödörben az elején
 mancala-enter-stones = Add meg a kezdő kövek számát gödrönként:
 mancala-option-changed-stones = Kezdő kövek { $stones }-ra módosítva
-
 # Disabled reasons
 mancala-pit-empty = Ez a gödör üres.
-
 # Rules
 mancala-rules =
     A Mankala kétszemélyes gödör- és kőjáték.
@@ -38,7 +32,5 @@ mancala-rules =
     A játék véget ér, ha az egyik oldal teljesen üres.
     A legtöbb kővel rendelkező játékos nyer.
     Használd az 1-6 billentyűket a gödör kiválasztásához. Nyomd meg az E-t a tábla ellenőrzéséhez.
-
 # End screen
 mancala-final-score = { $player }: { $score } kő
-mancala-check-board = Check board

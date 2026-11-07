@@ -11,7 +11,7 @@ import pytest
 
 from server.core.server import Server
 from server.core.state import ModeSnapshot, ServerMode
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
 from server.auth.auth import AuthResult
 
 
@@ -100,7 +100,7 @@ class FakeDB:
 @pytest.fixture
 def make_server(monkeypatch, tmp_path):
     def _factory():
-        srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+        srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
         srv._db = FakeDB()
         srv._auth = FakeAuth()
         # Relax credential length checks for tests

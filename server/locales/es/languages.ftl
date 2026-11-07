@@ -1,4 +1,6 @@
-# Language names translated into this language
+# languages.ftl for locale es. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 language-ar = Árabe
 language-cs = Checo
 language-de = Alemán
@@ -15,7 +17,7 @@ language-jp = Japonés
 language-ko = Coreano
 language-mk = Macedonio
 language-mn = Mongol
-language-nl = Holandés
+language-nl = Neerlandés
 language-pl = Polaco
 language-pt = Portugués
 language-ro = Rumano

@@ -1,5 +1,7 @@
-game-name-citadels = Citadels
+# citadels.ftl for locale th. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-citadels = Citadels
 citadels-character-1 = Assassin
 citadels-character-2 = Thief
 citadels-character-3 = Magician
@@ -9,13 +11,11 @@ citadels-character-6 = Merchant
 citadels-character-7 = Architect
 citadels-character-8 = Warlord
 citadels-character-9 = Queen
-
 citadels-district-type-noble = Noble
 citadels-district-type-religious = Religious
 citadels-district-type-trade = Trade
 citadels-district-type-military = Military
 citadels-district-type-unique = Unique
-
 citadels-district-temple = Temple
 citadels-district-church = Church
 citadels-district-monastery = Monastery
@@ -47,57 +47,65 @@ citadels-district-smithy = Smithy
 citadels-district-statue = Statue
 citadels-district-thieves_den = Thieves' Den
 citadels-district-wishing_well = Wishing Well
-
 citadels-game-start = Citadels has begun.
 citadels-selection-start-you = Round { $round }. You choose a character first.
 citadels-selection-start = Round { $round }. { $player } chooses a character first.
 citadels-selection-prompt = Choose a character now.
 citadels-you-chose-character = You chose a character.
 citadels-character-chosen = { $player } has chosen a character.
-citadels-select-character-line = { $brief ->
-    [yes] { $character }
-   *[no] Rank { $rank }: { $character }
-}
+citadels-select-character-line =
+    { $brief ->
+        [yes] { $character }
+       *[no] Rank { $rank }: { $character }
+    }
 citadels-turn-phase-start = Character calling begins.
 citadels-no-characters = There is no { $characters }.
 citadels-list-pair = { $first } or { $last }
 citadels-list-series = { $head }, or { $last }
-citadels-you-character-revealed = { $brief ->
-    [yes] You reveal the { $character }.
-   *[no] You reveal rank { $rank }, { $character }.
-}
-citadels-character-revealed = { $brief ->
-    [yes] { $player } reveals the { $character }.
-   *[no] { $player } reveals rank { $rank }, { $character }.
-}
+citadels-you-character-revealed =
+    { $brief ->
+        [yes] You reveal the { $character }.
+       *[no] You reveal rank { $rank }, { $character }.
+    }
+citadels-character-revealed =
+    { $brief ->
+        [yes] { $player } reveals the { $character }.
+       *[no] { $player } reveals rank { $rank }, { $character }.
+    }
 citadels-you-took-crown = You take the crown and will choose first next round.
 citadels-crown-taken = { $player } takes the crown.
 citadels-you-king-heir = You reveal the King at end of round and take the crown.
 citadels-king-heir = { $player } reveals the King at end of round and takes the crown.
-citadels-you-assassin-targeted = { $brief ->
-    [yes] You name the { $character } for assassination.
-   *[no] You name rank { $rank }, { $character }, for assassination.
-}
-citadels-assassin-targeted = { $brief ->
-    [yes] { $player }, the Assassin, names the { $character }.
-   *[no] { $player }, the Assassin, names rank { $rank }, { $character }.
-}
-citadels-character-killed-skip = { $brief ->
-    [yes] The { $character } was assassinated and loses its turn.
-   *[no] Rank { $rank }, { $character }, was assassinated and loses its turn.
-}
-citadels-you-character-killed-skip = { $brief ->
-    [yes] You were assassinated as the { $character } and lose this turn.
-   *[no] You were assassinated as rank { $rank }, { $character }, and lose this turn.
-}
-citadels-you-thief-targeted = { $brief ->
-    [yes] You will rob the { $character } when that character is revealed.
-   *[no] You will rob rank { $rank }, { $character }, when that character is revealed.
-}
-citadels-thief-targeted = { $brief ->
-    [yes] { $player }, the Thief, marks the { $character } for robbery.
-   *[no] { $player }, the Thief, marks rank { $rank }, { $character }, for robbery.
-}
+citadels-you-assassin-targeted =
+    { $brief ->
+        [yes] You name the { $character } for assassination.
+       *[no] You name rank { $rank }, { $character }, for assassination.
+    }
+citadels-assassin-targeted =
+    { $brief ->
+        [yes] { $player }, the Assassin, names the { $character }.
+       *[no] { $player }, the Assassin, names rank { $rank }, { $character }.
+    }
+citadels-character-killed-skip =
+    { $brief ->
+        [yes] The { $character } was assassinated and loses its turn.
+       *[no] Rank { $rank }, { $character }, was assassinated and loses its turn.
+    }
+citadels-you-character-killed-skip =
+    { $brief ->
+        [yes] You were assassinated as the { $character } and lose this turn.
+       *[no] You were assassinated as rank { $rank }, { $character }, and lose this turn.
+    }
+citadels-you-thief-targeted =
+    { $brief ->
+        [yes] You will rob the { $character } when that character is revealed.
+       *[no] You will rob rank { $rank }, { $character }, when that character is revealed.
+    }
+citadels-thief-targeted =
+    { $brief ->
+        [yes] { $player }, the Thief, marks the { $character } for robbery.
+       *[no] { $player }, the Thief, marks rank { $rank }, { $character }, for robbery.
+    }
 citadels-you-thief-found-nothing = Your robbery finds no gold to steal.
 citadels-thief-found-nothing = { $player }, the Thief, finds no gold to steal.
 citadels-you-thief-stole-gold = You steal { $amount } gold as the Thief.
@@ -131,7 +139,6 @@ citadels-you-queen-bonus = You gain { $amount } bonus gold from the Queen.
 citadels-queen-bonus = { $player } gains { $amount } bonus gold from the Queen.
 citadels-you-warlord-destroyed = You destroy { $target }'s { $district }.
 citadels-warlord-destroyed = { $player } destroys { $target }'s { $district }.
-
 citadels-take-gold = Take 2 gold
 citadels-draw-cards = Draw district cards
 citadels-collect-income = Collect character income
@@ -149,34 +156,31 @@ citadels-read-character = Read character
 citadels-read-hand = Read hand
 citadels-read-cities = Read cities
 citadels-read-discards = Read discards
-
-citadels-assassinate-target-line = { $brief ->
-    [yes] Assassinate the { $character }
-   *[no] Assassinate rank { $rank }: { $character }
-}
-citadels-thief-target-line = { $brief ->
-    [yes] Rob the { $character }
-   *[no] Rob rank { $rank }: { $character }
-}
+citadels-assassinate-target-line =
+    { $brief ->
+        [yes] Assassinate the { $character }
+       *[no] Assassinate rank { $rank }: { $character }
+    }
+citadels-thief-target-line =
+    { $brief ->
+        [yes] Rob the { $character }
+       *[no] Rob rank { $rank }: { $character }
+    }
 citadels-magician-swap-line = Swap with { $player } ({ $cards } cards)
-citadels-warlord-target-line = Destroy { $player }'s { $district } for { $cost } gold. { $description }
-citadels-build-card-line = Build { $district } ({ $cost } gold). { $description }
-citadels-build-card-disabled-line = Cannot build { $district } ({ $cost } gold): { $reason } { $description }
 citadels-district-line = { $district }, cost { $cost }, { $type }. { $description }
 citadels-toggle-selected = Selected: { $district }, cost { $cost }
 citadels-toggle-not-selected = Not selected: { $district }, cost { $cost }
-
 citadels-build-error = You cannot build { $district }: { $reason }
 citadels-build-error-card-missing = That district card is no longer in your hand.
 citadels-build-reason-need-resource = You must take gold or draw district cards before building.
-citadels-build-reason-limit = You have already built the { $limit } { $limit ->
-    [one] district
-   *[other] districts
-} allowed this turn.
+citadels-build-reason-limit =
+    You have already built the { $limit } { $limit ->
+        [one] district
+       *[other] districts
+    } allowed this turn.
 citadels-build-reason-duplicate = Your city already contains { $district }, and you do not have Quarry to allow duplicate districts.
 citadels-build-reason-gold = You need { $needed } more gold.
 citadels-build-reason-thieves-den-payment = Even after discarding every other card in your hand, you still need { $needed } more gold worth of payment.
-
 citadels-district-effect-none = No special ability.
 citadels-district-effect-dragon_gate = End of game: gain 2 extra points.
 citadels-district-effect-factory = Your other unique districts cost 1 less to build.
@@ -192,44 +196,46 @@ citadels-district-effect-smithy = Once per turn after taking resources, pay 2 go
 citadels-district-effect-statue = End of game: gain 5 points if you hold the crown.
 citadels-district-effect-thieves_den = When building this district, you may discard cards from your hand to pay 1 gold per discarded card.
 citadels-district-effect-wishing_well = End of game: gain 1 point for each unique district in your city, including this one.
-
 citadels-hand-header = Your hand has { $count } cards.
 citadels-hand-empty = Your hand is empty.
 citadels-cities-header = Cities at the table
 citadels-city-empty = no districts
 citadels-city-line = { $player }: { $count } districts, { $gold } gold, { $score } points. { $districts }
 citadels-character-none = You do not currently hold a character. You have { $gold } gold.
-citadels-character-line = { $brief ->
-    [yes] { $character }. You have { $gold } gold.
-   *[no] Rank { $rank }: { $character }. You have { $gold } gold.
-}
+citadels-character-line =
+    { $brief ->
+        [yes] { $character }. You have { $gold } gold.
+       *[no] Rank { $rank }: { $character }. You have { $gold } gold.
+    }
 citadels-discards-none = none
 citadels-faceup-discards-line = Faceup discarded characters: { $characters }
-
 citadels-status-header = Citadels status
 citadels-status-crown = Crown holder: { $player }
 citadels-status-selection = Character selection. { $player } is choosing.
-citadels-status-rank-resolution = { $brief ->
-    [yes] Calling the { $character }.
-   *[no] Calling rank { $rank }: { $character }.
-}
-citadels-status-turn = { $brief ->
-    [yes] { $player } is taking a turn as the { $character }.
-   *[no] { $player } is taking a turn as rank { $rank }, { $character }.
-}
+citadels-status-rank-resolution =
+    { $brief ->
+        [yes] Calling the { $character }.
+       *[no] Calling rank { $rank }: { $character }.
+    }
+citadels-status-turn =
+    { $brief ->
+        [yes] { $player } is taking a turn as the { $character }.
+       *[no] { $player } is taking a turn as rank { $rank }, { $character }.
+    }
 citadels-status-turn-progress = Built { $builds } of { $limit } allowed districts this turn.
-citadels-status-killed = { $brief ->
-    [yes] Assassinated: { $character }.
-   *[no] Assassinated rank: { $rank }, { $character }.
-}
+citadels-status-killed =
+    { $brief ->
+        [yes] Assassinated: { $character }.
+       *[no] Assassinated rank: { $rank }, { $character }.
+    }
 citadels-status-killed-none = No character has been assassinated this round.
-citadels-status-robbed = { $brief ->
-    [yes] Robbed: { $character }.
-   *[no] Robbed rank: { $rank }, { $character }.
-}
+citadels-status-robbed =
+    { $brief ->
+        [yes] Robbed: { $character }.
+       *[no] Robbed rank: { $rank }, { $character }.
+    }
 citadels-status-robbed-none = No character has been marked for robbery this round.
 citadels-status-first-completed = First completed city: { $player }
-
 citadels-standings-header = Current standings
 citadels-standing-line = Rank { $rank }: { $player }, { $score } points, { $gold } gold, { $districts } districts, { $cards } cards in hand.
 citadels-end-line = Rank { $rank }: { $player }, { $score } points, { $gold } gold, { $districts } districts.

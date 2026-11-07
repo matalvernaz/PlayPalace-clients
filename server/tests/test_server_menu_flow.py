@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import pytest
 
 from server.core.server import Server
-from server.core.users.network_user import NetworkUser
-from server.core.users.base import TrustLevel
+from server.users.network_user import NetworkUser
+from server.users.trust_level import TrustLevel
 
 
 class DummyConnection:

@@ -1,58 +1,52 @@
-# Nine game messages
+# nine.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game name and description
-game-name-nine = Nine
-nine-description = A popular Russian card game in which players build suit sequences.
-
-# Player count validation
-nine-error-invalid-player-count = Nine can only be played with 2, 3, 4, or 6 players.
-
-# Dealing messages
-nine-player-nine-deal = Dealing {$cards} cards to all players.
-
-# Game start
-nine-you-start-player-announcement = You have the nine of clubs and start the game.
-nine-player-start-player-announcement = { $player } has the nine of clubs and starts the game.
-
-# Turn actions
-nine-you-play-card = You play the { $card }.
-nine-player-plays-card = { $player } plays the { $card }.
-
-nine-you-plays-nine-clubs = You play the nine of clubs.
-nine-player-plays-nine-clubs = { $player } plays the nine of clubs.
-
-nine-you-plays-nine-suit = You play the { $card } to start the { $suit } sequence.
-nine-player-plays-nine-suit = { $player } plays the { $card } to start the { $suit } sequence.
-
-nine-you-extend-sequence = You extend the { $suit } sequence with the { $card }.
-nine-player-extend-sequence = { $player } extends the { $suit } sequence with the { $card }.
-
-nine-you-skips-turn = You have no valid moves and must skip your turn.
-nine-player-skips-turn = { $player } has no valid moves and skips their turn.
-
-# Reasons for not being able to play a card
-nine-reason-not-your-turn = It is not your turn.
-nine-reason-must-play-nine-clubs = You must play the nine of clubs to start the game.
-nine-reason-no-nine = You do not have a nine to start a new sequence.
-nine-reason-cannot-extend = That card cannot extend the { $suit } sequence.
-nine-reason-generic = That card cannot be played right now.
-
-# Winning
-nine-you-wins-game = You have no cards left and win the game!
-nine-player-wins-game = { $player } has no cards left and wins the game!
-nine-player-game-ended = The game of Nine has ended.
-nine-you-game-ended = The game of Nine has ended.
-
-nine-you-win = You win!
-nine-you-lose = You lose!
-nine-final-score = Cards left: { $score }
-
-# Status
-nine-status = { $name }: { $cards_left } cards left.
-nine-status-sequence = { $suit } sequence: { $sequence }.
-nine-status-no-sequence = No { $suit } sequence started yet.
-nine-none = none
-nine-action-check-sequences = Check Sequences
-nine-action-check-hand-counts = Check Hand Counts
-
-nine-status-player-hand-count = { $player }: { $count } cards
+game-name-nine = Sembilan
+nine-description = Permainan kartu populer dari Rusia. Pemain menyusun deretan kartu berdasarkan jenisnya.
+nine-error-invalid-player-count = Sembilan menggunakan 36 kartu dan hanya dapat dimainkan oleh 3, 4, atau 6 pemain.
+nine-error-starting-nine-missing = Tidak ada pemain yang memiliki 9 wajik. Permainan tidak dapat dilanjutkan.
+nine-player-nine-deal = Membagikan { $cards } kartu kepada setiap pemain.
+nine-you-start-player-announcement = Anda memiliki 9 wajik dan mendapat giliran pertama.
+nine-player-start-player-announcement = { $player } memiliki 9 wajik dan mendapat giliran pertama.
+nine-you-start-player-announcement-brief = Anda mulai dengan 9 wajik.
+nine-player-start-player-announcement-brief = { $player } mulai dengan 9 wajik.
+nine-you-plays-starting-nine = Anda memainkan { $card } untuk membuka permainan.
+nine-player-plays-starting-nine = { $player } memainkan { $card } untuk membuka permainan.
+nine-you-plays-starting-nine-brief = Anda memainkan { $card }.
+nine-player-plays-starting-nine-brief = { $player }: { $card }.
+nine-you-plays-nine-suit = Anda memainkan { $card } untuk memulai deretan { $suit }.
+nine-player-plays-nine-suit = { $player } memainkan { $card } untuk memulai deretan { $suit }.
+nine-you-plays-nine-suit-brief = Anda memulai deretan { $suit } dengan { $card }.
+nine-player-plays-nine-suit-brief = { $player } memulai deretan { $suit } dengan { $card }.
+nine-you-extend-sequence = Anda menyambung deretan { $suit } dengan { $card }.
+nine-player-extend-sequence = { $player } menyambung deretan { $suit } dengan { $card }.
+nine-you-extend-sequence-brief = Anda memainkan { $card } pada deretan { $suit }.
+nine-player-extend-sequence-brief = { $player }: { $card } pada deretan { $suit }.
+nine-you-skips-turn = Anda tidak memiliki kartu yang bisa dimainkan. Giliran Anda dilewati.
+nine-player-skips-turn = { $player } tidak memiliki kartu yang bisa dimainkan. Gilirannya dilewati.
+nine-you-skips-turn-brief = Giliran Anda dilewati. Tidak ada kartu yang bisa dimainkan.
+nine-player-skips-turn-brief = Giliran { $player } dilewati. Tidak ada kartu yang bisa dimainkan.
+nine-reason-not-your-turn = Belum giliran Anda.
+nine-reason-card-slot-gone = Kartu itu sudah tidak ada di tangan Anda. Menu kartu Anda telah diperbarui.
+nine-reason-must-play-starting-nine = Permainan harus dibuka dengan { $starting_card }. { $card } belum bisa dimainkan sebelum permainan dibuka.
+nine-reason-nine-already-started = { $card } tidak bisa dimainkan karena deretan { $suit } sudah dimulai.
+nine-reason-cannot-extend = { $card } tidak bisa menyambung deretan { $suit }. Mainkan kartu yang tepat satu tingkat lebih rendah atau lebih tinggi dari salah satu ujung deretan tersebut.
+nine-reason-unopened-suit = { $card } tidak bisa dimainkan karena deretan { $suit } belum dimulai. Mulailah dengan kartu 9 dari jenis tersebut.
+nine-reason-must-skip = Anda tidak memiliki kartu yang bisa dimainkan. Giliran Anda akan dilewati secara otomatis.
+nine-you-wins-game = Kartu Anda habis. Anda menang!
+nine-player-wins-game = Kartu { $player } habis. { $player } menang!
+nine-you-wins-game-brief = Anda menang!
+nine-player-wins-game-brief = { $player } menang!
+nine-player-game-ended = Permainan Sembilan telah berakhir.
+nine-you-game-ended = Permainan Sembilan telah berakhir.
+nine-you-win = Anda menang!
+nine-you-lose = Anda kalah!
+nine-final-score = Sisa kartu: { $score }
+nine-status = { $name }: tersisa { $cards_left } kartu.
+nine-status-sequence = Deretan { $suit }: { $sequence }.
+nine-status-no-sequence = Deretan { $suit } belum dimulai.
+nine-sequence-range = { $low } sampai { $high }
+nine-none = tidak ada
+nine-action-check-sequences = Periksa deretan kartu
+nine-action-check-hand-counts = Periksa jumlah kartu
+nine-status-player-hand-count = { $player }: { $count } kartu

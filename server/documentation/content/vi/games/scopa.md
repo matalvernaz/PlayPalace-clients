@@ -1,0 +1,102 @@
+\*\*Scopa\*\*
+
+
+
+Scopa là một trò chơi bài cổ điển của Ý có nguồn gốc từ ít nhất là thế kỷ 18. Cái tên này trong tiếng Ý có nghĩa là "cái chổi", ám chỉ hành động quét sạch tất cả các lá bài trên bàn. Đây là một trong những trò chơi phổ biến nhất tại Ý và có nhiều biến thể khác nhau khắp vùng Địa Trung Hải.
+
+
+
+Mục tiêu của trò chơi là ăn các lá bài trên bàn bằng cách đánh một lá bài từ tay mình sao cho nó khớp với hạng của lá bài trên bàn, hoặc có giá trị bằng tổng của nhiều lá bài trên bàn. Người chơi (hoặc đội) đầu tiên đạt đến điểm mục tiêu sẽ giành chiến thắng.
+
+
+
+\*\*Cách chơi\*\*
+
+
+
+Scopa được chơi với bộ bài tiêu chuẩn đã loại bỏ các lá hình người (J, Q, K), tổng cộng còn 40 lá. Trò chơi chia thành các vòng. Trong lượt của mình, bạn phải đánh chính xác một lá bài trên tay.
+
+
+
+\*\*Ăn bài (Capture)\*\*
+
+1\. \*\*Khớp hạng:\*\* Nếu lá bài bạn đánh khớp với hạng của một lá trên bàn, bạn ăn lá bài đó.
+
+2\. \*\*Khớp tổng:\*\* Nếu không có lá nào khớp hạng, nhưng tổng giá trị của nhiều lá trên bàn bằng với lá bạn đánh, bạn ăn toàn bộ nhóm lá đó.
+
+3\. \*\*Ưu tiên:\*\* Việc ăn khớp hạng luôn được ưu tiên hơn so với việc ăn theo tổng điểm.
+
+4\. \*\*Scopa:\*\* Nếu bạn ăn bài và quét sạch toàn bộ các lá bài hiện có trên bàn, bạn ghi được một điểm \*\*"Scopa"\*\*. Lần quét bàn bằng lá cuối cùng của vòng không được tính là điểm Scopa.
+
+
+
+Nếu lá bài bạn đánh không thể ăn được gì, nó sẽ để lại trên bàn. Khi tất cả người chơi hết bài trên tay, một đợt chia bài mới sẽ diễn ra từ phần bài còn lại. Những lá bài cuối cùng còn sót lại trên bàn khi kết thúc vòng chơi sẽ thuộc về người cuối cùng thực hiện được một nước ăn bài.
+
+
+
+\*\*Cách tính điểm\*\*
+
+
+
+Vào cuối mỗi vòng, 1 điểm sẽ được trao cho mỗi hạng mục sau (nếu hòa thì không ai có điểm):
+
+\* \*\*Nhiều bài nhất:\*\* Người ăn được nhiều lá bài nhất.
+
+\* \*\*Nhiều Rô nhất:\*\* Người ăn được nhiều lá bài chất Rô nhất.
+
+\* \*\*Lá 7 Rô:\*\* Người ăn được lá 7 Rô.
+
+\* \*\*Primiera:\*\* Tổng Primiera cao nhất từ lá bài tốt nhất bạn đã ăn ở mỗi chất. Một bên phải có ít nhất một lá ở cả bốn chất mới đủ điều kiện. Giá trị Primiera là 7=21, 6=18, Át=16, 5=15, 4=14, 3=13, 2=12, và các lá cao hơn=10.
+
+\* \*\*Scopa:\*\* Mỗi lần quét sạch bàn hợp lệ trong khi chơi được 1 điểm.
+
+Điểm Scopa được theo dõi trong lúc đang chơi ván bài và phần kiểm tra điểm sẽ đọc chúng như điểm Scopa đang chờ tính. Các điểm đó được cộng vào tổng điểm khi ván bài được tính điểm. Nếu nhiều bên cùng đạt mốc mục tiêu với số điểm cao nhất bằng nhau, trò chơi sẽ chơi thêm một ván để phá hòa.
+
+
+
+\*\*Tùy chọn trò chơi\*\*
+
+\* \*\*Điểm mục tiêu:\*\* Số điểm cần đạt để thắng (mặc định 11, phạm vi 1-121).
+
+\* \*\*Số bài chia mỗi lượt:\*\* Số lá bài mỗi người chơi nhận mỗi lần chia (mặc định 3, phạm vi 1-10).
+
+\* \*\*Số bộ bài:\*\* Số bộ bài 40 lá được sử dụng (mặc định 1, phạm vi 1-6).
+
+\* \*\*Chế độ đội:\*\* Chơi cá nhân hoặc theo đội.
+
+\* \*\*Tính điểm bài theo đội:\*\* Bài ăn được của các thành viên trong đội được gộp chung để tính điểm. Nếu tắt trong trò chơi theo đội, bài đã ăn của từng người được xét riêng, và điểm người đó giành được sẽ cộng cho đội của họ (mặc định bật).
+
+\* \*\*Gợi ý ăn bài:\*\* Hiển thị những lá bài nào trên bàn có thể ăn được với mỗi lá bài trên tay (mặc định tắt).
+
+\* \*\*Cơ chế Scopa:\*\* Bình thường, Không Scopa (quét bàn không tính điểm), hoặc Chỉ Scopa (chỉ tính điểm quét bàn).
+
+\* \*\*Scopa tức thì:\*\* Một điểm Scopa hợp lệ sẽ thắng ngay cả ván. Tùy chọn này không thể dùng cùng Không Scopa hoặc Scopa Đảo ngược (mặc định tắt).
+
+
+
+\*\*Các biến thể trò chơi\*\*
+
+\* \*\*Chọn nước ăn bài thủ công:\*\* Khi được bật, nếu lá bài đánh xuống có thể ăn nhiều tổ hợp khác nhau từ trên bàn, bạn có thể chọn thủ công tổ hợp nào để ăn thay vì trò chơi tự động chọn tổ hợp có nhiều lá bài nhất.
+
+\* \*\*Asso piglia tutto (Át ăn tất cả):\*\* Đánh lá Át sẽ quét sạch tất cả các lá bài hiện có trên bàn và ghi điểm Scopa nếu lần quét đó hợp lệ. Nếu đã có một lá Át trên bàn, nó chỉ ăn một lá Át; nếu đó là lá duy nhất trên bàn, lần ăn đó vẫn ghi điểm Scopa. Chế độ này không thể được bật cùng với Escoba.
+
+\* \*\*Tính điểm Primiera truyền thống:\*\* Nếu tắt, trò chơi dùng biến thể đơn giản hơn là tính điểm "Nhiều lá 7 nhất" (mặc định bật cho Scopa chuẩn).
+
+\* \*\*Napola:\*\* Kiếm điểm thưởng bằng cách ăn một chuỗi liên tiếp các lá bài chất Rô bắt đầu từ Át (Át, 2, 3 Rô = 3 điểm; tối đa lên đến 10 điểm cho tất cả các lá Rô).
+
+\* \*\*Chế độ Escoba:\*\* Việc ăn bài xảy ra khi lá bài bạn đánh cộng với các lá bài trên bàn có tổng bằng chính xác 15.
+
+\* \*\*Scopa Đảo ngược:\*\* Chế độ mà khi bạn đạt đến điểm mục tiêu, bạn sẽ bị loại; người cuối cùng còn trụ lại sẽ thắng. Tùy chọn này không thể dùng cùng Scopa tức thì.
+
+
+
+\*\*Phím tắt bàn phím\*\*
+
+\* \*\*C:\*\* Xem toàn bộ bài trên bàn.
+
+\* \*\*D:\*\* Xem số lượng bài bạn đã ăn được.
+
+\* \*\*1-9 và 0:\*\* Xem lá bài cụ thể trên bàn theo vị trí.
+
+\* \*\*S:\*\* Kiểm tra điểm số hiện tại.
+

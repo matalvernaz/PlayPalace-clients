@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+from mashumaro.mixins.json import DataClassJSONMixin
+
 from .rules import SorryRulesProfile
 from .state import (
     SAFETY_LENGTH,
@@ -14,9 +16,7 @@ from .state import (
 
 
 @dataclass(frozen=True)
-class CaptureEvent:
-    """Records a pawn being sent back to start."""
-
+class CaptureEvent(DataClassJSONMixin):
     captured_player_id: str
     captured_pawn_index: int
     by_player_id: str
@@ -29,21 +29,17 @@ _SLIDE_START_TO_STEPS_BY_OFFSET: dict[int, int] = {
 
 
 @dataclass(frozen=True)
-class PawnDestination:
-    """Destination for a pawn movement."""
-
+class PawnDestination(DataClassJSONMixin):
     zone: str
     track_position: int | None = None
     home_steps: int = 0
 
 
 @dataclass(frozen=True)
-class SorryMove:
-    """A legal move candidate for a player."""
-
+class SorryMove(DataClassJSONMixin):
     action_id: str
     move_type: str
-    description: str
+    description: str = ""
     pawn_index: int | None = None
     steps: int | None = None
     secondary_pawn_index: int | None = None
@@ -52,13 +48,8 @@ class SorryMove:
     target_pawn_index: int | None = None
 
 
-def _get_pawn(
-    player_state: SorryPlayerState,
-    pawn_index: int | None,
-) -> SorryPawnState | None:
-    if pawn_index is None:
-        return None
-    if pawn_index < 1 or pawn_index > len(player_state.pawns):
+def _get_pawn(player_state: SorryPlayerState, pawn_index: int | None) -> SorryPawnState | None:
+    if pawn_index is None or pawn_index < 1 or pawn_index > len(player_state.pawns):
         return None
     return player_state.pawns[pawn_index - 1]
 
@@ -77,10 +68,7 @@ def _compute_forward_destination(
     pawn: SorryPawnState,
     steps: int,
 ) -> PawnDestination | None:
-    if steps <= 0:
-        return None
-
-    if pawn.zone == "home":
+    if steps <= 0 or pawn.zone == "home":
         return None
 
     if pawn.zone == "home_path":
@@ -98,7 +86,6 @@ def _compute_forward_destination(
         pawn.track_position,
         player_state.home_entry_track,
     )
-
     if steps <= distance_to_home_entry:
         return PawnDestination(
             zone="track",
@@ -117,9 +104,7 @@ def _compute_backward_destination(
     pawn: SorryPawnState,
     steps: int,
 ) -> PawnDestination | None:
-    if steps <= 0:
-        return None
-    if pawn.zone != "track" or pawn.track_position is None:
+    if steps <= 0 or pawn.zone != "track" or pawn.track_position is None:
         return None
     return PawnDestination(
         zone="track",
@@ -151,9 +136,7 @@ def _is_destination_legal_for_player(
     return True
 
 
-def _iter_track_pawns(
-    player_state: SorryPlayerState,
-) -> list[SorryPawnState]:
+def _iter_track_pawns(player_state: SorryPlayerState) -> list[SorryPawnState]:
     return [
         pawn
         for pawn in player_state.pawns
@@ -161,37 +144,22 @@ def _iter_track_pawns(
     ]
 
 
-def _generate_start_moves(
-    state: SorryGameState,
-    player_state: SorryPlayerState,
-) -> list[SorryMove]:
-    destination = PawnDestination(
-        zone="track",
-        track_position=player_state.start_track,
-    )
+def _generate_start_moves(player_state: SorryPlayerState) -> list[SorryMove]:
+    destination = PawnDestination(zone="track", track_position=player_state.start_track)
     if not _is_destination_legal_for_player(player_state, destination):
         return []
-
-    moves: list[SorryMove] = []
-    for pawn in player_state.pawns:
-        if pawn.zone != "start":
-            continue
-        moves.append(
-            SorryMove(
-                action_id=f"start_p{pawn.pawn_index}",
-                move_type="start",
-                description=f"Move pawn {pawn.pawn_index} out of start",
-                pawn_index=pawn.pawn_index,
-            )
+    return [
+        SorryMove(
+            action_id=f"start_p{pawn.pawn_index}",
+            move_type="start",
+            pawn_index=pawn.pawn_index,
         )
-    _ = state
-    return moves
+        for pawn in player_state.pawns
+        if pawn.zone == "start"
+    ]
 
 
-def _generate_forward_moves(
-    player_state: SorryPlayerState,
-    steps: int,
-) -> list[SorryMove]:
+def _generate_forward_moves(player_state: SorryPlayerState, steps: int) -> list[SorryMove]:
     moves: list[SorryMove] = []
     for pawn in player_state.pawns:
         destination = _compute_forward_destination(player_state, pawn, steps)
@@ -207,7 +175,6 @@ def _generate_forward_moves(
             SorryMove(
                 action_id=f"forward{steps}_p{pawn.pawn_index}",
                 move_type="forward",
-                description=f"Move pawn {pawn.pawn_index} forward {steps}",
                 pawn_index=pawn.pawn_index,
                 steps=steps,
             )
@@ -215,10 +182,7 @@ def _generate_forward_moves(
     return moves
 
 
-def _generate_backward_moves(
-    player_state: SorryPlayerState,
-    steps: int,
-) -> list[SorryMove]:
+def _generate_backward_moves(player_state: SorryPlayerState, steps: int) -> list[SorryMove]:
     moves: list[SorryMove] = []
     for pawn in player_state.pawns:
         destination = _compute_backward_destination(pawn, steps)
@@ -234,7 +198,6 @@ def _generate_backward_moves(
             SorryMove(
                 action_id=f"backward{steps}_p{pawn.pawn_index}",
                 move_type="backward",
-                description=f"Move pawn {pawn.pawn_index} backward {steps}",
                 pawn_index=pawn.pawn_index,
                 steps=steps,
             )
@@ -258,14 +221,8 @@ def _generate_swap_moves(
             for target in _iter_track_pawns(opponent_state):
                 moves.append(
                     SorryMove(
-                        action_id=(
-                            f"swap_p{own_pawn.pawn_index}_{opponent_id}_p{target.pawn_index}"
-                        ),
+                        action_id=f"swap_p{own_pawn.pawn_index}_{opponent_id}_p{target.pawn_index}",
                         move_type="swap",
-                        description=(
-                            f"Swap pawn {own_pawn.pawn_index} with "
-                            f"{opponent_id} pawn {target.pawn_index}"
-                        ),
                         pawn_index=own_pawn.pawn_index,
                         target_player_id=opponent_id,
                         target_pawn_index=target.pawn_index,
@@ -288,10 +245,7 @@ def _generate_sorry_moves(
             if opponent_id == player_state.player_id:
                 continue
             for target in _iter_track_pawns(opponent_state):
-                destination = PawnDestination(
-                    zone="track",
-                    track_position=target.track_position,
-                )
+                destination = PawnDestination(zone="track", track_position=target.track_position)
                 if not _is_destination_legal_for_player(
                     player_state,
                     destination,
@@ -300,14 +254,8 @@ def _generate_sorry_moves(
                     continue
                 moves.append(
                     SorryMove(
-                        action_id=(
-                            f"sorry_p{own_pawn.pawn_index}_{opponent_id}_p{target.pawn_index}"
-                        ),
+                        action_id=f"sorry_p{own_pawn.pawn_index}_{opponent_id}_p{target.pawn_index}",
                         move_type="sorry",
-                        description=(
-                            f"Move pawn {own_pawn.pawn_index} to replace "
-                            f"{opponent_id} pawn {target.pawn_index}"
-                        ),
                         pawn_index=own_pawn.pawn_index,
                         target_player_id=opponent_id,
                         target_pawn_index=target.pawn_index,
@@ -335,7 +283,6 @@ def _generate_sorry_fallback_forward_moves(
             SorryMove(
                 action_id=f"sorry_fwd{steps}_p{pawn.pawn_index}",
                 move_type="sorry_fallback_forward",
-                description=f"Move pawn {pawn.pawn_index} forward {steps}",
                 pawn_index=pawn.pawn_index,
                 steps=steps,
             )
@@ -348,7 +295,6 @@ def _pair_has_any_valid_split(
     pawn_a: SorryPawnState,
     pawn_b: SorryPawnState,
 ) -> bool:
-    """Check if a pair of pawns has at least one valid 7-split."""
     for first_steps in range(1, 7):
         second_steps = 7 - first_steps
         dest_a = _compute_forward_destination(player_state, pawn_a, first_steps)
@@ -368,12 +314,11 @@ def _pair_has_any_valid_split(
     return False
 
 
-def _generate_split_seven_moves(
-    player_state: SorryPlayerState,
-) -> list[SorryMove]:
-    """Generate one move per valid pawn pair for splitting 7."""
+def _generate_split_seven_moves(player_state: SorryPlayerState) -> list[SorryMove]:
     movable = [
-        pawn.pawn_index for pawn in player_state.pawns if pawn.zone in {"track", "home_path"}
+        pawn.pawn_index
+        for pawn in player_state.pawns
+        if pawn.zone in {"track", "home_path"}
     ]
     if len(movable) < 2:
         return []
@@ -391,7 +336,6 @@ def _generate_split_seven_moves(
                 SorryMove(
                     action_id=f"split7_pair_p{pawn_a_index}_p{pawn_b_index}",
                     move_type="split7_pick",
-                    description=(f"Split 7 between pawn {pawn_a_index} and pawn {pawn_b_index}"),
                     pawn_index=pawn_a_index,
                     secondary_pawn_index=pawn_b_index,
                 )
@@ -404,7 +348,6 @@ def generate_split_options_for_pair(
     pawn_a_index: int,
     pawn_b_index: int,
 ) -> list[SorryMove]:
-    """Generate valid split distributions for a chosen pawn pair."""
     pawn_a = _get_pawn(player_state, pawn_a_index)
     pawn_b = _get_pawn(player_state, pawn_b_index)
     if pawn_a is None or pawn_b is None:
@@ -428,12 +371,8 @@ def generate_split_options_for_pair(
             continue
         moves.append(
             SorryMove(
-                action_id=(f"split7_p{pawn_a_index}_{first_steps}_p{pawn_b_index}_{second_steps}"),
+                action_id=f"split7_p{pawn_a_index}_{first_steps}_p{pawn_b_index}_{second_steps}",
                 move_type="split7",
-                description=(
-                    f"Pawn {pawn_a_index} moves {first_steps},"
-                    f" pawn {pawn_b_index} moves {second_steps}"
-                ),
                 pawn_index=pawn_a_index,
                 steps=first_steps,
                 secondary_pawn_index=pawn_b_index,
@@ -449,34 +388,26 @@ def generate_legal_moves(
     card_face: str,
     rules: SorryRulesProfile,
 ) -> list[SorryMove]:
-    """Generate legal moves for a player and card."""
     if card_face not in rules.card_faces():
         return []
 
     moves: list[SorryMove] = []
-
     if rules.can_leave_start_with_card(card_face):
-        moves.extend(_generate_start_moves(state, player_state))
-
+        moves.extend(_generate_start_moves(player_state))
     for forward_steps in rules.forward_steps_for_card(card_face):
         moves.extend(_generate_forward_moves(player_state, forward_steps))
-
     for backward_steps in rules.backward_steps_for_card(card_face):
         moves.extend(_generate_backward_moves(player_state, backward_steps))
-
     if rules.allows_split_seven(card_face):
         moves.extend(_generate_split_seven_moves(player_state))
-
     if rules.allows_swap(card_face):
         moves.extend(_generate_swap_moves(state, player_state))
-
     if rules.allows_sorry(card_face):
         sorry_moves = _generate_sorry_moves(state, player_state)
         moves.extend(sorry_moves)
         if not sorry_moves:
             for fallback_steps in rules.sorry_fallback_forward_steps(card_face):
                 moves.extend(_generate_sorry_fallback_forward_moves(player_state, fallback_steps))
-
     return sorted(moves, key=lambda move: move.action_id)
 
 
@@ -486,10 +417,7 @@ def _send_pawn_to_start(pawn: SorryPawnState) -> None:
     pawn.home_steps = 0
 
 
-def _apply_destination(
-    pawn: SorryPawnState,
-    destination: PawnDestination,
-) -> None:
+def _apply_destination(pawn: SorryPawnState, destination: PawnDestination) -> None:
     pawn.zone = destination.zone
     if destination.zone == "track":
         pawn.track_position = destination.track_position
@@ -540,19 +468,15 @@ def _resolve_slide_for_pawn(
         return []
 
     start = normalize_track_position(pawn.track_position)
-    side_offset = start % 15
-    slide_steps = _SLIDE_START_TO_STEPS_BY_OFFSET.get(side_offset)
+    slide_steps = _SLIDE_START_TO_STEPS_BY_OFFSET.get(start % 15)
     if slide_steps is None:
         return []
 
     slide_owner_seat = start // 15
     same_color_slide = slide_owner_seat == player_state.seat_index
-
-    policy_id = rules.slide_policy_id()
-    if policy_id == "a5065_core":
+    if rules.slide_policy_id() == "a5065_core":
         should_slide = same_color_slide
     else:
-        # Classic and unknown policy ids keep classic behavior.
         should_slide = not same_color_slide
     if not should_slide:
         return []
@@ -586,26 +510,19 @@ def apply_move(
     move: SorryMove,
     rules: SorryRulesProfile,
 ) -> list[CaptureEvent]:
-    """Apply a legal move to mutable game state.
-
-    Returns a list of capture events for pawns sent back to start.
-    """
     events: list[CaptureEvent] = []
 
     if move.move_type == "start":
         pawn = _get_pawn(player_state, move.pawn_index)
         if pawn is None or pawn.zone != "start":
             raise ValueError("Invalid start move pawn")
-        destination = PawnDestination(
-            zone="track",
-            track_position=player_state.start_track,
-        )
+        destination = PawnDestination(zone="track", track_position=player_state.start_track)
         if not _is_destination_legal_for_player(
             player_state,
             destination,
             ignore_pawn_indexes={pawn.pawn_index},
         ):
-            raise ValueError("Start square blocked by own pawn")
+            raise ValueError("Start destination blocked by own pawn")
         _apply_destination(pawn, destination)
         events.extend(_capture_opponents_on_track(state, player_state, pawn.track_position))
         events.extend(_resolve_slide_for_pawn(state, player_state, pawn, rules))
@@ -613,11 +530,11 @@ def apply_move(
 
     if move.move_type in {"forward", "sorry_fallback_forward"}:
         pawn = _get_pawn(player_state, move.pawn_index)
-        if pawn is None or move.steps is None:
-            raise ValueError("Invalid forward move payload")
-        destination = _compute_forward_destination(player_state, pawn, move.steps)
+        if pawn is None:
+            raise ValueError("Invalid forward move pawn")
+        destination = _compute_forward_destination(player_state, pawn, move.steps or 0)
         if destination is None:
-            raise ValueError("Forward move is no longer legal")
+            raise ValueError("Forward move not legal")
         if not _is_destination_legal_for_player(
             player_state,
             destination,
@@ -625,18 +542,17 @@ def apply_move(
         ):
             raise ValueError("Forward destination blocked by own pawn")
         _apply_destination(pawn, destination)
-        if pawn.zone == "track":
-            events.extend(_capture_opponents_on_track(state, player_state, pawn.track_position))
-            events.extend(_resolve_slide_for_pawn(state, player_state, pawn, rules))
+        events.extend(_capture_opponents_on_track(state, player_state, pawn.track_position))
+        events.extend(_resolve_slide_for_pawn(state, player_state, pawn, rules))
         return events
 
     if move.move_type == "backward":
         pawn = _get_pawn(player_state, move.pawn_index)
-        if pawn is None or move.steps is None:
-            raise ValueError("Invalid backward move payload")
-        destination = _compute_backward_destination(pawn, move.steps)
+        if pawn is None:
+            raise ValueError("Invalid backward move pawn")
+        destination = _compute_backward_destination(pawn, move.steps or 0)
         if destination is None:
-            raise ValueError("Backward move is no longer legal")
+            raise ValueError("Backward move not legal")
         if not _is_destination_legal_for_player(
             player_state,
             destination,
@@ -649,120 +565,75 @@ def apply_move(
         return events
 
     if move.move_type == "swap":
-        pawn = _get_pawn(player_state, move.pawn_index)
-        opponent_state = _player_by_id(state, move.target_player_id)
-        opponent_pawn = (
-            _get_pawn(opponent_state, move.target_pawn_index)
-            if opponent_state is not None
-            else None
-        )
-        if (
-            pawn is None
-            or opponent_pawn is None
-            or pawn.zone != "track"
-            or opponent_pawn.zone != "track"
-            or pawn.track_position is None
-            or opponent_pawn.track_position is None
-        ):
-            raise ValueError("Invalid swap move")
-        pawn.track_position, opponent_pawn.track_position = (
-            opponent_pawn.track_position,
-            pawn.track_position,
-        )
-        events.extend(_resolve_slide_for_pawn(state, player_state, pawn, rules))
+        own_pawn = _get_pawn(player_state, move.pawn_index)
+        target_player = _player_by_id(state, move.target_player_id)
+        target_pawn = _get_pawn(target_player, move.target_pawn_index) if target_player else None
+        if own_pawn is None or target_pawn is None:
+            raise ValueError("Swap references missing pawn")
+        if own_pawn.zone != "track" or own_pawn.track_position is None:
+            raise ValueError("Own pawn not on track for swap")
+        if target_pawn.zone != "track" or target_pawn.track_position is None:
+            raise ValueError("Target pawn not on track for swap")
+        own_pos = own_pawn.track_position
+        target_pos = target_pawn.track_position
+        own_pawn.track_position = target_pos
+        target_pawn.track_position = own_pos
+        # On an 11 switch, only the pawn whose move just ended checks for a slide.
+        # The displaced pawn does not immediately slide from the square it was moved to.
+        events.extend(_resolve_slide_for_pawn(state, player_state, own_pawn, rules))
         return events
 
     if move.move_type == "sorry":
-        pawn = _get_pawn(player_state, move.pawn_index)
-        opponent_state = _player_by_id(state, move.target_player_id)
-        opponent_pawn = (
-            _get_pawn(opponent_state, move.target_pawn_index)
-            if opponent_state is not None
-            else None
-        )
-        if (
-            pawn is None
-            or opponent_pawn is None
-            or pawn.zone != "start"
-            or opponent_pawn.zone != "track"
-            or opponent_pawn.track_position is None
-        ):
+        own_pawn = _get_pawn(player_state, move.pawn_index)
+        target_player = _player_by_id(state, move.target_player_id)
+        target_pawn = _get_pawn(target_player, move.target_pawn_index) if target_player else None
+        if own_pawn is None or own_pawn.zone != "start" or target_pawn is None:
             raise ValueError("Invalid Sorry move")
-        destination = PawnDestination(
-            zone="track",
-            track_position=opponent_pawn.track_position,
-        )
+        if target_pawn.zone != "track" or target_pawn.track_position is None:
+            raise ValueError("Sorry target not on track")
+        destination = PawnDestination(zone="track", track_position=target_pawn.track_position)
         if not _is_destination_legal_for_player(
             player_state,
             destination,
-            ignore_pawn_indexes={pawn.pawn_index},
+            ignore_pawn_indexes={own_pawn.pawn_index},
         ):
             raise ValueError("Sorry destination blocked by own pawn")
-        _send_pawn_to_start(opponent_pawn)
-        _apply_destination(pawn, destination)
-        events.extend(_capture_opponents_on_track(state, player_state, pawn.track_position))
-        events.extend(_resolve_slide_for_pawn(state, player_state, pawn, rules))
+        _send_pawn_to_start(target_pawn)
+        events.append(
+            CaptureEvent(
+                captured_player_id=target_player.player_id,
+                captured_pawn_index=target_pawn.pawn_index,
+                by_player_id=player_state.player_id,
+            )
+        )
+        _apply_destination(own_pawn, destination)
+        events.extend(_resolve_slide_for_pawn(state, player_state, own_pawn, rules))
         return events
 
     if move.move_type == "split7":
-        primary = _get_pawn(player_state, move.pawn_index)
-        secondary = _get_pawn(player_state, move.secondary_pawn_index)
-        if (
-            primary is None
-            or secondary is None
-            or move.steps is None
-            or move.secondary_steps is None
-            or primary.pawn_index == secondary.pawn_index
-        ):
-            raise ValueError("Invalid split-7 payload")
-
-        first_destination = _compute_forward_destination(
-            player_state,
-            primary,
-            move.steps,
-        )
-        second_destination = _compute_forward_destination(
-            player_state,
-            secondary,
-            move.secondary_steps,
-        )
-        if first_destination is None or second_destination is None:
-            raise ValueError("Split-7 move is no longer legal")
-
-        ignore = {primary.pawn_index, secondary.pawn_index}
-        if not _is_destination_legal_for_player(
-            player_state,
-            first_destination,
-            ignore_pawn_indexes=ignore,
-        ):
-            raise ValueError("Primary split destination blocked")
-        if not _is_destination_legal_for_player(
-            player_state,
-            second_destination,
-            ignore_pawn_indexes=ignore,
-        ):
-            raise ValueError("Secondary split destination blocked")
-        if (
-            first_destination.zone == second_destination.zone == "track"
-            and first_destination.track_position == second_destination.track_position
-        ):
-            raise ValueError("Split-7 cannot stack on same track square")
-        if (
-            first_destination.zone == second_destination.zone == "home_path"
-            and first_destination.home_steps == second_destination.home_steps
-        ):
-            raise ValueError("Split-7 cannot stack on same home-path square")
-
-        _apply_destination(primary, first_destination)
-        if primary.zone == "track":
-            events.extend(_capture_opponents_on_track(state, player_state, primary.track_position))
-            events.extend(_resolve_slide_for_pawn(state, player_state, primary, rules))
-        _apply_destination(secondary, second_destination)
-        if secondary.zone == "track":
-            events.extend(
-                _capture_opponents_on_track(state, player_state, secondary.track_position)
-            )
-            events.extend(_resolve_slide_for_pawn(state, player_state, secondary, rules))
+        pawn_a = _get_pawn(player_state, move.pawn_index)
+        pawn_b = _get_pawn(player_state, move.secondary_pawn_index)
+        if pawn_a is None or pawn_b is None:
+            raise ValueError("Invalid split move pawn")
+        dest_a = _compute_forward_destination(player_state, pawn_a, move.steps or 0)
+        dest_b = _compute_forward_destination(player_state, pawn_b, move.secondary_steps or 0)
+        if dest_a is None or dest_b is None:
+            raise ValueError("Invalid split destinations")
+        if dest_a.zone == dest_b.zone == "track" and dest_a.track_position == dest_b.track_position:
+            raise ValueError("Split destinations overlap")
+        if dest_a.zone == dest_b.zone == "home_path" and dest_a.home_steps == dest_b.home_steps:
+            raise ValueError("Split destinations overlap")
+        ignore = {pawn_a.pawn_index, pawn_b.pawn_index}
+        if not _is_destination_legal_for_player(player_state, dest_a, ignore_pawn_indexes=ignore):
+            raise ValueError("First split destination blocked")
+        if not _is_destination_legal_for_player(player_state, dest_b, ignore_pawn_indexes=ignore):
+            raise ValueError("Second split destination blocked")
+        _apply_destination(pawn_a, dest_a)
+        _apply_destination(pawn_b, dest_b)
+        events.extend(_capture_opponents_on_track(state, player_state, pawn_a.track_position))
+        events.extend(_capture_opponents_on_track(state, player_state, pawn_b.track_position))
+        events.extend(_resolve_slide_for_pawn(state, player_state, pawn_a, rules))
+        events.extend(_resolve_slide_for_pawn(state, player_state, pawn_b, rules))
         return events
 
     raise ValueError(f"Unsupported move type: {move.move_type}")

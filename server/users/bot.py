@@ -1,0 +1,130 @@
+"""Bot user implementation for AI players."""
+
+from .base import User, MenuItem, EscapeBehavior, generate_uuid
+from ..gender import Gender, normalize_gender
+from ..audio import AudioCommand
+
+
+class Bot(User):
+    """
+    Bot implementation of User for AI players.
+
+    Bots don't receive UI updates (they're discarded), but they can
+    call game actions directly through the game's action system.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        locale: str = "en",
+        uuid: str | None = None,
+        gender: Gender | str = Gender.UNSPECIFIED,
+    ):
+        self._uuid = uuid or generate_uuid()
+        self._username = name
+        self._locale = locale
+        self._gender = normalize_gender(gender)
+
+    @property
+    def uuid(self) -> str:
+        return self._uuid
+
+    @property
+    def username(self) -> str:
+        return self._username
+
+    def set_display_name(self, name: str) -> None:
+        """Keep the runtime bot facade aligned with its roster presentation."""
+        if not isinstance(name, str) or not name:
+            raise ValueError("Bot display name must be a non-empty string")
+        self._username = name
+
+    @property
+    def locale(self) -> str:
+        return self._locale
+
+    @property
+    def gender(self) -> Gender:
+        return self._gender
+
+    @property
+    def is_bot(self) -> bool:
+        return True
+
+    # All UI methods are no-ops for bots
+
+    def speak(
+        self,
+        text: str,
+        buffer: str = "misc",
+        *,
+        history: bool = True,
+    ) -> None:
+        pass
+
+    def speak_l(
+        self,
+        message_id: str,
+        buffer: str = "misc",
+        *,
+        history: bool = True,
+        **kwargs,
+    ) -> None:
+        # Bots discard all UI, so skip the Fluent render entirely rather than
+        # formatting a localized string only for the no-op speak() to drop it.
+        # Action resolution in a bot-heavy game calls this thousands of times
+        # per game; the base implementation would pay Localization.get each time.
+        pass
+
+    def send_audio_command(self, command: AudioCommand) -> None:
+        pass
+
+    def show_menu(
+        self,
+        menu_id: str,
+        items: list[str | MenuItem],
+        *,
+        multiletter: bool = True,
+        escape_behavior: EscapeBehavior = EscapeBehavior.KEYBIND,
+        position: int | None = None,
+        selection_id: str | None = None,
+        grid_enabled: bool = False,
+        grid_height: int = 0,
+        grid_width: int = 1,
+        capture_focus_context_id: str | None = None,
+    ) -> None:
+        pass
+
+    def update_menu(
+        self,
+        menu_id: str,
+        items: list[str | MenuItem],
+        position: int | None = None,
+        selection_id: str | None = None,
+        *,
+        grid_enabled: bool = False,
+        grid_height: int = 0,
+        grid_width: int = 1,
+    ) -> None:
+        pass
+
+    def remove_menu(self, menu_id: str, *, send_packet: bool = True) -> None:
+        pass
+
+    def show_editbox(
+        self,
+        input_id: str,
+        prompt: str,
+        default_value: str = "",
+        *,
+        multiline: bool = False,
+        read_only: bool = False,
+        max_length: int | None = None,
+    ) -> None:
+        pass
+
+    def remove_editbox(self, input_id: str) -> None:
+        pass
+
+    def clear_ui(self) -> None:
+        pass

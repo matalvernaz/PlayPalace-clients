@@ -1,19 +1,14 @@
-# Scopa game messages
-# Note: Common messages like round-start, turn-start, target-score, team-mode are in games.ftl
+# scopa.ftl for locale ro. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name
 game-name-scopa = Scopa
-
 # Game events
 scopa-initial-table = Cărți pe masă: { $cards }
 scopa-no-initial-table = Nu sunt cărți pe masă la început.
-scopa-you-collect = Colectezi { $cards } cu { $card }
-scopa-player-collects = { $player } colectează { $cards } cu { $card }
 scopa-you-put-down = Pui { $card }.
 scopa-player-puts-down = { $player } pune { $card }.
-scopa-scopa-suffix =  - SCOPA!
 scopa-clear-table-suffix = , curățând masa.
-scopa-remaining-cards = { $player } primește cărțile rămase de pe masă.
 scopa-scoring-round = Punctarea rundei...
 scopa-most-cards = { $player } primește 1 punct pentru cele mai multe cărți ({ $count } cărți).
 scopa-most-cards-tie = Cele mai multe cărți este egalitate - nu se acordă punct.
@@ -29,11 +24,9 @@ scopa-round-score-line = { $player }: +{ $round_score } (total: { $total_score }
 scopa-table-empty = Nu sunt cărți pe masă.
 scopa-no-such-card = Nu există carte la acea poziție.
 scopa-captured-count = Ai captat { $count } cărți
-
 # View actions
 scopa-view-table = Vezi masa
 scopa-view-captured = Vezi captate
-
 # Scopa-specific options
 scopa-enter-target-score = Introdu scorul țintă (1-121)
 scopa-set-cards-per-deal = Cărți pe împărțire: { $cards }
@@ -47,7 +40,6 @@ scopa-select-mechanic = Selectează mecanică scopa
 scopa-toggle-instant-win = Victorie instantanee la scopa: { $enabled }
 scopa-toggle-team-scoring = Grupează cărțile echipei pentru punctare: { $enabled }
 scopa-toggle-inverse = Mod invers (atingerea țintei = eliminare): { $enabled }
-
 # Option change announcements
 scopa-option-changed-cards = Cărți pe împărțire setate la { $cards }.
 scopa-option-changed-decks = Număr de pachete setat la { $decks }.
@@ -57,22 +49,20 @@ scopa-option-changed-mechanic = Mecanică scopa setată la { $mechanic }.
 scopa-option-changed-instant = Victorie instantanee la scopa { $enabled }.
 scopa-option-changed-team-scoring = Punctare cărți echipă { $enabled }.
 scopa-option-changed-inverse = Mod invers { $enabled }.
-
 # Scopa mechanic choices
 scopa-mechanic-normal = Normal
 scopa-mechanic-no_scopas = Fără Scope
 scopa-mechanic-only_scopas = Doar Scope
-
 # Disabled action reasons
 scopa-timer-not-active = Cronometrul rundei nu este activ.
-
 # Validation errors
-scopa-error-not-enough-cards = Nu sunt destule cărți în { $decks } { $decks ->
-    [one] pachet
-    [few] pachete
-    *[other] de pachete
-} pentru { $players } { $players ->
-    [one] jucător
-    [few] jucători
-    *[other] de jucători
-} cu { $cards_per_deal } cărți fiecare. (Necesare { $cards_per_deal } × { $players } = { $cards_needed } cărți, dar sunt doar { $total_cards }.)
+scopa-error-not-enough-cards =
+    Nu sunt destule cărți în { $decks } { $decks ->
+        [one] pachet
+        [few] pachete
+       *[other] de pachete
+    } pentru { $players } { $players ->
+        [one] jucător
+        [few] jucători
+       *[other] de jucători
+    } cu { $cards_per_deal } cărți fiecare. (Necesare { $cards_per_deal } × { $players } = { $cards_needed } cărți, dar sunt doar { $total_cards }.)

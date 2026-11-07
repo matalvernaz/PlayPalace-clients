@@ -33,10 +33,10 @@ from collections.abc import Awaitable, Callable
 from typing import TYPE_CHECKING
 
 from ...messages.localization import Localization
-from ..users.base import MenuItem, EscapeBehavior
+from ...users.base import MenuItem, EscapeBehavior
 
 if TYPE_CHECKING:
-    from ..users.network_user import NetworkUser
+    from ...users.network_user import NetworkUser
 
 # Per-user callback storage for single-select language menus.
 _language_menu_callbacks: dict[
@@ -132,20 +132,15 @@ def show_language_menu(
     - *on_cancel(user)* is called when Cancel is pressed.
     - *on_select* and *on_back* are ignored in this mode.
 
-    Returns ``True`` if the menu was displayed, ``False`` if it could not be
-    shown (e.g. localization warmup still running).
+    Returns ``True`` once the menu is displayed.
     """
-    if Localization.is_warmup_active():
-        user.speak_l("localization-in-progress-try-again", buffer="misc")
-        return False
-
     focus_target = focus_lang or user.locale
 
     # Auto-generate on/off status labels when the menu manages toggle state.
     if multi_select and selected is not None:
         on_label = Localization.get(user.locale, "option-on")
         off_label = Localization.get(user.locale, "option-off")
-        all_codes = Localization.get_available_locale_codes()
+        all_codes = Localization.available_locale_codes()
         status_labels = {code: on_label if code in selected else off_label for code in all_codes}
 
     # Native names (each language in its own script)

@@ -1,99 +1,94 @@
-game-name-dominos = Dominos
+# dominos.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Options
-dominos-set-target-score = Target score: { $score }
-dominos-enter-target-score = Enter target score
-dominos-option-changed-target-score = Target score set to { $score }.
-
+game-name-dominos = Domino
+dominos-desc-team-mode = Bermain sendiri-sendiri atau gunakan susunan tim beranggota sama banyak yang sesuai dengan jumlah pemain saat ini.
+dominos-set-target-score = Target skor: { $score }
+dominos-enter-target-score = Masukkan target skor
+dominos-option-changed-target-score = Target skor diatur menjadi { $score }.
+dominos-desc-target-score = Target skor untuk memenangkan Domino. Bawaan 100, rentang 20 hingga 500.
 dominos-set-draw-mode = Mode: { $mode }
-dominos-select-draw-mode = Select mode
-dominos-option-changed-draw-mode = Mode set to { $mode }.
-
-dominos-set-domino-set = Domino set: { $domino_set }
-dominos-select-domino-set = Select domino set
-dominos-option-changed-domino-set = Domino set changed to { $domino_set }.
-
+dominos-select-draw-mode = Pilih mode
+dominos-option-changed-draw-mode = Mode diatur menjadi { $mode }.
+dominos-desc-draw-mode = Pilih mode Ambil untuk mengambil batu dari cadangan, atau mode Blokir untuk melewati giliran jika tidak dapat bermain.
+dominos-set-domino-set = Set domino: { $domino_set }
+dominos-select-domino-set = Pilih set domino
+dominos-option-changed-domino-set = Set domino diubah menjadi { $domino_set }.
+dominos-desc-domino-set = Ukuran set domino. Ganda-6 mendukung hingga 5 pemain, Ganda-9 hingga 7 pemain, dan Ganda-12 hingga 12 pemain. Bawaan Ganda-6.
 dominos-set-spinner = Spinner: { $enabled }
-dominos-option-changed-spinner = Spinner set to { $enabled }.
-
-dominos-set-opening-rule = Opening rule: { $opening_rule }
-dominos-select-opening-rule = Select opening rule
-dominos-option-changed-opening-rule = Opening rule set to { $opening_rule }.
-
-# Option choice labels
-dominos-mode-draw = Draw
-dominos-mode-block = Block
-
-dominos-set-double6 = Double-6
-dominos-set-double9 = Double-9
-
-dominos-opening-highest-double = Highest double
-dominos-opening-highest-tile = Highest tile
-dominos-opening-set-max-double = Highest set double
-dominos-opening-random-player = Random player
-dominos-opening-round-winner = Previous round winner
-
-# Actions
-dominos-draw = Draw
-dominos-knock = Knock
-dominos-view-chain = View chain
-dominos-read-ends = Read ends
-dominos-read-hand = Read hand
-dominos-read-counts = Read counts
+dominos-option-changed-spinner = Spinner diatur menjadi { $enabled }.
+dominos-desc-spinner-enabled = Tentukan apakah batu kembar pembuka membentuk spinner dengan empat cabang. Bawaan aktif.
+dominos-set-opening-rule = Aturan pembuka: { $opening_rule }
+dominos-select-opening-rule = Pilih aturan pembuka
+dominos-option-changed-opening-rule = Aturan pembuka diatur menjadi { $opening_rule }.
+dominos-desc-opening-rule = Tentukan cara memilih batu pertama pada setiap ronde Domino.
+dominos-mode-draw = Ambil
+dominos-mode-block = Blokir
+dominos-set-double6 = Ganda-6
+dominos-set-double9 = Ganda-9
+dominos-set-double12 = Ganda-12
+dominos-opening-highest-double = Batu kembar tertinggi
+dominos-opening-highest-tile = Batu bernilai tertinggi
+dominos-opening-set-max-double = Batu kembar tertinggi dalam set
+dominos-opening-random-player = Pemain acak
+dominos-opening-round-winner = Pemenang ronde sebelumnya
+dominos-draw = Ambil batu
+dominos-knock = Lewati giliran
+dominos-view-chain = Lihat rangkaian
+dominos-read-ends = Baca ujung terbuka
+dominos-read-hand = Baca batu di tangan
+dominos-read-counts = Baca jumlah batu
 dominos-play-tile = { $tile }
-dominos-play-tile-at = Play { $tile } to { $side }
-dominos-play-tile-multi = Play { $tile } to { $sides }
-dominos-select-side = Select a side
-
-# Board sides
-dominos-side-left = left
-dominos-side-right = right
-dominos-side-up = up
-dominos-side-down = down
-
-# Validation and disabled reasons
-dominos-draw-only-mode = Drawing is only available in Draw mode.
-dominos-must-play = You already have a playable tile.
-dominos-boneyard-empty = The boneyard is empty.
-dominos-must-draw = You must draw before knocking.
-dominos-illegal-side = That side is not legal for the selected tile.
-dominos-no-play-for-tile = { $tile } cannot be played right now.
-dominos-choose-side-keybind = Choose a side with the direction keybind. Legal sides: { $sides }.
-
-# Gameplay
-dominos-opening-play = { $player } opens with { $tile }.
-dominos-opening-spinner = { $player } opens a spinner with { $tile }.
-dominos-player-draws = { $player } draws { $count } { $count ->
-    [one] tile
-   *[other] tiles
-}.
-dominos-you-drew-single = You drew { $tile }.
-dominos-you-drew-many = You drew { $count } tiles.
-dominos-you-played = You played { $tile } to { $side }.
-dominos-you-played-drawn = You drew and played { $tile } to { $side }.
-dominos-player-played = { $player } played { $tile } to { $side }.
-dominos-player-knocks = { $player } knocks.
-dominos-round-won = { $player } wins the round and scores { $points } points.
-dominos-round-blocked-tie = The round is blocked. Lowest pip total is { $pips }, but it is tied. No points are scored.
-dominos-round-blocked-winner = The round is blocked. { $team } has the lowest pip total with { $pips } and scores { $points } points.
-dominos-match-tied-continue = Multiple teams reached { $score } points. The game continues until the tie is broken.
-dominos-match-winner = { $team } wins the game with { $score } points.
-
-# Status boxes
-dominos-chain-header = Chain
-dominos-chain-empty = The chain is empty.
-dominos-chain-center = Center: { $tile }
-dominos-branch-empty = no tiles
-dominos-chain-branch = { $side }: { $tiles }. Open end { $open_end }.
-dominos-boneyard-count = Boneyard: { $count } tiles remaining.
+dominos-open-with-tile = Buka dengan { $tile }
+dominos-play-tile-at = Pasang { $tile } di { $side }
+dominos-play-tile-multi = Pasang { $tile } di { $sides }
+dominos-select-side = Pilih sisi
+dominos-side-left = kiri
+dominos-side-right = kanan
+dominos-side-up = atas
+dominos-side-down = bawah
+dominos-draw-only-mode = Batu hanya dapat diambil dalam mode Ambil.
+dominos-must-play = Anda sudah memiliki batu yang dapat dipasang.
+dominos-boneyard-empty = Cadangan batu sudah habis.
+dominos-must-draw = Anda harus mengambil batu sebelum melewati giliran.
+dominos-illegal-side = Batu yang dipilih tidak dapat dipasang di sisi itu.
+dominos-no-play-for-tile = { $tile } tidak dapat dipasang sekarang.
+dominos-choose-side-keybind = Pilih sisi dengan pintasan arah. Sisi yang diperbolehkan: { $sides }.
+dominos-opening-must-play = Ronde belum dibuka. Pilih batu untuk memulai rangkaian.
+dominos-error-set-too-small = Set Ganda-{ $selected_pip } tidak memiliki cukup batu untuk dibagikan kepada { $players } pemain. Pilih setidaknya Ganda-{ $required_pip } untuk jumlah pemain di meja ini.
+dominos-you-open-round = Anda membuka ronde ini. Pilih batu mana saja dari tangan Anda untuk memulai rangkaian.
+dominos-player-opens-round = { $player } membuka ronde ini dan sedang memilih batu pembuka.
+dominos-you-opened = Anda membuka ronde dengan { $tile }.
+dominos-player-opened = { $player } membuka ronde dengan { $tile }.
+dominos-you-opened-spinner = Anda membuka ronde dengan { $tile }, membentuk spinner dengan empat cabang.
+dominos-player-opened-spinner = { $player } membuka ronde dengan { $tile }, membentuk spinner dengan empat cabang.
+dominos-you-drew-single = Anda mengambil { $tile } dari cadangan.
+dominos-you-drew-many = Anda mengambil { $count } batu dari cadangan.
+dominos-player-drew-single = { $player } mengambil 1 batu dari cadangan.
+dominos-player-drew-many = { $player } mengambil { $count } batu dari cadangan.
+dominos-you-played = Anda memasang { $tile } pada cabang { $side }.
+dominos-you-played-drawn = Anda mengambil lalu memasang { $tile } pada cabang { $side }.
+dominos-player-played = { $player } memasang { $tile } pada cabang { $side }.
+dominos-you-knock = Anda melewati giliran karena tidak ada batu yang dapat dipasang.
+dominos-player-knocks = { $player } melewati giliran.
+dominos-you-won-round = Batu Anda habis. Anda mendapat { $points } poin dari batu yang tersisa di tangan lawan.
+dominos-player-won-round = Batu { $player } habis. Pemain tersebut mendapat { $points } poin dari batu yang tersisa di tangan lawan.
+dominos-round-blocked-tie = Ronde buntu. Jumlah titik terendah adalah { $pips }, tetapi ada lebih dari satu pihak dengan jumlah itu. Tidak ada poin yang diperoleh.
+dominos-round-blocked-winner = Ronde buntu. { $team } memiliki jumlah titik terendah, yaitu { $pips }, dan mendapat { $points } poin.
+dominos-match-tied-continue = Beberapa tim mencapai { $score } poin. Permainan berlanjut hingga hanya satu yang memimpin.
+dominos-match-winner = { $team } memenangkan permainan dengan { $score } poin.
+dominos-chain-header = Rangkaian
+dominos-chain-empty = Rangkaian masih kosong.
+dominos-chain-center = Tengah: { $tile }
+dominos-branch-empty = tidak ada batu
+dominos-chain-branch = { $side }: { $tiles }. Ujung terbuka { $open_end }.
+dominos-boneyard-count = Cadangan: tersisa { $count } batu.
 dominos-end-info = { $side } { $value }
-
-dominos-hand-header = Your hand
-dominos-hand-line = { $tile } worth { $points } points.
-dominos-hand-line-playable = { $tile } worth { $points } points. Playable on { $sides }.
-dominos-hand-total = Total pips in hand: { $pips }.
-dominos-player-count = { $player } has { $count } tiles
-dominos-no-other-players = No other players.
-
-# End screen
+dominos-hand-header = Batu Anda
+dominos-hand-line = { $tile } bernilai { $points } poin.
+dominos-hand-line-playable = { $tile } bernilai { $points } poin. Dapat dipasang di { $sides }.
+dominos-hand-line-opening-playable = { $tile } bernilai { $points } poin. Dapat digunakan untuk membuka ronde ini.
+dominos-hand-total = Jumlah titik pada batu di tangan: { $pips }.
+dominos-player-count = { $player } memiliki { $count } batu
+dominos-no-other-players = Tidak ada pemain lain.
 dominos-line-format = { $rank }. { $player }: { $points }

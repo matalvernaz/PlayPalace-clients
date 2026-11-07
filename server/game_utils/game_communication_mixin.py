@@ -2,29 +2,31 @@
 
 from typing import TYPE_CHECKING, Callable
 
-if TYPE_CHECKING:
-    from ..games.base import Game, Player
-    from server.core.users.base import User
+from ..gender import Gender
+from .player import Player
 
-from ..gender import Gender, normalize_gender
+if TYPE_CHECKING:
+    from ..games.base import Game
+    from ..users.base import User
+
 from ..messages.localization import Localization
 
 
 class GameCommunicationMixin:
-    """Provide message broadcasting and localization helpers.
+    """Mixin providing message broadcasting and localization helpers.
 
-    Expected Game attributes:
-        players: list[Player].
-        get_user(player) -> User | None.
+    Expects on the Game class:
+        - self.players: list[Player]
+        - self.get_user(player) -> User | None
     """
 
-    def broadcast(self, text: str, buffer: str = "table", exclude: "Player | None" = None) -> None:
+    def broadcast(
+        self, text: str, buffer: str = "game", exclude: "Player | None" = None
+    ) -> None:
         """Send a message to all players, optionally excluding one."""
         for player in self.players:
             if player is exclude:
                 continue
-            if hasattr(self, "record_transcript_event"):
-                self.record_transcript_event(player, text, buffer)
             user = self.get_user(player)
             if user:
                 user.speak(text, buffer)
@@ -32,7 +34,7 @@ class GameCommunicationMixin:
     def broadcast_l(
         self,
         message_id: str,
-        buffer: str = "table",
+        buffer: str = "game",
         exclude: "Player | None" = None,
         **kwargs,
     ) -> None:
@@ -41,21 +43,19 @@ class GameCommunicationMixin:
             if player is exclude:
                 continue
             user = self.get_user(player)
-            locale = user.locale if user else "en"
-            # Resolve once per listener so the transcript and the spoken line agree.
-            resolved = self._resolve_broadcast_kwargs(locale, kwargs)
-            localized = Localization.get(locale, message_id, **resolved)
-            if hasattr(self, "record_transcript_event"):
-                self.record_transcript_event(player, localized, buffer)
             if user:
-                user.speak_l(message_id, buffer, **resolved)
+                user.speak_l(
+                    message_id,
+                    buffer,
+                    **self._resolve_broadcast_kwargs(user.locale, kwargs),
+                )
 
     def broadcast_personal_l(
         self,
         player: "Player",
         personal_message_id: str,
         others_message_id: str,
-        buffer: str = "table",
+        buffer: str = "game",
         **kwargs,
     ) -> None:
         """
@@ -72,53 +72,51 @@ class GameCommunicationMixin:
             **kwargs: Additional arguments passed to all speak_l calls.
         """
         user = self.get_user(player)
-        locale = user.locale if user else "en"
-        personal_kwargs = self._resolve_broadcast_kwargs(locale, kwargs)
-        personal_text = Localization.get(locale, personal_message_id, **personal_kwargs)
-        if hasattr(self, "record_transcript_event"):
-            self.record_transcript_event(player, personal_text, buffer)
         if user:
-            user.speak_l(personal_message_id, buffer, **personal_kwargs)
+            user.speak_l(
+                personal_message_id,
+                buffer,
+                **self._resolve_broadcast_kwargs(user.locale, kwargs),
+            )
 
         for p in self.players:
             if p is player:
                 continue
             u = self.get_user(p)
-            locale = u.locale if u else "en"
-            others_kwargs = self._resolve_broadcast_kwargs(locale, {**kwargs, "player": player})
-            others_text = Localization.get(locale, others_message_id, **others_kwargs)
-            if hasattr(self, "record_transcript_event"):
-                self.record_transcript_event(p, others_text, buffer)
             if u:
-                u.speak_l(others_message_id, buffer, **others_kwargs)
-
-    def get_player_gender(self, player: "Player") -> Gender:
-        """Return the account gender for a seat.
-
-        Our accounts have no gender field yet, so humans and bots alike are
-        unspecified and messages use the neutral forms ("their", "they").
-        """
-        user = self.get_user(player)
-        if user is not None and not player.is_bot:
-            return normalize_gender(getattr(user, "gender", None))
-        return Gender.UNSPECIFIED
+                localized = self._resolve_broadcast_kwargs(
+                    u.locale,
+                    {
+                        **kwargs,
+                        "player": player,
+                    },
+                )
+                u.speak_l(
+                    others_message_id,
+                    buffer,
+                    **localized,
+                )
 
     def _resolve_broadcast_kwargs(self, locale: str, kwargs: dict) -> dict:
-        """Resolve per-locale values and add player gender selectors.
+        """Resolve per-locale values and add canonical player-gender selectors.
 
-        Ported from PlayAural's gender-aware localization. Callable values are
-        evaluated once for this listener's locale. A value that is a seat, or
-        uniquely names one, gains a sibling <name>_gender selector for
-        GENDER_TERM; an explicit gender argument always wins.
+        A call site may pass a ``Player`` directly, or retain the established
+        pattern of passing its display name. Exact uniquely matched names gain
+        a sibling ``<variable>_gender`` argument automatically. Explicit
+        gender arguments always win, which lets games deliberately describe a
+        different identity or use a game-specific grammatical context.
         """
-        resolved = {name: value(locale) if callable(value) else value for name, value in kwargs.items()}
-        players_by_name: dict[str, list["Player"]] = {}
-        for seat in self.players:
-            players_by_name.setdefault(seat.name, []).append(seat)
+        resolved = {
+            name: value(locale) if callable(value) else value
+            for name, value in kwargs.items()
+        }
+        players_by_name: dict[str, list[Player]] = {}
+        for player in self.players:
+            players_by_name.setdefault(player.name, []).append(player)
 
         for name, value in list(resolved.items()):
-            matched_player = None
-            if any(value is seat for seat in self.players):
+            matched_player: Player | None = None
+            if isinstance(value, Player):
                 matched_player = value
                 resolved[name] = value.name
             elif isinstance(value, str):
@@ -126,9 +124,15 @@ class GameCommunicationMixin:
                 if len(candidates) == 1:
                     matched_player = candidates[0]
                 elif candidates:
-                    resolved.setdefault(f"{name}_gender", Gender.UNSPECIFIED.selector)
+                    resolved.setdefault(
+                        f"{name}_gender",
+                        Gender.UNSPECIFIED.selector,
+                    )
             if matched_player is not None:
-                resolved.setdefault(f"{name}_gender", self.get_player_gender(matched_player).selector)
+                resolved.setdefault(
+                    f"{name}_gender",
+                    self.get_player_gender(matched_player).selector,
+                )
         return resolved
 
     def label_l(self, message_id: str) -> Callable[["Game", "Player"], str]:
@@ -140,7 +144,6 @@ class GameCommunicationMixin:
         """
 
         def get_label(game: "Game", player: "Player") -> str:
-            """Resolve a localized label for the player's locale."""
             user = game.get_user(player)
             locale = user.locale if user else "en"
             return Localization.get(locale, message_id)

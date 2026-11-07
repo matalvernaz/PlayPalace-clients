@@ -1,216 +1,202 @@
+# uno.ftl for locale pt. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 game-name-uno = UNO
-
 # Colors
-uno-color-red = Red
-uno-color-yellow = Yellow
-uno-color-green = Green
-uno-color-blue = Blue
-uno-color-wild = Wild
-
+uno-color-red = Vermelho
+uno-color-yellow = Amarelo
+uno-color-green = Verde
+uno-color-blue = Azul
+uno-color-wild = Coringa
 # Card names
 uno-card-number = { $color } { $value }
-uno-card-skip = { $color } Skip
-uno-card-reverse = { $color } Reverse
-uno-card-draw-two = { $color } Draw Two
-uno-card-wild = Wild
-uno-card-wild-four = Wild Draw Four
-
+uno-card-skip = Bloqueio { $color }
+uno-card-reverse = Inversão { $color }
+uno-card-draw-two = Comprar Duas { $color }
+uno-card-wild = Coringa
+uno-card-wild-four = Coringa Comprar Quatro
 # Options
-uno-set-winning-score = Score limit: { $score }
-uno-enter-winning-score = Enter score limit
-uno-option-changed-winning-score = Score limit set to { $score }.
-uno-desc-winning-score = Score limit used by the selected UNO scoring mode (default 300, range 10-2000).
-
-uno-set-scoring-mode = Scoring: { $mode }
-uno-select-scoring-mode = Select scoring mode
-uno-option-changed-scoring-mode = Scoring set to { $mode }.
-uno-desc-scoring-mode = Chooses whether the first player to reach the limit wins, or players at the limit are eliminated.
-uno-scoring-first = First to limit wins
-uno-scoring-elimination = Elimination
-
-uno-set-skip-after-draw = Draw penalties skip turn: { $enabled }
-uno-option-changed-skip-after-draw = Draw penalties skip turn { $enabled }.
-uno-desc-skip-after-draw = Controls whether Draw Two and Wild Draw Four penalties also skip the target's turn.
-
-uno-set-responses = Stacking responses: { $enabled }
-uno-option-changed-responses = Stacking responses { $enabled }.
-uno-desc-responses = Allows players to stack draw cards in response to Draw Two or Wild Draw Four penalties.
-
-uno-set-advanced-responses = Advanced responses: { $enabled }
-uno-option-changed-advanced-responses = Advanced responses { $enabled }.
-uno-desc-advanced-responses = Allows extra defensive responses to draw stacks, such as matching Skip, Reverse, or Wild cards. Requires Stacking responses.
-
-uno-set-wait-for-draw-responses = Wait for draw responses: { $enabled }
-uno-option-changed-wait-for-draw-responses = Wait for draw responses { $enabled }.
-uno-desc-wait-for-draw-responses = If the last card creates a draw stack, waits for the next player to respond or draw before scoring the round. Requires Stacking responses.
-
-uno-set-bluff = Wild Draw Four challenges: { $enabled }
-uno-option-changed-bluff = Wild Draw Four challenges { $enabled }.
-uno-desc-bluff = Enables Wild Draw Four challenge rules for illegal plays.
-
-uno-set-straights = Straights: { $enabled }
-uno-option-changed-straights = Straights { $enabled }.
-uno-desc-straights = Lets a player continue out of turn with the next or previous number of the same color after a number card.
-
-uno-set-interceptions = Interceptions: { $enabled }
-uno-option-changed-interceptions = Interceptions { $enabled }.
-uno-desc-interceptions = Lets players jump in out of turn with an exact matching card. Invalid attempts add 3 penalty points.
-
-uno-set-super-interceptions = Super interceptions: { $enabled }
-uno-option-changed-super-interceptions = Super interceptions { $enabled }.
-uno-desc-super-interceptions = Expands interceptions to match number or action symbol even when the color differs. Requires Interceptions.
-
-uno-set-zero-seven = Zero / seven rule: { $enabled }
-uno-option-changed-zero-seven = Zero / seven rule { $enabled }.
-uno-desc-zero-seven-rule = Enables the house rule where 0 rotates everyone's hands and 7 lets the player swap hands or decline.
-
-uno-set-free-draws = Free draws per turn: { $count }
-uno-enter-free-draws = Enter free draws per turn
-uno-option-changed-free-draws = Free draws per turn set to { $count }.
-uno-desc-free-draws = How many times a human player may draw despite holding a playable card (default 0, range 0-999).
-
+uno-set-winning-score = Limite de pontuação: { $score }
+uno-enter-winning-score = Insira o limite de pontuação
+uno-option-changed-winning-score = Limite de pontuação definido para { $score }.
+uno-desc-winning-score = Limite de pontuação usado pelo modo de pontuação do UNO selecionado (padrão 300, intervalo de 10 a 2000).
+uno-set-scoring-mode = Pontuação: { $mode }
+uno-select-scoring-mode = Selecione o modo de pontuação
+uno-option-changed-scoring-mode = Pontuação definida para { $mode }.
+uno-desc-scoring-mode = Escolhe se o primeiro jogador a atingir o limite vence, ou se os jogadores no limite são eliminados.
+uno-scoring-first = Primeiro a atingir o limite vence
+uno-scoring-elimination = Eliminação
+uno-set-skip-after-draw = Penalidades de compra pulam o turno: { $enabled }
+uno-option-changed-skip-after-draw = Penalidades de compra pulam o turno { $enabled }.
+uno-desc-skip-after-draw = Controla se as penalidades de Comprar Duas e Coringa Comprar Quatro também pulam o turno do alvo.
+uno-set-responses = Empilhamento de respostas: { $enabled }
+uno-option-changed-responses = Empilhamento de respostas { $enabled }.
+uno-desc-responses = Permite que os jogadores empilhem cartas de compra em resposta a penalidades de Comprar Duas ou Coringa Comprar Quatro.
+uno-set-advanced-responses = Respostas avançadas: { $enabled }
+uno-option-changed-advanced-responses = Respostas avançadas { $enabled }.
+uno-desc-advanced-responses = Permite respostas defensivas extras a pilhas de compra, como combinar cartas de Bloqueio, Inversão ou Coringa. Requer empilhamento de respostas.
+uno-set-wait-for-draw-responses = Aguardar respostas de compra: { $enabled }
+uno-option-changed-wait-for-draw-responses = Aguardar respostas de compra { $enabled }.
+uno-desc-wait-for-draw-responses = Se a última carta cria uma pilha de compra, aguarda o próximo jogador responder ou comprar antes de pontuar a rodada. Requer empilhamento de respostas.
+uno-set-bluff = Desafios de Coringa Comprar Quatro: { $enabled }
+uno-option-changed-bluff = Desafios de Coringa Comprar Quatro { $enabled }.
+uno-desc-bluff = Ativa as regras de desafio de Coringa Comprar Quatro para jogadas ilegais.
+uno-set-straights = Sequências: { $enabled }
+uno-option-changed-straights = Sequências { $enabled }.
+uno-desc-straights = Permite que um jogador continue fora de turno com o número seguinte ou anterior da mesma cor após uma carta numérica.
+uno-set-interceptions = Interceptações: { $enabled }
+uno-option-changed-interceptions = Interceptações { $enabled }.
+uno-desc-interceptions = Permite que os jogadores entrem fora de turno com uma carta exatamente igual. Tentativas inválidas adicionam 3 pontos de penalidade.
+uno-set-super-interceptions = Super interceptações: { $enabled }
+uno-option-changed-super-interceptions = Super interceptações { $enabled }.
+uno-desc-super-interceptions = Expande as interceptações para corresponder ao número ou símbolo de ação mesmo quando a cor difere. Requer interceptações.
+uno-set-zero-seven = Regra zero / sete: { $enabled }
+uno-option-changed-zero-seven = Regra zero / sete { $enabled }.
+uno-desc-zero-seven-rule = Ativa a regra da casa onde o 0 rotaciona as mãos de todos e o 7 permite ao jogador trocar de mão ou recusar.
+uno-set-free-draws = Compras gratuitas por turno: { $count }
+uno-enter-free-draws = Insira as compras gratuitas por turno
+uno-option-changed-free-draws = Compras gratuitas por turno definidas para { $count }.
+uno-desc-free-draws = Quantas vezes um jogador humano pode comprar apesar de possuir uma carta jogável (padrão 0, intervalo de 0 a 999).
 # Option validation
-uno-error-advanced-responses-require-responses = Advanced responses require Stacking responses to be enabled.
-uno-error-wait-responses-require-responses = Wait for draw responses requires Stacking responses to be enabled.
-uno-error-super-interceptions-require-interceptions = Super interceptions require Interceptions to be enabled.
-
+uno-error-advanced-responses-require-responses = Respostas avançadas exigem que o empilhamento de respostas esteja ativado.
+uno-error-wait-responses-require-responses = Aguardar respostas de compra exige que o empilhamento de respostas esteja ativado.
+uno-error-super-interceptions-require-interceptions = Super interceptações exigem que as interceptações estejam ativadas.
 # Actions
-uno-draw = Draw
+uno-draw = Comprar
 uno-say-uno = UNO
-uno-read-top = Read top card
-uno-read-color = Read current color
-uno-read-counts = Read card counts
-uno-read-hand = Read your hand value
-uno-sort-color = Sort by color
-uno-sort-number = Sort by number
-
+uno-read-top = Ler carta do topo
+uno-read-color = Ler cor atual
+uno-read-counts = Ler contagem de cartas
+uno-read-hand = Ler valor da sua mão
+uno-sort-color = Ordenar por cor
+uno-sort-number = Ordenar por número
 # Gameplay announcements
-uno-new-hand = Round { $round }.
-uno-start-card = { $player } turns up { $card }.
-uno-you-start-card = You turn up { $card }.
-uno-current-color = Current color: { $color }.
-uno-dealt-cards = Everyone is dealt { $cards } cards.
-uno-choose-opening-color-you = Choose the opening color.
-uno-choose-opening-color-player = { $player } must choose the opening color.
-uno-direction-reversed = The direction is reversed.
-uno-player-plays = { $player } plays { $card }.
-uno-you-play = You play { $card }.
-uno-player-chooses-color = { $player } chooses { $color }.
-uno-you-choose-color = You choose { $color }.
-uno-player-draws-one = { $player } draws a card.
-uno-player-draws-many = { $player } draws { $count } cards.
-uno-you-draw-one = You draw a card.
-uno-you-draw-many = You draw { $count } cards.
-uno-cant-play = { $player } can't play.
-uno-you-cant-play = You can't play.
-uno-you-skipped = You are skipped.
-uno-says-uno = { $player } says UNO!
-uno-you-say-uno = You say UNO!
-uno-callout = { $caller } calls out { $player } for not saying UNO! { $player } draws { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-you-callout = You call out { $player } for not saying UNO! { $player } draws { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-callout-you = { $caller } calls you out for not saying UNO! You draw { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-error-already-said-uno = You have already said UNO.
-uno-error-no-uno-call = No UNO call is available right now.
-uno-cannot-play-that = You cannot play { $card }. { $reason }
-uno-reshuffle = Reshuffling the discard pile.
-uno-hand-blocked = No one can play. The round ends.
-uno-error-choose-color-first = Choose a color for your Wild card before playing another card.
-uno-error-wait-color-choice = Wait for the Wild card's player to choose a color before playing.
-uno-error-wild-transition = Wait for the chosen color to take effect before playing another card.
-uno-error-choose-swap-first = Choose a hand-swap target or decline before taking another action.
-uno-error-wait-swap-choice = Wait for the seven hand-swap choice to finish before playing.
-uno-error-wait-next-hand = Wait for the next round to begin before playing a card.
-uno-error-wait-intro = Wait for the round setup to finish before playing a card.
-uno-reason-draw-stack-response = There is a draw stack of { $count } { $count ->
-    [one] card
-   *[other] cards
-} against you; play a valid response card or draw the penalty.
-uno-reason-draw-stack-no-response = There is a draw penalty of { $count } { $count ->
-    [one] card
-   *[other] cards
-} against you, and stacking responses are off; draw the penalty instead.
-uno-reason-match-required = The top card is { $top }, and the active color is { $color }; match the color, match the number or action symbol, or play a Wild card.
-uno-reason-card-not-available = That card is not available in the current state.
-
+uno-new-hand = Rodada { $round }.
+uno-start-card = { $player } revela { $card }.
+uno-you-start-card = Você revela { $card }.
+uno-current-color = Cor atual: { $color }.
+uno-dealt-cards = Todos recebem { $cards } cartas.
+uno-choose-opening-color-you = Escolha a cor inicial.
+uno-choose-opening-color-player = { $player } deve escolher a cor inicial.
+uno-direction-reversed = A direção foi invertida.
+uno-player-plays = { $player } joga { $card }.
+uno-you-play = Você joga { $card }.
+uno-player-chooses-color = { $player } escolhe { $color }.
+uno-you-choose-color = Você escolhe { $color }.
+uno-player-draws-one = { $player } compra uma carta.
+uno-player-draws-many = { $player } compra { $count } cartas.
+uno-you-draw-one = Você compra uma carta.
+uno-you-draw-many = Você compra { $count } cartas.
+uno-cant-play = { $player } não pode jogar.
+uno-you-cant-play = Você não pode jogar.
+uno-you-skipped = Você foi pulado.
+uno-says-uno = { $player } diz UNO!
+uno-you-say-uno = Você diz UNO!
+uno-callout =
+    { $caller } chama a atenção de { $player } por não dizer UNO! { $player } compra { $count } { $count ->
+        [one] carta
+       *[other] cartas
+    }.
+uno-you-callout =
+    Você chama a atenção de { $player } por não dizer UNO! { $player } compra { $count } { $count ->
+        [one] carta
+       *[other] cartas
+    }.
+uno-callout-you =
+    { $caller } chama a sua atenção por não dizer UNO! Você compra { $count } { $count ->
+        [one] carta
+       *[other] cartas
+    }.
+uno-error-already-said-uno = Você já disse UNO.
+uno-error-no-uno-call = Nenhuma chamada de UNO está disponível no momento.
+uno-cannot-play-that = Você não pode jogar { $card }. { $reason }
+uno-reshuffle = Reembaralhando a pilha de descarte.
+uno-hand-blocked = Ninguém pode jogar. A rodada termina.
+uno-error-choose-color-first = Escolha uma cor para sua carta Coringa antes de jogar outra carta.
+uno-error-wait-color-choice = Aguarde o jogador da carta Coringa escolher uma cor antes de jogar.
+uno-error-wild-transition = Aguarde a cor escolhida entrar em vigor antes de jogar outra carta.
+uno-error-choose-swap-first = Escolha um alvo de troca de mão ou recuse antes de realizar outra ação.
+uno-error-wait-swap-choice = Aguarde a escolha de troca de mão do sete terminar antes de jogar.
+uno-error-wait-next-hand = Aguarde a próxima rodada começar antes de jogar uma carta.
+uno-error-wait-intro = Aguarde a configuração da rodada terminar antes de jogar uma carta.
+uno-reason-draw-stack-response =
+    Há uma pilha de compra de { $count } { $count ->
+        [one] carta
+       *[other] cartas
+    } contra você; jogue uma carta de resposta válida ou compre a penalidade.
+uno-reason-draw-stack-no-response =
+    Há uma penalidade de compra de { $count } { $count ->
+        [one] carta
+       *[other] cartas
+    } contra você, e o empilhamento de respostas está desativado; compre a penalidade.
+uno-reason-match-required = A carta do topo é { $top } e a cor ativa é { $color }; combine a cor, combine o número ou símbolo de ação, ou jogue uma carta Coringa.
+uno-reason-card-not-available = Essa carta não está disponível no estado atual.
 # Bluff challenge
-uno-bluff-challenge = Challenge Wild Draw Four
-uno-bluff-caught = { $player } played an illegal Wild Draw Four and draws { $count } cards!
-uno-you-bluff-caught = You played an illegal Wild Draw Four and draw { $count } cards!
-uno-bluff-wrong = { $player } challenged the Wild Draw Four incorrectly and draws { $count } cards!
-uno-you-bluff-wrong = You challenged the Wild Draw Four incorrectly and draw { $count } cards!
-
+uno-bluff-challenge = Desafiar Coringa Comprar Quatro
+uno-bluff-caught = { $player } jogou um Coringa Comprar Quatro ilegal e compra { $count } cartas!
+uno-you-bluff-caught = Você jogou um Coringa Comprar Quatro ilegal e compra { $count } cartas!
+uno-bluff-wrong = { $player } desafiou o Coringa Comprar Quatro incorretamente e compra { $count } cartas!
+uno-you-bluff-wrong = Você desafiou o Coringa Comprar Quatro incorretamente e compra { $count } cartas!
 # Zero / seven rule
-uno-rotate-hands = Everyone passes their hand!
-uno-swap-hands = { $player } swaps hands with { $target }!
-uno-you-swap = You swap hands with { $target }!
-uno-swap-with-you = { $player } swaps hands with you!
-uno-swap-with = Swap hands with { $player }
-uno-choose-swap = Choose a player to swap hands with, or decline.
-uno-swap-none = Don't swap
-uno-you-swap-none = You keep your hand.
-uno-swap-none-other = { $player } keeps their hand.
-
+uno-rotate-hands = Todos passam suas mãos!
+uno-swap-hands = { $player } troca de mão com { $target }!
+uno-you-swap = Você troca de mão com { $target }!
+uno-swap-with-you = { $player } troca de mão com você!
+uno-swap-with = Trocar de mão com { $player }
+uno-choose-swap = Escolha um jogador para trocar de mão, ou recuse.
+uno-swap-none = Não trocar
+uno-you-swap-none = Você mantém sua mão.
+uno-swap-none-other = { $player } mantém a mão { GENDER_TERM($player_gender, "possessive-determiner") }.
 # Interceptions / straights
-uno-player-intercepts = { $player } intercepts with { $card }!
-uno-you-intercept = You intercept with { $card }!
-uno-bad-intercept = Invalid interception. { $points } penalty points.
-uno-not-your-turn = It's not your turn.
-
+uno-player-intercepts = { $player } intercepta com { $card }!
+uno-you-intercept = Você intercepta com { $card }!
+uno-bad-intercept = Interceptação inválida. { $points } pontos de penalidade.
+uno-not-your-turn = Não é o seu turno.
 # Info
-uno-no-top = There is no top card yet.
+uno-no-top = Ainda não há carta no topo.
 uno-top-card = { $card }.
 uno-color-is = { $color }.
-uno-count-you = You { $count }
+uno-count-you = Você { $count }
 uno-count-player = { $player } { $count }
-uno-deck-count = deck { $count }
-uno-sorting-color = Sorting by color.
-uno-sorting-number = Sorting by number.
-
+uno-deck-count = baralho { $count }
+uno-sorting-color = Ordenando por cor.
+uno-sorting-number = Ordenando por número.
 # Round / game end
-uno-round-winner = { $player } wins the round!
-uno-you-win-round = You win the round!
-uno-round-points-from = { $points } from { $player }
-uno-round-points-from-you = { $points } from you
-uno-round-points-from-with-interception = { $points } from { $player } ({ $hand_points } hand + { $penalty } interception penalty)
-uno-round-points-from-you-with-interception = { $points } from you ({ $hand_points } hand + { $penalty } interception penalty)
-uno-round-details-none = No points were taken from opponents.
-uno-round-summary = { $details }. { $player } gains { $total }.
-uno-round-summary-you = { $details }. You gain { $total }.
-uno-you-add-penalty-points = You add { $points } penalty points to your total for this round.
-uno-player-adds-penalty-points = { $player } adds { $points } penalty points to their total for this round.
-uno-you-add-penalty-points-with-interception = You add { $points } penalty points to your total for this round ({ $hand_points } from your hand plus { $penalty } interception penalty).
-uno-player-adds-penalty-points-with-interception = { $player } adds { $points } penalty points to their total for this round ({ $hand_points } from their hand plus { $penalty } interception penalty).
-uno-you-are-eliminated = You have reached the { $limit }-point elimination limit and are out of the game.
-uno-player-is-eliminated = { $player } has reached the { $limit }-point elimination limit and is out of the game.
+uno-round-winner = { $player } vence a rodada!
+uno-you-win-round = Você vence a rodada!
+uno-round-points-from = { $points } de { $player }
+uno-round-points-from-you = { $points } de você
+uno-round-points-from-with-interception = { $points } de { $player } ({ $hand_points } da mão + { $penalty } de penalidade por interceptação)
+uno-round-points-from-you-with-interception = { $points } de você ({ $hand_points } da mão + { $penalty } de penalidade por interceptação)
+uno-round-details-none = Nenhum ponto foi tirado dos oponentes.
+uno-round-summary = { $details }. { $player } ganha { $total }.
+uno-round-summary-you = { $details }. Você ganha { $total }.
+uno-you-add-penalty-points = Você adiciona { $points } pontos de penalidade ao seu total para esta rodada.
+uno-player-adds-penalty-points = { $player } adiciona { $points } pontos de penalidade ao total { GENDER_TERM($player_gender, "possessive-determiner") } nesta rodada.
+uno-you-add-penalty-points-with-interception = Você adiciona { $points } pontos de penalidade ao seu total para esta rodada ({ $hand_points } da sua mão mais { $penalty } de penalidade por interceptação).
+uno-player-adds-penalty-points-with-interception = { $player } adiciona { $points } pontos de penalidade ao total { GENDER_TERM($player_gender, "possessive-determiner") } nesta rodada ({ $hand_points } da mão { GENDER_TERM($player_gender, "possessive-determiner") } mais { $penalty } de penalidade por interceptação).
+uno-you-are-eliminated = Você atingiu o limite de eliminação de { $limit } pontos e está fora do jogo.
+uno-player-is-eliminated = { $player } atingiu o limite de eliminação de { $limit } pontos e está fora do jogo.
 uno-you-win-game =
     { $mode ->
-        [elimination] You are the last player remaining and win with { $score } penalty points.
-       *[first_to_limit] You win the game with { $score } points!
+        [elimination] Você é o último jogador restante e vence com { $score } pontos de penalidade.
+       *[first_to_limit] Você vence o jogo com { $score } pontos!
     }
 uno-player-wins-game =
     { $mode ->
-        [elimination] { $player } is the last player remaining and wins with { $score } penalty points.
-       *[first_to_limit] { $player } wins the game with { $score } points!
+        [elimination] { $player } é o último jogador restante e vence com { $score } pontos de penalidade.
+       *[first_to_limit] { $player } vence o jogo com { $score } pontos!
     }
-uno-game-tie = Everyone has been eliminated. The game is a tie!
+uno-game-tie = Todos foram eliminados. O jogo terminou empatado!
 uno-line-format = { $rank }. { $player }: { $score }
-uno-score-line-first = { $player }: { $score }/{ $target } points.
-uno-score-line-elimination = { $player }: { $score }/{ $target } penalty points.
-
+uno-score-line-first = { $player }: { $score }/{ $target } pontos.
+uno-score-line-elimination = { $player }: { $score }/{ $target } pontos de penalidade.
 # Hand value (d key)
-uno-read-hand-value = { $count ->
-    [one] { $count } card
-   *[other] { $count } cards
- } worth { $points ->
-    [one] { $points } point
-   *[other] { $points } points
- }.
+uno-read-hand-value =
+    { $count ->
+        [one] { $count } carta
+       *[other] { $count } cartas
+    } no valor de { $points ->
+        [one] { $points } ponto
+       *[other] { $points } pontos
+    }.

@@ -1,8 +1,4 @@
-"""
-Battleship Game Implementation for PlayPalace v11.
-
-Classic naval combat on a 2D grid.
-"""
+"""Battleship - classic naval combat on a 2D grid."""
 
 from __future__ import annotations
 
@@ -15,7 +11,7 @@ from mashumaro.mixins.json import DataClassJSONMixin
 
 from ..base import Game, Player, GameOptions
 from ..registry import register_game
-from ...game_utils.actions import Action, ActionSet, Visibility
+from ...game_utils.actions import Action, ActionSet, MenuInput, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.grid_mixin import GridGameMixin, GridCursor
@@ -23,13 +19,11 @@ from ...game_utils.options import MenuOption, BoolOption, option_field
 from ...game_utils.poker_timer import PokerTurnTimer
 from ...game_utils.turn_timer_mixin import TurnTimerMixin
 from ...messages.localization import Localization
-from ...game_utils.game_status import GameStatus
-from server.core.ui.keybinds import KeybindState
-from server.core.users.base import MenuItem, EscapeBehavior
+from ...ui.keybinds import KeybindState
 from .bot import bot_think as _bot_think
 
 if TYPE_CHECKING:
-    from server.core.users.base import User
+    from ...users.base import User
 
 # ------------------------------------------------------------------ #
 # Constants                                                            #
@@ -91,7 +85,6 @@ ORIENTATION_CHOICES = ["horizontal", "vertical"]
 @dataclass
 class Ship(DataClassJSONMixin):
     """A ship placed on a player's board."""
-
     type_key: str
     size: int
     row: int = 0
@@ -117,7 +110,6 @@ class Ship(DataClassJSONMixin):
 @dataclass
 class BattleshipPlayer(Player):
     """Player with own board, shot tracking, and ship fleet."""
-
     # own_board[row][col] = CELL_EMPTY or CELL_SHIP
     own_board: list[list[int]] = field(default_factory=list)
     # shot_board[row][col] = CELL_EMPTY, CELL_MISS, or CELL_HIT
@@ -141,7 +133,6 @@ class BattleshipOptions(GameOptions):
             prompt="battleship-select-grid-size",
             change_msg="battleship-option-changed-grid-size",
             choice_labels=GRID_SIZE_LABELS,
-            description="battleship-desc-grid-size",
         )
     )
     placement_mode: str = option_field(
@@ -153,7 +144,6 @@ class BattleshipOptions(GameOptions):
             prompt="battleship-select-placement-mode",
             change_msg="battleship-option-changed-placement-mode",
             choice_labels=PLACEMENT_LABELS,
-            description="battleship-desc-placement-mode",
         )
     )
     replay_on_hit: bool = option_field(
@@ -162,7 +152,6 @@ class BattleshipOptions(GameOptions):
             value_key="enabled",
             label="battleship-set-replay-on-hit",
             change_msg="battleship-option-changed-replay-on-hit",
-            description="battleship-desc-replay-on-hit",
         )
     )
     turn_timer: str = option_field(
@@ -179,7 +168,6 @@ class BattleshipOptions(GameOptions):
                 "45": "battleship-timer-45",
                 "60": "battleship-timer-60",
             },
-            description="battleship-desc-turn-timer",
         )
     )
 
@@ -194,12 +182,8 @@ def _make_board(size: int, fill: int = CELL_EMPTY) -> list[list[int]]:
 
 
 def _can_place_ship(
-    board: list[list[int]],
-    size: int,
-    row: int,
-    col: int,
-    horizontal: bool,
-    grid_size: int,
+    board: list[list[int]], size: int, row: int, col: int,
+    horizontal: bool, grid_size: int,
 ) -> bool:
     """Check if a ship can be placed at the given position."""
     for i in range(size):
@@ -213,8 +197,7 @@ def _can_place_ship(
 
 
 def _place_ship_on_board(
-    board: list[list[int]],
-    ship: Ship,
+    board: list[list[int]], ship: Ship,
 ) -> None:
     """Mark ship cells on the board."""
     for r, c in ship.cells():
@@ -222,9 +205,7 @@ def _place_ship_on_board(
 
 
 def _random_place_fleet(
-    board: list[list[int]],
-    grid_size: int,
-    fleet: list[tuple[str, int]],
+    board: list[list[int]], grid_size: int, fleet: list[tuple[str, int]],
 ) -> list[Ship]:
     """Randomly place all ships. Returns list of placed Ships."""
     ships: list[Ship] = []
@@ -240,11 +221,8 @@ def _random_place_fleet(
                 col = random.randint(0, grid_size - 1)
             if _can_place_ship(board, size, row, col, horizontal, grid_size):
                 ship = Ship(
-                    type_key=type_key,
-                    size=size,
-                    row=row,
-                    col=col,
-                    horizontal=horizontal,
+                    type_key=type_key, size=size,
+                    row=row, col=col, horizontal=horizontal,
                 )
                 _place_ship_on_board(board, ship)
                 ships.append(ship)
@@ -256,8 +234,7 @@ def _random_place_fleet(
 
 
 def _get_opponent(
-    game: "BattleshipGame",
-    player: BattleshipPlayer,
+    game: "BattleshipGame", player: BattleshipPlayer,
 ) -> BattleshipPlayer | None:
     """Get the other player."""
     for p in game.get_active_players():
@@ -319,7 +296,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-playaural"
+        return "board"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -334,25 +311,65 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         return ["wins", "rating", "games_played"]
 
     def create_player(
-        self,
-        player_id: str,
-        name: str,
-        is_bot: bool = False,
+        self, player_id: str, name: str, is_bot: bool = False,
     ) -> BattleshipPlayer:
         return BattleshipPlayer(id=player_id, name=name, is_bot=is_bot)
 
     def prestart_validate(self) -> list[str | tuple[str, dict]]:
-        errors: list[str | tuple[str, dict]] = []
-        errors.extend(super().prestart_validate())
+        errors: list[str | tuple[str, dict]] = list(super().prestart_validate())
+
+        grid_size = str(self.options.grid_size)
+        if grid_size not in GRID_SIZE_CHOICES:
+            errors.append(("battleship-error-invalid-grid-size", {"size": grid_size}))
+        else:
+            size = int(grid_size)
+            fleet_cells = sum(ship_size for _, ship_size in FLEET)
+            largest_ship = max(ship_size for _, ship_size in FLEET)
+            minimum = 1
+            while minimum < largest_ship or minimum * minimum < fleet_cells:
+                minimum += 1
+            if size < minimum:
+                errors.append((
+                    "battleship-error-grid-too-small",
+                    {"size": size, "minimum": minimum},
+                ))
+
+        placement_mode = str(self.options.placement_mode)
+        if placement_mode not in PLACEMENT_CHOICES:
+            errors.append((
+                "battleship-error-invalid-placement-mode",
+                {"mode": placement_mode},
+            ))
+
+        turn_timer = str(self.options.turn_timer)
+        if turn_timer not in {"0", "30", "45", "60"}:
+            errors.append((
+                "battleship-error-invalid-turn-timer",
+                {"seconds": turn_timer},
+            ))
         return errors
 
     # ------------------------------------------------------------------ #
     # Action sets                                                         #
     # ------------------------------------------------------------------ #
 
+    def _create_orientation_action(self) -> Action:
+        """Build the hidden declarative bearing selector."""
+        return Action(
+            id="orient_placement",
+            label="",
+            handler="_action_orient_placement",
+            is_enabled="_is_orient_placement_enabled",
+            is_hidden="_is_orient_placement_hidden",
+            input_request=MenuInput(
+                prompt="battleship-select-orientation",
+                options="_orientation_options",
+                option_label="_orientation_option_label",
+            ),
+            show_in_actions_menu=False,
+        )
+
     def create_turn_action_set(self, player: BattleshipPlayer) -> ActionSet:
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
         action_set = ActionSet(name="turn")
 
         # Grid cell actions (from mixin)
@@ -363,7 +380,27 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         for action in self.build_grid_nav_actions():
             action_set.add(action)
 
+        # A grid selection opens this hidden declarative action. Keeping the
+        # bearing choice in the shared input lifecycle makes it modal,
+        # reconnectable, and safe from passive turn-menu repaints.
+        action_set.add(self._create_orientation_action())
+
         return action_set
+
+    def rebuild_runtime_state(self) -> None:
+        """Migrate saved action sets and discard non-restorable modal intent."""
+        super().rebuild_runtime_state()
+        for player in self.get_active_players():
+            bp = self._as_bp(player)
+            if not bp:
+                continue
+            turn_set = self.get_action_set(bp, "turn")
+            if turn_set and not turn_set.get_action("orient_placement"):
+                turn_set.add(self._create_orientation_action())
+            # Pending action inputs are runtime-only. An older checkpoint may
+            # retain this serialized marker without the modal which owned it;
+            # resume safely on the grid and require a fresh coordinate choice.
+            self._clear_orientation_draft(bp)
 
     def create_standard_action_set(self, player: Player) -> ActionSet:
         action_set = super().create_standard_action_set(player)
@@ -371,60 +408,46 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         locale = user.locale if user else "en"
 
         # Toggle view (own board ↔ shot board)
-        action_set.add(
-            Action(
-                id="toggle_view",
-                label=Localization.get(locale, "battleship-toggle-view"),
-                handler="_action_toggle_view",
-                is_enabled="_is_toggle_view_enabled",
-                is_hidden="_is_toggle_view_hidden",
-            )
-        )
+        action_set.add(Action(
+            id="toggle_view",
+            label=Localization.get(locale, "battleship-toggle-view"),
+            handler="_action_toggle_view",
+            is_enabled="_is_toggle_view_enabled",
+            is_hidden="_is_toggle_view_hidden",
+        ))
 
         # Read fleet status
-        action_set.add(
-            Action(
-                id="read_fleet",
-                label=Localization.get(locale, "battleship-read-fleet"),
-                handler="_action_read_fleet",
-                is_enabled="_is_read_fleet_enabled",
-                is_hidden="_is_read_fleet_hidden",
-            )
-        )
+        action_set.add(Action(
+            id="read_fleet",
+            label=Localization.get(locale, "battleship-read-fleet"),
+            handler="_action_read_fleet",
+            is_enabled="_is_read_fleet_enabled",
+            is_hidden="_is_read_fleet_hidden",
+        ))
 
         # Read enemy fleet status (how many sunk)
-        action_set.add(
-            Action(
-                id="read_enemy_fleet",
-                label=Localization.get(locale, "battleship-read-enemy-fleet"),
-                handler="_action_read_enemy_fleet",
-                is_enabled="_is_read_enemy_fleet_enabled",
-                is_hidden="_is_read_enemy_fleet_hidden",
-            )
-        )
+        action_set.add(Action(
+            id="read_enemy_fleet",
+            label=Localization.get(locale, "battleship-read-enemy-fleet"),
+            handler="_action_read_enemy_fleet",
+            is_enabled="_is_read_enemy_fleet_enabled",
+            is_hidden="_is_read_enemy_fleet_hidden",
+        ))
 
         self._apply_standard_action_order(action_set, user)
         return action_set
 
     def _apply_standard_action_order(self, action_set: ActionSet, user: "User | None") -> None:
         custom_ids = ["toggle_view", "read_fleet", "read_enemy_fleet"]
-        action_set._order = [aid for aid in action_set._order if aid not in custom_ids] + [
-            aid for aid in custom_ids if action_set.get_action(aid)
-        ]
-        if user and getattr(user, "client_type", "") == "web":
+        action_set._order = [
+            aid for aid in action_set._order if aid not in custom_ids
+        ] + [aid for aid in custom_ids if action_set.get_action(aid)]
+        if self.is_touch_client(user):
             target_order = [
-                "toggle_view",
-                "read_fleet",
-                "read_enemy_fleet",
-                "check_scores",
-                "whose_turn",
-                "whos_at_table",
+                "toggle_view", "read_fleet", "read_enemy_fleet",
+                "check_scores", "whose_turn", "whos_at_table",
             ]
-            new_order = [aid for aid in action_set._order if aid not in target_order]
-            for aid in target_order:
-                if action_set.get_action(aid):
-                    new_order.append(aid)
-            action_set._order = new_order
+            self._order_touch_standard_actions(action_set, target_order)
 
     # ------------------------------------------------------------------ #
     # Keybinds                                                            #
@@ -434,47 +457,26 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         super().setup_keybinds()
         self.setup_grid_keybinds()
         self.define_keybind(
-            "v",
-            "Toggle view",
-            ["toggle_view"],
+            "v", "Toggle view", ["toggle_view"],
             state=KeybindState.ACTIVE,
         )
         self.define_keybind(
-            "f",
-            "Read fleet",
-            ["read_fleet"],
+            "f", "Read fleet", ["read_fleet"],
             state=KeybindState.ACTIVE,
         )
         self.define_keybind(
-            "e",
-            "Read enemy fleet",
-            ["read_enemy_fleet"],
+            "e", "Read enemy fleet", ["read_enemy_fleet"],
             state=KeybindState.ACTIVE,
         )
 
+
     # ------------------------------------------------------------------ #
-    # Menu overrides                                                      #
+    # Menu hooks                                                          #
     # ------------------------------------------------------------------ #
 
-    def rebuild_player_menu(self, player: Player) -> None:
+    def before_menu_build(self, player: Player) -> None:
         self._sync_turn_actions(player)
         self._sync_standard_actions(player)
-        super().rebuild_player_menu(player)
-
-    def update_player_menu(
-        self,
-        player: Player,
-        selection_id: str | None = None,
-    ) -> None:
-        self._sync_turn_actions(player)
-        self._sync_standard_actions(player)
-        super().update_player_menu(player, selection_id=selection_id)
-
-    def rebuild_all_menus(self) -> None:
-        for player in self.players:
-            self._sync_turn_actions(player)
-            self._sync_standard_actions(player)
-        super().rebuild_all_menus()
 
     def _sync_turn_actions(self, player: Player) -> None:
         """Keep turn actions in sync with game phase."""
@@ -484,42 +486,15 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         bp = self._as_bp(player)
         if not bp:
             return
-        # No special reordering needed — grid cells only
+        # Grid cells stay as the only turn-menu actions. During manual
+        # deployment, orientation is handled in a small isolated menu so the
+        # player does not have to navigate the full grid while choosing bearing.
 
     def _sync_standard_actions(self, player: Player) -> None:
         standard_set = self.get_action_set(player, "standard")
         if not standard_set:
             return
         self._apply_standard_action_order(standard_set, self.get_user(player))
-
-    def _handle_menu_event(self, player: Player, event: dict) -> None:
-        """Handle orientation sub-menu selection."""
-        menu_id = event.get("menu_id")
-        selection_id = event.get("selection_id", "")
-
-        if menu_id == "orient_menu":
-            self._pending_actions.pop(player.id, None)
-            bp = self._as_bp(player)
-            if not bp:
-                self.rebuild_player_menu(player)
-                return
-            # The orientation menu only has authority while this player is
-            # actually mid-placement during deployment; a crafted or stale
-            # menu event outside that window would otherwise place an extra
-            # ship onto a live board.
-            if self.phase != "deploying" or not self.placing_orientation_pending.get(bp.id):
-                self.rebuild_player_menu(bp)
-                return
-            if selection_id == "_cancel" or not selection_id:
-                # Cancel — reset pending and return to grid
-                self.placing_orientation_pending[bp.id] = False
-                self.rebuild_player_menu(bp)
-                return
-            horizontal = selection_id == "horizontal"
-            self._try_place_ship(bp, horizontal)
-            return
-
-        super()._handle_menu_event(player, event)
 
     # ------------------------------------------------------------------ #
     # Game lifecycle                                                      #
@@ -529,7 +504,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         size = int(self.options.grid_size)
         self.grid_rows = size
         self.grid_cols = size
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self._sync_table_status()
         self.game_active = True
 
@@ -568,7 +543,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
                 self.placing_orientation_pending[player.id] = False
             self._announce_deploy_phase()
 
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _auto_deploy_all(self) -> None:
         """Auto-place ships for all players, then start battle."""
@@ -591,8 +566,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
                 continue
             ship_key, ship_size = FLEET[0]
             user.speak_l(
-                "battleship-deploy-start",
-                "game",
+                "battleship-deploy-start", buffer="game",
                 ship=Localization.get(user.locale, f"battleship-ship-{ship_key}"),
                 size=str(ship_size),
             )
@@ -607,11 +581,11 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
                 bp.viewing_own = False
         self.set_turn_players(self.get_active_players())
         self.play_music(SOUND_MUSIC)
-        self.broadcast_l("battleship-battle-start", buffer="table")
+        self.broadcast_l("battleship-battle-start", buffer="game")
         self.announce_turn()
         self._maybe_start_timer()
         self._jolt_bots()
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _maybe_start_timer(self) -> None:
         try:
@@ -626,11 +600,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
     # ------------------------------------------------------------------ #
 
     def get_cell_label(
-        self,
-        row: int,
-        col: int,
-        player: "Player",
-        locale: str,
+        self, row: int, col: int, player: "Player", locale: str,
     ) -> str:
         """Return cell description based on phase and view mode."""
         bp = self._as_bp(player)
@@ -645,15 +615,11 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             if cell == CELL_SHIP:
                 ship_name = self._ship_name_at(bp, row, col, locale)
                 return Localization.get(
-                    locale,
-                    "battleship-cell-ship-placed",
-                    coord=coord,
-                    ship=ship_name,
+                    locale, "battleship-cell-ship-placed",
+                    coord=coord, ship=ship_name,
                 )
             return Localization.get(
-                locale,
-                "battleship-cell-empty",
-                coord=coord,
+                locale, "battleship-cell-empty", coord=coord,
             )
 
         # Battle phase
@@ -669,35 +635,25 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
                 ship = self._find_ship_at(bp, row, col)
                 if ship and ship.sunk:
                     return Localization.get(
-                        locale,
-                        "battleship-cell-own-sunk",
-                        coord=coord,
-                        ship=ship_name,
+                        locale, "battleship-cell-own-sunk",
+                        coord=coord, ship=ship_name,
                     )
                 return Localization.get(
-                    locale,
-                    "battleship-cell-own-hit",
-                    coord=coord,
-                    ship=ship_name,
+                    locale, "battleship-cell-own-hit",
+                    coord=coord, ship=ship_name,
                 )
             if opponent_shot == CELL_MISS:
                 return Localization.get(
-                    locale,
-                    "battleship-cell-own-miss",
-                    coord=coord,
+                    locale, "battleship-cell-own-miss", coord=coord,
                 )
             if cell == CELL_SHIP:
                 ship_name = self._ship_name_at(bp, row, col, locale)
                 return Localization.get(
-                    locale,
-                    "battleship-cell-own-ship",
-                    coord=coord,
-                    ship=ship_name,
+                    locale, "battleship-cell-own-ship",
+                    coord=coord, ship=ship_name,
                 )
             return Localization.get(
-                locale,
-                "battleship-cell-empty",
-                coord=coord,
+                locale, "battleship-cell-empty", coord=coord,
             )
         else:
             # Viewing shot board (opponent's waters)
@@ -708,30 +664,21 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
                     ship = self._find_ship_at(opponent, row, col)
                     if ship and ship.sunk:
                         ship_name = Localization.get(
-                            locale,
-                            f"battleship-ship-{ship.type_key}",
+                            locale, f"battleship-ship-{ship.type_key}",
                         )
                         return Localization.get(
-                            locale,
-                            "battleship-cell-sunk",
-                            coord=coord,
-                            ship=ship_name,
+                            locale, "battleship-cell-sunk",
+                            coord=coord, ship=ship_name,
                         )
                 return Localization.get(
-                    locale,
-                    "battleship-cell-hit",
-                    coord=coord,
+                    locale, "battleship-cell-hit", coord=coord,
                 )
             if cell == CELL_MISS:
                 return Localization.get(
-                    locale,
-                    "battleship-cell-miss",
-                    coord=coord,
+                    locale, "battleship-cell-miss", coord=coord,
                 )
             return Localization.get(
-                locale,
-                "battleship-cell-unknown",
-                coord=coord,
+                locale, "battleship-cell-unknown", coord=coord,
             )
 
     def on_grid_select(self, player: "Player", row: int, col: int) -> None:
@@ -746,10 +693,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             self._on_battle_select(bp, row, col)
 
     def is_grid_cell_enabled(
-        self,
-        player: "Player",
-        row: int,
-        col: int,
+        self, player: "Player", row: int, col: int,
     ) -> str | None:
         if self.status != "playing":
             return "action-not-playing"
@@ -771,10 +715,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         return None
 
     def is_grid_cell_hidden(
-        self,
-        player: "Player",
-        row: int,
-        col: int,
+        self, player: "Player", row: int, col: int,
     ) -> Visibility:
         if self.status != "playing":
             return Visibility.HIDDEN
@@ -787,10 +728,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
     # ------------------------------------------------------------------ #
 
     def _on_deploy_select(
-        self,
-        bp: BattleshipPlayer,
-        row: int,
-        col: int,
+        self, bp: BattleshipPlayer, row: int, col: int,
     ) -> None:
         """Handle cell selection during deployment."""
         if bp.deploy_ready:
@@ -804,7 +742,9 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         if ship_idx >= len(FLEET):
             return
 
-        # Store selected position and show orientation sub-menu
+        # Store selected position and show an isolated orientation menu.
+        # Keeping bearing selection out of the full grid makes manual
+        # deployment much easier to navigate with a screen reader.
         self.placing_row[bp.id] = row
         self.placing_col[bp.id] = col
         self.placing_orientation_pending[bp.id] = True
@@ -812,35 +752,97 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         ship_key, ship_size = FLEET[ship_idx]
         coord = self._grid_cell_coordinate(row, col)
         user.speak_l(
-            "battleship-choose-orientation",
-            "game",
+            "battleship-choose-orientation", buffer="game",
             ship=Localization.get(user.locale, f"battleship-ship-{ship_key}"),
             coord=coord,
             size=str(ship_size),
         )
 
-        # Show proper orientation selection sub-menu
-        self._pending_actions[bp.id] = "orient_placement"
-        h_label = Localization.get(user.locale, "battleship-orient-horizontal")
-        v_label = Localization.get(user.locale, "battleship-orient-vertical")
-        cancel_label = Localization.get(user.locale, "cancel")
-        items = [
-            MenuItem(text=h_label, id="horizontal"),
-            MenuItem(text=v_label, id="vertical"),
-            MenuItem(text=cancel_label, id="_cancel"),
-        ]
-        user.show_menu(
-            "orient_menu",
-            items,
-            multiletter=True,
-            escape_behavior=EscapeBehavior.SELECT_LAST,
+        action = self.find_action(bp, "orient_placement")
+        if action:
+            self._request_action_input(action, bp)
+
+    def _is_orient_placement_enabled(self, player: Player) -> str | None:
+        """Return whether the saved deployment coordinate needs a bearing."""
+        bp = self._as_bp(player)
+        if (
+            not bp
+            or self.status != "playing"
+            or self.phase != "deploying"
+            or self.options.placement_mode != "manual"
+            or bp.deploy_ready
+            or not self.placing_orientation_pending.get(bp.id, False)
+        ):
+            return "action-not-available"
+        ship_idx = self.placing_ship_index.get(bp.id, 0)
+        if ship_idx >= len(FLEET):
+            return "action-not-available"
+        if bp.id not in self.placing_row or bp.id not in self.placing_col:
+            return "battleship-select-cell-first"
+        return None
+
+    def _is_orient_placement_hidden(self, player: Player) -> Visibility:
+        del player
+        return Visibility.HIDDEN
+
+    def _orientation_options(self, player: Player) -> list[str]:
+        if self._is_orient_placement_enabled(player) is not None:
+            return []
+        return list(ORIENTATION_CHOICES)
+
+    def _orientation_option_label(self, player: Player, option: str) -> str:
+        bp = self._as_bp(player)
+        user = self.get_user(player)
+        if not bp or not user:
+            return option
+        ship_idx = self.placing_ship_index.get(bp.id, 0)
+        if ship_idx >= len(FLEET):
+            return option
+        ship_key, _ = FLEET[ship_idx]
+        ship_name = Localization.get(user.locale, f"battleship-ship-{ship_key}")
+        coord = self._grid_cell_coordinate(
+            self.placing_row.get(bp.id, 0),
+            self.placing_col.get(bp.id, 0),
         )
-        return
+        key = (
+            "battleship-orient-horizontal-at"
+            if option == "horizontal"
+            else "battleship-orient-vertical-at"
+        )
+        return Localization.get(
+            user.locale,
+            key,
+            ship=ship_name,
+            coord=coord,
+        )
+
+    def _action_orient_placement(
+        self,
+        player: Player,
+        orientation: str,
+        action_id: str,
+    ) -> None:
+        del action_id
+        bp = self._as_bp(player)
+        if not bp or orientation not in ORIENTATION_CHOICES:
+            return
+        self._try_place_ship(bp, horizontal=orientation == "horizontal")
+
+    def _on_action_input_cancelled(self, player: Player, action_id: str) -> None:
+        if action_id != "orient_placement":
+            return
+        bp = self._as_bp(player)
+        if bp:
+            self._clear_orientation_draft(bp)
+
+    def _clear_orientation_draft(self, player: BattleshipPlayer) -> None:
+        """Release the coordinate owned by a closed bearing selector."""
+        self.placing_orientation_pending[player.id] = False
+        self.placing_row.pop(player.id, None)
+        self.placing_col.pop(player.id, None)
 
     def _try_place_ship(
-        self,
-        bp: BattleshipPlayer,
-        horizontal: bool,
+        self, bp: BattleshipPlayer, horizontal: bool,
     ) -> None:
         """Try to place ship at stored position with given orientation."""
         user = self.get_user(bp)
@@ -860,36 +862,32 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             coord = self._grid_cell_coordinate(row, col)
             orientation_key = "battleship-horizontal" if horizontal else "battleship-vertical"
             user.speak_l(
-                "battleship-cannot-place",
-                "game",
+                "battleship-cannot-place", buffer="game",
                 ship=Localization.get(user.locale, f"battleship-ship-{ship_key}"),
                 coord=coord,
                 orientation=Localization.get(user.locale, orientation_key),
             )
-            # Reset orientation pending so they can pick again
-            self.placing_orientation_pending[bp.id] = False
-            self.rebuild_player_menu(bp)
+            # Return to the grid; the player can select the same coordinate
+            # again if they want to try the other bearing.
+            self._clear_orientation_draft(bp)
+            self.refresh_menus(bp)
             return
 
         # Place the ship
         ship = Ship(
-            type_key=ship_key,
-            size=ship_size,
-            row=row,
-            col=col,
-            horizontal=horizontal,
+            type_key=ship_key, size=ship_size,
+            row=row, col=col, horizontal=horizontal,
         )
         _place_ship_on_board(bp.own_board, ship)
         bp.ships.append(ship)
         bp.ships_placed += 1
-        self.placing_orientation_pending[bp.id] = False
+        self._clear_orientation_draft(bp)
 
         user.play_sound(SOUND_PLACE)
         coord = self._grid_cell_coordinate(row, col)
         orientation_key = "battleship-horizontal" if horizontal else "battleship-vertical"
         user.speak_l(
-            "battleship-ship-placed",
-            "game",
+            "battleship-ship-placed", buffer="game",
             ship=Localization.get(user.locale, f"battleship-ship-{ship_key}"),
             coord=coord,
             orientation=Localization.get(user.locale, orientation_key),
@@ -901,18 +899,17 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         if next_idx < len(FLEET):
             next_key, next_size = FLEET[next_idx]
             user.speak_l(
-                "battleship-place-next-ship",
-                "game",
+                "battleship-place-next-ship", buffer="game",
                 ship=Localization.get(user.locale, f"battleship-ship-{next_key}"),
                 size=str(next_size),
             )
         else:
             bp.deploy_ready = True
             user.play_sound(SOUND_DEPLOY_DONE)
-            user.speak_l("battleship-deploy-done", "game")
+            user.speak_l("battleship-deploy-done", buffer="game")
             self._check_all_deployed()
 
-        self.rebuild_player_menu(bp)
+        self.refresh_menus(bp)
 
     def _check_all_deployed(self) -> None:
         """Check if all players have finished deploying."""
@@ -928,36 +925,45 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
     # ------------------------------------------------------------------ #
 
     def _on_battle_select(
-        self,
-        bp: BattleshipPlayer,
-        row: int,
-        col: int,
+        self, bp: BattleshipPlayer, row: int, col: int,
     ) -> None:
         """Handle firing a shot during battle phase."""
         if self.shot_pending_ticks > 0:
+            user = self.get_user(bp)
+            if user:
+                user.speak_l("battleship-shot-in-flight", buffer="game")
             return
         if self.current_player != bp:
+            user = self.get_user(bp)
+            if user:
+                current_name = self.current_player.name if self.current_player else ""
+                if current_name:
+                    user.speak_l(
+                        "battleship-not-your-turn",
+                        buffer="game",
+                        player=current_name,
+                    )
+                else:
+                    user.speak_l("battleship-wait-for-turn", buffer="game")
             return
         if bp.viewing_own:
             user = self.get_user(bp)
             if user:
-                user.speak_l("battleship-switch-to-shots", "game")
+                user.speak_l("battleship-switch-to-shots", buffer="game")
             return
 
         # Can't fire at already-shot cells
         if bp.shot_board[row][col] != CELL_EMPTY:
             user = self.get_user(bp)
             if user:
-                user.speak_l("battleship-already-shot", "game")
+                coord = self._grid_cell_coordinate(row, col)
+                user.speak_l("battleship-already-shot", buffer="game", coord=coord)
             return
 
         self._fire_shot(bp, row, col)
 
     def _fire_shot(
-        self,
-        bp: BattleshipPlayer,
-        row: int,
-        col: int,
+        self, bp: BattleshipPlayer, row: int, col: int,
     ) -> None:
         """Initiate a shot: play fire sound and queue the result after delay."""
         opponent = _get_opponent(self, bp)
@@ -973,15 +979,27 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         self.shot_pending_col = col
         self.shot_pending_ticks = FIRE_DELAY_TICKS
 
+    def _clear_pending_shot(self) -> None:
+        self.shot_pending_player_id = ""
+        self.shot_pending_row = -1
+        self.shot_pending_col = -1
+        self.shot_pending_ticks = 0
+
     def _resolve_shot(self) -> None:
         """Resolve a pending shot after the fire delay has elapsed."""
+        pending_player_id = self.shot_pending_player_id
+        row = self.shot_pending_row
+        col = self.shot_pending_col
+        self._clear_pending_shot()
+
+        if row < 0 or col < 0 or row >= self.grid_rows or col >= self.grid_cols:
+            return
+
         bp = self._as_bp(
-            self.get_player_by_id(self.shot_pending_player_id),
+            self.get_player_by_id(pending_player_id),
         )
         if not bp:
             return
-        row = self.shot_pending_row
-        col = self.shot_pending_col
 
         opponent = _get_opponent(self, bp)
         if not opponent:
@@ -1010,25 +1028,19 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
                     if not u:
                         continue
                     ship_name = Localization.get(
-                        u.locale,
-                        f"battleship-ship-{hit_ship.type_key}",
+                        u.locale, f"battleship-ship-{hit_ship.type_key}",
                     )
                     if p.id == bp.id:
-                        u.speak_l("battleship-sunk-self", "game", ship=ship_name)
+                        u.speak_l("battleship-sunk-self", buffer="game", ship=ship_name)
                     elif p.id == opponent.id:
                         u.speak_l(
-                            "battleship-sunk-target",
-                            "game",
-                            player=bp.name,
-                            ship=ship_name,
+                            "battleship-sunk-target", buffer="game",
+                            player=bp.name, ship=ship_name,
                         )
                     else:
                         u.speak_l(
-                            "battleship-sunk-spectator",
-                            "game",
-                            player=bp.name,
-                            target=opponent.name,
-                            ship=ship_name,
+                            "battleship-sunk-spectator", buffer="game",
+                            player=bp.name, target=opponent.name, ship=ship_name,
                         )
 
                 # Check win
@@ -1037,8 +1049,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
                     return
             else:
                 self._speak_perspective(
-                    bp,
-                    opponent,
+                    bp, opponent,
                     "battleship-hit-self",
                     "battleship-hit-target",
                     "battleship-hit-spectator",
@@ -1051,7 +1062,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             if self.options.replay_on_hit:
                 self._maybe_start_timer()
                 self._jolt_bots()
-                self.rebuild_all_menus()
+                self.refresh_menus()
                 return
 
         else:
@@ -1059,8 +1070,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             bp.shot_board[row][col] = CELL_MISS
             self.play_sound(SOUND_MISS)
             self._speak_perspective(
-                bp,
-                opponent,
+                bp, opponent,
                 "battleship-miss-self",
                 "battleship-miss-target",
                 "battleship-miss-spectator",
@@ -1074,10 +1084,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         self._jolt_bots()
 
     def _find_ship_at(
-        self,
-        player: BattleshipPlayer,
-        row: int,
-        col: int,
+        self, player: BattleshipPlayer, row: int, col: int,
     ) -> Ship | None:
         """Find the ship occupying the given cell."""
         for ship in player.ships:
@@ -1098,21 +1105,17 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             if not u:
                 continue
             if p.id == winner.id:
-                u.speak_l("battleship-victory-self", "game")
+                u.speak_l("battleship-victory-self", buffer="game")
                 u.play_sound(SOUND_WIN)
             elif loser and p.id == loser.id:
                 u.speak_l(
-                    "battleship-victory-target",
-                    "game",
-                    player=winner.name,
+                    "battleship-victory-target", buffer="game", player=winner.name,
                 )
                 u.play_sound(SOUND_LOSE)
             else:
                 u.speak_l(
-                    "battleship-victory-spectator",
-                    "game",
-                    player=winner.name,
-                    target=loser_name,
+                    "battleship-victory-spectator", buffer="game",
+                    player=winner.name, target=loser_name,
                 )
                 u.play_sound(SOUND_LOSE)
 
@@ -1142,20 +1145,22 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             user = self.get_user(bp)
             if user:
                 coord = self._grid_cell_coordinate(row, col)
-                user.speak_l("battleship-timeout-fire", "game", coord=coord)
+                user.speak_l("battleship-timeout-fire", buffer="game", coord=coord)
             self._fire_shot(bp, row, col)
         else:
             self.advance_turn()
             self._maybe_start_timer()
 
     def _random_valid_target(
-        self,
-        bp: BattleshipPlayer,
+        self, bp: BattleshipPlayer,
     ) -> tuple[int, int] | None:
         """Pick a random un-shot cell."""
         size = int(self.options.grid_size)
         candidates = [
-            (r, c) for r in range(size) for c in range(size) if bp.shot_board[r][c] == CELL_EMPTY
+            (r, c)
+            for r in range(size)
+            for c in range(size)
+            if bp.shot_board[r][c] == CELL_EMPTY
         ]
         return random.choice(candidates) if candidates else None
 
@@ -1178,9 +1183,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
     # ------------------------------------------------------------------ #
 
     def _action_toggle_view(
-        self,
-        player: "Player",
-        action_id: str,
+        self, player: "Player", action_id: str,
     ) -> None:
         bp = self._as_bp(player)
         if not bp:
@@ -1189,14 +1192,14 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         user = self.get_user(player)
         if user:
             if bp.viewing_own:
-                user.speak_l("battleship-view-own", "game")
+                user.speak_l("battleship-view-own", buffer="game")
             else:
-                user.speak_l("battleship-view-shots", "game")
+                user.speak_l("battleship-view-shots", buffer="game")
             # Announce current cell after switching
             cursor = self._get_cursor(bp)
             label = self.get_cell_label(cursor.row, cursor.col, bp, user.locale)
-            user.speak(label, buffer="table")
-        self.update_player_menu(bp)
+            user.speak(label, buffer="game")
+        self.refresh_menus(bp)
 
     def _is_toggle_view_enabled(self, player: "Player") -> str | None:
         if self.status != "playing":
@@ -1213,7 +1216,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         if self.phase == "deploying":
             return Visibility.HIDDEN
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE
         return Visibility.HIDDEN
 
@@ -1222,9 +1225,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
     # ------------------------------------------------------------------ #
 
     def _action_read_fleet(
-        self,
-        player: "Player",
-        action_id: str,
+        self, player: "Player", action_id: str,
     ) -> None:
         bp = self._as_bp(player)
         if not bp:
@@ -1232,22 +1233,27 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         user = self.get_user(player)
         if not user:
             return
-        lines = [Localization.get(user.locale, "battleship-fleet-header")]
-        for ship in bp.ships:
-            ship_name = Localization.get(user.locale, f"battleship-ship-{ship.type_key}")
+        self.live_status_box(
+            bp,
+            "battleship_fleet",
+            lambda _player, live_user: self._fleet_lines(bp, live_user.locale),
+        )
+
+    def _fleet_lines(self, player: "BattleshipPlayer", locale: str) -> list[str]:
+        lines = [Localization.get(locale, "battleship-fleet-header")]
+        for ship in player.ships:
+            ship_name = Localization.get(locale, f"battleship-ship-{ship.type_key}")
             if ship.sunk:
-                status = Localization.get(user.locale, "battleship-status-sunk")
+                status = Localization.get(locale, "battleship-status-sunk")
             elif ship.hits > 0:
                 status = Localization.get(
-                    user.locale,
-                    "battleship-status-damaged",
-                    hits=str(ship.hits),
-                    size=str(ship.size),
+                    locale, "battleship-status-damaged",
+                    hits=str(ship.hits), size=str(ship.size),
                 )
             else:
-                status = Localization.get(user.locale, "battleship-status-intact")
+                status = Localization.get(locale, "battleship-status-intact")
             lines.append(f"{ship_name}: {status}")
-        self.status_box(bp, lines)
+        return lines
 
     def _is_read_fleet_enabled(self, player: "Player") -> str | None:
         if self.status != "playing":
@@ -1260,14 +1266,12 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         if self.status != "playing" or player.is_spectator:
             return Visibility.HIDDEN
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE
         return Visibility.HIDDEN
 
     def _action_read_enemy_fleet(
-        self,
-        player: "Player",
-        action_id: str,
+        self, player: "Player", action_id: str,
     ) -> None:
         bp = self._as_bp(player)
         user = self.get_user(player)
@@ -1287,32 +1291,34 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         if not opponent:
             return
 
-        lines = [Localization.get(user.locale, "battleship-enemy-fleet-header")]
+        self.live_status_box(
+            player,
+            "battleship_enemy_fleet",
+            lambda _player, live_user: self._enemy_fleet_lines(opponent, live_user.locale),
+        )
+
+    def _enemy_fleet_lines(
+        self,
+        opponent: "BattleshipPlayer",
+        locale: str,
+    ) -> list[str]:
+        lines = [Localization.get(locale, "battleship-enemy-fleet-header")]
         sunk_count = sum(1 for s in opponent.ships if s.sunk)
         total = len(opponent.ships)
-        lines.append(
-            Localization.get(
-                user.locale,
-                "battleship-enemy-fleet-summary",
-                sunk=str(sunk_count),
-                total=str(total),
-            )
-        )
+        lines.append(Localization.get(
+            locale, "battleship-enemy-fleet-summary",
+            sunk=str(sunk_count), total=str(total),
+        ))
         for ship in opponent.ships:
             if ship.sunk:
                 ship_name = Localization.get(
-                    user.locale,
-                    f"battleship-ship-{ship.type_key}",
+                    locale, f"battleship-ship-{ship.type_key}",
                 )
-                lines.append(
-                    Localization.get(
-                        user.locale,
-                        "battleship-enemy-ship-sunk",
-                        ship=ship_name,
-                        size=str(ship.size),
-                    )
-                )
-        self.status_box(player, lines)
+                lines.append(Localization.get(
+                    locale, "battleship-enemy-ship-sunk",
+                    ship=ship_name, size=str(ship.size),
+                ))
+        return lines
 
     def _is_read_enemy_fleet_enabled(self, player: "Player") -> str | None:
         if self.status != "playing":
@@ -1329,7 +1335,7 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
         if player.is_spectator:
             return Visibility.HIDDEN
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE
         return Visibility.HIDDEN
 
@@ -1337,15 +1343,32 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
     # Whose turn / scores overrides for web visibility                    #
     # ------------------------------------------------------------------ #
 
+    def _action_whose_turn(self, player: Player, action_id: str) -> None:
+        user = self.get_user(player)
+        if not user:
+            return
+        if self.status == "playing" and self.phase == "deploying":
+            user.speak_l("battleship-deploy-status-header", buffer="game")
+            for active in self.get_active_players():
+                bp = self._as_bp(active)
+                if not bp:
+                    continue
+                perspective = "self" if bp.id == player.id else "other"
+                readiness = "ready" if bp.deploy_ready else "not-ready"
+                key = f"battleship-deploy-status-{readiness}-{perspective}"
+                user.speak_l(key, buffer="game", player=bp.name)
+            return
+        super()._action_whose_turn(player, action_id)
+
     def _is_whos_at_table_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE
         return super()._is_whos_at_table_hidden(player)
 
     def _is_whose_turn_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web" and self.status == "playing":
+        if self.is_touch_client(user) and self.status == "playing":
             return Visibility.VISIBLE
         return super()._is_whose_turn_hidden(player)
 
@@ -1422,52 +1445,41 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             if bp:
                 custom[f"{bp.name}_shots"] = bp.total_shots
                 custom[f"{bp.name}_hits"] = bp.total_hits
-                custom[f"{bp.name}_ships_lost"] = sum(1 for s in bp.ships if s.sunk)
+                custom[f"{bp.name}_ships_lost"] = sum(
+                    1 for s in bp.ships if s.sunk
+                )
 
         return GameResult(
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot and not p.replaced_human,
-                )
+                PlayerResult.from_player(p)
                 for p in active
             ],
             custom_data=custom,
         )
 
     def format_end_screen(
-        self,
-        result: GameResult,
-        locale: str,
+        self, result: GameResult, locale: str,
     ) -> list[str]:
         lines: list[str] = []
         winner_name = result.custom_data.get("winner_name")
         if winner_name:
-            lines.append(
-                Localization.get(
-                    locale,
-                    "battleship-winner-line",
-                    player=winner_name,
-                )
-            )
+            lines.append(Localization.get(
+                locale, "battleship-winner-line", player=winner_name,
+            ))
         for pr in result.player_results:
             shots = result.custom_data.get(f"{pr.player_name}_shots", 0)
             hits = result.custom_data.get(f"{pr.player_name}_hits", 0)
             accuracy = (hits / shots * 100) if shots > 0 else 0
-            lines.append(
-                Localization.get(
-                    locale,
-                    "battleship-stats-line",
-                    player=pr.player_name,
-                    shots=str(shots),
-                    hits=str(hits),
-                    accuracy=f"{accuracy:.0f}",
-                )
-            )
+            lines.append(Localization.get(
+                locale, "battleship-stats-line",
+                player=pr.player_name,
+                shots=str(shots),
+                hits=str(hits),
+                accuracy=f"{accuracy:.0f}",
+            ))
         return lines
 
     # ------------------------------------------------------------------ #
@@ -1500,30 +1512,20 @@ class BattleshipGame(GridGameMixin, TurnTimerMixin, Game):
             if not u:
                 continue
             if p.id == shooter.id:
-                u.speak_l(key_self, "game", **kwargs)
+                u.speak_l(key_self, buffer="game", **kwargs)
             elif p.id == opponent.id:
                 u.speak_l(
-                    key_target,
-                    "game",
-                    player=shooter.name,
-                    target=opponent.name,
-                    **kwargs,
+                    key_target, buffer="game",
+                    player=shooter.name, target=opponent.name, **kwargs,
                 )
             else:
                 u.speak_l(
-                    key_spectator,
-                    "game",
-                    player=shooter.name,
-                    target=opponent.name,
-                    **kwargs,
+                    key_spectator, buffer="game",
+                    player=shooter.name, target=opponent.name, **kwargs,
                 )
 
     def _ship_name_at(
-        self,
-        bp: BattleshipPlayer,
-        row: int,
-        col: int,
-        locale: str,
+        self, bp: BattleshipPlayer, row: int, col: int, locale: str,
     ) -> str:
         """Get the localized name of the ship at the given cell."""
         ship = self._find_ship_at(bp, row, col)

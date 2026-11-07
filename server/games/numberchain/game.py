@@ -9,22 +9,24 @@ from dataclasses import dataclass, field
 log = logging.getLogger(__name__)
 
 from ..base import Game, Player, GameOptions
+from ..categories import CATEGORY_BOARD
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.options import MenuOption, option_field
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.game_status import GameStatus
+from ...game_utils.menu_management_mixin import MenuBuild
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
-from server.core.users.bot import Bot
-from server.core.users.base import MenuItem, EscapeBehavior
+from server.ui.keybinds import KeybindState
+from server.users.base import MenuItem
 from .bot import bot_think
 from .moves import apply_move, generate_legal_moves, has_any_legal_move
 from .state import (
     COLS,
     MAX_NUMBER,
     NUM_CELLS,
+    ROWS,
     NumberChainState,
     build_initial_state,
     index_to_rc,
@@ -79,7 +81,11 @@ class NumberChainGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-board-games"
+        return CATEGORY_BOARD
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -123,7 +129,9 @@ class NumberChainGame(Game):
                     get_label="_get_square_label",
                     get_sound="_get_square_sound",
                     show_in_actions_menu=False,
-                    show_disabled_label=False,
+                    # Spectators browse the board too; squares only act on
+                    # the placing player's turn.
+                    include_spectators=True,
                 )
             )
 
@@ -136,6 +144,7 @@ class NumberChainGame(Game):
                 handler="_action_check_status",
                 is_enabled="_is_info_enabled",
                 is_hidden="_is_always_hidden",
+                include_spectators=True,
             ),
             Action(
                 id="check_inventory",
@@ -143,6 +152,7 @@ class NumberChainGame(Game):
                 handler="_action_check_inventory",
                 is_enabled="_is_info_enabled",
                 is_hidden="_is_always_hidden",
+                include_spectators=True,
             ),
             Action(
                 id="check_required",
@@ -150,6 +160,7 @@ class NumberChainGame(Game):
                 handler="_action_check_required",
                 is_enabled="_is_info_enabled",
                 is_hidden="_is_always_hidden",
+                include_spectators=True,
             ),
         ]
         for action in reversed(local_actions):
@@ -190,56 +201,16 @@ class NumberChainGame(Game):
     # Grid menu rendering
     # ------------------------------------------------------------------ #
 
-    def rebuild_player_menu(
-        self,
-        player: Player,
-        *,
-        position: int | None = None,
-        play_selection_sound: bool = False,
-    ) -> None:
-        if self._destroyed or self.status == "finished":
-            return
-        if self._is_transient_display_open(player):
-            return
-        user = self.get_user(player)
-        if not user:
-            return
-
+    def build_menu_items(self, player: Player, user) -> MenuBuild:
         grid_items, other_items = self._build_menu_items(player, user)
         use_grid = len(grid_items) == NUM_CELLS
-
-        user.show_menu(
-            "turn_menu",
-            grid_items + other_items,
-            multiletter=False,
-            escape_behavior=EscapeBehavior.KEYBIND,
-            position=position,
-            grid_enabled=use_grid,
-            grid_width=COLS if use_grid else 1,
-            play_selection_sound=play_selection_sound,
-        )
-
-    def update_player_menu(
-        self,
-        player: Player,
-        selection_id: str | None = None,
-        play_selection_sound: bool = False,
-    ) -> None:
-        if self._destroyed or self.status == "finished":
-            return
-        if self._is_transient_display_open(player):
-            return
-        user = self.get_user(player)
-        if not user:
-            return
-
-        grid_items, other_items = self._build_menu_items(player, user)
-
-        user.update_menu(
-            "turn_menu",
-            grid_items + other_items,
-            selection_id=selection_id,
-            play_selection_sound=play_selection_sound,
+        return MenuBuild(
+            items=grid_items + other_items,
+            grid_kwargs={
+                "grid_enabled": use_grid,
+                "grid_width": COLS if use_grid else 1,
+                "grid_height": ROWS if use_grid else 0,
+            },
         )
 
     def _build_menu_items(
@@ -248,15 +219,24 @@ class NumberChainGame(Game):
         grid_items: list[MenuItem] = []
         other_items: list[MenuItem] = []
         for resolved in self.get_all_visible_actions(player):
-            label = resolved.label
-            if not resolved.enabled and resolved.action.show_disabled_label:
-                unavailable = Localization.get(user.locale, "visibility-unavailable")
-                label = f"{label}; {unavailable}"
-            item = MenuItem(text=label, id=resolved.action.id, sound=resolved.sound)
+            item = resolved.to_menu_item()
             if resolved.action.id.startswith("sq_"):
                 grid_items.append(item)
             else:
                 other_items.append(item)
+        if self.is_touch_client(user):
+            other_items.append(
+                MenuItem(
+                    text=Localization.get(user.locale, "actions-menu"),
+                    id="web_actions_menu",
+                )
+            )
+            other_items.append(
+                MenuItem(
+                    text=Localization.get(user.locale, "game-leave"),
+                    id="web_leave_table",
+                )
+            )
         return grid_items, other_items
 
     # ------------------------------------------------------------------ #
@@ -296,7 +276,7 @@ class NumberChainGame(Game):
         )
 
         BotHelper.jolt_bots(self, ticks=random.randint(4, 8))
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def on_tick(self) -> None:
         super().on_tick()
@@ -363,9 +343,11 @@ class NumberChainGame(Game):
             self._handle_win(player)
             return
 
-        self.announce_turn()
+        # The engine's default turn.ogg is not in our client sound tree;
+        # game_pig/turn.ogg is the same recording this game always played.
+        self.announce_turn(turn_sound="game_pig/turn.ogg")
         BotHelper.jolt_bots(self, ticks=random.randint(3, 6))
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     # ------------------------------------------------------------------ #
     # Win
@@ -389,17 +371,13 @@ class NumberChainGame(Game):
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot,
-                    is_virtual_bot=getattr(p, "is_virtual_bot", False),
-                )
+                PlayerResult.from_player(p)
                 for p in self.players
                 if not p.is_spectator
             ],
             custom_data={
                 "winner_name": winner.name if winner else None,
+                "winner_ids": [winner.id] if winner else [],
                 "p1_name": p1.name if p1 else "?",
                 "p2_name": p2.name if p2 else "?",
             },
@@ -450,36 +428,6 @@ class NumberChainGame(Game):
             return
         gs = self.game_state
         user.speak_l("numberchain-required", required=required_next_number(gs))
-
-    # ------------------------------------------------------------------ #
-    # Leave handling
-    # ------------------------------------------------------------------ #
-
-    def _perform_leave_game(self, player: Player) -> None:
-        if self.status == "playing" and not player.is_bot:
-            player.is_bot = True
-            self._users.pop(player.id, None)
-            bot_user = Bot(player.name, uuid=player.id)
-            self.attach_user(player.id, bot_user)
-            self.broadcast_l("player-replaced-by-bot", player=player.name)
-
-            has_humans = any(not p.is_bot for p in self.players)
-            if not has_humans:
-                self.destroy()
-                return
-
-            self.rebuild_all_menus()
-            return
-
-        self.players = [p for p in self.players if p.id != player.id]
-        self.player_action_sets.pop(player.id, None)
-        self._users.pop(player.id, None)
-        self.broadcast_l("table-left", player=player.name)
-
-        has_humans = any(not p.is_bot for p in self.players)
-        if not has_humans:
-            self.destroy()
-            return
 
     # ------------------------------------------------------------------ #
     # Visibility / enabled / label / sound callbacks

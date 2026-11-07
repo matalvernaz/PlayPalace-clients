@@ -1,3 +1,6 @@
+# languages.ftl for locale th. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # ชื่อภาษาที่แปลเป็นภาษานี้
 language-ar = อาหรับ
 language-cs = เช็ก
@@ -11,7 +14,6 @@ language-hr = โครเอเชีย
 language-hu = ฮังการี
 language-id = อินโดนีเซีย
 language-it = อิตาลี
-language-ja = ญี่ปุ่น
 language-ko = เกาหลี
 language-mk = มาซิโดเนีย
 language-mn = มองโกเลีย
@@ -30,3 +32,4 @@ language-uk = ยูเครน
 language-vi = เวียดนาม
 language-zh = จีน
 language-zu = ซูลู
+language-ja = ญี่ปุ่น

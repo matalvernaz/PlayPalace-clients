@@ -1,58 +1,60 @@
-# Nine game messages
+# nine.ftl for locale pt. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name and description
-game-name-nine = Nine
-nine-description = A popular Russian card game in which players build suit sequences.
-
+game-name-nine = Nove
+nine-description = Um jogo de cartas russo popular no qual os jogadores constroem sequências de naipes.
 # Player count validation
-nine-error-invalid-player-count = Nine can only be played with 2, 3, 4, or 6 players.
-
+nine-error-invalid-player-count = Nove usa um baralho de 36 cartas e acomoda exatamente 3, 4 ou 6 jogadores.
+nine-error-starting-nine-missing = O nove de ouros não foi encontrado em nenhuma mão. O jogo não pode continuar.
 # Dealing messages
-nine-player-nine-deal = Dealing {$cards} cards to all players.
-
+nine-player-nine-deal = Distribuindo { $cards } cartas para cada jogador.
 # Game start
-nine-you-start-player-announcement = You have the nine of clubs and start the game.
-nine-player-start-player-announcement = { $player } has the nine of clubs and starts the game.
-
+nine-you-start-player-announcement = Você tem o nove de ouros e começa o jogo.
+nine-player-start-player-announcement = { $player } tem o nove de ouros e começa o jogo.
+nine-you-start-player-announcement-brief = Você começa com o nove de ouros.
+nine-player-start-player-announcement-brief = { $player } começa com o nove de ouros.
 # Turn actions
-nine-you-play-card = You play the { $card }.
-nine-player-plays-card = { $player } plays the { $card }.
-
-nine-you-plays-nine-clubs = You play the nine of clubs.
-nine-player-plays-nine-clubs = { $player } plays the nine of clubs.
-
-nine-you-plays-nine-suit = You play the { $card } to start the { $suit } sequence.
-nine-player-plays-nine-suit = { $player } plays the { $card } to start the { $suit } sequence.
-
-nine-you-extend-sequence = You extend the { $suit } sequence with the { $card }.
-nine-player-extend-sequence = { $player } extends the { $suit } sequence with the { $card }.
-
-nine-you-skips-turn = You have no valid moves and must skip your turn.
-nine-player-skips-turn = { $player } has no valid moves and skips their turn.
-
+nine-you-plays-starting-nine = Você joga { $card } para abrir a mesa.
+nine-player-plays-starting-nine = { $player } joga { $card } para abrir a mesa.
+nine-you-plays-starting-nine-brief = Você joga { $card }.
+nine-player-plays-starting-nine-brief = { $player }: { $card }.
+nine-you-plays-nine-suit = Você joga { $card } para iniciar a sequência de { $suit }.
+nine-player-plays-nine-suit = { $player } joga { $card } para iniciar a sequência de { $suit }.
+nine-you-plays-nine-suit-brief = Você inicia { $suit } com { $card }.
+nine-player-plays-nine-suit-brief = { $player } inicia { $suit } com { $card }.
+nine-you-extend-sequence = Você estende a sequência de { $suit } com { $card }.
+nine-player-extend-sequence = { $player } estende a sequência de { $suit } com { $card }.
+nine-you-extend-sequence-brief = Você joga { $card } em { $suit }.
+nine-player-extend-sequence-brief = { $player }: { $card } em { $suit }.
+nine-you-skips-turn = Você não tem nenhuma carta legal para jogar, então seu turno é pulado.
+nine-player-skips-turn = { $player } não tem nenhuma carta válida para jogar, então o turno { GENDER_TERM($player_gender, "possessive-determiner") } é pulado.
+nine-you-skips-turn-brief = Você pula; nenhuma carta legal.
+nine-player-skips-turn-brief = { $player } pula; nenhuma carta legal.
 # Reasons for not being able to play a card
-nine-reason-not-your-turn = It is not your turn.
-nine-reason-must-play-nine-clubs = You must play the nine of clubs to start the game.
-nine-reason-no-nine = You do not have a nine to start a new sequence.
-nine-reason-cannot-extend = That card cannot extend the { $suit } sequence.
-nine-reason-generic = That card cannot be played right now.
-
+nine-reason-not-your-turn = Não é o seu turno.
+nine-reason-card-slot-gone = Essa carta não está mais na sua mão. Seu menu de mão foi atualizado.
+nine-reason-must-play-starting-nine = A primeira jogada deve ser { $starting_card }. { $card } não pode ser jogada até que a mesa seja aberta.
+nine-reason-nine-already-started = { $card } não pode ser jogada porque a sequência de { $suit } já está aberta.
+nine-reason-cannot-extend = { $card } não pode estender a sequência de { $suit }. Jogue a próxima carta inferior ou superior em uma das pontas dessa sequência.
+nine-reason-unopened-suit = { $card } não pode ser jogada porque a sequência de { $suit } ainda não foi aberta. Inicie esse naipe com o 9 dele primeiro.
+nine-reason-must-skip = Você não tem nenhuma carta legal para jogar; seu turno será pulado automaticamente.
 # Winning
-nine-you-wins-game = You have no cards left and win the game!
-nine-player-wins-game = { $player } has no cards left and wins the game!
-nine-player-game-ended = The game of Nine has ended.
-nine-you-game-ended = The game of Nine has ended.
-
-nine-you-win = You win!
-nine-you-lose = You lose!
-nine-final-score = Cards left: { $score }
-
+nine-you-wins-game = Você não tem cartas restantes e vence o jogo!
+nine-player-wins-game = { $player } não tem cartas restantes e vence o jogo!
+nine-you-wins-game-brief = Você venceu!
+nine-player-wins-game-brief = { $player } venceu!
+nine-player-game-ended = O jogo de Nove terminou.
+nine-you-game-ended = O jogo de Nove terminou.
+nine-you-win = Você venceu!
+nine-you-lose = Você perdeu!
+nine-final-score = Cartas restantes: { $score }
 # Status
-nine-status = { $name }: { $cards_left } cards left.
-nine-status-sequence = { $suit } sequence: { $sequence }.
-nine-status-no-sequence = No { $suit } sequence started yet.
-nine-none = none
-nine-action-check-sequences = Check Sequences
-nine-action-check-hand-counts = Check Hand Counts
-
-nine-status-player-hand-count = { $player }: { $count } cards
+nine-status = { $name }: { $cards_left } cartas restantes.
+nine-status-sequence = Sequência de { $suit }: { $sequence }.
+nine-status-no-sequence = Nenhuma sequência de { $suit } iniciada ainda.
+nine-sequence-range = { $low } até { $high }
+nine-none = nenhum
+nine-action-check-sequences = Verificar Sequências
+nine-action-check-hand-counts = Verificar Contagem de Mãos
+nine-status-player-hand-count = { $player }: { $count } cartas

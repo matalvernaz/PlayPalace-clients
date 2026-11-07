@@ -1,37 +1,29 @@
-# Number Chain — sr
-# AI-translated, native review pending — corrections welcome.
+# numberchain.ftl for locale sr. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 game-name-numberchain = Number Chain
-
 # Game start
 numberchain-game-started = { $p1 } је играч 1, { $p2 } је играч 2. Почиње { $first }. Стави 1 било где да започнеш ланац.
-
 # Placement
 numberchain-place-you = Стављаш { $number } у ред { $row }, колона { $col }.
 numberchain-place-other = { $player } ставља { $number } у ред { $row }, колона { $col }.
-
 # Errors
 numberchain-illegal-move = Тај потез није дозвољен.
-
 # Status / info
 numberchain-status = На потезу је { $current }. Следећи број: { $required }.
 numberchain-inventory = Твоје преостале плочице: { $inventory }.
 numberchain-required = Следећи број за стављање: { $required }.
-
 # Square labels
 numberchain-sq-empty = Ред { $row }, колона { $col }, празно
 numberchain-sq-own = Ред { $row }, колона { $col }, { $number }, твоје
 numberchain-sq-opponent = Ред { $row }, колона { $col }, { $number }, { $owner }
-
 # Action labels
 numberchain-check-status = Стање
 numberchain-check-inventory = Инвентар
 numberchain-check-required = Следећи број
-
 # Win
 numberchain-wins = { $player } побеђује! Противник нема легалних потеза.
 numberchain-final = { $winner } побеђује.
-
 # Options
 numberchain-option-bot-difficulty = Тежина бота: { $bot_difficulty }
 numberchain-option-select-bot-difficulty = Изабери тежину бота

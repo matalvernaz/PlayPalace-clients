@@ -35,7 +35,7 @@ class FakeWebSocketServer:
 
 @pytest.fixture
 def server(tmp_path):
-    return Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    return Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
 
 
 @pytest.mark.asyncio

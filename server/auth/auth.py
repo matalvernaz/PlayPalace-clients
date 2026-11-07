@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError, InvalidHashError
 
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
 
 
 class AuthResult(Enum):

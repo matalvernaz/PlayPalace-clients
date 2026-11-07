@@ -16,13 +16,14 @@ from datetime import datetime
 import random
 
 from ..base import Game, Player
+from ..categories import CATEGORY_DICE
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, MenuInput, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.game_status import GameStatus
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
+from server.ui.keybinds import KeybindState
 
 from .options import LiarsDiceOptions
 from .player import LiarsDicePlayer
@@ -67,7 +68,11 @@ class LiarsDiceGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-dice-games"
+        return CATEGORY_DICE
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -171,10 +176,16 @@ class LiarsDiceGame(Game):
         if player.is_bot:
             BotHelper.jolt_bot(player, ticks=random.randint(20, 40))
 
-        if previous_player is not None and previous_player is not player:
-            self.rebuild_player_menu(previous_player)
-        for p in self.players:
-            self.rebuild_player_menu(p, position=1 if p is player else None)
+        # Everyone's menu changes with the turn; the player whose turn it is
+        # lands on their first option.
+        self.refresh_menus()
+        self._focus_first_menu_item(player)
+
+    def _focus_first_menu_item(self, player: Player) -> None:
+        """Queue a one-shot focus jump to the first row of the player's menu."""
+        visible = self.get_all_visible_actions(player)
+        if visible:
+            self.request_menu_focus(player, visible[0].action.id)
 
     def _end_turn(self) -> None:
         previous = self.current_player
@@ -201,7 +212,6 @@ class LiarsDiceGame(Game):
                     prompt="ld-bid-prompt",
                     options="_bid_options",
                     bot_select="_bot_select_bid",
-                    include_cancel=True,
                 ),
             )
         )
@@ -235,6 +245,7 @@ class LiarsDiceGame(Game):
             handler="_action_check_status",
             is_enabled="_is_check_status_enabled",
             is_hidden="_is_check_status_hidden",
+            include_spectators=True,
         )
         action_set.add(status)
         if status.id in action_set._order:
@@ -246,6 +257,7 @@ class LiarsDiceGame(Game):
             handler="_action_check_status_detailed",
             is_enabled="_is_check_status_enabled",
             is_hidden="_is_check_status_hidden",
+            include_spectators=True,
         )
         action_set.add(detailed)
         if detailed.id in action_set._order:
@@ -586,10 +598,10 @@ class LiarsDiceGame(Game):
             if not user:
                 continue
             if p is actor:
-                user.speak_l(message_id, "table", who="you", **kwargs)
+                user.speak_l(message_id, "game", who="you", **kwargs)
             else:
                 user.speak_l(
-                    message_id, "table", who="player", player=actor.name, **kwargs
+                    message_id, "game", who="player", player=actor.name, **kwargs
                 )
 
     # ------------------------------------------------------------------
@@ -659,7 +671,7 @@ class LiarsDiceGame(Game):
 
     def on_tick(self) -> None:
         super().on_tick()
-        self.process_scheduled_events()
+        self.process_scheduled_sounds()
         if self.status == "playing":
             BotHelper.on_tick(self)
 
@@ -710,24 +722,28 @@ class LiarsDiceGame(Game):
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
-            player_results=[
-                PlayerResult(
-                    player_id=p.id, player_name=p.name,
-                    is_bot=p.is_bot, is_virtual_bot=getattr(p, "is_virtual_bot", False),
-                )
-                for p in sorted_players
-            ],
+            player_results=[PlayerResult.from_player(p) for p in sorted_players],
             custom_data={
                 "winner_name": winner.name if winner else None,
+                "winner_ids": [winner.id] if winner else [],
                 "rounds_played": self.round_no,
+                "final_dice": {
+                    p.id: getattr(p, "dice_count", 0) for p in sorted_players
+                },
             },
         )
 
     def format_end_screen(self, result: GameResult, locale: str) -> list[str]:
         lines = [Localization.get(locale, "game-final-scores")]
+        # The next lobby's game can repaint this screen, so the dice counts
+        # come from the result rather than the (by then fresh) players.
+        final_dice = result.custom_data.get("final_dice", {})
         for rank, p_result in enumerate(result.player_results, 1):
-            p = self.get_player_by_id(p_result.player_id)
-            dice = getattr(p, "dice_count", 0) if p else 0
+            if p_result.player_id in final_dice:
+                dice = final_dice[p_result.player_id]
+            else:
+                p = self.get_player_by_id(p_result.player_id)
+                dice = getattr(p, "dice_count", 0) if p else 0
             lines.append(
                 f"{rank}. {p_result.player_name}: { 'eliminated' if dice == 0 else f'{dice} dice' }"
             )

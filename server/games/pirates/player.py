@@ -9,13 +9,10 @@ All fields are primitive types or simple serializable dataclasses.
 
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import Callable
 
 from ..base import Player
 from .leveling import LevelingSystem
-
-if TYPE_CHECKING:
-    pass
 
 
 @dataclass
@@ -43,6 +40,7 @@ class PiratesPlayer(Player):
     skill_cooldowns: dict[str, int] = field(default_factory=dict)
     skill_active: dict[str, int] = field(default_factory=dict)
     skill_uses: dict[str, int] = field(default_factory=dict)
+    skill_activated_this_turn: bool = False
 
     def __post_init__(self):
         """Initialize the leveling system if not set."""
@@ -79,6 +77,6 @@ class PiratesPlayer(Player):
         """Check if the player has any gems."""
         return len(self.gems) > 0
 
-    def recalculate_score(self, get_gem_value: callable) -> None:
+    def recalculate_score(self, get_gem_value: Callable[[int], int]) -> None:
         """Recalculate score from current gems using the provided value function."""
         self.score = sum(get_gem_value(gem) for gem in self.gems)

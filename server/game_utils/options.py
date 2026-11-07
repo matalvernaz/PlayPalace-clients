@@ -1,5 +1,5 @@
 """
-Declarative Options System for PlayPalace Games.
+Declarative Options System for PlayAural Games.
 
 This module provides a way to define game options declaratively, reducing
 boilerplate code for option handling, validation, and UI generation.
@@ -30,33 +30,39 @@ from typing import Any, Callable, TYPE_CHECKING
 from mashumaro.mixins.json import DataClassJSONMixin
 
 from .actions import Action, ActionSet, EditboxInput, MenuInput
-from server.core.users.base import MenuItem
+from .teams import TeamManager
 from ..messages.localization import Localization
 
 if TYPE_CHECKING:
-    from ..games.base import Game, Player
+    from ..games.base import Game
+    from .player import Player
+
+
+def _option_action(**kwargs: Any) -> Action:
+    """Create an option action available to the owning spectator host.
+
+    Visibility and enabled callbacks still enforce waiting-state and host-only
+    access.  Keeping the spectator transport flag here prevents individual
+    option types and nested selectors from drifting apart.
+    """
+    return Action(include_spectators=True, **kwargs)
 
 
 @dataclass
 class OptionMeta:
-    """Base metadata for a game option.
-
-    Attributes:
-        default: Default option value.
-        label: Localization key for the option label.
-        change_msg: Localization key for change announcements.
-        prompt: Localization key for input prompt (if applicable).
-        description: Human-readable description spoken via space key.
-    """
+    """Metadata for a game option."""
 
     default: Any
     label: str  # Localization key for the option label
     change_msg: str  # Localization key for the change announcement
     prompt: str = ""  # Localization key for input prompt (if applicable)
-    description: str = ""  # Description spoken when user presses space
+    description: str = ""  # Localization key for a longer description (spoken on demand)
 
     def get_label(self, locale: str, value: Any) -> str:
-        """Get the localized label with current value interpolated."""
+        """Get the localized label with current value interpolated.
+
+        Subclasses must override this.
+        """
         raise NotImplementedError
 
     def get_label_kwargs(self, value: Any) -> dict[str, Any]:
@@ -86,30 +92,46 @@ class OptionMeta:
         """
         raise NotImplementedError
 
+    def _format_default(self, locale: str) -> str:
+        """Return the option's default value in player-facing form."""
+        return str(self.default)
+
+    def get_description(
+        self,
+        locale: str,
+        current_value: Any,
+        *,
+        game: "Game | None" = None,
+        player: "Player | None" = None,
+    ) -> str:
+        """Return explicit or generated help text for this option."""
+        if self.description:
+            return Localization.get(locale, self.description)
+        return Localization.get(
+            locale,
+            "option-desc-generic",
+            label=self.get_label(locale, current_value),
+            default=self._format_default(locale),
+        )
+
 
 @dataclass
 class IntOption(OptionMeta):
-    """Integer option with min/max validation.
-
-    Attributes:
-        min_val: Minimum value (inclusive).
-        max_val: Maximum value (inclusive).
-        value_key: Localization placeholder key for the value.
-    """
+    """Integer option with min/max validation."""
 
     min_val: int = 0
     max_val: int = 100
-    value_key: str = "score"  # Key used in localization (e.g., "score", "points", "sides")
+    value_key: str = (
+        "score"  # Key used in localization (e.g., "score", "points", "sides")
+    )
 
     def get_label(self, locale: str, value: Any) -> str:
         return Localization.get(locale, self.label, **self.get_label_kwargs(value))
 
     def get_label_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return label formatting kwargs for the current value."""
         return {self.value_key: value}
 
     def get_change_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return change-message kwargs for the current value."""
         return {self.value_key: value}
 
     def create_action(
@@ -120,23 +142,23 @@ class IntOption(OptionMeta):
         current_value: Any,
         locale: str,
     ) -> Action:
-        """Create an editbox action for setting an integer option."""
-        label = Localization.get(locale, self.label, **self.get_label_kwargs(current_value))
-        return Action(
+        label = Localization.get(
+            locale, self.label, **self.get_label_kwargs(current_value)
+        )
+        return _option_action(
             id=f"set_{option_name}",
             label=label,
             handler="_action_set_option",  # Generic handler extracts option_name from action_id
             is_enabled="_is_option_enabled",
             is_hidden="_is_option_hidden",
-            show_in_actions_menu=False,
             input_request=EditboxInput(
                 prompt=self.prompt,
                 default=str(current_value),
             ),
+            show_in_actions_menu=False,
         )
 
     def validate_and_convert(self, value: str) -> tuple[bool, Any]:
-        """Validate and clamp integer input."""
         try:
             int_val = int(value)
             int_val = max(self.min_val, min(self.max_val, int_val))
@@ -144,29 +166,44 @@ class IntOption(OptionMeta):
         except ValueError:
             return False, value
 
+    def get_description(
+        self,
+        locale: str,
+        current_value: Any,
+        *,
+        game: "Game | None" = None,
+        player: "Player | None" = None,
+    ) -> str:
+        if self.description:
+            return Localization.get(locale, self.description)
+        return Localization.get(
+            locale,
+            "option-desc-integer",
+            label=self.get_label(locale, current_value),
+            min=self.min_val,
+            max=self.max_val,
+            default=self._format_default(locale),
+        )
+
 
 @dataclass
 class FloatOption(OptionMeta):
-    """Float option with min/max validation and rounding.
-
-    Attributes:
-        min_val: Minimum value (inclusive).
-        max_val: Maximum value (inclusive).
-        decimal_places: Decimal places to round to.
-        value_key: Localization placeholder key for the value.
-    """
+    """Float option with min/max validation and decimal rounding."""
 
     min_val: float = 0.0
     max_val: float = 100.0
     decimal_places: int = 1  # Round to this many decimal places
-    value_key: str = "value"  # Key used in localization (e.g., "value", "amount", "rate")
+    value_key: str = (
+        "value"  # Key used in localization (e.g., "value", "amount", "rate")
+    )
+
+    def get_label(self, locale: str, value: Any) -> str:
+        return Localization.get(locale, self.label, **self.get_label_kwargs(value))
 
     def get_label_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return label formatting kwargs for the current value."""
         return {self.value_key: value}
 
     def get_change_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return change-message kwargs for the current value."""
         return {self.value_key: value}
 
     def create_action(
@@ -177,23 +214,23 @@ class FloatOption(OptionMeta):
         current_value: Any,
         locale: str,
     ) -> Action:
-        """Create an editbox action for setting a float option."""
-        label = Localization.get(locale, self.label, **self.get_label_kwargs(current_value))
-        return Action(
+        label = Localization.get(
+            locale, self.label, **self.get_label_kwargs(current_value)
+        )
+        return _option_action(
             id=f"set_{option_name}",
             label=label,
             handler="_action_set_option",  # Generic handler extracts option_name from action_id
             is_enabled="_is_option_enabled",
             is_hidden="_is_option_hidden",
-            show_in_actions_menu=False,
             input_request=EditboxInput(
                 prompt=self.prompt,
                 default=str(current_value),
             ),
+            show_in_actions_menu=False,
         )
 
     def validate_and_convert(self, value: str) -> tuple[bool, Any]:
-        """Validate and clamp float input."""
         try:
             float_val = float(value)
             float_val = max(self.min_val, min(self.max_val, float_val))
@@ -202,18 +239,33 @@ class FloatOption(OptionMeta):
         except ValueError:
             return False, value
 
+    def get_description(
+        self,
+        locale: str,
+        current_value: Any,
+        *,
+        game: "Game | None" = None,
+        player: "Player | None" = None,
+    ) -> str:
+        if self.description:
+            return Localization.get(locale, self.description)
+        return Localization.get(
+            locale,
+            "option-desc-number",
+            label=self.get_label(locale, current_value),
+            min=self.min_val,
+            max=self.max_val,
+            default=self._format_default(locale),
+        )
+
 
 @dataclass
 class MenuOption(OptionMeta):
-    """Menu selection option.
+    """Menu selection option."""
 
-    Attributes:
-        choices: Static list or callable to provide choices.
-        value_key: Localization placeholder key for the value.
-        choice_labels: Optional mapping of choice -> localization key.
-    """
-
-    choices: list[str] | Callable[["Game", "Player"], list[str]] = field(default_factory=list)
+    choices: list[str] | Callable[["Game", "Player"], list[str]] = field(
+        default_factory=list
+    )
     value_key: str = "mode"  # Key used in localization
     # Map choice values to localization keys for display
     # If not provided, raw choice values are displayed
@@ -231,7 +283,6 @@ class MenuOption(OptionMeta):
         return value
 
     def get_label_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return label formatting kwargs for the current value."""
         return {self.value_key: value}
 
     def get_label_kwargs_localized(self, value: Any, locale: str) -> dict[str, Any]:
@@ -240,7 +291,6 @@ class MenuOption(OptionMeta):
         return {self.value_key: display_value}
 
     def get_change_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return change-message kwargs for the current value."""
         return {self.value_key: value}
 
     def get_change_kwargs_localized(self, value: Any, locale: str) -> dict[str, Any]:
@@ -256,27 +306,25 @@ class MenuOption(OptionMeta):
         current_value: Any,
         locale: str,
     ) -> Action:
-        """Create a menu action for selecting a value from choices."""
         # Use localized choice value in the label
         label = Localization.get(
             locale, self.label, **self.get_label_kwargs_localized(current_value, locale)
         )
 
-        return Action(
+        return _option_action(
             id=f"set_{option_name}",
             label=label,
             handler="_action_set_option",  # Generic handler extracts option_name from action_id
             is_enabled="_is_option_enabled",
             is_hidden="_is_option_hidden",
-            show_in_actions_menu=False,
             input_request=MenuInput(
                 prompt=self.prompt,
                 options=f"_options_for_{option_name}",
             ),
+            show_in_actions_menu=False,
         )
 
     def validate_and_convert(self, value: str) -> tuple[bool, Any]:
-        """Validate a menu option selection."""
         # For menu options, the value comes from a predefined list, so it's valid
         return True, value
 
@@ -286,49 +334,88 @@ class MenuOption(OptionMeta):
             return self.choices(game, player)
         return list(self.choices)
 
+    def _format_default(self, locale: str) -> str:
+        return self.get_localized_choice(str(self.default), locale)
+
+    def _localized_choices_for_description(
+        self,
+        locale: str,
+        game: "Game | None",
+        player: "Player | None",
+    ) -> str:
+        try:
+            choices = (
+                self.get_choices(game, player)
+                if game is not None
+                else list(self.choices)
+            )
+        except TypeError:
+            choices = list(self.choices) if not callable(self.choices) else []
+        localized = [
+            self.get_localized_choice(str(choice), locale) for choice in choices
+        ]
+        if not localized:
+            return Localization.get(locale, "option-desc-no-choices")
+        return Localization.format_list_or(locale, localized)
+
+    def get_description(
+        self,
+        locale: str,
+        current_value: Any,
+        *,
+        game: "Game | None" = None,
+        player: "Player | None" = None,
+    ) -> str:
+        if self.description:
+            return Localization.get(locale, self.description)
+        return Localization.get(
+            locale,
+            "option-desc-menu",
+            label=self.get_label(locale, current_value),
+            choices=self._localized_choices_for_description(locale, game, player),
+            default=self._format_default(locale),
+        )
+
 
 @dataclass
 class TeamModeOption(MenuOption):
-    """Menu option specialized for team modes.
+    """
+    Menu option specifically for team modes.
 
-    Stores team modes in internal format ("individual", "2v2", "2v2v2") but
-    displays them in localized format ("Individual", "2 teams of 2").
+    Stores team modes in internal format ("individual", "2v2", "2v2v2")
+    but displays them in localized format ("Individual", "2 teams of 2").
     """
 
     def get_localized_choice(self, value: str, locale: str) -> str:
         """Convert internal team mode format to localized display format."""
-        from .teams import TeamManager
-
         return TeamManager.format_team_mode_for_display(value, locale)
 
 
 @dataclass
 class BoolOption(OptionMeta):
-    """Boolean toggle option.
-
-    Attributes:
-        value_key: Localization placeholder key for the value.
-    """
+    """Boolean toggle option."""
 
     value_key: str = "enabled"  # Key used in localization
+
+    def __post_init__(self):
+        # Bool options don't need a prompt - they just toggle
+        self.prompt = ""
 
     def get_label(self, locale: str, value: Any) -> str:
         on_off_key = "option-on" if value else "option-off"
         on_off = Localization.get(locale, on_off_key)
         return Localization.get(locale, self.label, **{self.value_key: on_off})
 
-    def __post_init__(self):
-        """Disable prompts for boolean toggles."""
-        # Bool options don't need a prompt - they just toggle
-        self.prompt = ""
-
     def get_label_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return label formatting kwargs for the current value."""
         return {self.value_key: "on" if value else "off"}
 
     def get_change_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return change-message kwargs for the current value."""
         return {self.value_key: "on" if value else "off"}
+
+    def get_change_kwargs_localized(self, value: Any, locale: str) -> dict[str, Any]:
+        """Get kwargs with localized on/off value for change message."""
+        on_off_key = "option-on" if value else "option-off"
+        return {self.value_key: Localization.get(locale, on_off_key)}
 
     def create_action(
         self,
@@ -338,53 +425,42 @@ class BoolOption(OptionMeta):
         current_value: Any,
         locale: str,
     ) -> Action:
-        """Create a toggle action for boolean options."""
         # Get localized on/off value
         on_off_key = "option-on" if current_value else "option-off"
         on_off = Localization.get(locale, on_off_key)
         label = Localization.get(locale, self.label, **{self.value_key: on_off})
-        return Action(
+        return _option_action(
             id=f"toggle_{option_name}",
             label=label,
             handler="_action_toggle_option",  # Generic handler extracts option_name from action_id
             is_enabled="_is_option_enabled",
             is_hidden="_is_option_hidden",
-            show_in_actions_menu=False,
             # No input_request - toggles directly
+            show_in_actions_menu=False,
         )
 
     def validate_and_convert(self, value: str) -> tuple[bool, Any]:
-        """Validate a boolean input value."""
         # For bool options, we just flip the value
         return True, value.lower() in ("true", "1", "yes")
 
+    def _format_default(self, locale: str) -> str:
+        return Localization.get(locale, "option-on" if self.default else "option-off")
 
-@dataclass
-class OptionGroupMeta:
-    """Metadata for an option group (sub-menu of options).
-
-    Attributes:
-        label: Localization key for the group header label.
-    """
-
-    label: str
-
-    def create_action(
+    def get_description(
         self,
-        group_name: str,
-        game: "Game",
-        player: "Player",
         locale: str,
-    ) -> Action:
-        """Create an action that opens this option group's sub-menu."""
-        label = Localization.get(locale, self.label)
-        return Action(
-            id=f"group_{group_name}",
-            label=label,
-            handler="_action_open_option_group",
-            is_enabled="_is_option_enabled",
-            is_hidden="_is_option_hidden",
-            show_in_actions_menu=False,
+        current_value: Any,
+        *,
+        game: "Game | None" = None,
+        player: "Player | None" = None,
+    ) -> str:
+        if self.description:
+            return Localization.get(locale, self.description)
+        return Localization.get(
+            locale,
+            "option-desc-bool",
+            label=self.get_label(locale, current_value),
+            default=self._format_default(locale),
         )
 
 
@@ -392,19 +468,21 @@ class OptionGroupMeta:
 class MultiSelectOption(OptionMeta):
     """Multi-select option where multiple choices can be toggled on/off.
 
-    Stores a list of selected choice strings. Displayed as a sub-menu of
-    boolean toggles.
+    Stores a list of selected choice strings. Presented as a path-aware
+    sub-menu of boolean toggles (optionally grouped), with optional
+    "Select all" / "Deselect all" bulk actions.
 
     Attributes:
         choices: Static list or no-arg callable returning available choices.
-        min_selected: Minimum number of choices that must be selected.
+        min_selected: Minimum number of choices that must remain selected.
         max_selected: Maximum number of choices that can be selected (0 = no limit).
         choice_labels: Optional mapping of choice -> localization key for display.
         group_labels: Optional mapping of group id -> localization key for display.
         show_bulk_actions: If True, show "Select all" / "Deselect all" in the toggle list.
         groups: Optional grouping of choices. When set, the top-level multi-select
             shows group names as navigable sub-menus instead of individual choices.
-            Dict maps group name -> list of choice strings in that group.
+            Maps group name -> list of choice strings in that group. May be a no-arg
+            callable returning such a mapping.
     """
 
     choices: list[str] | Callable[[], list[str]] = field(default_factory=list)
@@ -429,20 +507,23 @@ class MultiSelectOption(OptionMeta):
             return self.groups()
         return dict(self.groups)
 
-    def get_localized_group(self, value: str, locale: str) -> str:
-        """Get the localized display text for a stable group id."""
-        if self.group_labels and value in self.group_labels:
-            return Localization.get(locale, self.group_labels[value])
-        return value
-
     def get_localized_choice(self, value: str, locale: str) -> str:
         """Get the localized display text for a choice value."""
         if self.choice_labels and value in self.choice_labels:
             return Localization.get(locale, self.choice_labels[value])
         return value
 
+    def get_localized_group(self, value: str, locale: str) -> str:
+        """Get the localized display text for a stable group id."""
+        if self.group_labels and value in self.group_labels:
+            return Localization.get(locale, self.group_labels[value])
+        return value
+
+    def get_label(self, locale: str, value: Any) -> str:
+        return Localization.get(locale, self.label, **self.get_label_kwargs(value))
+
     def get_label_kwargs(self, value: Any) -> dict[str, Any]:
-        """Return label formatting kwargs for the current value (list)."""
+        """Return label formatting kwargs for the current value (a list)."""
         return {
             "count": len(value) if isinstance(value, list) else 0,
             "total": len(self.get_choices()),
@@ -464,9 +545,10 @@ class MultiSelectOption(OptionMeta):
         locale: str,
     ) -> Action:
         """Create an action that opens the multi-select sub-menu."""
-        count = len(current_value) if isinstance(current_value, list) else 0
-        label = Localization.get(locale, self.label, **self.get_label_kwargs(current_value))
-        return Action(
+        label = Localization.get(
+            locale, self.label, **self.get_label_kwargs(current_value)
+        )
+        return _option_action(
             id=f"multiselect_{option_name}",
             label=label,
             handler="_action_open_multiselect",
@@ -479,22 +561,76 @@ class MultiSelectOption(OptionMeta):
         """Not used for multi-select (toggles are handled individually)."""
         return True, value
 
+    def _format_choice_list(self, locale: str, values: list[str]) -> str:
+        localized = [self.get_localized_choice(str(value), locale) for value in values]
+        if not localized:
+            return Localization.get(locale, "option-desc-none-selected")
+        return Localization.format_list_and(locale, localized)
 
-def option_group(label: str) -> Any:
-    """Create a dataclass field for an option group (sub-menu header).
+    def _format_default(self, locale: str) -> str:
+        default_values = list(self.default) if isinstance(self.default, list) else []
+        return self._format_choice_list(locale, default_values)
+
+    def get_description(
+        self,
+        locale: str,
+        current_value: Any,
+        *,
+        game: "Game | None" = None,
+        player: "Player | None" = None,
+    ) -> str:
+        if self.description:
+            return Localization.get(locale, self.description)
+        selected = list(current_value) if isinstance(current_value, list) else []
+        max_text = (
+            Localization.get(locale, "option-desc-no-maximum")
+            if self.max_selected <= 0
+            else str(self.max_selected)
+        )
+        return Localization.get(
+            locale,
+            "option-desc-multiselect",
+            label=self.get_label(locale, current_value),
+            selected=self._format_choice_list(locale, selected),
+            default=self._format_default(locale),
+            min=self.min_selected,
+            max=max_text,
+        )
+
+
+def option_field(
+    meta: OptionMeta,
+    *,
+    visible_when: (
+        tuple[str, Callable[[Any], bool]]
+        | list[tuple[str, Callable[[Any], bool]]]
+        | None
+    ) = None,
+) -> Any:
+    """Create a dataclass field with option metadata attached.
+
+    Usage:
+        target_score: int = option_field(IntOption(default=50, ...))
 
     Args:
-        label: Localization key for the group label.
-
-    Returns:
-        Dataclass field with OptionGroupMeta in metadata.
+        meta: Option metadata instance.
+        visible_when: One or more (option_name, predicate) tuples. The option is
+            hidden unless every predicate returns True for its referenced
+            option's current value (AND logic). Use for mode-conditional options.
     """
-    meta = OptionGroupMeta(label=label)
-    return field(default=None, metadata={"option_group_meta": meta})
+    metadata: dict[str, Any] = {"option_meta": meta}
+    if visible_when is not None:
+        if isinstance(visible_when, tuple):
+            visible_when = [visible_when]
+        metadata["visible_when"] = visible_when
+    return field(default=meta.default, metadata=metadata)
 
 
 def multi_select_field(meta: MultiSelectOption) -> Any:
     """Create a dataclass field for a multi-select option.
+
+    The field stores a ``list[str]`` of selected choices. Each instance gets
+    an independent copy of the default list.
 
     Args:
         meta: MultiSelectOption metadata instance.
@@ -509,52 +645,8 @@ def multi_select_field(meta: MultiSelectOption) -> Any:
     )
 
 
-def option_field(
-    meta: OptionMeta,
-    *,
-    group: str | None = None,
-    visible_when: (
-        tuple[str, Callable[[Any], bool]] | list[tuple[str, Callable[[Any], bool]]] | None
-    ) = None,
-    value_when: (
-        tuple[str, Callable[[Any], bool], Any, bool]
-        | list[tuple[str, Callable[[Any], bool], Any, bool]]
-        | None
-    ) = None,
-) -> Any:
-    """Create a dataclass field with option metadata attached.
-
-    Args:
-        meta: Option metadata instance.
-        group: Name of the parent option group (None = top level).
-        visible_when: One or more (option_name, predicate) tuples. The option
-            is hidden when any predicate returns False for its referenced
-            option's value (AND logic).
-        value_when: One or more (option_name, predicate, forced_value, enforce)
-            tuples. When predicate(ref_value) is True, this option is set to
-            forced_value. If enforce is True, the option is also locked.
-
-    Returns:
-        Dataclass field configured for declarative options.
-    """
-    metadata = {"option_meta": meta}
-    if group is not None:
-        metadata["option_group"] = group
-    if visible_when is not None:
-        # Normalize single tuple to list
-        if isinstance(visible_when, tuple):
-            visible_when = [visible_when]
-        metadata["visible_when"] = visible_when
-    if value_when is not None:
-        # Normalize single tuple to list
-        if isinstance(value_when, tuple):
-            value_when = [value_when]
-        metadata["value_when"] = value_when
-    return field(default=meta.default, metadata=metadata)
-
-
 def get_option_meta(options_class: type, field_name: str) -> OptionMeta | None:
-    """Get OptionMeta for a field, if present."""
+    """Get the OptionMeta for a field, if it has one."""
     for f in fields(options_class):
         if f.name == field_name:
             return f.metadata.get("option_meta")
@@ -571,28 +663,10 @@ def get_all_option_metas(options_class: type) -> dict[str, OptionMeta]:
     return result
 
 
-def get_all_option_group_metas(options_class: type) -> dict[str, OptionGroupMeta]:
-    """Get all OptionGroupMeta instances from an options class."""
-    result = {}
-    for f in fields(options_class):
-        meta = f.metadata.get("option_group_meta")
-        if meta is not None:
-            result[f.name] = meta
-    return result
-
-
-def get_option_field_group(options_class: type, field_name: str) -> str | None:
-    """Get the group name for an option field, if assigned to a group."""
-    for f in fields(options_class):
-        if f.name == field_name:
-            return f.metadata.get("option_group")
-    return None
-
-
 def get_visibility_conditions(
     options_class: type, field_name: str
 ) -> list[tuple[str, Callable[[Any], bool]]] | None:
-    """Get the visible_when conditions for an option field, if present."""
+    """Get the visible_when conditions for an option field, if any."""
     for f in fields(options_class):
         if f.name == field_name:
             return f.metadata.get("visible_when")
@@ -601,201 +675,54 @@ def get_visibility_conditions(
 
 @dataclass
 class GameOptions(DataClassJSONMixin):
-    """Base class for declarative game options.
+    """Base class for game options with declarative option support.
 
     Subclasses should use option_field() for options that need auto-generated
-    UI and handlers.
+    UI and handlers:
+
+        @dataclass
+        class MyOptions(GameOptions):
+            target_score: int = option_field(IntOption(...))
+            difficulty: str = option_field(MenuOption(...))
+
+            # Regular fields without option_field work normally
+            internal_state: int = 0
     """
 
     def get_option_metas(self) -> dict[str, OptionMeta]:
         """Get all option metadata for this options instance."""
         return get_all_option_metas(type(self))
 
+    def is_option_visible(self, name: str) -> bool:
+        """Whether an option passes all its visible_when conditions (AND logic).
+
+        Options without conditions are always visible. Used to hide
+        mode-conditional options from the lobby until they are relevant.
+        """
+        conditions = get_visibility_conditions(type(self), name)
+        if not conditions:
+            return True
+        for ref_name, predicate in conditions:
+            if not predicate(getattr(self, ref_name, None)):
+                return False
+        return True
+
     def format_options_summary(self, locale: str) -> list[str]:
         """Return a list of localized label strings for all current option values."""
         lines = []
         for name, meta in self.get_option_metas().items():
-            if not self._is_option_visible(name):
+            if not self.is_option_visible(name):
                 continue
             current_value = getattr(self, name)
             lines.append(meta.get_label(locale, current_value))
         return lines
 
-    def is_option_visible(self, name: str) -> bool:
-        """Return whether an option passes its linked visibility conditions."""
-        return self._is_option_visible(name)
-
-    def get_option_group_metas(self) -> dict[str, OptionGroupMeta]:
-        """Get all option group metadata for this options instance."""
-        return get_all_option_group_metas(type(self))
-
-    def _get_game_options_view_path(self, game: "Game", player: "Player") -> list[str]:
-        """Get the current read-only game-options navigation path for a player."""
-        state = game._get_transient_display_state(player)
-        if state and state.kind == "game_options":
-            return state.path
-        return []
-
-    def _create_readonly_option_item(
-        self,
-        name: str,
-        meta: OptionMeta,
-        game: "Game",
-        player: "Player",
-        locale: str,
-    ) -> MenuItem:
-        """Create a read-only menu item for an option."""
-        current_value = getattr(self, name)
-        label = meta.create_action(name, game, player, current_value, locale).label
-        item_id = f"readonly_{name}"
-        if isinstance(meta, MultiSelectOption):
-            item_id = f"multiselect_{name}"
-        return MenuItem(text=label, id=item_id)
-
-    def build_game_options_view_items(self, game: "Game", player: "Player") -> list[MenuItem]:
-        """Build read-only menu items for the in-game options viewer."""
-        user = game.get_user(player)
-        locale = user.locale if user else "en"
-        items: list[MenuItem] = []
-        path = self._get_game_options_view_path(game, player)
-        options_class = type(self)
-        back_label = Localization.get(locale, "back")
-
-        if path:
-            current_level = path[-1]
-
-            if current_level.startswith("group:") and len(path) >= 2:
-                option_name = path[-2]
-                group_name = current_level.removeprefix("group:")
-                meta = get_option_meta(options_class, option_name)
-                if meta and isinstance(meta, MultiSelectOption):
-                    groups = meta.get_groups()
-                    if groups and group_name in groups:
-                        current_selections = getattr(self, option_name, [])
-                        for choice in groups[group_name]:
-                            selected = choice in current_selections
-                            on_off = Localization.get(
-                                locale, "option-on" if selected else "option-off"
-                            )
-                            display = meta.get_localized_choice(choice, locale)
-                            items.append(
-                                MenuItem(
-                                    text=f"{display}: {on_off}",
-                                    id=f"readonly_{option_name}_{choice}",
-                                )
-                            )
-                        items.append(MenuItem(text=back_label, id="transient_display_back"))
-                        return items
-
-            meta = get_option_meta(options_class, current_level)
-            if meta and isinstance(meta, MultiSelectOption):
-                current_selections = getattr(self, current_level, [])
-                groups = meta.get_groups()
-
-                if groups:
-                    for group_name, group_choices in groups.items():
-                        selected_count = sum(1 for choice in group_choices if choice in current_selections)
-                        total_count = len(group_choices)
-                        label = f"{meta.get_localized_group(group_name, locale)} ({selected_count} of {total_count} selected)"
-                        items.append(
-                            MenuItem(
-                                text=label,
-                                id=f"msgroup_{current_level}_{group_name}",
-                            )
-                        )
-                else:
-                    for choice in meta.get_choices():
-                        selected = choice in current_selections
-                        on_off = Localization.get(locale, "option-on" if selected else "option-off")
-                        display = meta.get_localized_choice(choice, locale)
-                        items.append(
-                            MenuItem(
-                                text=f"{display}: {on_off}",
-                                id=f"readonly_{current_level}_{choice}",
-                            )
-                        )
-
-                items.append(MenuItem(text=back_label, id="transient_display_back"))
-                return items
-
-            target_group = current_level
-        else:
-            target_group = None
-
-        for group_name, group_meta in self.get_option_group_metas().items():
-            group_parent = get_option_field_group(options_class, group_name)
-            if group_parent == target_group:
-                items.append(
-                    MenuItem(
-                        text=Localization.get(locale, group_meta.label),
-                        id=f"group_{group_name}",
-                    )
-                )
-
-        for name, meta in self.get_option_metas().items():
-            option_group_name = get_option_field_group(options_class, name)
-            if option_group_name != target_group:
-                continue
-            if not self._is_option_visible(name):
-                continue
-            items.append(self._create_readonly_option_item(name, meta, game, player, locale))
-
-        items.append(MenuItem(text=back_label, id="transient_display_back"))
-        return items
-
-    def _is_option_visible(self, name: str) -> bool:
-        """Check if an option passes all visible_when conditions (AND logic)."""
-        conditions = get_visibility_conditions(type(self), name)
-        if not conditions:
-            return True
-        for ref_name, predicate in conditions:
-            ref_value = getattr(self, ref_name, None)
-            if not predicate(ref_value):
-                return False
-        return True
-
-    def _is_value_enforced(self, name: str) -> bool:
-        """Check if an option's value is currently locked by value_when + enforce.
-
-        Returns True when any value_when entry has enforce=True and its
-        predicate is currently active.
-        """
-        options_class = type(self)
-        for f in fields(options_class):
-            if f.name != name:
-                continue
-            overrides = f.metadata.get("value_when")
-            if not overrides:
-                return False
-            for ref_name, predicate, _forced_value, enforce in overrides:
-                if enforce:
-                    ref_value = getattr(self, ref_name, None)
-                    if predicate(ref_value):
-                        return True
-            return False
-        return False
-
-    def _apply_value_overrides(self, changed_option: str) -> None:
-        """Apply value_when overrides triggered by a change to changed_option.
-
-        Scans all option fields for value_when conditions referencing
-        changed_option. When the predicate matches, sets the dependent
-        option to the forced value.
-        """
-        options_class = type(self)
-        changed_value = getattr(self, changed_option, None)
-        for f in fields(options_class):
-            overrides = f.metadata.get("value_when")
-            if not overrides:
-                continue
-            for ref_name, predicate, forced_value, _enforce in overrides:
-                if ref_name != changed_option:
-                    continue
-                if predicate(changed_value):
-                    setattr(self, f.name, forced_value)
-
     def _get_options_path(self, game: "Game", player: "Player") -> list[str]:
-        """Get the current options navigation path for a player."""
+        """Get the current options navigation path for a player.
+
+        Returns an empty list when the player is at the top level (or when the
+        game does not track navigation, e.g. games without multi-select options).
+        """
         if hasattr(game, "_options_path"):
             return game._options_path.get(player.id, [])
         return []
@@ -803,14 +730,20 @@ class GameOptions(DataClassJSONMixin):
     def _populate_action_set(
         self, action_set: ActionSet, game: "Game", player: "Player", locale: str
     ) -> None:
-        """Populate an action set with options for the player's current path."""
+        """Populate an action set with options for the player's current path.
+
+        At the top level this renders one action per visible option (honoring
+        visible_when). When the player has navigated into a MultiSelectOption it
+        renders the relevant toggles, optional bulk actions, and a back action.
+        PlayAural has no option groups, so there are no group headers here.
+        """
         path = self._get_options_path(game, player)
         options_class = type(self)
 
         if path:
             current_level = path[-1]
 
-            # Check if we're inside a group of a MultiSelectOption
+            # Inside a group of a grouped MultiSelectOption.
             # Path pattern: [..., "option_name", "group:GroupName"]
             if current_level.startswith("group:") and len(path) >= 2:
                 option_name = path[-2]
@@ -819,74 +752,42 @@ class GameOptions(DataClassJSONMixin):
                 if meta and isinstance(meta, MultiSelectOption):
                     groups = meta.get_groups()
                     if groups and group_name in groups:
-                        group_choices = groups[group_name]
-                        current_selections = getattr(self, option_name, [])
-                        for choice in group_choices:
-                            selected = choice in current_selections
-                            on_off_key = "option-on" if selected else "option-off"
-                            on_off = Localization.get(locale, on_off_key)
-                            display = meta.get_localized_choice(choice, locale)
-                            label = f"{display}: {on_off}"
-                            action_set.add(
-                                Action(
-                                    id=f"mstoggle_{option_name}_{choice}",
-                                    label=label,
-                                    handler="_action_toggle_multiselect",
-                                    is_enabled="_is_option_enabled",
-                                    is_hidden="_is_option_hidden",
-                                    show_in_actions_menu=False,
-                                )
-                            )
-                        # Bulk actions scoped to this group
+                        self._add_multiselect_toggles(
+                            action_set, meta, option_name,
+                            groups[group_name], getattr(self, option_name, []),
+                            locale,
+                        )
                         if meta.show_bulk_actions:
-                            action_set.add(
-                                Action(
-                                    id=f"mselectall_{option_name}",
-                                    label=Localization.get(locale, "option-select-all"),
-                                    handler="_action_select_all_multiselect",
-                                    is_enabled="_is_option_enabled",
-                                    is_hidden="_is_option_hidden",
-                                    show_in_actions_menu=False,
-                                )
+                            self._add_multiselect_bulk_actions(
+                                action_set, option_name, locale
                             )
-                            action_set.add(
-                                Action(
-                                    id=f"mdeselectall_{option_name}",
-                                    label=Localization.get(locale, "option-deselect-all"),
-                                    handler="_action_deselect_all_multiselect",
-                                    is_enabled="_is_option_enabled",
-                                    is_hidden="_is_option_hidden",
-                                    show_in_actions_menu=False,
-                                )
-                            )
-                        # Back action
-                        back_label = Localization.get(locale, "option-back")
-                        action_set.add(
-                            Action(
-                                id="options_back",
-                                label=back_label,
-                                handler="_action_options_back",
-                                is_enabled="_is_option_enabled",
-                                is_hidden="_is_option_hidden",
-                                show_in_actions_menu=False,
-                            )
+                        self._add_options_back_action(
+                            action_set, locale, handler="_action_options_back"
                         )
                         return
 
-            # Check if current level is a MultiSelectOption
+            # At a MultiSelectOption's top level.
             meta = get_option_meta(options_class, current_level)
             if meta and isinstance(meta, MultiSelectOption):
                 current_selections = getattr(self, current_level, [])
                 groups = meta.get_groups()
 
                 if groups:
-                    # Show group names as navigable sub-menus
+                    # Show group names as navigable sub-menus.
                     for group_name, group_choices in groups.items():
-                        selected_count = sum(1 for c in group_choices if c in current_selections)
+                        selected_count = sum(
+                            1 for c in group_choices if c in current_selections
+                        )
                         total_count = len(group_choices)
-                        label = f"{meta.get_localized_group(group_name, locale)} ({selected_count} of {total_count} selected)"
+                        label = Localization.get(
+                            locale,
+                            "option-multiselect-group",
+                            group=meta.get_localized_group(group_name, locale),
+                            count=selected_count,
+                            total=total_count,
+                        )
                         action_set.add(
-                            Action(
+                            _option_action(
                                 id=f"msgroup_{current_level}_{group_name}",
                                 label=label,
                                 handler="_action_open_ms_group",
@@ -896,107 +797,113 @@ class GameOptions(DataClassJSONMixin):
                             )
                         )
                 else:
-                    # Show toggle actions for each choice
-                    choices = meta.get_choices()
-                    for choice in choices:
-                        selected = choice in current_selections
-                        on_off_key = "option-on" if selected else "option-off"
-                        on_off = Localization.get(locale, on_off_key)
-                        display = meta.get_localized_choice(choice, locale)
-                        label = f"{display}: {on_off}"
-                        action_set.add(
-                            Action(
-                                id=f"mstoggle_{current_level}_{choice}",
-                                label=label,
-                                handler="_action_toggle_multiselect",
-                                is_enabled="_is_option_enabled",
-                                is_hidden="_is_option_hidden",
-                                show_in_actions_menu=False,
-                            )
-                        )
-                    # Bulk actions (non-grouped)
+                    self._add_multiselect_toggles(
+                        action_set, meta, current_level,
+                        meta.get_choices(), current_selections, locale,
+                    )
                     if meta.show_bulk_actions:
-                        action_set.add(
-                            Action(
-                                id=f"mselectall_{current_level}",
-                                label=Localization.get(locale, "option-select-all"),
-                                handler="_action_select_all_multiselect",
-                                is_enabled="_is_option_enabled",
-                                is_hidden="_is_option_hidden",
-                                show_in_actions_menu=False,
-                            )
-                        )
-                        action_set.add(
-                            Action(
-                                id=f"mdeselectall_{current_level}",
-                                label=Localization.get(locale, "option-deselect-all"),
-                                handler="_action_deselect_all_multiselect",
-                                is_enabled="_is_option_enabled",
-                                is_hidden="_is_option_hidden",
-                                show_in_actions_menu=False,
-                            )
+                        self._add_multiselect_bulk_actions(
+                            action_set, current_level, locale
                         )
 
-                # Back action (with validation)
-                back_label = Localization.get(locale, "option-back")
-                action_set.add(
-                    Action(
-                        id="options_back",
-                        label=back_label,
-                        handler="_action_options_back_multiselect",
-                        is_enabled="_is_option_enabled",
-                        is_hidden="_is_option_hidden",
-                        show_in_actions_menu=False,
-                    )
+                self._add_options_back_action(
+                    action_set, locale, handler="_action_options_back_multiselect"
                 )
                 return
 
-            # Inside an option group — show children of this group + back
-            target_group = current_level
-        else:
-            # Top level — show ungrouped options + group headers
-            target_group = None
-
-        # Add option group headers at this level
-        for group_name, group_meta in self.get_option_group_metas().items():
-            # Groups are top-level only if they have no group assignment themselves
-            group_parent = get_option_field_group(options_class, group_name)
-            if group_parent == target_group:
-                action = group_meta.create_action(group_name, game, player, locale)
-                action_set.add(action)
-
-        # Add regular options at this level
+        # Top level: every visible option (PlayAural has no option groups).
         for name, meta in self.get_option_metas().items():
-            option_group_name = get_option_field_group(options_class, name)
-            if option_group_name != target_group:
-                continue
-            # Check linked visibility
-            if not self._is_option_visible(name):
+            if not self.is_option_visible(name):
                 continue
             current_value = getattr(self, name)
             action = meta.create_action(name, game, player, current_value, locale)
-            # Mark enforced options as disabled-but-visible
-            if self._is_value_enforced(name):
-                action.is_enabled = "_is_always_disabled"
-                action.disabled_message = "option-locked"
+            description_getter = getattr(
+                game,
+                "_option_description_text",
+                None,
+            )
+            action.description = (
+                description_getter(player, name)
+                if description_getter
+                else meta.get_description(
+                    locale,
+                    current_value,
+                    game=game,
+                    player=player,
+                )
+            )
             action_set.add(action)
 
-        # Add back action if inside a group
-        if path:
-            back_label = Localization.get(locale, "option-back")
+    @staticmethod
+    def _add_multiselect_toggles(
+        action_set: ActionSet,
+        meta: "MultiSelectOption",
+        option_name: str,
+        choices: list[str],
+        current_selections: list[str],
+        locale: str,
+    ) -> None:
+        """Add one on/off toggle action per choice."""
+        for choice in choices:
+            selected = choice in current_selections
+            on_off_key = "option-on" if selected else "option-off"
+            on_off = Localization.get(locale, on_off_key)
+            display = meta.get_localized_choice(choice, locale)
             action_set.add(
-                Action(
-                    id="options_back",
-                    label=back_label,
-                    handler="_action_options_back",
+                _option_action(
+                    id=f"mstoggle_{option_name}_{choice}",
+                    label=f"{display}: {on_off}",
+                    handler="_action_toggle_multiselect",
                     is_enabled="_is_option_enabled",
                     is_hidden="_is_option_hidden",
                     show_in_actions_menu=False,
                 )
             )
 
+    @staticmethod
+    def _add_multiselect_bulk_actions(
+        action_set: ActionSet, option_name: str, locale: str
+    ) -> None:
+        """Add Select all / Deselect all actions for the current view."""
+        action_set.add(
+            _option_action(
+                id=f"mselectall_{option_name}",
+                label=Localization.get(locale, "option-select-all"),
+                handler="_action_select_all_multiselect",
+                is_enabled="_is_option_enabled",
+                is_hidden="_is_option_hidden",
+                show_in_actions_menu=False,
+            )
+        )
+        action_set.add(
+            _option_action(
+                id=f"mdeselectall_{option_name}",
+                label=Localization.get(locale, "option-deselect-all"),
+                handler="_action_deselect_all_multiselect",
+                is_enabled="_is_option_enabled",
+                is_hidden="_is_option_hidden",
+                show_in_actions_menu=False,
+            )
+        )
+
+    @staticmethod
+    def _add_options_back_action(
+        action_set: ActionSet, locale: str, *, handler: str
+    ) -> None:
+        """Add a Back action that pops one level of options navigation."""
+        action_set.add(
+            _option_action(
+                id="options_back",
+                label=Localization.get(locale, "option-back"),
+                handler=handler,
+                is_enabled="_is_option_enabled",
+                is_hidden="_is_option_hidden",
+                show_in_actions_menu=False,
+            )
+        )
+
     def create_options_action_set(self, game: "Game", player: "Player") -> ActionSet:
-        """Create an ActionSet with options for the player's current navigation level."""
+        """Create an ActionSet for the player's current options navigation level."""
         user = game.get_user(player)
         locale = user.locale if user else "en"
         action_set = ActionSet(name="options")
@@ -1017,119 +924,19 @@ class GameOptions(DataClassJSONMixin):
                 locale = user.locale if user else "en"
                 self._populate_action_set(existing_set, game, player, locale)
             else:
+                # Fallback: create and add new action set if it doesn't exist
                 new_options_set = self.create_options_action_set(game, player)
                 game.add_action_set(player, new_options_set)
 
 
 class OptionsHandlerMixin:
-    """Handle declarative options for games.
+    """Mixin providing declarative options handling for games.
 
-    Expected Game attributes:
-        options: GameOptions instance.
-        get_user(player) -> User | None.
-        rebuild_all_menus().
-        _options_path: dict[str, list[str]] (player_id -> navigation stack).
+    Expects on the Game class:
+        - self.options: GameOptions (subclass with option_field declarations)
+        - self.get_user(player) -> User | None
+        - self.refresh_menus()
     """
-
-    def _is_in_options_submenu(self, player: "Player") -> bool:
-        """Check if a player is navigated into an options sub-menu."""
-        if hasattr(self, "_options_path"):
-            return bool(self._options_path.get(player.id))
-        return False
-
-    def _show_game_options_view(self, player: "Player") -> None:
-        """Show the read-only in-game options viewer."""
-        if not self.get_user(player) or not hasattr(self, "options"):
-            return
-        items = self.options.build_game_options_view_items(self, player)
-        path = self.options._get_game_options_view_path(self, player)
-        state = self._get_transient_display_state(player)
-        path_key = tuple(path)
-        position = 1
-        if state:
-            saved_position = state.positions.get(path_key)
-            if isinstance(saved_position, int) and saved_position > 0:
-                position = saved_position
-        self._show_transient_display(
-            player,
-            kind="game_options",
-            items=items,
-            multiletter=False,
-            path=path,
-            position=position,
-        )
-
-    def _close_game_options_view(self, player: "Player") -> None:
-        """Close the read-only in-game options viewer and restore the turn menu."""
-        self._close_transient_display(player)
-
-    def _action_check_game_options(self, player: "Player", action_id: str) -> None:
-        """Open the read-only in-game game options viewer."""
-        user = self.get_user(player)
-        if not hasattr(self, "options"):
-            if user:
-                user.speak_l("no-game-options")
-            return
-        self._show_game_options_view(player)
-
-    def _handle_game_options_display_selection(self, player: "Player", selection_id: str) -> None:
-        """Handle navigation in the read-only in-game options viewer."""
-        if not hasattr(self, "options"):
-            return
-        state = self._get_transient_display_state(player)
-        if not state or state.kind != "game_options":
-            return
-
-        if selection_id == "transient_display_back":
-            path = state.path
-            if path:
-                path.pop()
-                self._show_game_options_view(player)
-            else:
-                self._close_game_options_view(player)
-            return
-
-        if selection_id.startswith("group_"):
-            group_name = selection_id.removeprefix("group_")
-            state.path.append(group_name)
-            state.positions[tuple(state.path)] = 1
-            self._show_game_options_view(player)
-            return
-
-        if selection_id.startswith("multiselect_"):
-            option_name = selection_id.removeprefix("multiselect_")
-            state.path.append(option_name)
-            state.positions[tuple(state.path)] = 1
-            self._show_game_options_view(player)
-            return
-
-        if selection_id.startswith("msgroup_"):
-            remainder = selection_id.removeprefix("msgroup_")
-            for name, meta in self.options.get_option_metas().items():
-                if isinstance(meta, MultiSelectOption) and remainder.startswith(name + "_"):
-                    group_name = remainder[len(name) + 1 :]
-                    if not state.path or state.path[-1] != name:
-                        state.path.append(name)
-                        state.positions[tuple(state.path)] = 1
-                    state.path.append(f"group:{group_name}")
-                    state.positions[tuple(state.path)] = 1
-                    self._show_game_options_view(player)
-                    return
-
-        # Read-only leaf items intentionally ignore Enter without feedback.
-
-    def get_all_visible_actions(self, player: "Player") -> list:
-        """Get visible actions, filtering to only options when in a sub-menu.
-
-        When a player is inside an options group or multi-select, only the
-        options action set is shown (no lobby/turn actions cluttering the menu).
-        """
-        if self._is_in_options_submenu(player):
-            options_set = self.get_action_set(player, "options")
-            if options_set:
-                return options_set.get_visible_actions(self, player)
-            return []
-        return super().get_all_visible_actions(player)
 
     def create_options_action_set(self, player: "Player") -> ActionSet:
         """Create the options action set for a player.
@@ -1143,8 +950,97 @@ class OptionsHandlerMixin:
         # Fallback for non-declarative options
         return ActionSet(name="options")
 
+    def _is_in_options_submenu(self, player: "Player") -> bool:
+        """Whether a player is navigated into an options sub-menu (multi-select)."""
+        if hasattr(self, "_options_path"):
+            return bool(self._options_path.get(player.id))
+        return False
+
+    def get_all_visible_actions(self, player: "Player") -> list:
+        """Show only the options action set while inside an options sub-menu.
+
+        When a player has navigated into a multi-select option, the lobby/turn
+        actions are suppressed so the toggle list is uncluttered. At the top
+        level this defers to the normal action-set composition.
+        """
+        if self._is_in_options_submenu(player):
+            options_set = self.get_action_set(player, "options")
+            if options_set:
+                return options_set.get_visible_actions(self, player)
+            return []
+        return super().get_all_visible_actions(player)
+
+    @staticmethod
+    def _conventional_option_description_key(game_type: str, option_name: str) -> str:
+        """Return the standard custom description key for a game option."""
+        return f"{game_type}-desc-{option_name.replace('_', '-')}"
+
+    def _option_description_text(
+        self,
+        player: "Player",
+        menu_item_id: str,
+    ) -> str | None:
+        """Resolve localized option help for the shared menu-hint API."""
+        if not hasattr(self, "options"):
+            return None
+        option_name = None
+        for prefix in ("set_", "toggle_", "group_", "multiselect_"):
+            if menu_item_id.startswith(prefix):
+                option_name = menu_item_id[len(prefix):]
+                break
+        if option_name is None and get_option_meta(
+            type(self.options),
+            menu_item_id,
+        ):
+            option_name = menu_item_id
+        if option_name is None:
+            return None
+        meta = get_option_meta(type(self.options), option_name)
+        if meta is None:
+            return None
+        user = self.get_user(player)
+        if not user:
+            return None
+        current_value = getattr(self.options, option_name, meta.default)
+        if meta.description:
+            return meta.get_description(
+                user.locale,
+                current_value,
+                game=self,
+                player=player,
+            )
+        description_key = self._conventional_option_description_key(
+            self.get_type(),
+            option_name,
+        )
+        if Localization.has_message(user.locale, description_key):
+            return Localization.get(user.locale, description_key)
+        return meta.get_description(
+            user.locale,
+            current_value,
+            game=self,
+            player=player,
+        )
+
+    def _option_description_key(self, option_name: str) -> str | None:
+        """Return the explicit or conventional description key for an option."""
+        if not hasattr(self, "options"):
+            return None
+        meta = get_option_meta(type(self.options), option_name)
+        if meta is None:
+            return None
+        if meta.description:
+            return meta.description
+        key = self._conventional_option_description_key(self.get_type(), option_name)
+        if Localization.has_message("en", key):
+            return key
+        return None
+
     def _handle_option_change(self, option_name: str, value: str) -> None:
-        """Handle a declarative option change (int/menu options)."""
+        """Handle a declarative option change (for int/menu options).
+
+        This is called by auto-generated option actions.
+        """
         meta = get_option_meta(type(self.options), option_name)
         if not meta:
             return
@@ -1155,15 +1051,20 @@ class OptionsHandlerMixin:
 
         # Set the option value
         setattr(self.options, option_name, converted)
-        self.options._apply_value_overrides(option_name)
+
+        # Broadcast change to all players
+        self._broadcast_option_change(meta, converted)
 
         # Update labels and rebuild menus
         if hasattr(self.options, "update_options_labels"):
             self.options.update_options_labels(self)
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _handle_option_toggle(self, option_name: str) -> None:
-        """Handle a declarative boolean option toggle."""
+        """Handle a declarative boolean option toggle.
+
+        This is called by auto-generated toggle actions.
+        """
         meta = get_option_meta(type(self.options), option_name)
         if not meta:
             return
@@ -1172,12 +1073,26 @@ class OptionsHandlerMixin:
         current = getattr(self.options, option_name)
         new_value = not current
         setattr(self.options, option_name, new_value)
-        self.options._apply_value_overrides(option_name)
+
+        # Broadcast change to all players
+        self._broadcast_option_change(meta, new_value)
 
         # Update labels and rebuild menus
         if hasattr(self.options, "update_options_labels"):
             self.options.update_options_labels(self)
-        self.rebuild_all_menus()
+        self.refresh_menus()
+
+    def _broadcast_option_change(self, meta: OptionMeta, value: Any) -> None:
+        """Broadcast an option change announcement to all players."""
+        for player in self.players:
+            user = self.get_user(player)
+            if not user:
+                continue
+            if hasattr(meta, "get_change_kwargs_localized"):
+                kwargs = meta.get_change_kwargs_localized(value, user.locale)
+            else:
+                kwargs = meta.get_change_kwargs(value)
+            user.speak_l(meta.change_msg, buffer="system", **kwargs)
 
     # Generic option action handlers (extract option_name from action_id)
 
@@ -1199,22 +1114,48 @@ class OptionsHandlerMixin:
         option_name = action_id.removeprefix("toggle_")
         self._handle_option_toggle(option_name)
 
-    # Navigation handlers for option groups and multi-select
+    # Navigation handlers for multi-select options.
 
-    def _action_open_option_group(self, player: "Player", action_id: str) -> None:
-        """Open an option group's sub-menu.
+    def _first_visible_options_action_id(self, player: "Player") -> str | None:
+        """Return the first visible action in the current options view."""
+        options_set = self.get_action_set(player, "options")
+        if not options_set:
+            return None
+        visible = options_set.get_visible_actions(self, player)
+        if not visible:
+            return None
+        return visible[0].action.id
 
-        Pushes the group name onto the player's options path and rebuilds menus.
-        """
-        group_name = action_id.removeprefix("group_")
-        if not hasattr(self, "_options_path"):
-            self._options_path = {}
-        path = self._options_path.setdefault(player.id, [])
-        path.append(group_name)
-        # Rebuild options action set for this player
+    def _options_focus_target_or_first(
+        self,
+        player: "Player",
+        focus_action_id: str | None,
+    ) -> str | None:
+        """Return a valid options focus target, falling back to the first item."""
+        options_set = self.get_action_set(player, "options")
+        if not options_set:
+            return None
+        if focus_action_id:
+            for resolved in options_set.get_visible_actions(self, player):
+                if resolved.action.id == focus_action_id:
+                    return focus_action_id
+        return self._first_visible_options_action_id(player)
+
+    def _refresh_options_menus(
+        self,
+        player: "Player | None" = None,
+        *,
+        focus_action_id: str | None = None,
+        focus_first: bool = False,
+    ) -> None:
+        """Re-render options and optionally queue an action-driven focus jump."""
         if hasattr(self.options, "update_options_labels"):
             self.options.update_options_labels(self)
-        self.rebuild_all_menus()
+        if player is not None and (focus_action_id or focus_first):
+            focus = self._options_focus_target_or_first(player, focus_action_id)
+            if focus:
+                self.request_menu_focus(player, focus)
+        self.refresh_menus()
 
     def _action_open_multiselect(self, player: "Player", action_id: str) -> None:
         """Open a multi-select option's sub-menu.
@@ -1226,31 +1167,30 @@ class OptionsHandlerMixin:
             self._options_path = {}
         path = self._options_path.setdefault(player.id, [])
         path.append(option_name)
-        if hasattr(self.options, "update_options_labels"):
-            self.options.update_options_labels(self)
-        self.rebuild_all_menus()
+        self._refresh_options_menus(player, focus_first=True)
 
     def _action_options_back(self, player: "Player", action_id: str) -> None:
-        """Go back one level in the options navigation.
-
-        Pops the last group from the player's options path and rebuilds menus.
-        """
+        """Go back one level in the options navigation (no validation)."""
+        focus_action_id = None
         if hasattr(self, "_options_path"):
             path = self._options_path.get(player.id, [])
             if path:
-                path.pop()
-        if hasattr(self.options, "update_options_labels"):
-            self.options.update_options_labels(self)
-        self.rebuild_all_menus()
+                current = path.pop()
+                if current.startswith("group:") and path:
+                    option_name = path[-1]
+                    group_name = current.removeprefix("group:")
+                    focus_action_id = f"msgroup_{option_name}_{group_name}"
+                elif current:
+                    focus_action_id = f"multiselect_{current}"
+        self._refresh_options_menus(player, focus_action_id=focus_action_id)
 
     def _action_open_ms_group(self, player: "Player", action_id: str) -> None:
         """Open a multi-select group's sub-menu.
 
-        Action ID format: msgroup_{option_name}_{group_name}
-        Pushes 'group:{name}' onto the player's options path.
+        Action ID format: msgroup_{option_name}_{group_name}.
+        Pushes 'group:{group_name}' onto the player's options path.
         """
         remainder = action_id.removeprefix("msgroup_")
-        # Find which option this belongs to
         for name, meta in self.options.get_option_metas().items():
             if isinstance(meta, MultiSelectOption) and remainder.startswith(name + "_"):
                 group_name = remainder[len(name) + 1 :]
@@ -1258,16 +1198,24 @@ class OptionsHandlerMixin:
                     self._options_path = {}
                 path = self._options_path.setdefault(player.id, [])
                 path.append(f"group:{group_name}")
-                if hasattr(self.options, "update_options_labels"):
-                    self.options.update_options_labels(self)
-                self.rebuild_all_menus()
+                self._refresh_options_menus(player, focus_first=True)
                 return
 
-    def _action_select_all_multiselect(self, player: "Player", action_id: str) -> None:
-        """Select all choices in the current multi-select view.
+    def _get_scoped_choices(
+        self, player: "Player", option_name: str, meta: "MultiSelectOption"
+    ) -> list[str]:
+        """Get the choices scoped to the current view (group or all)."""
+        if hasattr(self, "_options_path"):
+            path = self._options_path.get(player.id, [])
+            if path and path[-1].startswith("group:"):
+                group_name = path[-1].removeprefix("group:")
+                groups = meta.get_groups()
+                if groups and group_name in groups:
+                    return groups[group_name]
+        return meta.get_choices()
 
-        Scoped to current group if inside one. Announces how many were added.
-        """
+    def _action_select_all_multiselect(self, player: "Player", action_id: str) -> None:
+        """Select all choices in the current multi-select view."""
         option_name = action_id.removeprefix("mselectall_")
         meta = get_option_meta(type(self.options), option_name)
         if not meta or not isinstance(meta, MultiSelectOption):
@@ -1287,17 +1235,12 @@ class OptionsHandlerMixin:
         if added > 0:
             user = self.get_user(player)
             if user:
-                user.speak_l("option-selected-count", count=added)
+                user.speak_l("option-selected-count", buffer="system", count=added)
 
-        if hasattr(self.options, "update_options_labels"):
-            self.options.update_options_labels(self)
-        self.rebuild_all_menus()
+        self._refresh_options_menus()
 
     def _action_deselect_all_multiselect(self, player: "Player", action_id: str) -> None:
-        """Deselect all choices in the current multi-select view.
-
-        Scoped to current group if inside one. Announces how many were removed.
-        """
+        """Deselect all choices in the current multi-select view."""
         option_name = action_id.removeprefix("mdeselectall_")
         meta = get_option_meta(type(self.options), option_name)
         if not meta or not isinstance(meta, MultiSelectOption):
@@ -1317,70 +1260,68 @@ class OptionsHandlerMixin:
         if removed > 0:
             user = self.get_user(player)
             if user:
-                user.speak_l("option-deselected-count", count=removed)
+                user.speak_l("option-deselected-count", buffer="system", count=removed)
 
-        if hasattr(self.options, "update_options_labels"):
-            self.options.update_options_labels(self)
-        self.rebuild_all_menus()
-
-    def _get_scoped_choices(
-        self, player: "Player", option_name: str, meta: "MultiSelectOption"
-    ) -> list[str]:
-        """Get the choices scoped to the current view (group or all).
-
-        If the player is inside a group, returns only that group's choices.
-        Otherwise returns all choices.
-        """
-        if hasattr(self, "_options_path"):
-            path = self._options_path.get(player.id, [])
-            if path and path[-1].startswith("group:"):
-                group_name = path[-1].removeprefix("group:")
-                groups = meta.get_groups()
-                if groups and group_name in groups:
-                    return groups[group_name]
-        return meta.get_choices()
+        self._refresh_options_menus()
 
     def _action_options_back_multiselect(self, player: "Player", action_id: str) -> None:
-        """Go back from a multi-select menu, validating selection count."""
+        """Go back from a multi-select menu, validating min/max selection count."""
         if hasattr(self, "_options_path"):
             path = self._options_path.get(player.id, [])
             if path:
                 current = path[-1]
-                # If going back from group level, just pop the group
+                # Going back from a group level just pops the group.
                 if current.startswith("group:"):
+                    group_name = current.removeprefix("group:")
                     path.pop()
-                    if hasattr(self.options, "update_options_labels"):
-                        self.options.update_options_labels(self)
-                    self.rebuild_all_menus()
+                    option_name = path[-1] if path else ""
+                    focus_action_id = (
+                        f"msgroup_{option_name}_{group_name}"
+                        if option_name
+                        else None
+                    )
+                    self._refresh_options_menus(
+                        player,
+                        focus_action_id=focus_action_id,
+                    )
                     return
-                # Going back from option level — validate selection count
+                # Going back from the option level validates selection count.
                 meta = get_option_meta(type(self.options), current)
                 if meta and isinstance(meta, MultiSelectOption):
                     current_list = getattr(self.options, current, [])
                     if len(current_list) < meta.min_selected:
                         user = self.get_user(player)
                         if user:
-                            user.speak_l("option-min-selected", count=meta.min_selected)
+                            user.speak_l(
+                                "option-min-selected",
+                                buffer="system",
+                                count=meta.min_selected,
+                            )
                         return
                     if meta.max_selected > 0 and len(current_list) > meta.max_selected:
                         user = self.get_user(player)
                         if user:
-                            user.speak_l("option-max-selected", count=meta.max_selected)
+                            user.speak_l(
+                                "option-max-selected",
+                                buffer="system",
+                                count=meta.max_selected,
+                            )
                         return
                 path.pop()
-        if hasattr(self.options, "update_options_labels"):
-            self.options.update_options_labels(self)
-        self.rebuild_all_menus()
+                self._refresh_options_menus(
+                    player,
+                    focus_action_id=f"multiselect_{current}",
+                )
+                return
+        self._refresh_options_menus(player)
 
     def _action_toggle_multiselect(self, player: "Player", action_id: str) -> None:
-        """Toggle a choice in a multi-select option.
+        """Toggle a single choice in a multi-select option.
 
-        Action ID format: mstoggle_{option_name}_{choice}
+        Action ID format: mstoggle_{option_name}_{choice}. The choice may itself
+        contain underscores, so the option name is matched by prefix.
         """
-        # Parse: remove "mstoggle_" prefix, then split on first "_" after option name
         remainder = action_id.removeprefix("mstoggle_")
-        # We need to find the option name. Look through options to find a match.
-        options_class = type(self.options)
         option_name = None
         choice = None
         for name, meta in self.options.get_option_metas().items():
@@ -1391,7 +1332,7 @@ class OptionsHandlerMixin:
         if not option_name or choice is None:
             return
 
-        meta = get_option_meta(options_class, option_name)
+        meta = get_option_meta(type(self.options), option_name)
         if not meta or not isinstance(meta, MultiSelectOption):
             return
 
@@ -1402,28 +1343,4 @@ class OptionsHandlerMixin:
             current_list.append(choice)
 
         setattr(self.options, option_name, current_list)
-
-        if hasattr(self.options, "update_options_labels"):
-            self.options.update_options_labels(self)
-        self.rebuild_all_menus()
-
-    def _speak_option_description(self, player: "Player", menu_item_id: str) -> bool:
-        """Speak the description for an option when space is pressed.
-
-        Extracts the option name from the action ID and looks up its
-        description. Returns True if a description was spoken.
-        """
-        option_name = None
-        for prefix in ("set_", "toggle_", "multiselect_", "group_"):
-            if menu_item_id.startswith(prefix):
-                option_name = menu_item_id.removeprefix(prefix)
-                break
-        if option_name is None:
-            return False
-        meta = get_option_meta(type(self.options), option_name)
-        if meta is None or not meta.description:
-            return False
-        user = self.get_user(player)
-        if user:
-            user.speak_l(meta.description)
-        return True
+        self._refresh_options_menus()

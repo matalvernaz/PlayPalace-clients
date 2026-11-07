@@ -9,7 +9,7 @@ import pytest
 
 from server.core.server import Server, DEFAULT_WS_MAX_MESSAGE_BYTES
 from server.auth.auth import AuthResult
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
 from server.core.tables.table import Table
 from server.games.base import Player
 
@@ -283,7 +283,7 @@ async def test_authorize_handoffs_existing_session(monkeypatch, server):
 
 @pytest.mark.asyncio
 async def test_authorize_rejoin_replays_transcript(monkeypatch, server):
-    from server.core.users.test_user import MockUser
+    from server.users.test_user import MockUser
 
     record = SimpleNamespace(
         username="player",
@@ -333,10 +333,10 @@ async def test_authorize_rejoin_replays_transcript(monkeypatch, server):
         def broadcast_sound(self, sound_name):
             self.sounds.append(sound_name)
 
-        def rebuild_all_menus(self):
+        def refresh_menus(self, player=None):
             self.menus_rebuilt += 1
 
-        def rebuild_player_menu(self, player):
+        def restore_session_ui(self, player):
             self.player_menu_rebuilt += 1
 
         def get_transcript(self, player_id):

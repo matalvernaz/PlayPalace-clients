@@ -1,32 +1,26 @@
-# Mancala game messages — hr
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale hr. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mankala
-
 # Actions
 mancala-pit-label = Rupa { $pit }: { $stones } kamenčića
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } sije { $stones } kamenčića iz rupe { $pit }
 mancala-capture = { $player } zarobljava { $captured } kamenčića!
 mancala-extra-turn = Zadnji kamenčić u spremištu! { $player } igra ponovo.
 mancala-winner = { $player } pobjeđuje s { $score } kamenčića!
 mancala-draw = Neriješeno! Oba igrača imaju { $score } kamenčića.
-
 # Board status
-mancala-board-status =
-    Vaše rupe: { $own_pits }. Vaše spremište: { $own_store }. Protivnikove rupe: { $opp_pits }. Protivnikovo spremište: { $opp_store }.
-
+mancala-board-status = Vaše rupe: { $own_pits }. Vaše spremište: { $own_store }. Protivnikove rupe: { $opp_pits }. Protivnikovo spremište: { $opp_store }.
 # Options
 mancala-set-stones = Kamenčića po rupi: { $stones }
 mancala-desc-stones = Broj kamenčića u svakoj rupi na početku
 mancala-enter-stones = Unesite broj početnih kamenčića po rupi:
 mancala-option-changed-stones = Početni kamenčići promijenjeni na { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Ta rupa je prazna.
-
 # Rules
 mancala-rules =
     Mankala je igra za dva igrača s rupama i kamenčićima.
@@ -38,7 +32,5 @@ mancala-rules =
     Igra završava kad je jedna strana potpuno prazna.
     Igrač s najviše kamenčića pobjeđuje.
     Koristite tipke 1 do 6 za odabir rupe. Pritisnite E za provjeru ploče.
-
 # End screen
 mancala-final-score = { $player }: { $score } kamenčića
-mancala-check-board = Check board

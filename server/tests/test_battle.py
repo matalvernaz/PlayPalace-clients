@@ -21,12 +21,12 @@ from ..games.battle.game import (
     PHASE_SELECTION,
     TURN_MODE_ROUND_ROBIN,
 )
-from ..games.battle.content import get_move_map, get_preset_map, load_battle_registry
+from ..games.battle.content import BattleLocalizedName, get_move_map, get_preset_map, load_battle_registry
 from ..game_utils.stats_extractor import StatsExtractor
 from ..games.registry import GameRegistry
 from ..messages.localization import Localization
-from ..core.users.bot import Bot
-from ..core.users.test_user import MockUser
+from ..users.bot import Bot
+from ..users.test_user import MockUser
 
 
 _locales_dir = Path(__file__).parent.parent / "locales"
@@ -50,7 +50,7 @@ def make_game(
         else:
             user = MockUser(name, uuid=f"p{index + 1}")
             if web_first and index == 0:
-                user.set_client_type("web")
+                user.client_type = "web"
         game.add_player(name, user)
     game.host = "Player1"
     if start:
@@ -135,8 +135,15 @@ def test_on_start_enters_selection_phase() -> None:
     game = make_game(start=True)
     assert game.status == "playing"
     assert game.phase == PHASE_SELECTION
-    assert game.current_music == "battle/fightmus.ogg"
-    assert game.current_ambience == "battle/crowds/ambience_reserves_selections.ogg"
+    assert any(
+        state.kind == "music" and state.asset == "battle/fightmus.ogg"
+        for state in game.active_audio.values()
+    )
+    assert any(
+        state.kind == "ambience"
+        and state.asset == "battle/crowds/ambience_reserves_selections.ogg"
+        for state in game.active_audio.values()
+    )
 
 
 def test_pregame_options_take_effect_in_combat() -> None:
@@ -254,7 +261,7 @@ def test_selection_labels_only_show_preset_stats() -> None:
     assert "Berserk:" not in label
 
 
-def test_move_menu_labels_include_skill_descriptions() -> None:
+def test_move_menu_hints_follow_the_global_preference() -> None:
     game = make_game(start=True, turn_mode=TURN_MODE_ROUND_ROBIN)
     p1, p2 = game.players
     select_and_submit(game, p1, "boxer")
@@ -264,11 +271,34 @@ def test_move_menu_labels_include_skill_descriptions() -> None:
     turn_set = game.get_action_set(p1, "turn")
     assert turn_set is not None
     visible = turn_set.get_visible_actions(game, p1)
-    spinning_punch = next(entry.label for entry in visible if entry.action.id == "battle_move_spinning_punch")
+    spinning_punch = next(
+        entry
+        for entry in visible
+        if entry.action.id == "battle_move_spinning_punch"
+    )
 
-    assert "Spinning Punch:" in spinning_punch
-    assert "Single-target targeting one enemy." in spinning_punch
-    assert "deal 15 to 18 damage" in spinning_punch
+    assert spinning_punch.label == "Spinning Punch"
+    assert "Single-target targeting one enemy." in spinning_punch.description
+    assert "deal 15 to 18 damage" in spinning_punch.description
+
+    game.refresh_menus(p1)
+    game.flush_menus()
+    menu_item = next(
+        item
+        for item in game.get_user(p1).get_current_menu_items("turn_menu")
+        if item.id == "battle_move_spinning_punch"
+    )
+    assert "Single-target targeting one enemy." in menu_item.text
+
+    game.get_user(p1).preferences.show_menu_hints = False
+    game.refresh_menus(p1)
+    game.flush_menus()
+    menu_item = next(
+        item
+        for item in game.get_user(p1).get_current_menu_items("turn_menu")
+        if item.id == "battle_move_spinning_punch"
+    )
+    assert menu_item.text == "Spinning Punch"
 
 
 def test_selection_advances_into_combat() -> None:
@@ -579,12 +609,12 @@ def test_team_roster_actions_are_contextual_and_not_for_spectators() -> None:
     assert "battle_read_enemy_fighters" not in spectator_actions
 
     team_game.execute_action(p1, "battle_read_allied_fighters")
-    allied_texts = [item.text for item in team_game.get_user(p1).menus["transient_display"]["items"]]
+    allied_texts = [item.text for item in team_game.get_user(p1).menus["status_box"]["items"]]
     assert any("Novice Boxer" in text for text in allied_texts)
     assert not any(text.startswith("Boxer:") for text in allied_texts)
 
     team_game.execute_action(p1, "battle_read_enemy_fighters")
-    enemy_texts = [item.text for item in team_game.get_user(p1).menus["transient_display"]["items"]]
+    enemy_texts = [item.text for item in team_game.get_user(p1).menus["status_box"]["items"]]
     assert any(text.startswith("Boxer:") for text in enemy_texts)
     assert not any("Novice Boxer" in text for text in enemy_texts)
 
@@ -616,12 +646,12 @@ def test_team_roster_actions_only_show_active_fighters() -> None:
     defeated_enemy.eliminated = True
 
     game.execute_action(p1, "battle_read_allied_fighters")
-    allied_texts = [item.text for item in game.get_user(p1).menus["transient_display"]["items"]]
+    allied_texts = [item.text for item in game.get_user(p1).menus["status_box"]["items"]]
     assert any(game._fighter_name(living_ally, "en") in text for text in allied_texts)
     assert not any(game._fighter_name(defeated_ally, "en") in text for text in allied_texts)
 
     game.execute_action(p1, "battle_read_enemy_fighters")
-    enemy_texts = [item.text for item in game.get_user(p1).menus["transient_display"]["items"]]
+    enemy_texts = [item.text for item in game.get_user(p1).menus["status_box"]["items"]]
     assert any(game._fighter_name(living_enemy, "en") in text for text in enemy_texts)
     assert not any(game._fighter_name(defeated_enemy, "en") in text for text in enemy_texts)
 
@@ -697,7 +727,7 @@ def test_spectator_status_and_move_announcements_use_neutral_team_names() -> Non
     assert advance_until(game, lambda: game.phase == PHASE_COMBAT and any(fighter.is_arena_enemy for fighter in game.fighters), max_ticks=200)
 
     game.execute_action(spectator, "battle_read_status_detailed")
-    spectator_texts = [item.text for item in game.get_user(spectator).menus["transient_display"]["items"]]
+    spectator_texts = [item.text for item in game.get_user(spectator).menus["status_box"]["items"]]
     assert any("Contestant Side" in text for text in spectator_texts)
     assert any("Arena Side" in text for text in spectator_texts)
     assert not any("Ally Team" in text or "Enemy Team" in text for text in spectator_texts)
@@ -1037,7 +1067,7 @@ def test_detailed_status_opens_status_box_list() -> None:
 
     game.execute_action(p1, "battle_read_status_detailed")
 
-    status_menu = game.get_user(p1).menus["transient_display"]
+    status_menu = game.get_user(p1).menus["status_box"]
     texts = [item.text for item in status_menu["items"]]
     assert texts[0] == "Battle status"
     assert "Combat roster" in texts
@@ -1048,21 +1078,70 @@ def test_registry_content_is_fully_localized() -> None:
     corruption_markers = ("?", "Ã", "Ä", "Æ", "º", "»", "�")
     registry = load_battle_registry()
     assigned_move_ids = set()
+    moves_identical_in_pt = set()
     for move in registry.moves:
         assert move.name.en
         assert move.name.vi
         assert move.name.vi != move.name.en
         assert not any(marker in move.name.vi for marker in corruption_markers)
+        assert move.name.es
+        assert move.name.es != move.name.en
+        assert not any(marker in move.name.es for marker in corruption_markers)
+        assert move.name.pt
+        assert not any(marker in move.name.pt for marker in corruption_markers)
+        if move.name.pt == move.name.en:
+            moves_identical_in_pt.add(move.name.en)
     for preset in registry.presets:
         assert preset.name.en
         assert preset.name.vi
         assert preset.name.vi != preset.name.en
         assert not any(marker in preset.name.vi for marker in corruption_markers)
+        assert preset.name.es
+        assert preset.name.es != preset.name.en
+        assert not any(marker in preset.name.es for marker in corruption_markers)
+        assert preset.name.pt
+        assert preset.name.pt != preset.name.en
+        assert not any(marker in preset.name.pt for marker in corruption_markers)
         assigned_move_ids.update(preset.move_ids)
         key = f"battle-classic-preset-{preset.id.replace('_', '-')}"
         assert Localization.get("vi", key) != Localization.get("en", key)
+        assert Localization.get("es", key) != Localization.get("en", key)
+        assert preset.name.pt == Localization.get("pt", key)
+    assert moves_identical_in_pt == {"Avalanche", "Kunai"}
     assert Localization.get("vi", "game-name-battle") == "Đấu Trường Chiến Kỹ"
+    assert Localization.get("es", "game-name-battle") == "Batalla"
     assert {move.id for move in registry.moves} == assigned_move_ids
+
+
+def test_registry_localized_names_survive_loading_and_selection() -> None:
+    """Registry-only locale fields must survive the typed loader."""
+    registry = load_battle_registry()
+    moves = {move.id: move for move in registry.moves}
+    presets = {preset.id: preset for preset in registry.presets}
+
+    aircraft_cannon = moves["aircraft_cannon"]
+    assert aircraft_cannon.name.es == "Cañón de Avión"
+    assert aircraft_cannon.name.for_locale("es") == "Cañón de Avión"
+    assert aircraft_cannon.name.for_locale("en") == "Aircraft Cannon"
+    assert aircraft_cannon.name.for_locale("vi") == "Long Pháo Không Kích"
+    assert aircraft_cannon.name.pt == "Canhão de aeronave"
+    assert aircraft_cannon.name.for_locale("pt") == "Canhão de aeronave"
+    assert aircraft_cannon.name.for_locale("fa") == "Aircraft Cannon"
+
+    novice_boxer = presets["novice_boxer"]
+    assert novice_boxer.name.es == "Boxeador Novato"
+    assert novice_boxer.name.for_locale("es") == "Boxeador Novato"
+    assert novice_boxer.name.pt == "Boxeador Iniciante"
+    assert novice_boxer.name.for_locale("pt") == "Boxeador Iniciante"
+
+    # Backward compatibility: older saved Battle state may have serialized
+    # this dataclass back when only en/vi existed, with no es/pt keys at all.
+    legacy_shape = BattleLocalizedName.from_dict({"en": "Aircraft Cannon", "vi": "Long Pháo Không Kích"})
+    assert legacy_shape.es is None
+    assert legacy_shape.pt is None
+    assert legacy_shape.for_locale("es") == "Aircraft Cannon"
+    assert legacy_shape.for_locale("pt") == "Aircraft Cannon"
+    assert legacy_shape.for_locale("vi") == "Long Pháo Không Kích"
 
 
 def test_battle_registry_has_complete_functioning_loadouts() -> None:
@@ -1070,7 +1149,11 @@ def test_battle_registry_has_complete_functioning_loadouts() -> None:
     move_map = {move.id: move for move in registry.moves}
     assigned_counts: Counter[str] = Counter()
     repo_root = Path(__file__).parents[2]
-    sound_roots = [repo_root / "clients" / "desktop" / "sounds"]
+    sound_roots = [
+        repo_root / "client" / "sounds",
+        repo_root / "web_client" / "sounds",
+        repo_root / "mobile_client" / "sounds",
+    ]
 
     for preset in registry.presets:
         assert preset.move_ids, preset.id

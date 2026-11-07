@@ -1,44 +1,39 @@
-game-name-colorgame = Xúc xắc màu
+# colorgame.ftl for locale vi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-colorgame = Xúc xắc màu
 colorgame-set-starting-bankroll = Vốn khởi điểm: { $amount }
 colorgame-enter-starting-bankroll = Nhập vốn khởi điểm:
 colorgame-option-changed-starting-bankroll = Vốn khởi điểm đã đổi thành { $amount }.
 colorgame-desc-starting-bankroll = Số chip mỗi người chơi bắt đầu trong Xúc xắc màu (mặc định 100, phạm vi 10-1000).
-
 colorgame-set-minimum-bet = Mức cược tối thiểu: { $amount }
 colorgame-enter-minimum-bet = Nhập mức cược tối thiểu:
 colorgame-option-changed-minimum-bet = Mức cược tối thiểu đã đổi thành { $amount }.
 colorgame-desc-minimum-bet = Mức cược nhỏ nhất được phép trên một màu mỗi vòng (mặc định 1, phạm vi 1-100).
-
 colorgame-set-maximum-total-bet = Tổng cược tối đa mỗi vòng: { $amount }
 colorgame-enter-maximum-total-bet = Nhập tổng cược tối đa cho mỗi vòng:
 colorgame-option-changed-maximum-total-bet = Tổng cược tối đa mỗi vòng đã đổi thành { $amount }.
 colorgame-desc-maximum-total-bet = Tổng chip tối đa một người chơi được mạo hiểm trong một vòng Xúc xắc màu. Mức này phải không thấp hơn cược tối thiểu và không cao hơn vốn khởi điểm; giới hạn thật của mỗi người còn bị chặn bởi số chip họ đang có (mặc định 20, phạm vi 1-1000).
-
 colorgame-set-betting-timer = Thời gian đặt cược: { $seconds } giây
 colorgame-enter-betting-timer = Nhập thời gian đặt cược tính bằng giây:
 colorgame-option-changed-betting-timer = Thời gian đặt cược đã đổi thành { $seconds } giây.
 colorgame-desc-betting-timer-seconds = Thời lượng giai đoạn đặt cược mỗi vòng (mặc định 15 giây, phạm vi 5-60).
-
 colorgame-set-round-limit = Giới hạn số vòng: { $count }
 colorgame-enter-round-limit = Nhập giới hạn số vòng:
 colorgame-option-changed-round-limit = Giới hạn số vòng đã đổi thành { $count }.
 colorgame-desc-round-limit = Số vòng Xúc xắc màu tối đa trước khi xác định người thắng (mặc định 20, phạm vi 1-100).
-
 colorgame-set-win-condition = Cách tính thắng: { $mode }
 colorgame-select-win-condition = Chọn cách tính thắng:
 colorgame-option-changed-win-condition = Cách tính thắng đã đổi thành { $mode }.
 colorgame-desc-win-condition = Chọn Xúc xắc màu kết thúc khi chỉ còn người cuối cùng, hoặc ai có quỹ tiền cao nhất sau giới hạn vòng.
 colorgame-win-condition-last-player = Trụ lại cuối cùng
 colorgame-win-condition-highest-bankroll = Nhiều vốn nhất khi hết số vòng
-
 colorgame-color-red = đỏ
 colorgame-color-blue = xanh dương
 colorgame-color-yellow = vàng
 colorgame-color-green = xanh lá
 colorgame-color-white = trắng
 colorgame-color-orange = cam
-
 colorgame-game-start = Ván xúc xắc màu bắt đầu. Người chơi: { $players }.
 colorgame-round-start = Vòng { $round } trên { $limit }. Mở cửa cược trong { $seconds } giây.
 colorgame-round-start-brief = Vòng { $round }. Cược trong { $seconds } giây.
@@ -68,7 +63,6 @@ colorgame-you-lost = Bạn lỗ { $amount } vốn và còn { $bankroll }.
 colorgame-player-lost = { $player } lỗ { $amount } vốn và còn { $bankroll }.
 colorgame-you-lost-brief = Bạn: -{ $amount }, vốn { $bankroll }.
 colorgame-player-lost-brief = { $player }: -{ $amount }, vốn { $bankroll }.
-
 colorgame-set-bet-color = Đặt cửa { $color }: { $amount }
 colorgame-clear-bets = Xóa cược
 colorgame-confirm-bets = Khóa cược ({ $total })
@@ -76,7 +70,6 @@ colorgame-confirm-sit-out = Khóa không cược
 colorgame-check-status = Xem trạng thái
 colorgame-check-bets = Xem cửa cược
 colorgame-check-last-roll = Xem lượt ra gần nhất
-
 colorgame-select-quick-bet = Chọn mức cược:
 colorgame-quick-bet-minimum = Tối thiểu: { $amount }
 colorgame-quick-bet-preset = Cược { $amount }
@@ -100,36 +93,30 @@ colorgame-bets-already-locked = Cược của bạn đã được khóa cho vòn
 colorgame-no-bets-placed = Bạn chưa đặt cửa nào.
 colorgame-confirm-all-in = Lựa chọn này sẽ nâng cửa { $color } lên { $amount }, dùng hết hạn mức cược còn có thể dùng trong vòng. Hãy chọn lại đúng mục Tất tay trong { $seconds } giây để xác nhận.
 colorgame-confirm-sit-out-risk = Bạn chưa đặt cửa nào. Hãy chọn Khóa không cược thêm lần nữa trong { $seconds } giây để xác nhận bỏ vòng.
-
 colorgame-no-bets = không cược
 colorgame-bet-entry = { $color } { $amount }
 colorgame-bets-header = Tình hình cược hiện tại:
 colorgame-bets-line = { $player }: { $bets }. Tổng { $total }. { $locked }.
 colorgame-bets-open-status = Chưa khóa cược
 colorgame-bets-locked-status = Đã khóa cược
-
 colorgame-last-roll-none = Chưa có lượt ra nào được ghi nhận.
 colorgame-last-roll-header = Lượt ra gần nhất: { $colors }.
 colorgame-last-roll-line = { $player }: { $bets }. Lãi lỗ { $net }. Vốn hiện có { $bankroll }.
-
 colorgame-status-betting = Đang ở pha đặt cược. Vòng { $round } trên { $limit }. Còn { $seconds } giây. Cách tính thắng: { $win_mode }.
 colorgame-status-rolling = Xúc xắc đang lắc cho vòng { $round } trên { $limit }. Cách tính thắng: { $win_mode }.
 colorgame-status-resolving = Vòng { $round } trên { $limit } đang chốt kết quả. Cách tính thắng: { $win_mode }.
 colorgame-status-bankroll = Vốn hiện có của bạn là { $bankroll }. Bạn đã xuống { $total } trong vòng này. Mức trần của bạn ở vòng này là { $cap }.
 colorgame-status-bet-lock = Trạng thái cược của bạn: { $state }.
 colorgame-status-leader = Người đang dẫn đầu là { $player } với { $bankroll } vốn.
-
 colorgame-whose-turn-betting = Đang ở pha đặt cược. Tất cả người chơi còn vốn đều có thể hành động. Còn { $seconds } giây.
 colorgame-whose-turn-rolling = Xúc xắc đang lắc.
 colorgame-whose-turn-resolving = Vòng này đang chốt kết quả.
-
 colorgame-standings-header = Bảng vốn:
 colorgame-standing-live = còn trong cuộc
 colorgame-standing-bust = đã bị loại vì không đủ mức cược tối thiểu
 colorgame-score-line = { $rank }. { $player }: { $bankroll } vốn, { $profitable_rounds } vòng có lãi, lãi lớn nhất { $biggest_win }, { $status }.
 colorgame-game-winner = Người thắng: { $player }.
 colorgame-game-tie = Đồng hạng thắng: { $players }.
-
 colorgame-error-minimum-exceeds-bankroll = Mức cược tối thiểu { $minimum } không được vượt quá vốn khởi điểm { $bankroll }.
 colorgame-error-max-bet-too-small = Tổng cược tối đa { $maximum } phải lớn hơn hoặc bằng mức cược tối thiểu { $minimum }.
 colorgame-error-max-bet-too-large = Tổng cược tối đa { $maximum } không được vượt quá vốn khởi điểm { $bankroll }.

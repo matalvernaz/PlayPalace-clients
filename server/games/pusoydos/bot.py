@@ -103,7 +103,7 @@ def bot_think(game: "PusoyDosGame", player: "PusoyDosPlayer") -> list[int]:
 
     if current_combo is None:
         # Free play — lead strategically
-        return _bot_free_play(hand, all_combos)
+        return _bot_free_play(hand, all_combos, allow_2)
 
     # Must beat the current combo
     valid_plays = [
@@ -116,7 +116,7 @@ def bot_think(game: "PusoyDosGame", player: "PusoyDosPlayer") -> list[int]:
     return _bot_choose_play(hand, valid_plays)
 
 
-def _bot_free_play(hand: list[Card], all_combos: list[Combo]) -> list[int]:
+def _bot_free_play(hand: list[Card], all_combos: list[Combo], allow_2: bool) -> list[int]:
     """Choose what to lead with when starting a new trick."""
     if not all_combos:
         return []
@@ -126,7 +126,7 @@ def _bot_free_play(hand: list[Card], all_combos: list[Combo]) -> list[int]:
     # Endgame: if 5 or fewer cards, try to dump everything
     if cards_left <= 5:
         # Check if we can play all remaining cards as one combo
-        full_combo = evaluate_combo(hand)
+        full_combo = evaluate_combo(hand, allow_2_in_straights=allow_2)
         if full_combo:
             return [c.id for c in hand]
 

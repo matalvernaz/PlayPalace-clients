@@ -1,14 +1,8 @@
-# Metal Pipe game messages
+# metalpipe.ftl for locale cs. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-metalpipe = Metal Pipe
-
-# Game events
-metalpipe-hit-other = { $bonker } hits { $bonked } over the head with a metal pipe.
-metalpipe-hit-self = Oh no! { $bonker } hit their own head on a metal pipe!
-metalpipe-winner = { $player } wins, congratulations you did great!
-metalpipe-everyone-else-wins = Everyone except { $player } wins!
-
 # Options
 metalpipe-set-multiple-bonks = Multiple bonks: { $enabled }
 metalpipe-option-changed-multiple-bonks = Multiple bonks set to { $enabled }.

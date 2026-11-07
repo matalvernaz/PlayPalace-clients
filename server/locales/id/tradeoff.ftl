@@ -1,70 +1,79 @@
-# Tradeoff game messages
+# tradeoff.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game info
 game-name-tradeoff = Tradeoff
-
-# Round and iteration flow
 tradeoff-round-start = Ronde { $round }.
-tradeoff-iteration = Tangan { $iteration } dari 3.
-
-# Phase 1: Trading
-tradeoff-you-rolled = Anda melempar: { $dice }.
+tradeoff-iteration = Putaran { $iteration } dari 3.
+tradeoff-you-rolled = Hasil lemparan Anda: { $dice }.
 tradeoff-toggle-trade = { $value } ({ $status })
-tradeoff-trade-status-trading = menukar
-tradeoff-trade-status-keeping = menyimpan
-tradeoff-confirm-trades = Konfirmasi tukar ({ $count } dadu)
-tradeoff-keeping = Menyimpan { $value }.
-tradeoff-trading = Menukar { $value }.
-tradeoff-player-traded = { $player } menukar: { $dice }.
-tradeoff-player-traded-none = { $player } menyimpan semua dadu.
-
-# Phase 2: Taking from pool
-tradeoff-your-turn-take = Giliran Anda untuk mengambil dadu dari pool.
-tradeoff-take-die = Ambil { $value } ({ $remaining } tersisa)
-tradeoff-you-take = Anda mengambil { $value }.
-tradeoff-player-takes = { $player } mengambil { $value }.
-
-# Phase 3: Scoring
-tradeoff-player-scored = { $player } ({ $points } poin): { $sets }.
-tradeoff-no-sets = { $player }: tidak ada set.
-
-# Set descriptions (concise)
-tradeoff-set-triple = triple { $value }
-tradeoff-set-group = grup { $value }
-tradeoff-set-mini-straight = mini straight { $low }-{ $high }
-tradeoff-set-double-triple = triple ganda ({ $v1 } dan { $v2 })
-tradeoff-set-straight = straight { $low }-{ $high }
-tradeoff-set-double-group = grup ganda ({ $v1 } dan { $v2 })
-tradeoff-set-all-groups = semua grup
-tradeoff-set-all-triplets = semua triplet
-
-# Round end
+tradeoff-trade-status-trading = ditukar
+tradeoff-trade-status-keeping = disimpan
+tradeoff-confirm-trades = Konfirmasi penukaran ({ $count } dadu)
+tradeoff-keeping = Dadu { $value } disimpan.
+tradeoff-trading = Dadu { $value } ditukar.
+tradeoff-you-traded = Anda menukar { $count } dadu ke kumpulan bersama: { $dice }.
+tradeoff-player-traded = { $player } menukar { $count } dadu ke kumpulan bersama: { $dice }.
+tradeoff-you-traded-brief = Anda menukar { $count } dadu.
+tradeoff-player-traded-brief = { $player } menukar { $count } dadu.
+tradeoff-you-traded-none = Anda menyimpan kelima dadu pada putaran ini, jadi Anda tidak mengambil dadu dari kumpulan bersama kali ini.
+tradeoff-player-traded-none = { $player } menyimpan kelima dadu pada putaran ini.
+tradeoff-your-turn-take = Giliran Anda mengambil satu dadu dari kumpulan bersama.
+tradeoff-take-die = Ambil dadu { $value } (tersisa { $remaining })
+tradeoff-you-take = Anda mengambil dadu { $value }.
+tradeoff-player-takes = { $player } mengambil dadu { $value }.
+tradeoff-you-scored = Anda memperoleh { $points } poin dengan { $sets }.
+tradeoff-player-scored = { $player } memperoleh { $points } poin dengan { $sets }.
+tradeoff-you-scored-brief = Anda memperoleh { $points } poin pada ronde ini.
+tradeoff-player-scored-brief = { $player } memperoleh { $points } poin pada ronde ini.
+tradeoff-you-no-sets = Anda memperoleh 0 poin karena 15 dadu Anda tidak membentuk kombinasi yang menghasilkan poin.
+tradeoff-no-sets = { $player } memperoleh 0 poin karena 15 dadunya tidak membentuk kombinasi yang menghasilkan poin.
+tradeoff-set-triple = tiga dadu berangka { $value }
+tradeoff-set-group = lima dadu berangka { $value }
+tradeoff-set-mini-straight = urutan pendek { $low } hingga { $high }
+tradeoff-set-double-triple = dua kelompok tiga dadu (angka { $v1 } dan { $v2 })
+tradeoff-set-straight = urutan { $low } hingga { $high }
+tradeoff-set-double-group = dua kelompok lima dadu (angka { $v1 } dan { $v2 })
+tradeoff-set-all-groups = tiga kelompok lima dadu
+tradeoff-set-all-triplets = lima kelompok tiga dadu
 tradeoff-round-scores = Skor ronde { $round }:
-tradeoff-score-line = { $player }: +{ $round_points } (total: { $total })
-tradeoff-leader = { $player } memimpin dengan { $score }.
-
-# Game end
+tradeoff-round-scores-brief = Skor:
+tradeoff-score-line = { $player }: bertambah { $round_points } (total: { $total })
+tradeoff-score-line-brief = { $player }: bertambah { $round_points }, total { $total }.
+tradeoff-leader = { $player } memimpin dengan { $score } poin.
+tradeoff-leader-brief = Pemimpin: { $player }, { $score } poin.
+tradeoff-you-win = Anda menang dengan { $score } poin!
 tradeoff-winner = { $player } menang dengan { $score } poin!
-tradeoff-winners-tie = Seri! { $players } seri dengan { $score } poin!
-
-# Status checks
-tradeoff-view-hand = Lihat tangan Anda
-tradeoff-view-pool = Lihat pool
-tradeoff-view-players = Lihat pemain
-tradeoff-hand-display = Tangan Anda ({ $count } dadu): { $dice }
-tradeoff-pool-display = Pool ({ $count } dadu): { $dice }
-tradeoff-player-info = { $player }: { $hand }. Ditukar: { $traded }.
-tradeoff-player-info-no-trade = { $player }: { $hand }. Tidak menukar apa pun.
-
-# Error messages
-tradeoff-not-trading-phase = Tidak dalam fase tukar.
-tradeoff-not-taking-phase = Tidak dalam fase ambil.
-tradeoff-already-confirmed = Sudah dikonfirmasi.
-tradeoff-no-die = Tidak ada dadu untuk toggle.
-tradeoff-no-more-takes = Tidak ada lagi pengambilan yang tersedia.
-tradeoff-not-in-pool = Dadu itu tidak ada di pool.
-
-# Options
-tradeoff-set-target = Skor target: { $score }
-tradeoff-enter-target = Masukkan skor target:
-tradeoff-option-changed-target = Skor target diatur ke { $score }.
+tradeoff-you-tie-win = Anda menang bersama { $players } dengan skor seri { $score } poin!
+tradeoff-winners-tie = Hasil seri! { $players } menang bersama dengan { $score } poin!
+tradeoff-view-hand = Tinjau dadu Anda
+tradeoff-view-pool = Tinjau kumpulan bersama
+tradeoff-view-players = Tinjau pemain
+tradeoff-hand-state-empty = belum ada dadu yang disimpan
+tradeoff-hand-empty = Belum ada dadu yang Anda simpan. Jika baru melempar, tentukan dadu yang ingin disimpan melalui pilihan dadu sebelum mengonfirmasi penukaran.
+tradeoff-hand-display = Dadu yang Anda simpan pada ronde ini ({ $count } dadu): { $dice }.
+tradeoff-hand-display-with-roll = Dadu yang Anda simpan pada ronde ini ({ $count } dadu): { $dice }. Lemparan saat ini: { $roll }. Masih ada { $trade_count } dadu yang ditandai untuk ditukar.
+tradeoff-roll-die-status = posisi { $position }: { $value }, { $status }
+tradeoff-die-count = { $value }: { $count }
+tradeoff-pool-display = Kumpulan bersama ({ $count } dadu): { $dice }.
+tradeoff-pool-empty = Kumpulan bersama kosong.
+tradeoff-player-info = { $player }: dadu yang disimpan: { $hand }. Terakhir ditukar: { $traded }.
+tradeoff-player-info-no-trade = { $player }: dadu yang disimpan: { $hand }. Tidak menukar dadu pada putaran terakhir.
+tradeoff-not-trading-phase = Anda hanya dapat mengubah atau mengonfirmasi pilihan penukaran saat dadu yang baru dilempar masih menunggu pada tahap penukaran.
+tradeoff-not-taking-phase = Anda hanya dapat mengambil dadu setelah semua pemain mengonfirmasi penukaran dan kumpulan bersama dibuka.
+tradeoff-already-confirmed = Anda sudah mengonfirmasi pilihan penukaran ini. Tunggu pemain lain. Jika menukar dadu, Anda akan mengambil dari kumpulan bersama saat giliran Anda tiba.
+tradeoff-no-die = Tidak ada dadu yang tersedia untuk tindakan penukaran itu.
+tradeoff-no-die-position = Posisi { $position } tidak tersedia pada lemparan Anda saat ini.
+tradeoff-no-rolled-dice = Saat ini tidak ada dadu hasil lemparan Anda yang menunggu pilihan penukaran.
+tradeoff-no-more-takes = Anda sudah mengambil dadu sebanyak yang Anda tukar pada putaran ini.
+tradeoff-not-in-pool = Saat ini tidak ada dadu { $value } dalam kumpulan bersama. Pilih salah satu angka yang tersedia.
+tradeoff-not-your-take-turn = Giliran { $player } mengambil dadu dari kumpulan bersama. Tunggu nama Anda diumumkan sebelum memilih dadu.
+tradeoff-no-trading-die-value = Tidak ada dadu { $value } milik Anda yang sedang ditandai untuk ditukar.
+tradeoff-no-kept-die-value = Anda tidak memiliki dadu { $value } yang disimpan untuk ditandai sebagai dadu yang akan ditukar.
+tradeoff-value-trade-style-required = Kontrol penukaran Shift+angka hanya tersedia jika Cara memilih dadu yang disimpan diatur ke Nilai dadu. Gunakan tombol angka tanpa Shift untuk memilih berdasarkan posisi, atau ubah pengaturan tersebut.
+tradeoff-use-plain-number-to-take = Gunakan tombol angka tanpa Shift untuk mengambil dadu dari kumpulan bersama.
+tradeoff-no-dice-key-phase = Tombol angka hanya digunakan saat memilih dadu untuk ditukar atau mengambil dadu dari kumpulan bersama.
+tradeoff-set-target = Target skor: { $score }
+tradeoff-enter-target = Masukkan target skor:
+tradeoff-option-changed-target = Target skor diatur menjadi { $score }.
+tradeoff-desc-target-score = Total skor yang harus dicapai atau dilampaui pemain setelah penghitungan skor suatu ronde untuk menang. Nilai bawaan 60, rentang 30 hingga 500.
+tradeoff-error-target-out-of-range = Target skor { $score } berada di luar rentang yang diizinkan, yaitu { $min } hingga { $max }.

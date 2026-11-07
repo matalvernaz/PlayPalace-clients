@@ -7,7 +7,6 @@ import random
 
 from mashumaro.mixins.json import DataClassJSONMixin
 
-from ...game_utils.game_status import GameStatus
 from ..base import Game, Player, GameOptions
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility
@@ -18,7 +17,7 @@ from ...game_utils.cards import Card, DeckFactory, card_name
 from ...game_utils.turn_timer_mixin import TurnTimerMixin
 from ...game_utils.poker_timer import PokerTurnTimer
 from ...messages.localization import Localization
-from ...core.ui.keybinds import KeybindState
+from ...ui.keybinds import KeybindState
 
 from .bot import bot_think
 from .evaluator import (
@@ -220,7 +219,7 @@ class TienLenGame(Game, TurnTimerMixin):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-card-games"
+        return "cards"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -304,7 +303,7 @@ class TienLenGame(Game, TurnTimerMixin):
         return Localization.format_list_and(locale, names)
 
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self._sync_table_status()
         self.game_active = True
         self.round = 0
@@ -1460,7 +1459,10 @@ class TienLenGame(Game, TurnTimerMixin):
         if listener.id == actor.id:
             user.speak_l(self_key, buffer="game", **kwargs)
         else:
-            user.speak_l(other_key, buffer="game", player=actor.name, **kwargs)
+            payload = self._resolve_broadcast_kwargs(
+                user.locale, {"player": actor, **kwargs}
+            )
+            user.speak_l(other_key, buffer="game", **payload)
 
     def _broadcast_play(self, player: TienLenPlayer, combo: TienLenCombo) -> None:
         for table_player in self.players:
@@ -1794,11 +1796,7 @@ class TienLenGame(Game, TurnTimerMixin):
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=player.id,
-                    player_name=player.name,
-                    is_bot=player.is_bot and not player.replaced_human,
-                )
+                PlayerResult.from_player(player)
                 for player in active_players
             ],
             custom_data={

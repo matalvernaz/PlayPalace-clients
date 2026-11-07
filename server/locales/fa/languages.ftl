@@ -1,4 +1,6 @@
-# نام‌های زبان به این زبان ترجمه شده
+# languages.ftl for locale fa. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 language-ar = عربی
 language-cs = چکی
 language-de = آلمانی
@@ -11,8 +13,8 @@ language-hr = کرواتی
 language-hu = مجاری
 language-id = اندونزیایی
 language-it = ایتالیایی
-language-ja = ژاپنی
-language-ko = کره‌ای
+language-jp = ژاپنی
+language-ko = کرهای
 language-mk = مقدونی
 language-mn = مغولی
 language-nl = هلندی
@@ -29,4 +31,5 @@ language-tr = ترکی
 language-uk = اوکراینی
 language-vi = ویتنامی
 language-zh = چینی
-language-zu = زولویی
+language-zu = زولو
+language-ja = ژاپنی

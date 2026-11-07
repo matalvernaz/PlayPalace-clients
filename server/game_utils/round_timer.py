@@ -11,18 +11,26 @@ if TYPE_CHECKING:
     from ..games.base import Game
 
 
-class RoundTransitionTimer:
-    """Manage delays between rounds using serialized game fields.
+class RoundTimer:
+    """
+    Stateless helper for managing delays between rounds.
 
-    The timer is stateless; all data lives on the Game instance. The host can
-    pause/resume the countdown via the pause key.
+    All timer state is stored in Game fields for serialization.
+    The timer counts down silently between rounds. The host can:
+    - Press 'p' to pause the countdown
+    - Press 'p' again while paused to start the next round immediately
 
     Usage:
-        self._round_timer = RoundTransitionTimer(self)
+        # Create timer:
+        self._round_timer = RoundTimer(self)
+
+        # At end of round:
         self._round_timer.start()
+
+        # In on_tick:
         self._round_timer.on_tick()
 
-        # Override in your game:
+        # Override on_round_timer_ready() in your game:
         def on_round_timer_ready(self) -> None:
             self._start_round()
     """
@@ -47,7 +55,7 @@ class RoundTransitionTimer:
             pause_message: Localization key for pause announcement.
         """
         self._game = game
-        self._delay_ticks = int(delay_seconds * 20)  # assumes default tick rate
+        self._delay_ticks = int(delay_seconds * 20)  # 20 ticks per second (50ms tick)
         self._pause_message = pause_message
 
     @property
@@ -97,7 +105,7 @@ class RoundTransitionTimer:
         if self._game.round_timer_state == self.COUNTING:
             # Pause the countdown
             self._game.round_timer_state = self.PAUSED
-            self._game.broadcast_l(self._pause_message, player=player_name or "")
+            self._game.broadcast_l(self._pause_message, buffer="game", player=player_name or "")
         elif self._game.round_timer_state == self.PAUSED:
             # Skip to next round
             self._game.round_timer_state = self.IDLE
@@ -115,7 +123,3 @@ class RoundTransitionTimer:
         if self._game.round_timer_ticks <= 0:
             self._game.round_timer_state = self.IDLE
             self._game.on_round_timer_ready()
-
-
-# PlayAural renamed this helper without changing its contract.
-RoundTimer = RoundTransitionTimer

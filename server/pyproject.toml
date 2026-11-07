@@ -6,7 +6,7 @@ requires-python = ">=3.13"
 dependencies = [
     "websockets>=14.0",
     "mashumaro>=3.11",
-    "fluent-compiler>=1.0",
+    "fluent.runtime>=0.4.0",
     "babel>=2.14",
     "openskill>=6.1.3",
     "argon2-cffi>=23.1",
@@ -29,16 +29,12 @@ build-backend = "hatchling.build"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Skips PlayAural tests that don't apply here and marks the ones waiting on
+# our sound pack; see tests/playpalace_test_policy.py.
+addopts = ["-p", "server.tests.playpalace_test_policy"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 pythonpath = [".."]
-
-filterwarnings = [
-    "ignore:.*arguments.__init__ got an unexpected keyword argument 'lineno'.*:DeprecationWarning:fluent_compiler",
-    "ignore:.*arguments.__init__ got an unexpected keyword argument 'col_offset'.*:DeprecationWarning:fluent_compiler",
-    "ignore:.*If.__init__ missing 1 required positional argument.*:DeprecationWarning:fluent_compiler",
-    "ignore:.*Module.__init__ got an unexpected keyword argument.*:DeprecationWarning:fluent_compiler",
-]
 
 [tool.hatch.build.targets.wheel]
 packages = ["."]

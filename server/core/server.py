@@ -50,9 +50,16 @@ from ..auth.voice_rate_limit import VoiceRateLimiter
 from ..voice import VoiceService
 from .voice_mixin import VoiceMixin
 from .tables.manager import TableManager
-from .users.network_user import NetworkUser
-from .users.base import MenuItem, EscapeBehavior, TrustLevel
-from .users.preferences import UserPreferences, DiceKeepingStyle, PREF_CATEGORIES, PrefMeta
+from .tables.table import Table
+from ..users.network_user import NetworkUser
+from ..users.base import MenuItem, EscapeBehavior
+from .menu_items import MetaMenuItem
+from .client_menu_extras import turn_menu_extras
+from ..games.categories import GAME_CATEGORY_ORDER
+from ..persistence.game_format import GAME_ENGINE_FORMAT
+from . import localization_logging
+from ..users.trust_level import TrustLevel, trust_rank
+from ..users.preferences import UserPreferences, DiceKeepingStyle, PREF_CATEGORIES, PrefMeta
 from ..games.registry import GameRegistry, get_game_class
 from ..messages.localization import Localization
 from .ui.common_flows import show_yes_no_menu
@@ -85,7 +92,6 @@ DEFAULT_REFRESH_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60
 TABLE_PERSIST_INTERVAL_SECONDS = 30.0
 
 STARTUP_GATE_ID = "startup"
-LOCALIZATION_GATE_ID = "localization"
 
 
 def _coerce_bool(value: Any, default: bool) -> bool:
@@ -124,12 +130,32 @@ def _ensure_var_server_dir() -> Path:
     return _VAR_SERVER_DIR
 
 
+class _MenusOutsideTheGame:
+    """Answers "is this a server menu rather than the game's?" for the game engine.
+
+    PlayAural's engine checks ``state["menu"] in server.GLOBAL_SYSTEM_MENUS``
+    before repainting a player's turn menu, so a game never paints over a
+    menu the server is showing. Here every menu state except "in_game" is the
+    server's, so membership is worked out instead of listing every id.
+    """
+
+    def __contains__(self, menu_id: object) -> bool:
+        return bool(menu_id) and menu_id != "in_game"
+
+
 class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, TranscriberRoleMixin):
     """
     Main PlayPalace v11 server.
 
     Coordinates all components: network, auth, tables, games, and persistence.
     """
+
+    # Read by the game engine; see _MenusOutsideTheGame.
+    GLOBAL_SYSTEM_MENUS = _MenusOutsideTheGame()
+
+    def _open_host_management_from_game(self, user: NetworkUser, table: Table, *, return_focus_id: str | None = None) -> None:
+        """The engine's Host management action. This server has no host management menu yet."""
+        user.speak_l("host-management-unavailable", buffer="system")
 
     def __init__(
         self,
@@ -140,7 +166,6 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         ssl_cert: str | Path | None = None,
         ssl_key: str | Path | None = None,
         config_path: str | Path | None = None,
-        preload_locales: bool = False,
     ):
         """Initialize the server and core managers.
 
@@ -152,14 +177,12 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             ssl_cert: Optional SSL certificate path for TLS.
             ssl_key: Optional SSL private key path for TLS.
             config_path: Optional config.toml path override.
-            preload_locales: Whether to block startup while compiling all locales.
         """
         self.host = host
         self.port = port
         self._ssl_cert = ssl_cert
         self._ssl_key = ssl_key
         self._default_locale = "en"
-        self._enabled_locales: list[str] | None = None
 
         if db_path == "playpalace.db":
             db_path_obj = _ensure_var_server_dir() / "playpalace.db"
@@ -185,7 +208,6 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         self._documents = DocumentManager(_DOCUMENTS_DIR)
 
         self._virtual_bots = VirtualBotManager(self)
-        self._localization_warmup_task: asyncio.Task | None = None
         # Voice chat is disabled until config.toml's [voice] table is populated.
         self._voice: VoiceService = VoiceService()
         self._voice_rate_limiter = VoiceRateLimiter()
@@ -202,7 +224,6 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         self._allow_insecure_ws = False
         self._block_new_accounts = False
         self._auto_approve_new_accounts = False
-        self._preload_locales = preload_locales
         self._login_ip_limit = DEFAULT_LOGIN_ATTEMPTS_PER_MINUTE
         self._login_user_limit = DEFAULT_LOGIN_FAILURES_PER_MINUTE
         self._registration_ip_limit = DEFAULT_REGISTRATION_ATTEMPTS_PER_MINUTE
@@ -223,7 +244,6 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         self._last_table_persist_at: float = time.monotonic()
         self._lifecycle = ServerLifecycleState()
         self._lifecycle.add_gate(STARTUP_GATE_ID, message="Server is starting up.")
-        self._localization_gate_registered = False
         self._load_config_settings()
 
         # Initialize localization
@@ -236,7 +256,8 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
                 if candidate.exists():
                     provided_locales = candidate
             resolved_locales = provided_locales
-        Localization.init(resolved_locales, enabled_locales=self._enabled_locales)
+        Localization.init(resolved_locales)
+        localization_logging.install()
 
     async def start(self) -> None:
         """Start the server."""
@@ -259,7 +280,10 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
                 )
                 raise SystemExit(1)
 
-        await self._preload_locales_if_requested()
+        # Fluent bundles parse in a few seconds, so load them all before the
+        # socket opens rather than warming them in the background.
+        self._require_locales()
+        await asyncio.to_thread(Localization.preload_bundles)
 
         # Enforce transport requirements before bringing up listeners
         self._validate_transport_security()
@@ -321,18 +345,11 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         elif self.host == "0.0.0.0":  # nosec B104
             # Guidance message only; not a bind default.
             print("Bind IP is 0.0.0.0, use 127.0.0.1 to limit to local connections.")  # nosec B104
-        self._start_localization_warmup()
         self._lifecycle.resolve_gate(STARTUP_GATE_ID)
 
     async def stop(self) -> None:
         """Stop the server."""
         print("Stopping server...")
-
-        if self._localization_warmup_task:
-            self._localization_warmup_task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
-                await self._localization_warmup_task
-            self._localization_warmup_task = None
 
         # Save all tables
         self._save_tables()
@@ -368,9 +385,6 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             default_locale = locale_cfg.get("default_locale")
             if isinstance(default_locale, str) and default_locale.strip():
                 self._default_locale = default_locale.strip()
-            enabled = locale_cfg.get("enabled_locales")
-            if isinstance(enabled, list) and all(isinstance(v, str) for v in enabled):
-                self._enabled_locales = enabled
 
         self._voice = VoiceService.from_config(config.get("voice"))
 
@@ -663,91 +677,6 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             f"Set {BOOTSTRAP_WARNING_ENV}=1 to suppress this warning for CI or local testing."
         )
 
-    def _start_localization_warmup(self) -> None:
-        """Kick off localization compilation in the background."""
-        if self._preload_locales:
-            return
-        if self._localization_warmup_task:
-            return
-        Localization.set_warmup_active(True)
-        loop = asyncio.get_running_loop()
-        self._localization_warmup_task = loop.create_task(self._warm_locales_async())
-        print(
-            "Localization bundles compiling in background "
-            "(pass --preload-locales to block startup until finished)."
-        )
-
-    def _is_localization_warmup_active(self) -> bool:
-        """Return whether non-blocking localization warmup is still running."""
-        return Localization.is_warmup_active()
-
-    @staticmethod
-    def _notify_localization_in_progress(user: NetworkUser) -> None:
-        """Tell the user localization is still warming up."""
-        user.speak_l("localization-in-progress-try-again", buffer="misc")
-
-    async def _warm_locales_async(self) -> None:
-        """Compile all locale bundles without blocking startup."""
-        logger = logging.getLogger("playpalace")
-        try:
-            await self._run_localization_warmup_in_daemon_thread()
-            self._lifecycle.resolve_gate(LOCALIZATION_GATE_ID)
-            print("Localization bundles compiled.")
-        except SystemExit:
-            logger.warning("Localization preload aborted due to configuration error.")
-            self._lifecycle.enter_maintenance(
-                message="Localization preload failed due to configuration error."
-            )
-            await self._disconnect_clients_for_status(self._lifecycle.snapshot())
-        except asyncio.CancelledError:
-            pass
-        except Exception:
-            logger.exception("Localization preload failed")
-            self._lifecycle.enter_maintenance(
-                message="Localization preload failed. Check server logs."
-            )
-            await self._disconnect_clients_for_status(self._lifecycle.snapshot())
-        finally:
-            Localization.set_warmup_active(False)
-
-    async def _run_localization_warmup_in_daemon_thread(self) -> None:
-        """Run localization warmup in a daemon thread so shutdown isn't blocked."""
-        loop = asyncio.get_running_loop()
-        done: asyncio.Future[None] = loop.create_future()
-
-        def _finish_ok() -> None:
-            if not done.done():
-                done.set_result(None)
-
-        def _finish_err(exc: BaseException) -> None:
-            if not done.done():
-                done.set_exception(exc)
-
-        def _worker() -> None:
-            try:
-                Localization.preload_bundles()
-            except BaseException as exc:  # pragma: no cover - exercised via awaiter
-                with contextlib.suppress(RuntimeError):
-                    loop.call_soon_threadsafe(_finish_err, exc)
-            else:
-                with contextlib.suppress(RuntimeError):
-                    loop.call_soon_threadsafe(_finish_ok)
-
-        thread = threading.Thread(
-            target=_worker,
-            daemon=True,
-            name="playpalace-localization-warmup",
-        )
-        thread.start()
-        await done
-
-    def _ensure_localization_gate(self) -> None:
-        """Register the localization gate exactly once."""
-        if self._localization_gate_registered:
-            return
-        self._localization_gate_registered = True
-        self._lifecycle.add_gate(LOCALIZATION_GATE_ID, message="Compiling localization bundles...")
-
     async def _reject_client_during_unavailable(
         self, client: ClientConnection, snapshot: ModeSnapshot
     ) -> None:
@@ -845,47 +774,74 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             iso_value = iso_value[:-6] + "Z"
         return iso_value
 
-    async def _preload_locales_if_requested(self) -> None:
-        """Synchronously compile locales when preload flag is set."""
-        if not self._preload_locales:
-            return
-        self._ensure_localization_gate()
-        await asyncio.to_thread(Localization.preload_bundles)
-        self._lifecycle.resolve_gate(LOCALIZATION_GATE_ID)
+    def _require_locales(self) -> None:
+        """Stop at startup if the translations folder is missing or has no English.
+
+        The localization engine quietly loads nothing from a wrong folder, and
+        every message would then be read out as its raw id.
+        """
+        locales_dir = Localization._locales_dir
+        if locales_dir is None or not (locales_dir / "en").is_dir():
+            print(
+                f"ERROR: Localization directory {locales_dir} is missing or has no English (en) folder. "
+                "Check the server's locales path.",
+                file=sys.stderr,
+            )
+            raise SystemExit(1)
 
     def _load_tables(self) -> None:
-        """Load tables from database and restore their games."""
-        from .users.bot import Bot
+        """Load tables from the database and restore their games.
 
+        Each table is rebuilt completely before it's registered, so a table that
+        can't be restored never shows up half-made. A game saved by an older
+        engine (see persistence/game_format.py), an unknown game type or a game
+        that fails to load is moved to retired_tables instead: kept, but no longer
+        tried on every boot.
+        """
         tables = self._db.load_all_tables()
+        restored = 0
         for table in tables:
+            reason = self._restore_live_table(table)
+            if reason:
+                LOG.warning("Retiring table %s (%s): %s", table.table_id, table.game_type, reason)
+                self._db.retire_table(table.table_id, reason)
+                continue
+            restored += 1
+
+        print(f"Loaded {restored} tables from database.")
+
+    def _restore_live_table(self, table: Table) -> str | None:
+        """Rebuild one stored table's game, then register it. Returns a reason on failure."""
+        from ..users.bot import Bot
+
+        if not table.game_json:
             self._tables.add_table(table)
+            return None
+        if table.game_engine != GAME_ENGINE_FORMAT:
+            return f"saved by an older game engine ({table.game_engine or 'unmarked'})"
+        game_class = get_game_class(table.game_type)
+        if not game_class:
+            return "unknown game type"
 
-            # Restore game from JSON if present
-            if table.game_json:
-                game_class = get_game_class(table.game_type)
-                if not game_class:
-                    print(f"WARNING: Could not find game class for {table.game_type}")
-                    continue
+        # Rebuild everything on the side; nothing is registered until it all works.
+        try:
+            game = game_class.from_json(table.game_json)
+            game.rebuild_runtime_state()
+            game._table = table
+            game.setup_keybinds()
+            if hasattr(game, "_reset_transcripts"):
+                game._reset_transcripts()
+            # Bots are attached now; humans attach when they reconnect.
+            for player in game.players:
+                if player.is_bot:
+                    game.attach_user(player.id, Bot(player.name))
+        except Exception as exc:
+            LOG.exception("Could not restore table %s", table.table_id)
+            return f"restore failed: {type(exc).__name__}: {exc}"[:500]
 
-                # Deserialize game and rebuild runtime state
-                game = game_class.from_json(table.game_json)
-                game.rebuild_runtime_state()
-                table.game = game
-                game._table = table
-
-                # Setup keybinds (runtime only, not serialized)
-                game.setup_keybinds()
-                if hasattr(game, "_reset_transcripts"):
-                    game._reset_transcripts()
-                # Attach bots (humans will be attached when they reconnect)
-                # Action sets are already restored from serialization
-                for player in game.players:
-                    if player.is_bot:
-                        bot_user = Bot(player.name)
-                        game.attach_user(player.id, bot_user)
-
-        print(f"Loaded {len(tables)} tables from database.")
+        self._tables.add_table(table)
+        table.game = game
+        return None
 
     def _save_tables(self) -> None:
         """Save all tables to database."""
@@ -1077,7 +1033,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
 
             # Only broadcast offline if user was approved and not banned
             if user and user.approved and user.trust_level != TrustLevel.BANNED:
-                is_admin = user.trust_level.value >= TrustLevel.ADMIN.value
+                is_admin = trust_rank(user.trust_level) >= TrustLevel.ADMIN.value
                 offline_sound = "offlineadmin.ogg" if is_admin else "offline.ogg"
                 self._broadcast_presence_l("user-offline", username, offline_sound)
         except Exception:
@@ -1281,7 +1237,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             self._broadcast_login_presence(user)
 
         # Notify admin of pending account approvals (excluding banned users)
-        if user.trust_level.value >= TrustLevel.ADMIN.value:
+        if trust_rank(user.trust_level) >= TrustLevel.ADMIN.value:
             self._notify_pending_account_requests(user)
 
         # Check if user is in a table
@@ -1373,8 +1329,14 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         )
         user.set_client_type(client.client_type)
         user.set_platform(client.platform)
+        user.turn_menu_extras = self._turn_menu_extras_for
         self._users[username] = user
         return user, True
+
+    def _turn_menu_extras_for(self, user: NetworkUser) -> dict[str, str | None]:
+        """Rules text and primary action for the turn menu of the user's current game."""
+        table = self._tables.find_user_table(user.username)
+        return turn_menu_extras(table.game if table else None, user)
 
     async def _send_login_success(
         self,
@@ -1435,13 +1397,13 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
     def _broadcast_login_presence(self, user: NetworkUser) -> None:
         """Broadcast login presence and role announcements."""
         online_sound = (
-            "onlineadmin.ogg" if user.trust_level.value >= TrustLevel.ADMIN.value else "online.ogg"
+            "onlineadmin.ogg" if trust_rank(user.trust_level) >= TrustLevel.ADMIN.value else "online.ogg"
         )
         self._broadcast_presence_l("user-online", user.username, online_sound)
 
-        if user.trust_level.value >= TrustLevel.SERVER_OWNER.value:
+        if trust_rank(user.trust_level) >= TrustLevel.SERVER_OWNER.value:
             self._broadcast_server_owner_announcement(user.username)
-        elif user.trust_level.value >= TrustLevel.ADMIN.value:
+        elif trust_rank(user.trust_level) >= TrustLevel.ADMIN.value:
             self._broadcast_admin_announcement(user.username)
 
     def _notify_pending_account_requests(self, user: NetworkUser) -> None:
@@ -1472,13 +1434,13 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         if was_bot:
             game.broadcast_l("player-took-over", player=user.username)
             game.broadcast_sound("join.ogg")
-            game.rebuild_all_menus()
+            game.refresh_menus()
 
         self._user_states[username] = {
             "menu": "in_game",
             "table_id": table.table_id,
         }
-        game.rebuild_player_menu(player)
+        game.restore_session_ui(player)
         self._queue_transcript_replay(user, game, player.id)
         return True
 
@@ -1679,7 +1641,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         """
         if locale:
             try:
-                if locale in Localization.get_available_locale_codes():
+                if locale in Localization.available_locale_codes():
                     return locale
             except Exception:
                 pass
@@ -1764,7 +1726,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
                 ),
             ]
             # Add administration menu for admins
-            if user.trust_level.value >= TrustLevel.ADMIN.value:
+            if trust_rank(user.trust_level) >= TrustLevel.ADMIN.value:
                 items.append(
                     MenuItem(
                         text=Localization.get(user.locale, "administration"), id="administration"
@@ -1795,8 +1757,13 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         """Show game categories menu."""
         categories = GameRegistry.get_by_category()
         items = []
-        for category_key in sorted(categories.keys()):
-            category_name = Localization.get(user.locale, category_key)
+        # Games report plain category ids ("cards", "dice"); each has a
+        # game-category-<id> label. Show them in the engine's order, not
+        # alphabetically by id.
+        ordered_keys = [key for key in GAME_CATEGORY_ORDER if key in categories]
+        ordered_keys += sorted(key for key in categories if key not in GAME_CATEGORY_ORDER)
+        for category_key in ordered_keys:
+            category_name = Localization.get(user.locale, f"game-category-{category_key}")
             game_count = len(categories.get(category_key, []))
             items.append(
                 MenuItem(
@@ -1862,7 +1829,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             else:
                 listing_key = "table-listing"
             items.append(
-                MenuItem(
+                MetaMenuItem(
                     text=Localization.get(
                         user.locale,
                         listing_key,
@@ -1920,7 +1887,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             else:
                 listing_key = "table-listing-game"
             items.append(
-                MenuItem(
+                MetaMenuItem(
                     text=Localization.get(
                         user.locale,
                         listing_key,
@@ -1957,14 +1924,8 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
 
     def _show_options_menu(self, user: NetworkUser) -> None:
         """Show top-level options menu: language, fluent langs, then pref categories."""
-        if self._is_localization_warmup_active():
-            lang_key = f"language-{user.locale}"
-            current_lang = Localization.get(user.locale, lang_key)
-            if current_lang == lang_key:
-                current_lang = user.locale
-        else:
-            languages = Localization.get_available_languages(user.locale, fallback=user.locale)
-            current_lang = languages.get(user.locale, user.locale)
+        languages = Localization.get_available_languages(user.locale, fallback=user.locale)
+        current_lang = languages.get(user.locale, user.locale)
 
         items = [
             MenuItem(
@@ -2234,10 +2195,6 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
 
     async def _apply_locale_change(self, user: NetworkUser, lang_code: str) -> None:
         """Apply a locale change from the language menu."""
-        if self._is_localization_warmup_active():
-            self._notify_localization_in_progress(user)
-            self._show_options_menu(user)
-            return
         languages = Localization.get_available_languages(fallback=user.locale)
         if lang_code in languages:
             user.set_locale(lang_code)
@@ -2580,7 +2537,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         """Return True if user is approved or admin/server owner; otherwise show approval notice."""
         if user.approved:
             return True
-        if user.trust_level.value >= TrustLevel.ADMIN.value:
+        if trust_rank(user.trust_level) >= TrustLevel.ADMIN.value:
             return True
         user.speak_l("waiting-for-approval", buffer="activity")
         self._show_main_menu(user)
@@ -2621,7 +2578,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         elif selection_id == "options":
             self._show_options_menu(user)
         elif selection_id == "administration":
-            if user.trust_level.value >= TrustLevel.ADMIN.value:
+            if trust_rank(user.trust_level) >= TrustLevel.ADMIN.value:
                 self._show_admin_menu(user)
         elif selection_id == "logout":
             self._show_logout_confirm_menu(user)
@@ -2667,10 +2624,6 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
 
     def _show_fluent_languages_menu(self, user: NetworkUser) -> None:
         """Show fluent languages toggle menu."""
-        if self._is_localization_warmup_active():
-            self._notify_localization_in_progress(user)
-            return
-
         from server.core.ui.common_flows import show_language_menu
 
         original = list(user.fluent_languages)
@@ -3127,7 +3080,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             game.add_player(user.username, user)
             game.broadcast_l("table-joined", player=user.username)
             game.broadcast_sound("join.ogg")
-            game.rebuild_all_menus()
+            game.refresh_menus()
         else:
             # Join as spectator
             table.add_member(user.username, user, as_spectator=True)
@@ -3135,7 +3088,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             user.speak_l("spectator-joined", host=table.host)
             game.broadcast_l("now-spectating", player=user.username)
             game.broadcast_sound("join_spectator.ogg")
-            game.rebuild_all_menus()
+            game.refresh_menus()
 
         self._user_states[user.username] = {"menu": "in_game", "table_id": table_id}
 
@@ -3184,7 +3137,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
                     table.add_member(user.username, user, as_spectator=False)
                     game.broadcast_l("player-took-over", player=user.username)
                     game.broadcast_sound("join.ogg")
-                    game.rebuild_all_menus()
+                    game.refresh_menus()
                     self._user_states[user.username] = {
                         "menu": "in_game",
                         "table_id": table_id,
@@ -3197,7 +3150,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
                     user.speak_l("spectator-joined", host=table.host)
                     game.broadcast_l("now-spectating", player=user.username)
                     game.broadcast_sound("join_spectator.ogg")
-                    game.rebuild_all_menus()
+                    game.refresh_menus()
                     self._user_states[user.username] = {
                         "menu": "in_game",
                         "table_id": table_id,
@@ -3215,7 +3168,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             game.add_player(user.username, user)
             game.broadcast_l("table-joined", player=user.username)
             game.broadcast_sound("join.ogg")
-            game.rebuild_all_menus()
+            game.refresh_menus()
             self._user_states[user.username] = {"menu": "in_game", "table_id": table_id}
 
         elif selection_id == "join_spectator":
@@ -3224,7 +3177,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             user.speak_l("spectator-joined", host=table.host)
             game.broadcast_l("now-spectating", player=user.username)
             game.broadcast_sound("join_spectator.ogg")
-            game.rebuild_all_menus()
+            game.refresh_menus()
             self._user_states[user.username] = {"menu": "in_game", "table_id": table_id}
 
         elif selection_id == "back":
@@ -3280,7 +3233,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             save_id: Saved table id.
         """
         import json
-        from .users.bot import Bot
+        from ..users.bot import Bot
 
         record = self._db.get_saved_table(save_id)
         if not record:
@@ -3317,57 +3270,89 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
                 self._show_main_menu(user)
             return
 
-        # All players available - create table and restore game
+        # Rebuild the game before creating anything, so a save the current
+        # engine can't use leaves no table, membership or state behind.
+        game = None
+        if record.game_engine == GAME_ENGINE_FORMAT:
+            try:
+                game = game_class.from_json(record.game_json)
+                game.rebuild_runtime_state()
+            except Exception:
+                LOG.exception("Could not restore saved table %s", save_id)
+                game = None
+        if game is None:
+            user.speak_l("saved-table-incompatible")
+            if not self._show_saved_tables_menu(user):
+                self._show_main_menu(user)
+            return
+
+        # All players available and the game rebuilt: create the table and move everyone in.
         table = self._tables.create_table(record.game_type, user.username, user)
+        previous_states: dict[str, dict | None] = {}
+        try:
+            table.game = game
+            game._table = table  # Enable game to call table.destroy()
 
-        # Load game from JSON and rebuild runtime state
-        game = game_class.from_json(record.game_json)
-        game.rebuild_runtime_state()
-        table.game = game
-        game._table = table  # Enable game to call table.destroy()
+            # Update host to the restorer
+            game.host = user.username
 
-        # Update host to the restorer
-        game.host = user.username
+            # Attach users and transfer all human players
+            # NOTE: We must attach users by player.id (UUID), not by username.
+            # The deserialized game has player objects with their original IDs.
+            for member in members_data:
+                member_username = member.get("username")
+                is_bot = member.get("is_bot", False)
 
-        # Attach users and transfer all human players
-        # NOTE: We must attach users by player.id (UUID), not by username.
-        # The deserialized game has player objects with their original IDs.
-        for member in members_data:
-            member_username = member.get("username")
-            is_bot = member.get("is_bot", False)
+                # Find the player object by name to get their ID
+                player = game.get_player_by_name(member_username)
+                if not player:
+                    continue
 
-            # Find the player object by name to get their ID
-            player = game.get_player_by_name(member_username)
-            if not player:
-                continue
+                if is_bot:
+                    # Recreate bot with the player's original ID
+                    bot_user = Bot(member_username, uuid=player.id)
+                    game.attach_user(player.id, bot_user)
+                else:
+                    # Attach human user by player ID
+                    member_user = self._users.get(member_username)
+                    if member_user:
+                        table.add_member(member_username, member_user, as_spectator=False)
+                        game.attach_user(player.id, member_user)
+                        previous_states.setdefault(member_username, self._user_states.get(member_username))
+                        self._user_states[member_username] = {
+                            "menu": "in_game",
+                            "table_id": table.table_id,
+                        }
 
-            if is_bot:
-                # Recreate bot with the player's original ID
-                bot_user = Bot(member_username, uuid=player.id)
-                game.attach_user(player.id, bot_user)
-            else:
-                # Attach human user by player ID
-                member_user = self._users.get(member_username)
-                if member_user:
-                    table.add_member(member_username, member_user, as_spectator=False)
-                    game.attach_user(player.id, member_user)
-                    self._user_states[member_username] = {
-                        "menu": "in_game",
-                        "table_id": table.table_id,
-                    }
+            # Setup keybinds (runtime only, not serialized)
+            # Action sets are already restored from serialization
+            game.setup_keybinds()
 
-        # Setup keybinds (runtime only, not serialized)
-        # Action sets are already restored from serialization
-        game.setup_keybinds()
-
-        # Rebuild menus for all players
-        game.rebuild_all_menus()
+            # Rebuild menus for all players
+            game.refresh_menus()
+        except Exception:
+            LOG.exception("Restoring saved table %s failed after the table was created", save_id)
+            self._undo_saved_table_restore(table, previous_states)
+            user.speak_l("saved-table-incompatible")
+            if not self._show_saved_tables_menu(user):
+                self._show_main_menu(user)
+            return
 
         # Notify all players
         game.broadcast_l("table-restored")
 
         # Delete the saved table now that it's been restored
         self._db.delete_saved_table(save_id)
+
+    def _undo_saved_table_restore(self, table: Table, previous_states: dict[str, dict | None]) -> None:
+        """Take back a half-done restore: drop the table and give members their old state back."""
+        table._game = None
+        self._tables.remove_table(table.table_id)
+        for username, state in previous_states.items():
+            if state is None:
+                self._user_states.pop(username, None)
+            else:
+                self._user_states[username] = state
 
     def _show_leaderboards_menu(self, user: NetworkUser) -> None:
         """Show leaderboards game selection menu.
@@ -4399,11 +4384,13 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
                 if player_user:
                     self._show_main_menu(player_user, reset_history=True)
 
-    def on_game_result(self, result) -> None:
-        """Handle game result persistence.
+    def on_game_result(self, result, rating_updates: dict[str, tuple[float, float]] | None = None) -> None:
+        """Save a finished game's result and the rating changes the game calculated.
 
         Args:
             result: GameResult instance.
+            rating_updates: New (mu, sigma) per player id, already validated by
+                the game; empty for games without ratings.
         """
         from ..game_utils.game_result import GameResult
 
@@ -4421,6 +4408,8 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             ],
             custom_data=result.custom_data,
         )
+        for player_id, (mu, sigma) in (rating_updates or {}).items():
+            self._db.set_player_rating(player_id, result.game_type, mu, sigma)
 
     def on_table_save(self, table, username: str) -> None:
         """Handle table save request.
@@ -4761,7 +4750,7 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
             items.append(page_summary_item(user.locale, page_data))
         if entries:
             items.extend(
-                MenuItem(text=line, id="online_user", meta={"username": username})
+                MetaMenuItem(text=line, id="online_user", meta={"username": username})
                 for username, line in page_data.items
             )
         else:
@@ -4853,7 +4842,9 @@ class Server(VoiceMixin, AdministrationMixin, DocumentBrowsingMixin, Transcriber
         if table and table.game:
             player = table.game.get_player_by_id(user.uuid)
             if player:
-                if table.game._is_transient_display_open(player):
+                # Don't stack the list on top of a status box or a pending input.
+                game = table.game
+                if player.id in game._status_box_open or player.id in game._pending_actions:
                     return
                 table.game.status_box(player, self._format_online_users_lines(user))
                 return
@@ -4870,7 +4861,6 @@ async def run_server(
     port: int | None = None,
     ssl_cert: str | Path | None = None,
     ssl_key: str | Path | None = None,
-    preload_locales: bool = False,
 ) -> None:
     """Run the server.
 
@@ -4879,7 +4869,6 @@ async def run_server(
         port: Port number to listen on (falls back to [server].port in config, then 8000)
         ssl_cert: Path to SSL certificate file (falls back to [network].ssl_cert in config)
         ssl_key: Path to SSL private key file (falls back to [network].ssl_key in config)
-        preload_locales: Whether to block on localization compilation.
     """
     _configure_logging()
     _install_exception_handlers(asyncio.get_running_loop())
@@ -4906,7 +4895,6 @@ async def run_server(
         ssl_cert=ssl_cert,
         ssl_key=ssl_key,
         db_path=str(db_path),
-        preload_locales=preload_locales,
     )
     await server.start()
 

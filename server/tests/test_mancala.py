@@ -19,8 +19,8 @@ from server.games.mancala.game import (
     P0_STORE,
     P1_STORE,
 )
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
+from server.users.test_user import MockUser
+from server.users.bot import Bot
 
 
 class TestMancalaUnit:
@@ -30,7 +30,7 @@ class TestMancalaUnit:
         game = MancalaGame()
         assert game.get_name() == "Mancala"
         assert game.get_type() == "mancala"
-        assert game.get_category() == "category-board-games"
+        assert game.get_category() == "board"
         assert game.get_min_players() == 2
         assert game.get_max_players() == 2
 

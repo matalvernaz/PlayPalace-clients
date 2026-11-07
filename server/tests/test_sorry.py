@@ -1,340 +1,895 @@
-"""Tests for the Sorry game scaffold."""
+"""Tests for Sorry."""
 
-import json
-import random
+from pathlib import Path
 
-from server.core.users.test_user import MockUser
-from server.games.registry import GameRegistry
-from server.games.sorry.game import SorryGame, SorryOptions, SorryPlayer
-from server.games.sorry.rules import A5065CoreRules, Classic00390Rules
-from server.games.sorry.state import (
-    TRACK_LENGTH,
-    build_initial_game_state,
-    create_pawns_for_count,
-    clockwise_distance,
-    discard_current_card,
-    draw_next_card,
-    get_home_entry_track_for_seat,
-    get_start_track_for_seat,
-    get_track_occupancy,
+from ..games.registry import GameRegistry
+from ..games.sorry.game import SorryGame, SorryOptions
+from ..games.sorry.moves import (
+    SorryMove,
+    apply_move,
+    generate_legal_moves,
+    generate_split_options_for_pair,
 )
+from ..games.sorry.rules import RULES_PROFILES
+from ..games.sorry.state import build_default_draw_pile, build_initial_game_state
+from ..messages.localization import Localization
+from ..users.bot import Bot
+from ..users.test_user import MockUser
 
 
-def test_classic_rules_policy_matches_existing_behavior() -> None:
-    """Classic policy methods should preserve current card semantics."""
-    rules = Classic00390Rules()
-
-    assert rules.profile_id == "classic_00390"
-    assert rules.pawns_per_player == 4
-    assert rules.card_two_grants_extra_turn() is True
-
-    assert rules.can_leave_start_with_card("1") is True
-    assert rules.can_leave_start_with_card("2") is True
-    assert rules.can_leave_start_with_card("3") is False
-
-    assert rules.forward_steps_for_card("1") == (1,)
-    assert rules.forward_steps_for_card("10") == (10,)
-    assert rules.forward_steps_for_card("sorry") == ()
-
-    assert rules.backward_steps_for_card("4") == (4,)
-    assert rules.backward_steps_for_card("10") == (1,)
-    assert rules.backward_steps_for_card("11") == ()
-
-    assert rules.allows_split_seven("7") is True
-    assert rules.allows_split_seven("8") is False
-    assert rules.allows_swap("11") is True
-    assert rules.allows_swap("12") is False
-    assert rules.allows_sorry("sorry") is True
-    assert rules.allows_sorry("1") is False
+_locales_dir = Path(__file__).parent.parent / "locales"
+Localization.init(_locales_dir)
 
 
-def test_a5065_rules_policy_deltas_from_classic() -> None:
-    rules = A5065CoreRules()
-
-    assert rules.profile_id == "a5065_core"
-    assert rules.pawns_per_player == 3
-    assert rules.card_two_grants_extra_turn() is False
-    assert rules.slide_policy_id() == "a5065_core"
-
-    assert rules.can_leave_start_with_card("1") is True
-    assert rules.can_leave_start_with_card("2") is True
-    assert rules.can_leave_start_with_card("3") is True
-    assert rules.can_leave_start_with_card("4") is False
-    assert rules.sorry_fallback_forward_steps("sorry") == (4,)
-    assert rules.sorry_fallback_forward_steps("1") == ()
-
-
-def test_game_creation() -> None:
-    """Sorry game metadata should be wired correctly."""
-    game = SorryGame()
-    assert game.get_name() == "Sorry!"
-    assert game.get_type() == "sorry"
-    assert game.get_category() == "category-board-games"
-    assert game.get_min_players() == 2
-    assert game.get_max_players() == 4
-    assert game.rules_profile_id == "classic_00390"
-
-
-def test_game_registered() -> None:
-    """Sorry game should be available via game registry."""
-    registered = GameRegistry.get("sorry")
-    assert registered is SorryGame
+def make_game(
+    *,
+    player_count: int = 2,
+    start: bool = False,
+    bot_second: bool = False,
+    web_first: bool = False,
+    names: list[str] | None = None,
+    locales: list[str] | None = None,
+    **option_overrides,
+) -> SorryGame:
+    game = SorryGame(options=SorryOptions(**option_overrides))
+    game.setup_keybinds()
+    for index in range(player_count):
+        if bot_second and index == 1:
+            user = Bot("Bot", uuid=f"p{index + 1}")
+            game.add_player("Bot", user)
+        else:
+            name = names[index] if names and index < len(names) else f"Player{index + 1}"
+            locale = locales[index] if locales and index < len(locales) else "en"
+            user = MockUser(name, locale=locale, uuid=f"p{index + 1}")
+            if web_first and index == 0:
+                user.client_type = "web"
+            game.add_player(name, user)
+    game.host = names[0] if names else "Player1"
+    if start:
+        game.on_start()
+        game.flush_menus()
+    return game
 
 
-def test_player_creation_defaults() -> None:
-    """Players should use Sorry-specific state fields."""
-    game = SorryGame()
-    user = MockUser("Alice")
-    player = game.add_player("Alice", user)
-
-    assert isinstance(player, SorryPlayer)
-    assert player.name == "Alice"
-    assert player.pawns_in_start == 4
-    assert player.pawns_in_home == 0
+def advance_until(game: SorryGame, condition, max_ticks: int = 600) -> bool:
+    for _ in range(max_ticks):
+        if condition():
+            return True
+        game.on_tick()
+        game.flush_menus()
+    return condition()
 
 
-def test_player_creation_uses_selected_profile_pawn_count() -> None:
-    game = SorryGame(
-        options=SorryOptions(
-            rules_profile="a5065_core",
-            auto_apply_single_move=False,
-            faster_setup_one_pawn_out=False,
-        )
+class TestRegistration:
+    def test_game_registered(self) -> None:
+        assert GameRegistry.get("sorry") is SorryGame
+
+    def test_class_methods_and_defaults(self) -> None:
+        assert SorryGame.get_name() == "Sorry!"
+        assert SorryGame.get_type() == "sorry"
+        assert SorryGame.get_category() == "board"
+        assert SorryGame.get_min_players() == 2
+        assert SorryGame.get_max_players() == 4
+        assert SorryGame.get_supported_leaderboards() == ["wins", "rating", "games_played"]
+
+        options = SorryOptions()
+        assert options.rules_profile == "classic_00390"
+        assert options.auto_apply_single_move is True
+        assert options.faster_setup_one_pawn_out is False
+        assert SorryGame.relevant_preferences == ["brief_announcements"]
+
+
+def test_prestart_validation_rejects_unsupported_rules_profile() -> None:
+    game = make_game(rules_profile="unknown_profile")
+
+    assert (
+        "sorry-error-unsupported-rules-profile",
+        {"profile": "unknown_profile"},
+    ) in game.prestart_validate()
+
+
+def test_on_start_initializes_state_and_music() -> None:
+    game = make_game(start=True)
+
+    assert [player.color for player in game.get_active_players()] == ["red", "blue"]
+    assert game.current_player == game.players[0]
+    assert game.game_state.turn_phase == "draw"
+
+    user = game.get_user(game.players[0])
+    assert user is not None
+    assert any(
+        message.type == "play_music" and message.data["name"] == "game_pig/mus.ogg"
+        for message in user.messages
     )
-    user = MockUser("Alice")
-    player = game.add_player("Alice", user)
-    assert player.pawns_in_start == 3
 
 
-def test_on_start_initializes_state_with_faster_setup() -> None:
-    """Fast setup should place one pawn out for each player."""
-    game = SorryGame(
-        options=SorryOptions(
-            auto_apply_single_move=False,
-            faster_setup_one_pawn_out=True,
-        )
+def test_final_winner_announcement_uses_winner_perspective() -> None:
+    game = make_game(start=True)
+    winner, observer = game.get_active_players()
+    winner_user = game.get_user(winner)
+    observer_user = game.get_user(observer)
+    winner_state = game.game_state.player_states[winner.id]
+    for pawn in winner_state.pawns:
+        pawn.zone = "home"
+    winner_user.clear_messages()
+    observer_user.clear_messages()
+
+    game._resolve_selected_move(
+        winner,
+        SorryMove(action_id="test_win", move_type="test"),
+        "1",
+        [],
     )
-    user1 = MockUser("Alice")
-    user2 = MockUser("Bob")
-    p1 = game.add_player("Alice", user1)
-    p2 = game.add_player("Bob", user2)
 
-    game.on_start()
-
-    assert game.status == "playing"
-    assert game.game_active is True
-    assert p1.pawns_in_start == 3
-    assert p2.pawns_in_start == 3
-
-    s1 = game.game_state.player_states[p1.id]
-    s2 = game.game_state.player_states[p2.id]
-    assert game.game_state.player_order == [p1.id, p2.id]
-    assert s1.pawns[0].zone == "track"
-    assert s2.pawns[0].zone == "track"
-    assert s1.pawns[0].track_position == s1.start_track
-    assert s2.pawns[0].track_position == s2.start_track
+    assert game.status == "finished"
+    assert winner_user.get_last_spoken() == "You win!"
+    assert observer_user.get_last_spoken() == "Player1 wins!"
 
 
-def test_on_start_a5065_core_uses_three_pawns() -> None:
-    game = SorryGame(
-        options=SorryOptions(
-            rules_profile="a5065_core",
-            auto_apply_single_move=False,
-            faster_setup_one_pawn_out=False,
-        )
+def test_default_deck_matches_standard_45_card_composition() -> None:
+    deck = build_default_draw_pile()
+
+    assert len(deck) == 45
+    assert deck.count("1") == 5
+    for face in ("2", "3", "4", "5", "7", "8", "10", "11", "12", "sorry"):
+        assert deck.count(face) == 4
+
+
+def test_classic_start_move_requires_one_or_two() -> None:
+    state = build_initial_game_state(["p1", "p2"])
+    player_state = state.player_states["p1"]
+    rules = RULES_PROFILES["classic_00390"]
+
+    assert generate_legal_moves(state, player_state, "1", rules)
+    assert generate_legal_moves(state, player_state, "2", rules)
+    assert not generate_legal_moves(state, player_state, "3", rules)
+
+
+def test_a5065_sorry_card_has_forward_fallback() -> None:
+    state = build_initial_game_state(["p1", "p2"], pawns_per_player=3)
+    player_state = state.player_states["p1"]
+    rules = RULES_PROFILES["a5065_core"]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = player_state.start_track
+
+    moves = generate_legal_moves(state, player_state, "sorry", rules)
+    assert any(move.move_type == "sorry_fallback_forward" for move in moves)
+
+
+def test_slide_captures_all_opponents_on_slide() -> None:
+    state = build_initial_game_state(["p1", "p2", "p3"])
+    red = state.player_states["p1"]
+    blue = state.player_states["p2"]
+    green = state.player_states["p3"]
+    rules = RULES_PROFILES["classic_00390"]
+
+    red.pawns[0].zone = "track"
+    red.pawns[0].track_position = 15
+    blue.pawns[0].zone = "track"
+    blue.pawns[0].track_position = 17
+    green.pawns[0].zone = "track"
+    green.pawns[0].track_position = 19
+
+    move = next(move for move in generate_legal_moves(state, red, "1", rules) if move.pawn_index == 1)
+    captures = apply_move(state, red, move, rules)
+
+    assert red.pawns[0].track_position == 19
+    assert blue.pawns[0].zone == "start"
+    assert green.pawns[0].zone == "start"
+    assert len(captures) == 2
+
+
+def test_swap_can_trigger_slide() -> None:
+    state = build_initial_game_state(["p1", "p2"])
+    red = state.player_states["p1"]
+    blue = state.player_states["p2"]
+    rules = RULES_PROFILES["classic_00390"]
+
+    red.pawns[0].zone = "track"
+    red.pawns[0].track_position = 10
+    blue.pawns[0].zone = "track"
+    blue.pawns[0].track_position = 16
+
+    move = next(move for move in generate_legal_moves(state, red, "11", rules) if move.move_type == "swap")
+    apply_move(state, red, move, rules)
+
+    assert red.pawns[0].track_position == 19
+    assert blue.pawns[0].track_position == 10
+
+
+def test_swap_only_checks_slide_for_active_pawn() -> None:
+    state = build_initial_game_state(["p1", "p2"])
+    red = state.player_states["p1"]
+    blue = state.player_states["p2"]
+    rules = RULES_PROFILES["classic_00390"]
+
+    red.pawns[0].zone = "track"
+    red.pawns[0].track_position = 1
+    blue.pawns[0].zone = "track"
+    blue.pawns[0].track_position = 10
+
+    move = next(
+        move
+        for move in generate_legal_moves(state, red, "11", rules)
+        if move.move_type == "swap" and move.target_player_id == "p2" and move.target_pawn_index == 1
     )
-    user1 = MockUser("Alice")
-    user2 = MockUser("Bob")
-    p1 = game.add_player("Alice", user1)
-    p2 = game.add_player("Bob", user2)
+    apply_move(state, red, move, rules)
 
-    game.on_start()
-
-    s1 = game.game_state.player_states[p1.id]
-    s2 = game.game_state.player_states[p2.id]
-    assert len(s1.pawns) == 3
-    assert len(s2.pawns) == 3
-    assert p1.pawns_in_start == 3
-    assert p2.pawns_in_start == 3
+    assert red.pawns[0].track_position == 10
+    assert blue.pawns[0].track_position == 1
 
 
-def test_on_start_a5065_core_faster_setup_reduces_start_count() -> None:
-    game = SorryGame(
-        options=SorryOptions(
-            rules_profile="a5065_core",
-            auto_apply_single_move=False,
-            faster_setup_one_pawn_out=True,
-        )
+def test_split_seven_moves_two_pawns() -> None:
+    state = build_initial_game_state(["p1", "p2"])
+    red = state.player_states["p1"]
+    rules = RULES_PROFILES["classic_00390"]
+
+    red.pawns[0].zone = "track"
+    red.pawns[0].track_position = 5
+    red.pawns[1].zone = "track"
+    red.pawns[1].track_position = 8
+
+    pick = next(move for move in generate_legal_moves(state, red, "7", rules) if move.move_type == "split7_pick")
+    options = generate_split_options_for_pair(red, pick.pawn_index or 0, pick.secondary_pawn_index or 0)
+    chosen = next(move for move in options if move.steps == 3 and move.secondary_steps == 4)
+    apply_move(state, red, chosen, rules)
+
+    assert red.pawns[0].track_position == 8
+    assert red.pawns[1].track_position == 12
+
+
+def test_exact_home_entry_required() -> None:
+    state = build_initial_game_state(["p1", "p2"])
+    red = state.player_states["p1"]
+    rules = RULES_PROFILES["classic_00390"]
+
+    red.pawns[0].zone = "track"
+    red.pawns[0].track_position = 58
+
+    moves = generate_legal_moves(state, red, "3", rules)
+    assert any(move.pawn_index == 1 for move in moves)
+
+    illegal = generate_legal_moves(state, red, "8", rules)
+    assert not any(move.pawn_index == 1 for move in illegal)
+
+
+def test_card_two_grants_extra_turn_in_classic() -> None:
+    game = make_game(start=True)
+    current = game.current_player
+    assert current is not None
+    state = game.game_state.player_states[current.id]
+    for pawn in state.pawns[1:]:
+        pawn.zone = "home"
+    game._sync_player_counts()
+
+    game.game_state.draw_pile = ["2"]
+    game._action_draw_card(current, "draw_card")
+
+    assert advance_until(
+        game,
+        lambda: game.current_player == current and game.game_state.turn_phase == "draw",
+        max_ticks=80,
     )
-    user1 = MockUser("Alice")
-    user2 = MockUser("Bob")
-    p1 = game.add_player("Alice", user1)
-    p2 = game.add_player("Bob", user2)
-
-    game.on_start()
-
-    s1 = game.game_state.player_states[p1.id]
-    s2 = game.game_state.player_states[p2.id]
-    assert len(s1.pawns) == 3
-    assert len(s2.pawns) == 3
-    assert p1.pawns_in_start == 2
-    assert p2.pawns_in_start == 2
-    assert sum(1 for pawn in s1.pawns if pawn.zone == "track") == 1
-    assert sum(1 for pawn in s2.pawns if pawn.zone == "track") == 1
 
 
-def test_serialization_round_trip_preserves_options() -> None:
-    """Scaffold options and state should serialize cleanly."""
-    game = SorryGame(
-        options=SorryOptions(
-            rules_profile="a5065_core",
-            auto_apply_single_move=True,
-            faster_setup_one_pawn_out=False,
-        )
+def test_web_turn_menu_orders_utility_actions_at_bottom() -> None:
+    game = make_game(start=True, web_first=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+
+    game.game_state.current_card = "1"
+    game.game_state.turn_phase = "choose_move"
+    game.refresh_menus(player)
+    game.flush_menus()
+
+    ids = [item.id for item in user.menus["turn_menu"]["items"]]
+    assert "draw_card" in ids
+    assert any(item_id and item_id.startswith("move_slot_") for item_id in ids)
+    assert ids.index("check_scores") < ids.index("whose_turn") < ids.index("whos_at_table")
+    assert ids[-2:] == ["web_actions_menu", "web_leave_table"]
+
+
+def test_draw_card_visible_but_disabled_out_of_turn() -> None:
+    game = make_game(start=True)
+    player = next(p for p in game.players if p != game.current_player)
+
+    visible = game.get_all_visible_actions(player)
+    actions = {resolved.action.id: resolved for resolved in visible}
+
+    assert "draw_card" in actions
+    assert actions["draw_card"].enabled is False
+    assert actions["draw_card"].disabled_reason == "action-not-your-turn"
+
+
+def test_draw_card_pending_move_speaks_contextual_error() -> None:
+    game = make_game(start=True)
+    player = game.current_player
+    assert player is not None
+    user = game.get_user(player)
+    assert user is not None
+    game.game_state.current_card = "1"
+    game.game_state.turn_phase = "choose_move"
+    user.clear_messages()
+
+    visible = {resolved.action.id: resolved for resolved in game.get_all_visible_actions(player)}
+    assert "draw_card" in visible
+    assert visible["draw_card"].enabled is False
+    assert visible["draw_card"].disabled_reason == "sorry-error-draw-pending-move"
+
+    game.handle_event(
+        player,
+        {"type": "menu", "menu_id": "turn_menu", "selection_id": "draw_card"},
     )
-    user1 = MockUser("Alice")
-    user2 = MockUser("Bob")
-    game.add_player("Alice", user1)
-    game.add_player("Bob", user2)
-    game.on_start()
 
+    assert user.get_last_spoken() == (
+        "You already drew a card. Choose one of the available moves for that "
+        "card before drawing again."
+    )
+
+
+def test_turn_menu_contains_web_info_actions() -> None:
+    game = make_game(start=True, web_first=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+
+    game.refresh_menus(player)
+    game.flush_menus()
+    labels = [item.text for item in user.menus["turn_menu"]["items"]]
+
+    assert Localization.get("en", "sorry-check-board") in labels
+    assert Localization.get("en", "sorry-check-card") in labels
+    assert Localization.get("en", "sorry-check-status") in labels
+
+
+def test_whos_at_table_is_visible_for_web_in_waiting_state() -> None:
+    game = make_game(web_first=True)
+    player = game.players[0]
+
+    action = game.find_action(player, "whos_at_table")
+    assert action is not None
+
+    resolved = game.resolve_action(player, action)
+    assert resolved.visible is True
+
+
+def test_bot_can_finish_scripted_endgame() -> None:
+    game = make_game(start=True, bot_second=True)
+    bot_player = game.players[1]
+    human = game.players[0]
+
+    game.set_turn_players([bot_player, human])
+    game.current_player = bot_player
+    bot_state = game.game_state.player_states[bot_player.id]
+    for pawn in bot_state.pawns[:-1]:
+        pawn.zone = "home"
+    bot_state.pawns[-1].zone = "home_path"
+    bot_state.pawns[-1].home_steps = 5
+    game._sync_player_counts()
+    game.game_state.draw_pile = ["1"]
+
+    bot_player.bot_think_ticks = 0
+    assert advance_until(game, lambda: game.status == "finished", max_ticks=120)
+    assert game.winner_name == bot_player.name
+
+
+def test_game_start_uses_localized_player_list_joining() -> None:
+    game = make_game(
+        player_count=2,
+        names=["Trung", "Ba"],
+        locales=["vi", "vi"],
+        start=True,
+    )
+    user = game.get_user(game.players[0])
+    assert user is not None
+
+    expected_message = Localization.get(
+        "vi",
+        "sorry-game-started",
+        players=Localization.format_list_and("vi", ["Trung", "Ba"]),
+    )
+    started_message = next(text for text in user.get_spoken_messages() if text == expected_message)
+    assert "và" in started_message
+    assert " and " not in started_message
+
+
+def test_draw_announcement_waits_for_audio_queue() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+    user.clear_messages()
+
+    game.game_state.draw_pile = ["1"]
+    game._action_draw_card(player, "draw_card")
+
+    assert game.game_state.turn_phase == "resolving"
+    assert not any(message.type == "speak" for message in user.messages)
+
+    assert advance_until(game, lambda: game.game_state.turn_phase == "choose_move", max_ticks=30)
+    assert Localization.get("en", "sorry-you-draw-announcement", card="1") in user.get_spoken_messages()
+    assert user.menus["turn_menu"]["selection_id"] == "move_slot_1"
+
+
+def test_auto_move_after_draw_does_not_focus_draw_card() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+    player_state = game.game_state.player_states[player.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 5
+    game.game_state.draw_pile = ["3"]
+
+    game._action_draw_card(player, "draw_card")
+
+    assert advance_until(
+        game,
+        lambda: player_state.pawns[0].zone == "track"
+        and player_state.pawns[0].track_position == 8,
+        max_ticks=30,
+    )
+    assert game.active_sequences
+    assert user.menus["turn_menu"]["selection_id"] is None
+
+    assert advance_until(
+        game,
+        lambda: not game.active_sequences and game.current_player != player,
+        max_ticks=120,
+    )
+    assert user.menus["turn_menu"]["selection_id"] is None
+
+
+def test_no_move_after_draw_does_not_focus_draw_card() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+    game.game_state.draw_pile = ["3"]
+
+    game._action_draw_card(player, "draw_card")
+
+    assert advance_until(
+        game,
+        lambda: not game.active_sequences and game.current_player != player,
+        max_ticks=60,
+    )
+    assert user.menus["turn_menu"]["selection_id"] is None
+
+
+def test_selecting_move_focuses_draw_card() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+
+    game.game_state.current_card = "1"
+    game.game_state.turn_phase = "choose_move"
+
+    game._action_choose_move(player, "move_slot_1")
+    game.flush_menus()
+
+    assert user.menus["turn_menu"]["selection_id"] == "draw_card"
+
+
+def test_split_prompt_focuses_first_split_option() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+
+    player_state = game.game_state.player_states[player.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 5
+    player_state.pawns[1].zone = "track"
+    player_state.pawns[1].track_position = 8
+    game.game_state.current_card = "7"
+    game.game_state.turn_phase = "choose_move"
+    legal_moves = game._get_current_legal_moves(player)
+    split_slot = next(
+        index
+        for index, move in enumerate(legal_moves, start=1)
+        if move.move_type == "split7_pick"
+    )
+
+    game._action_choose_move(player, f"move_slot_{split_slot}")
+    game.flush_menus()
+
+    assert game.game_state.turn_phase == "choose_split"
+    assert user.menus["turn_menu"]["selection_id"] == "move_slot_1"
+
+
+def test_swap_prompt_focuses_first_choice_after_draw() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    opponent = game.players[1]
+    user = game.get_user(player)
+    assert user is not None
+
+    player_state = game.game_state.player_states[player.id]
+    opponent_state = game.game_state.player_states[opponent.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 10
+    opponent_state.pawns[0].zone = "track"
+    opponent_state.pawns[0].track_position = 16
+    game.game_state.draw_pile = ["11"]
+
+    game._action_draw_card(player, "draw_card")
+
+    assert advance_until(game, lambda: game.game_state.turn_phase == "choose_move", max_ticks=30)
+    legal_moves = game._get_current_legal_moves(player)
+    assert any(move.move_type == "swap" for move in legal_moves)
+    assert user.menus["turn_menu"]["selection_id"] == "move_slot_1"
+
+
+def test_sorry_card_prompt_focuses_first_choice_after_draw() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    opponent = game.players[1]
+    user = game.get_user(player)
+    assert user is not None
+
+    opponent_state = game.game_state.player_states[opponent.id]
+    opponent_state.pawns[0].zone = "track"
+    opponent_state.pawns[0].track_position = 16
+    game.game_state.draw_pile = ["sorry"]
+
+    game._action_draw_card(player, "draw_card")
+
+    assert advance_until(game, lambda: game.game_state.turn_phase == "choose_move", max_ticks=30)
+    legal_moves = game._get_current_legal_moves(player)
+    assert any(move.move_type == "sorry" for move in legal_moves)
+    assert user.menus["turn_menu"]["selection_id"] == "move_slot_1"
+
+
+def test_move_labels_include_current_pawn_positions() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    player_state = game.game_state.player_states[player.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 10
+    game.game_state.current_card = "3"
+    game.game_state.turn_phase = "choose_move"
+
+    forward_move = next(
+        move for move in game._get_current_legal_moves(player) if move.move_type == "forward"
+    )
+
+    label = game._move_label("en", player, forward_move)
+
+    assert "pawn 1 from square 11" in label
+
+
+def test_swap_and_sorry_labels_include_target_positions() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    opponent = game.players[1]
+    player_state = game.game_state.player_states[player.id]
+    opponent_state = game.game_state.player_states[opponent.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 10
+    opponent_state.pawns[0].zone = "track"
+    opponent_state.pawns[0].track_position = 16
+
+    swap_move = next(
+        move
+        for move in generate_legal_moves(
+            game.game_state,
+            player_state,
+            "11",
+            game._get_rules_profile(),
+        )
+        if move.move_type == "swap"
+    )
+    swap_label = game._move_label("en", player, swap_move)
+
+    assert "pawn 1 at square 11" in swap_label
+    assert f"{opponent.name} pawn 1 at square 17" in swap_label
+
+    player_state.pawns[0].zone = "start"
+    player_state.pawns[0].track_position = None
+    sorry_move = next(
+        move
+        for move in generate_legal_moves(
+            game.game_state,
+            player_state,
+            "sorry",
+            game._get_rules_profile(),
+        )
+        if move.move_type == "sorry"
+    )
+    sorry_label = game._move_label("en", player, sorry_move)
+
+    assert "pawn 1 at start" in sorry_label
+    assert f"{opponent.name} pawn 1 at square 17" in sorry_label
+
+
+def test_info_actions_remain_available_during_draw_sequence() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+    user.clear_messages()
+
+    game.game_state.draw_pile = ["1"]
+    game._action_draw_card(player, "draw_card")
+
+    assert game.is_sequence_gameplay_locked() is True
+    game._action_check_card(player, "check_card")
+
+    assert Localization.get("en", "sorry-current-card", card="1") in user.get_spoken_messages()
+
+
+def test_draw_announcements_localize_card_text_per_listener(monkeypatch) -> None:
+    game = make_game(start=True, locales=["en", "vi"])
+    player = game.players[0]
+    player_user = game.get_user(player)
+    other_user = game.get_user(game.players[1])
+    assert player_user is not None
+    assert other_user is not None
+
+    monkeypatch.setattr(
+        game,
+        "_card_display_text",
+        lambda locale, card_face: f"{locale}:{card_face}",
+    )
+
+    game._handle_after_draw(player, "4")
+
+    assert Localization.get("en", "sorry-you-draw-announcement", card="en:4") in player_user.get_spoken_messages()
+    assert Localization.get("vi", "sorry-draw-announcement", player=player.name, card="vi:4") in other_user.get_spoken_messages()
+    assert Localization.get("vi", "sorry-no-legal-moves", player=player.name, card="vi:4") in other_user.get_spoken_messages()
+
+
+def test_self_bump_uses_dedicated_message() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+    user.clear_messages()
+
+    player_state = game.game_state.player_states[player.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 15
+    player_state.pawns[1].zone = "track"
+    player_state.pawns[1].track_position = 17
+
+    move = next(
+        move
+        for move in generate_legal_moves(game.game_state, player_state, "1", RULES_PROFILES["classic_00390"])
+        if move.pawn_index == 1
+    )
+    game._apply_selected_move(player, move, "1")
+
+    assert game.game_state.turn_phase == "resolving"
+    assert advance_until(game, lambda: game.current_player != player and game.game_state.turn_phase == "draw", max_ticks=40)
+    assert Localization.get("en", "sorry-you-bumped-own-pawn", pawn=2, brief="no") in user.get_spoken_messages()
+    assert Localization.get(
+        "en",
+        "sorry-you-captured-pawn",
+        target_player=player.name,
+        pawn=2,
+        brief="no",
+    ) not in user.get_spoken_messages()
+
+
+def test_check_board_lists_every_square_status() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+
+    player_state = game.game_state.player_states[player.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 16
+
+    game._action_check_board(player, "check_board")
+
+    lines = [item.text for item in user.menus["status_box"]["items"]]
+    assert lines[0] == "Your color: red."
+    assert lines[1] == "Quick summary:"
+    assert any("Player1 (red):" in line for line in lines)
+    assert any("Square 1: empty" == line for line in lines)
+    assert any("Square 17: blue slide, pawn 1 of Player1" == line for line in lines)
+    assert any("red start area of Player1:" in line for line in lines)
+    assert any("red safety space 1 of Player1:" in line for line in lines)
+    assert any("red home of Player1:" in line for line in lines)
+
+
+def test_safety_zone_pawns_cannot_be_targeted_by_swap_or_sorry() -> None:
+    state = build_initial_game_state(["p1", "p2"])
+    red = state.player_states["p1"]
+    blue = state.player_states["p2"]
+    rules = RULES_PROFILES["classic_00390"]
+
+    red.pawns[0].zone = "track"
+    red.pawns[0].track_position = 5
+    red.pawns[1].zone = "start"
+    blue.pawns[0].zone = "home_path"
+    blue.pawns[0].home_steps = 2
+
+    swap_moves = generate_legal_moves(state, red, "11", rules)
+    sorry_moves = generate_legal_moves(state, red, "sorry", rules)
+
+    assert not any(move.move_type == "swap" for move in swap_moves)
+    assert not any(move.move_type == "sorry" for move in sorry_moves)
+
+
+def test_spectator_board_view_skips_your_color_line() -> None:
+    game = make_game(start=True)
+    spectator_user = MockUser("Spectator", uuid="spec1")
+    game.add_player("Spectator", spectator_user)
+    spectator = game.players[-1]
+    spectator.is_spectator = True
+
+    game._action_check_board(spectator, "check_board")
+
+    lines = [item.text for item in spectator_user.menus["status_box"]["items"]]
+    assert lines[0] == "Quick summary:"
+    assert not any(line.startswith("Your color:") for line in lines)
+
+
+def test_check_status_uses_direct_tts_with_localized_phase() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+    user.clear_messages()
+
+    game.game_state.turn_phase = "choose_move"
+    game._action_check_status(player, "check_status")
+
+    assert "status_box" not in user.menus
+    spoken = user.get_spoken_messages()
+    assert any(text == "Phase: choose move" for text in spoken)
+    assert not any("sorry-phase-" in text for text in spoken)
+
+
+def test_move_announcement_includes_destination() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+    user.clear_messages()
+
+    player_state = game.game_state.player_states[player.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 5
+
+    move = next(
+        move
+        for move in generate_legal_moves(game.game_state, player_state, "3", RULES_PROFILES["classic_00390"])
+        if move.pawn_index == 1
+    )
+    game._apply_selected_move(player, move, "3")
+
+    expected_destination = Localization.get("en", "sorry-location-track", position=9)
+    expected_message = Localization.get(
+        "en",
+        "sorry-you-play-forward",
+        pawn=1,
+        steps=3,
+        destination=expected_destination,
+        brief="no",
+    )
+    assert advance_until(game, lambda: expected_message in user.get_spoken_messages(), max_ticks=40)
+
+
+def test_brief_move_announcement_uses_each_listener_preference() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    other_user = game.get_user(game.players[1])
+    assert user is not None
+    assert other_user is not None
+    user.preferences.brief_announcements = True
+    user.clear_messages()
+    other_user.clear_messages()
+
+    player_state = game.game_state.player_states[player.id]
+    player_state.pawns[0].zone = "track"
+    player_state.pawns[0].track_position = 5
+
+    move = next(
+        move
+        for move in generate_legal_moves(game.game_state, player_state, "3", RULES_PROFILES["classic_00390"])
+        if move.pawn_index == 1
+    )
+    game._apply_selected_move(player, move, "3")
+
+    expected_destination = Localization.get("en", "sorry-location-track", position=9)
+    expected_message = Localization.get(
+        "en",
+        "sorry-you-play-forward",
+        pawn=1,
+        steps=3,
+        destination=expected_destination,
+        brief="yes",
+    )
+    expected_other_message = Localization.get(
+        "en",
+        "sorry-play-forward",
+        player=player.name,
+        pawn=1,
+        steps=3,
+        destination=expected_destination,
+        brief="no",
+    )
+
+    assert advance_until(game, lambda: expected_message in user.get_spoken_messages(), max_ticks=40)
+    assert expected_destination in expected_message
+    assert "moves pawn" not in expected_message
+    assert expected_other_message in other_user.get_spoken_messages()
+
+
+def test_result_contains_home_counts() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    state = game.game_state.player_states[player.id]
+    for pawn in state.pawns:
+        pawn.zone = "home"
+    game._sync_player_counts()
+    game.winner_name = player.name
+
+    result = game.build_game_result()
+
+    assert result.custom_data["winner_name"] == player.name
+    assert result.custom_data["final_scores"][player.name] == 4
+
+
+def test_empty_deck_ends_game_cleanly() -> None:
+    game = make_game(start=True)
+    player = game.current_player
+    assert player is not None
+    user = game.get_user(player)
+    assert user is not None
+
+    game.game_state.draw_pile = []
+    game.game_state.discard_pile = []
+    game._action_draw_card(player, "draw_card")
+
+    assert game.status == "finished"
+    assert Localization.get("en", "sorry-deck-exhausted") in user.get_spoken_messages()
+
+    result = game.build_game_result()
+    assert result.custom_data["ended_due_to_empty_deck"] is True
+    assert result.custom_data["winner_name"] is None
+
+
+def test_draw_sequence_resumes_after_reload() -> None:
+    game = make_game(start=True)
+    player = game.players[0]
+    user = game.get_user(player)
+    assert user is not None
+
+    game.game_state.draw_pile = ["1"]
+    game._action_draw_card(player, "draw_card")
     payload = game.to_json()
-    loaded = SorryGame.from_json(payload)
 
-    assert loaded.options.rules_profile == "a5065_core"
-    assert loaded.options.auto_apply_single_move is True
-    assert loaded.options.faster_setup_one_pawn_out is False
-    assert loaded.game_state.turn_phase == "draw"
+    restored = SorryGame.from_json(payload)
+    for restored_player in restored.players:
+        original_player = game.get_player_by_id(restored_player.id)
+        assert original_player is not None
+        original_user = game.get_user(original_player)
+        assert original_user is not None
+        restored.attach_user(restored_player.id, original_user)
 
-
-def test_unknown_rules_profile_falls_back_to_classic() -> None:
-    game = SorryGame(
-        options=SorryOptions(
-            rules_profile="unknown_profile",
-            auto_apply_single_move=False,
-            faster_setup_one_pawn_out=False,
-        )
-    )
-
-    profile = game.get_rules_profile()
-    assert profile.profile_id == "classic_00390"
-    assert game.rules_profile_id == "classic_00390"
-    assert game.options.rules_profile == "classic_00390"
+    assert restored.has_active_sequence(tag="turn_flow") is True
+    assert advance_until(restored, lambda: restored.game_state.turn_phase == "choose_move", max_ticks=30)
 
 
-def test_a5065_core_rules_profile_is_selectable() -> None:
-    game = SorryGame(
-        options=SorryOptions(
-            rules_profile="a5065_core",
-            auto_apply_single_move=False,
-            faster_setup_one_pawn_out=False,
-        )
-    )
+def test_serialization_round_trips_game_state() -> None:
+    game = make_game(start=True, faster_setup_one_pawn_out=True)
+    player = game.players[0]
+    game.game_state.current_card = "10"
+    game.game_state.turn_phase = "choose_move"
+    game.winner_name = "Nobody"
 
-    profile = game.get_rules_profile()
-    assert profile.profile_id == "a5065_core"
-    assert game.rules_profile_id == "a5065_core"
-    assert game.options.rules_profile == "a5065_core"
+    restored = SorryGame.from_json(game.to_json())
 
-
-def test_a5065_core_rules_profile_pawn_count() -> None:
-    assert A5065CoreRules().pawns_per_player == 3
-
-
-def test_legacy_payload_without_rules_profile_defaults_to_classic() -> None:
-    game = SorryGame(
-        options=SorryOptions(
-            rules_profile="classic_00390",
-            auto_apply_single_move=True,
-            faster_setup_one_pawn_out=False,
-        )
-    )
-    user1 = MockUser("Alice")
-    user2 = MockUser("Bob")
-    game.add_player("Alice", user1)
-    game.add_player("Bob", user2)
-    game.on_start()
-
-    payload_dict = json.loads(game.to_json())
-    payload_dict["options"].pop("rules_profile", None)
-    payload_dict.pop("rules_profile_id", None)
-
-    loaded = SorryGame.from_json(json.dumps(payload_dict))
-    profile = loaded.get_rules_profile()
-    assert profile.profile_id == "classic_00390"
-    assert loaded.options.rules_profile == "classic_00390"
-    assert loaded.rules_profile_id == "classic_00390"
-
-
-def test_state_builder_assigns_seat_tracks() -> None:
-    """Each player should get stable seat-based start/home mapping."""
-    state = build_initial_game_state(
-        ["p1", "p2", "p3", "p4"],
-        shuffle_deck=False,
-    )
-
-    assert state.player_states["p1"].start_track == get_start_track_for_seat(0)
-    assert state.player_states["p2"].start_track == get_start_track_for_seat(1)
-    assert state.player_states["p3"].start_track == get_start_track_for_seat(2)
-    assert state.player_states["p4"].start_track == get_start_track_for_seat(3)
-    assert state.player_states["p1"].home_entry_track == get_home_entry_track_for_seat(0)
-    assert state.player_states["p4"].home_entry_track == get_home_entry_track_for_seat(3)
-
-
-def test_create_pawns_for_count_builds_requested_count() -> None:
-    pawns = create_pawns_for_count(3)
-    assert len(pawns) == 3
-    assert [pawn.pawn_index for pawn in pawns] == [1, 2, 3]
-
-
-def test_state_builder_supports_profile_pawn_count() -> None:
-    state = build_initial_game_state(
-        ["p1", "p2"],
-        pawns_per_player=3,
-        shuffle_deck=False,
-    )
-    assert len(state.player_states["p1"].pawns) == 3
-    assert len(state.player_states["p2"].pawns) == 3
-
-
-def test_clockwise_distance_wraps_track_length() -> None:
-    """Distance helper should wrap around track boundaries."""
-    assert clockwise_distance(TRACK_LENGTH - 1, 0) == 1
-    assert clockwise_distance(5, 8) == 3
-
-
-def test_draw_and_discard_cycle() -> None:
-    """Draw/discard helpers should reshuffle discard when draw pile is empty."""
-    rng = random.Random(7)
-    state = build_initial_game_state(["p1", "p2"], shuffle_deck=False)
-    state.draw_pile = ["1"]
-    state.discard_pile = ["2", "3", "4"]
-
-    first = draw_next_card(state, rng=rng)
-    assert first == "1"
-    discard_current_card(state)
-    assert state.current_card is None
-    assert "1" in state.discard_pile
-    state.draw_pile = []
-
-    second = draw_next_card(state, rng=rng)
-    assert second is not None
-    assert second in {"1", "2", "3", "4"}
-
-
-def test_track_occupancy_maps_positions() -> None:
-    """Track occupancy helper should include all track-zone pawns."""
-    state = build_initial_game_state(
-        ["p1", "p2"],
-        faster_setup_one_pawn_out=True,
-        shuffle_deck=False,
-    )
-    p1 = state.player_states["p1"]
-    p2 = state.player_states["p2"]
-    p2.pawns[1].zone = "track"
-    p2.pawns[1].track_position = p1.start_track
-
-    occupancy = get_track_occupancy(state)
-    occupants = occupancy[p1.start_track]
-    assert ("p1", 1) in occupants
-    assert ("p2", 2) in occupants
+    assert restored.options.faster_setup_one_pawn_out is True
+    assert restored.game_state.current_card == "10"
+    assert restored.game_state.turn_phase == "choose_move"
+    assert restored.winner_name == "Nobody"
+    assert restored.game_state.player_states[player.id].pawns[0].zone == "track"

@@ -1,32 +1,26 @@
-# Mancala game messages — fa
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale fa. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = منقله
-
 # Actions
 mancala-pit-label = چاله { $pit }: { $stones } سنگ
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } { $stones } سنگ از چاله { $pit } می‌کارد
 mancala-capture = { $player } { $captured } سنگ گرفت!
 mancala-extra-turn = آخرین سنگ در انبار! { $player } نوبت اضافی دارد.
 mancala-winner = { $player } با { $score } سنگ برنده شد!
 mancala-draw = مساوی! هر دو بازیکن { $score } سنگ دارند.
-
 # Board status
-mancala-board-status =
-    چاله‌های شما: { $own_pits }. انبار شما: { $own_store }. چاله‌های حریف: { $opp_pits }. انبار حریف: { $opp_store }.
-
+mancala-board-status = چاله‌های شما: { $own_pits }. انبار شما: { $own_store }. چاله‌های حریف: { $opp_pits }. انبار حریف: { $opp_store }.
 # Options
 mancala-set-stones = سنگ در هر چاله: { $stones }
 mancala-desc-stones = تعداد سنگ‌ها در هر چاله در شروع
 mancala-enter-stones = تعداد سنگ‌های اولیه هر چاله را وارد کنید:
 mancala-option-changed-stones = سنگ‌های اولیه به { $stones } تغییر کرد
-
 # Disabled reasons
 mancala-pit-empty = این چاله خالی است.
-
 # Rules
 mancala-rules =
     منقله یک بازی دو نفره با چاله و سنگ است.
@@ -38,7 +32,5 @@ mancala-rules =
     بازی زمانی تمام می‌شود که یک طرف کاملاً خالی باشد.
     بازیکنی که سنگ بیشتری دارد برنده است.
     از کلیدهای ۱ تا ۶ برای انتخاب چاله استفاده کنید. E را برای بررسی تخته فشار دهید.
-
 # End screen
 mancala-final-score = { $player }: { $score } سنگ
-mancala-check-board = Check board

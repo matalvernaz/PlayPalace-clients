@@ -1,3 +1,6 @@
+# languages.ftl for locale mn. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Энэ хэл рүү орчуулсан хэлний нэрс
 language-ar = Араб
 language-cs = Чех
@@ -11,7 +14,6 @@ language-hr = Хорват
 language-hu = Мажар
 language-id = Индонези
 language-it = Итали
-language-ja = Япон
 language-ko = Солонгос
 language-mk = Македон
 language-mn = Монгол
@@ -30,3 +32,4 @@ language-uk = Украин
 language-vi = Вьетнам
 language-zh = Хятад
 language-zu = Зулу
+language-ja = Япон

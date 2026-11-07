@@ -1,45 +1,39 @@
+# dominos.ftl for locale en. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 game-name-dominos = Dominos
-
-# Option descriptions
-dominos-desc-target-score = The score needed to win the game
-dominos-desc-draw-mode = Draw mode lets you draw from the boneyard; block mode does not
-dominos-desc-domino-set = Which set of dominos to play with
-dominos-desc-spinner = Whether the first double played can branch in all four directions
-dominos-desc-opening-rule = How the first player of each round is determined
-
+dominos-desc-team-mode = Play individually, or use any valid even team arrangement supported by the current player count.
 # Options
 dominos-set-target-score = Target score: { $score }
 dominos-enter-target-score = Enter target score
 dominos-option-changed-target-score = Target score set to { $score }.
-
+dominos-desc-target-score = Score target needed to win Dominos (default 100, range 20-500).
 dominos-set-draw-mode = Mode: { $mode }
 dominos-select-draw-mode = Select mode
 dominos-option-changed-draw-mode = Mode set to { $mode }.
-
+dominos-desc-draw-mode = Chooses Draw mode, where players draw from the boneyard, or Block mode, where blocked players pass.
 dominos-set-domino-set = Domino set: { $domino_set }
 dominos-select-domino-set = Select domino set
 dominos-option-changed-domino-set = Domino set changed to { $domino_set }.
-
+dominos-desc-domino-set = Domino set size. Double-6 supports up to 5 players, Double-9 supports up to 7 players, and Double-12 supports up to 12 players (default Double-6).
 dominos-set-spinner = Spinner: { $enabled }
 dominos-option-changed-spinner = Spinner set to { $enabled }.
-
+dominos-desc-spinner-enabled = Controls whether an opening double creates a four-way spinner (default on).
 dominos-set-opening-rule = Opening rule: { $opening_rule }
 dominos-select-opening-rule = Select opening rule
 dominos-option-changed-opening-rule = Opening rule set to { $opening_rule }.
-
+dominos-desc-opening-rule = Chooses how the first tile of each Dominos round is selected.
 # Option choice labels
 dominos-mode-draw = Draw
 dominos-mode-block = Block
-
 dominos-set-double6 = Double-6
 dominos-set-double9 = Double-9
-
+dominos-set-double12 = Double-12
 dominos-opening-highest-double = Highest double
 dominos-opening-highest-tile = Highest tile
 dominos-opening-set-max-double = Highest set double
 dominos-opening-random-player = Random player
 dominos-opening-round-winner = Previous round winner
-
 # Actions
 dominos-draw = Draw
 dominos-knock = Knock
@@ -48,16 +42,15 @@ dominos-read-ends = Read ends
 dominos-read-hand = Read hand
 dominos-read-counts = Read counts
 dominos-play-tile = { $tile }
+dominos-open-with-tile = Open with { $tile }
 dominos-play-tile-at = Play { $tile } to { $side }
 dominos-play-tile-multi = Play { $tile } to { $sides }
 dominos-select-side = Select a side
-
 # Board sides
 dominos-side-left = left
 dominos-side-right = right
 dominos-side-up = up
 dominos-side-down = down
-
 # Validation and disabled reasons
 dominos-draw-only-mode = Drawing is only available in Draw mode.
 dominos-must-play = You already have a playable tile.
@@ -66,26 +59,30 @@ dominos-must-draw = You must draw before knocking.
 dominos-illegal-side = That side is not legal for the selected tile.
 dominos-no-play-for-tile = { $tile } cannot be played right now.
 dominos-choose-side-keybind = Choose a side with the direction keybind. Legal sides: { $sides }.
-
+dominos-opening-must-play = The round has not been opened yet. You must choose a tile to start the chain.
+dominos-error-set-too-small = { $players } players cannot be dealt enough tiles from a Double-{ $selected_pip } set. Choose at least Double-{ $required_pip } for this table size.
 # Gameplay
-dominos-opening-play = { $player } opens with { $tile }.
-dominos-opening-spinner = { $player } opens a spinner with { $tile }.
-dominos-player-draws = { $player } draws { $count } { $count ->
-    [one] tile
-   *[other] tiles
-}.
-dominos-you-drew-single = You drew { $tile }.
-dominos-you-drew-many = You drew { $count } tiles.
-dominos-you-played = You played { $tile } to { $side }.
-dominos-you-played-drawn = You drew and played { $tile } to { $side }.
-dominos-player-played = { $player } played { $tile } to { $side }.
+dominos-you-open-round = You lead this round. Choose any tile from your hand to open the chain.
+dominos-player-opens-round = { $player } leads this round and is choosing the opening tile.
+dominos-you-opened = You opened the round with { $tile }.
+dominos-player-opened = { $player } opened the round with { $tile }.
+dominos-you-opened-spinner = You opened the round with { $tile }, creating a four-way spinner.
+dominos-player-opened-spinner = { $player } opened the round with { $tile }, creating a four-way spinner.
+dominos-you-drew-single = You drew { $tile } from the boneyard.
+dominos-you-drew-many = You drew { $count } tiles from the boneyard.
+dominos-player-drew-single = { $player } drew 1 tile from the boneyard.
+dominos-player-drew-many = { $player } drew { $count } tiles from the boneyard.
+dominos-you-played = You played { $tile } on the { $side } branch.
+dominos-you-played-drawn = You drew and played { $tile } on the { $side } branch.
+dominos-player-played = { $player } played { $tile } on the { $side } branch.
+dominos-you-knock = You knock because you have no legal tile to play.
 dominos-player-knocks = { $player } knocks.
-dominos-round-won = { $player } wins the round and scores { $points } points.
+dominos-you-won-round = You emptied your hand and scored { $points } points from opposing tiles.
+dominos-player-won-round = { $player } emptied { GENDER_TERM($player_gender, "possessive-determiner") } hand and scored { $points } points from opposing tiles.
 dominos-round-blocked-tie = The round is blocked. Lowest pip total is { $pips }, but it is tied. No points are scored.
 dominos-round-blocked-winner = The round is blocked. { $team } has the lowest pip total with { $pips } and scores { $points } points.
 dominos-match-tied-continue = Multiple teams reached { $score } points. The game continues until the tie is broken.
 dominos-match-winner = { $team } wins the game with { $score } points.
-
 # Status boxes
 dominos-chain-header = Chain
 dominos-chain-empty = The chain is empty.
@@ -94,13 +91,12 @@ dominos-branch-empty = no tiles
 dominos-chain-branch = { $side }: { $tiles }. Open end { $open_end }.
 dominos-boneyard-count = Boneyard: { $count } tiles remaining.
 dominos-end-info = { $side } { $value }
-
 dominos-hand-header = Your hand
 dominos-hand-line = { $tile } worth { $points } points.
 dominos-hand-line-playable = { $tile } worth { $points } points. Playable on { $sides }.
+dominos-hand-line-opening-playable = { $tile } worth { $points } points. You can use it to open this round.
 dominos-hand-total = Total pips in hand: { $pips }.
 dominos-player-count = { $player } has { $count } tiles
 dominos-no-other-players = No other players.
-
 # End screen
 dominos-line-format = { $rank }. { $player }: { $points }

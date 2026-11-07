@@ -1,61 +1,47 @@
-"""Rules profile models for Sorry editions."""
+"""Rules profiles for Sorry."""
 
 from dataclasses import dataclass
 from typing import Protocol
 
 
 class SorryRulesProfile(Protocol):
-    """Protocol implemented by each Sorry ruleset profile."""
-
     profile_id: str
     display_name: str
     pawns_per_player: int
 
     def card_faces(self) -> tuple[str, ...]:
-        """Return supported card faces for this profile."""
         ...
 
     def can_leave_start_with_card(self, card_face: str) -> bool:
-        """Return whether this card can move a pawn from start."""
         ...
 
     def forward_steps_for_card(self, card_face: str) -> tuple[int, ...]:
-        """Return forward step options contributed by this card."""
         ...
 
     def backward_steps_for_card(self, card_face: str) -> tuple[int, ...]:
-        """Return backward step options contributed by this card."""
         ...
 
     def allows_split_seven(self, card_face: str) -> bool:
-        """Return whether this card allows split-seven move generation."""
         ...
 
     def allows_swap(self, card_face: str) -> bool:
-        """Return whether this card allows swap move generation."""
         ...
 
     def allows_sorry(self, card_face: str) -> bool:
-        """Return whether this card allows Sorry replacement moves."""
         ...
 
     def sorry_fallback_forward_steps(self, card_face: str) -> tuple[int, ...]:
-        """Return fallback forward steps used when no Sorry target exists."""
         ...
 
     def card_two_grants_extra_turn(self) -> bool:
-        """Return whether card 2 grants another turn."""
         ...
 
     def slide_policy_id(self) -> str:
-        """Return identifier for profile-specific slide policy."""
         ...
 
 
 @dataclass(frozen=True)
 class Classic00390Rules:
-    """Classic Sorry rules profile based on Hasbro 00390."""
-
     profile_id: str = "classic_00390"
     display_name: str = "Classic 00390"
     pawns_per_player: int = 4
@@ -111,34 +97,35 @@ class Classic00390Rules:
         return "classic_00390"
 
 
+_CLASSIC_00390_RULES = Classic00390Rules()
+
+
 @dataclass(frozen=True)
 class A5065CoreRules:
-    """A5065 core profile."""
-
     profile_id: str = "a5065_core"
     display_name: str = "A5065 Core"
     pawns_per_player: int = 3
 
     def card_faces(self) -> tuple[str, ...]:
-        return Classic00390Rules().card_faces()
+        return _CLASSIC_00390_RULES.card_faces()
 
     def can_leave_start_with_card(self, card_face: str) -> bool:
         return bool(self.forward_steps_for_card(card_face))
 
     def forward_steps_for_card(self, card_face: str) -> tuple[int, ...]:
-        return Classic00390Rules().forward_steps_for_card(card_face)
+        return _CLASSIC_00390_RULES.forward_steps_for_card(card_face)
 
     def backward_steps_for_card(self, card_face: str) -> tuple[int, ...]:
-        return Classic00390Rules().backward_steps_for_card(card_face)
+        return _CLASSIC_00390_RULES.backward_steps_for_card(card_face)
 
     def allows_split_seven(self, card_face: str) -> bool:
-        return Classic00390Rules().allows_split_seven(card_face)
+        return _CLASSIC_00390_RULES.allows_split_seven(card_face)
 
     def allows_swap(self, card_face: str) -> bool:
-        return Classic00390Rules().allows_swap(card_face)
+        return _CLASSIC_00390_RULES.allows_swap(card_face)
 
     def allows_sorry(self, card_face: str) -> bool:
-        return Classic00390Rules().allows_sorry(card_face)
+        return _CLASSIC_00390_RULES.allows_sorry(card_face)
 
     def sorry_fallback_forward_steps(self, card_face: str) -> tuple[int, ...]:
         if card_face == "sorry":
@@ -153,18 +140,16 @@ class A5065CoreRules:
 
 
 RULES_PROFILES: dict[str, SorryRulesProfile] = {
-    "classic_00390": Classic00390Rules(),
+    "classic_00390": _CLASSIC_00390_RULES,
     "a5065_core": A5065CoreRules(),
 }
 
 
 def get_rules_profile_by_id(profile_id: str | None) -> SorryRulesProfile | None:
-    """Return profile object for a known profile id."""
     if profile_id is None:
         return None
     return RULES_PROFILES.get(profile_id)
 
 
 def get_supported_profile_ids() -> tuple[str, ...]:
-    """Return known profile ids in stable option order."""
     return tuple(RULES_PROFILES.keys())

@@ -39,6 +39,7 @@ class PlaySubPhase(str, Enum):
     ROAD_TARGET = "road_target"  # Selecting which neighbor to build road to
     ROAD_PERMISSION = "road_permission"  # Neighbor approving/denying road request
     WAR_DECLARE = "war_declare"  # Selecting war target and goal
+    WAR_OLYMPICS = "war_olympics"  # Defender deciding whether to cancel war
     WAR_PREPARE_ATTACKER = "war_prepare_attacker"  # Attacker selecting forces
     WAR_PREPARE_DEFENDER = "war_prepare_defender"  # Defender selecting forces
     WAR_PREPARE = "war_prepare"  # Both sides selecting armies (bot handling)

@@ -9,7 +9,7 @@ import pytest
 from pydantic import ValidationError
 
 from server.core.server import Server
-from server.core.users.preferences import MAX_IGNORED_USERS, UserPreferences
+from server.users.preferences import MAX_IGNORED_USERS, UserPreferences
 from server.network.packet_models import CLIENT_TO_SERVER_PACKET_ADAPTER
 from server.network.websocket_server import ClientConnection, WebSocketServer
 
@@ -39,7 +39,7 @@ def test_add_ignored_caps_list():
 
 
 def test_sanitize_locale(tmp_path):
-    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=False)
+    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
     assert srv._sanitize_locale("en") == "en"
     # Unknown codes and path-traversal attempts fall back to the default.
     assert srv._sanitize_locale("../etc") == srv._default_locale

@@ -1,5 +1,7 @@
-game-name-deadmansdeck = Dead Man's Deck
+# deadmansdeck.ftl for locale ru. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-deadmansdeck = Dead Man's Deck
 deadmansdeck-call-liar = Call liar
 deadmansdeck-play-selected = Play selected cards
 deadmansdeck-clear-selection = Clear selection
@@ -7,7 +9,6 @@ deadmansdeck-read-hand = Read hand
 deadmansdeck-read-table = Read table
 deadmansdeck-read-revolvers = Read revolvers
 deadmansdeck-read-card-counts = Read card counts
-
 deadmansdeck-rank-ace = Ace
 deadmansdeck-rank-ace-plural = Aces
 deadmansdeck-rank-king = King
@@ -17,7 +18,6 @@ deadmansdeck-rank-queen-plural = Queens
 deadmansdeck-rank-joker = Joker
 deadmansdeck-rank-joker-plural = Jokers
 deadmansdeck-claim-text = { $count } { $rank }
-
 deadmansdeck-card-label = { $card }
 deadmansdeck-selected-card-label = Selected: { $card }
 deadmansdeck-card-selected = Selected { $card }.
@@ -30,7 +30,6 @@ deadmansdeck-no-claim-to-challenge = There is no claim to challenge.
 deadmansdeck-cannot-challenge-self = You cannot challenge your own claim.
 deadmansdeck-action-sequence-running = Wait for the current sequence to finish.
 deadmansdeck-action-eliminated = You have been eliminated.
-
 deadmansdeck-prepare-revolver = The revolvers are being prepared.
 deadmansdeck-round-start = Round { $round }. The table card is { $target }.
 deadmansdeck-turn-order = Turn order this round: { $order }.
@@ -69,7 +68,6 @@ deadmansdeck-you-win-game = You are the last player standing and win Dead Man's 
 deadmansdeck-player-wins = { $player } is the last player standing and wins Dead Man's Deck.
 deadmansdeck-no-winner = No winner could be determined.
 deadmansdeck-you-are-eliminated = You have been eliminated from this game.
-
 deadmansdeck-table-round = Round { $round }. Target: { $target }.
 deadmansdeck-table-target-pending = not set yet
 deadmansdeck-table-current-turn = Current turn: { $player }.
@@ -77,17 +75,15 @@ deadmansdeck-table-last-claim = Last claim: { $player } claimed { $claim }.
 deadmansdeck-table-no-claim = There is no active claim.
 deadmansdeck-table-alive = Still alive: { $players }.
 deadmansdeck-table-eliminated = Eliminated: { $players }.
-
-deadmansdeck-card-count-line = { $player }: { $count ->
-    [one] 1 card
-   *[other] { $count } cards
-} left.
+deadmansdeck-card-count-line =
+    { $player }: { $count ->
+        [one] 1 card
+       *[other] { $count } cards
+    } left.
 deadmansdeck-card-count-eliminated = { $player }: eliminated.
-
 deadmansdeck-revolvers-header = Revolver status
 deadmansdeck-revolver-status = { $player }: { $survived } empty chambers used; next pull is 1 in { $remaining }.
 deadmansdeck-revolver-eliminated = { $player }: eliminated.
-
 deadmansdeck-results-header = Dead Man's Deck results
 deadmansdeck-results-winner = Winner: { $player }.
 deadmansdeck-results-survived = survived

@@ -13,6 +13,7 @@ import random
 from typing import TYPE_CHECKING
 
 from ..base import Game, Player, GameOptions
+from ..categories import CATEGORY_BOARD
 from ..registry import register_game
 from ...game_utils.action_guard_mixin import ActionGuardMixin
 from ...game_utils.round_based_game_mixin import RoundBasedGameMixin
@@ -21,7 +22,7 @@ from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.options import IntOption, option_field
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
+from server.ui.keybinds import KeybindState
 
 from .territories import (
     TERRITORIES,
@@ -35,7 +36,7 @@ from .territories import (
 )
 
 if TYPE_CHECKING:
-    from server.core.users.base import User
+    from server.users.base import User
 
 # Card types for the trade-in system
 CARD_TYPES = ["infantry", "cavalry", "artillery"]
@@ -120,7 +121,11 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-board-games"
+        return CATEGORY_BOARD
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -331,6 +336,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     def on_tick(self) -> None:
         super().on_tick()
+        self.process_scheduled_sounds()
         BotHelper.on_tick(self)
 
     def _reset_player_for_game(self, player: RiskPlayer) -> None:
@@ -365,7 +371,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             player=current.name,
             armies=reinforcements,
         )
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     # ==========================================================================
     # Phase transitions
@@ -374,7 +380,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     def _end_reinforce_phase(self) -> None:
         self.phase = "attack"
         self.broadcast_l("risk-attack-phase", player=self.current_player.name)
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _end_attack_phase(self) -> None:
         # Award a card if conquered at least one territory. Clear the flag so
@@ -387,7 +393,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         self.attacker_id = ""
         self.defender_id = ""
         self.broadcast_l("risk-fortify-phase", player=current.name)
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _end_fortify_phase(self) -> None:
         self.phase = "reinforce"
@@ -664,6 +670,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 handler="_action_check_status",
                 is_enabled="_is_check_status_enabled",
                 is_hidden="_is_check_status_hidden",
+                include_spectators=True,
             )
         )
         return action_set
@@ -703,7 +710,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         if self.armies_to_place <= 0:
             self._end_reinforce_phase()
         else:
-            self.rebuild_all_menus()
+            self.refresh_menus()
 
     def _do_attack(self, player: Player, tid: str) -> None:
         current = self.current_player
@@ -712,7 +719,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             self.attacker_id = tid
             name = get_territory_name(tid)
             self.broadcast_l("risk-attack-from", player=current.name, territory=name)
-            self.rebuild_all_menus()
+            self.refresh_menus()
         else:
             # Executing attack
             att_tid = self.attacker_id
@@ -784,14 +791,14 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
             # Reset attacker selection for next attack
             self.attacker_id = ""
-            self.rebuild_all_menus()
+            self.refresh_menus()
 
     def _do_fortify(self, player: Player, tid: str) -> None:
         if self.fortify_from == "":
             self.fortify_from = tid
             name = get_territory_name(tid)
             self.broadcast_l("risk-fortify-from", player=player.name, territory=name)
-            self.rebuild_all_menus()
+            self.refresh_menus()
         else:
             # Move half the troops (at least 1)
             source = self.fortify_from
@@ -821,7 +828,7 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             self.attacker_id = ""
         elif self.phase == "fortify":
             self.fortify_from = ""
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _action_check_status(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
@@ -981,17 +988,10 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
-            player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot,
-                    is_virtual_bot=getattr(p, "is_virtual_bot", False),
-                )
-                for p in active
-            ],
+            player_results=[PlayerResult.from_player(p) for p in active],
             custom_data={
                 "winner_name": winner.name if winner else None,
+                "winner_ids": [winner.id] if winner else [],
                 "final_territories": scores,
             },
         )

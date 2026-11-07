@@ -1,118 +1,118 @@
-game-name-battleship = Battleship
+# battleship.ftl for locale fa. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Options
-battleship-set-grid-size = Combat zone: { $size }
-battleship-select-grid-size = Select combat zone size
-battleship-option-changed-grid-size = Combat zone set to { $size }.
-
-battleship-set-placement-mode = Deployment: { $mode }
-battleship-select-placement-mode = Select deployment mode
-battleship-option-changed-placement-mode = Deployment mode set to { $mode }.
-
-battleship-set-replay-on-hit = Extra salvo on hit: { $enabled }
-battleship-option-changed-replay-on-hit = Extra salvo on hit set to { $enabled }.
-
-battleship-set-turn-timer = Turn timer: { $seconds }
-battleship-select-turn-timer = Select turn timer
-battleship-option-changed-turn-timer = Turn timer set to { $seconds }.
-
-# Option choice labels
-battleship-grid-6x6 = 6 by 6
-battleship-grid-8x8 = 8 by 8
-battleship-grid-10x10 = 10 by 10
-battleship-grid-12x12 = 12 by 12
-
-battleship-placement-auto = Automatic
-battleship-placement-manual = Manual
-
-battleship-timer-off = Off
-battleship-timer-30 = 30 seconds
-battleship-timer-45 = 45 seconds
-battleship-timer-60 = 60 seconds
-
-# Ship names
-battleship-ship-carrier = Carrier
-battleship-ship-battleship = Battleship
-battleship-ship-destroyer = Destroyer
-battleship-ship-submarine = Submarine
-battleship-ship-patrol = Patrol Boat
-battleship-ship-unknown = Vessel
-
-# Orientations
-battleship-horizontal = Horizontal
-battleship-vertical = Vertical
-
-# Actions
-battleship-orient-horizontal = Deploy Horizontal
-battleship-orient-vertical = Deploy Vertical
-battleship-toggle-view = Switch Grid
-battleship-read-fleet = Fleet Status
-battleship-read-enemy-fleet = Enemy Fleet Intel
-
-# Deployment phase
-battleship-deploy-start = Deployment phase. Position your { $ship }, { $size } sectors long. Select a coordinate, then choose bearing.
-battleship-choose-orientation = Deploying { $ship } at { $coord }, { $size } sectors. Select bearing.
-battleship-ship-placed = { $ship } deployed at { $coord }, bearing { $orientation }.
-battleship-cannot-place = Cannot deploy { $ship } at { $coord } { $orientation }. Vessel does not fit or overlaps another ship.
-battleship-place-next-ship = Next vessel: { $ship }, { $size } sectors.
-battleship-deploy-done = Fleet deployed. Standing by for the enemy.
-battleship-deploy-complete = Deployment complete.
-battleship-select-cell-first = Select a coordinate on the grid first.
-battleship-deploy-in-progress = Deployment still in progress.
-
-# Battle phase
-battleship-battle-start = All ships in position. Commence firing!
-
-# Hit — first-person (shooter), second-person (target), third-person (spectator)
-battleship-hit-self = Firing on { $coord }. Direct hit!
-battleship-hit-target = { $player } fires on your { $coord }. Direct hit!
-battleship-hit-spectator = { $player } fires on { $target }'s { $coord }. Direct hit!
-
-# Miss — first/second/third
-battleship-miss-self = Firing on { $coord }. Missed.
-battleship-miss-target = { $player } fires on your { $coord }. Missed.
-battleship-miss-spectator = { $player } fires on { $target }'s { $coord }. Missed.
-
-# Sunk — first/second/third
-battleship-sunk-self = Enemy { $ship } destroyed!
-battleship-sunk-target = { $player } sank your { $ship }!
-battleship-sunk-spectator = { $player } sank { $target }'s { $ship }!
-
-# Victory — first/second/third
-battleship-victory-self = Victory! All enemy vessels have been sunk.
-battleship-victory-target = { $player } wins! All your vessels have been sunk.
-battleship-victory-spectator = { $player } wins! All of { $target }'s vessels have been sunk.
-
-battleship-already-shot = Already fired on this coordinate.
-battleship-switch-to-shots = Viewing your own waters. Press V to switch to the target grid.
-battleship-timeout-fire = Time's up! Auto-firing on { $coord }.
-
-# View toggle
-battleship-view-own = Viewing your waters.
-battleship-view-shots = Viewing target grid.
-
-# Cell labels
-battleship-cell-empty = { $coord }, open water.
-battleship-cell-ship-placed = { $coord }, { $ship }.
-battleship-cell-unknown = { $coord }, uncharted.
-battleship-cell-hit = { $coord }, hit.
-battleship-cell-sunk = { $coord }, { $ship }, sunk.
-battleship-cell-miss = { $coord }, miss.
-battleship-cell-own-ship = { $coord }, your { $ship }.
-battleship-cell-own-hit = { $coord }, your { $ship }, hit.
-battleship-cell-own-sunk = { $coord }, your { $ship }, sunk.
-battleship-cell-own-miss = { $coord }, incoming miss.
-
-# Fleet status
-battleship-fleet-header = Your Fleet
-battleship-status-intact = Battle-ready
-battleship-status-damaged = Damaged ({ $hits } of { $size } hit)
-battleship-status-sunk = Sunk
-
-battleship-enemy-fleet-header = Enemy Fleet
-battleship-enemy-fleet-summary = { $sunk } of { $total } enemy vessels sunk.
-battleship-enemy-ship-sunk = { $ship } (size { $size }): Sunk
-
-# End screen
-battleship-winner-line = { $player } wins!
-battleship-stats-line = { $player }: { $shots } shots fired, { $hits } hits, { $accuracy }% accuracy
+game-name-battleship = نبرد دریایی
+# گزینه‌ها
+battleship-set-grid-size = منطقه‌ی نبرد: { $size }
+battleship-select-grid-size = اندازه‌ی منطقه‌ی نبرد را انتخاب کنید
+battleship-option-changed-grid-size = منطقه‌ی نبرد روی { $size } تنظیم شد.
+battleship-desc-grid-size = اندازه‌ی شبکه‌ی اقیانوس را برای نبرد دریایی انتخاب می‌کند؛ شبکه‌های بزرگ‌تر جستجوهای طولانی‌تری ایجاد می‌کنند.
+battleship-set-placement-mode = استقرار: { $mode }
+battleship-select-placement-mode = حالت استقرار را انتخاب کنید
+battleship-option-changed-placement-mode = حالت استقرار روی { $mode } تنظیم شد.
+battleship-desc-placement-mode = انتخاب می‌کند که کشتی‌ها قبل از شروع نبرد به‌طور خودکار یا دستی قرار داده شوند.
+battleship-set-replay-on-hit = شلیک اضافی در صورت اصابت: { $enabled }
+battleship-option-changed-replay-on-hit = شلیک اضافی در صورت اصابت روی { $enabled } تنظیم شد.
+battleship-desc-replay-on-hit = وقتی فعال باشد، بازیکنی که به هدف اصابت می‌زند، بلافاصله یک شلیک دیگر انجام می‌دهد.
+battleship-set-turn-timer = زمان‌سنج نوبت: { $seconds }
+battleship-select-turn-timer = زمان‌سنج نوبت را انتخاب کنید
+battleship-option-changed-turn-timer = زمان‌سنج نوبت روی { $seconds } تنظیم شد.
+battleship-desc-turn-timer = محدودیت زمانی اختیاری برای هر نوبت نبرد دریایی؛ اگر زمان تمام شود، بازی به یک مختصات تصادفی شلیک می‌کند. برای بدون زمان‌سنج، Unlimited را انتخاب کنید.
+# برچسب‌های گزینه‌ها
+battleship-grid-6x6 = ۶ در ۶
+battleship-grid-8x8 = ۸ در ۸
+battleship-grid-10x10 = ۱۰ در ۱۰
+battleship-grid-12x12 = ۱۲ در ۱۲
+battleship-placement-auto = خودکار
+battleship-placement-manual = دستی
+battleship-timer-off = خاموش
+battleship-timer-30 = ۳۰ ثانیه
+battleship-timer-45 = ۴۵ ثانیه
+battleship-timer-60 = ۶۰ ثانیه
+# اعتبارسنجی تنظیمات
+battleship-error-invalid-grid-size = اندازه‌ی منطقه‌ی نبرد { $size } پشتیبانی نمی‌شود.
+battleship-error-grid-too-small = منطقه‌ی نبرد { $size } در { $size } برای کل ناوگان بسیار کوچک است. حداقل از { $minimum } در { $minimum } استفاده کنید.
+battleship-error-invalid-placement-mode = حالت استقرار { $mode } پشتیبانی نمی‌شود.
+battleship-error-invalid-turn-timer = زمان‌سنج نوبت { $seconds } پشتیبانی نمی‌شود.
+# نام کشتی‌ها
+battleship-ship-carrier = ناو هواپیمابر
+battleship-ship-battleship = کشتی جنگی
+battleship-ship-destroyer = ناوشکن
+battleship-ship-submarine = زیردریایی
+battleship-ship-patrol = گشت‌زنی
+battleship-ship-unknown = شناور
+# جهت‌ها
+battleship-horizontal = افقی
+battleship-vertical = عمودی
+# اقدامات
+battleship-orient-horizontal = استقرار افقی
+battleship-orient-vertical = استقرار عمودی
+battleship-orient-horizontal-at = استقرار { $ship } به‌صورت افقی در { $coord }
+battleship-orient-vertical-at = استقرار { $ship } به‌صورت عمودی در { $coord }
+battleship-toggle-view = تغییر شبکه
+battleship-read-fleet = وضعیت ناوگان
+battleship-read-enemy-fleet = اطلاعات ناوگان دشمن
+# مرحله‌ی استقرار
+battleship-deploy-start = مرحله‌ی استقرار. { $ship } خود را که { $size } بخش طول دارد، قرار دهید. یک مختصات انتخاب کنید، سپس جهت را انتخاب کنید.
+battleship-choose-orientation = استقرار { $ship } در { $coord }، { $size } بخش. جهت را انتخاب کنید.
+battleship-ship-placed = { $ship } در { $coord } با جهت { $orientation } مستقر شد.
+battleship-cannot-place = نمی‌توان { $ship } را در { $coord } { $orientation } مستقر کرد. شناور جا نمی‌شود یا با کشتی دیگری همپوشانی دارد.
+battleship-place-next-ship = شناور بعدی: { $ship }، { $size } بخش.
+battleship-deploy-done = ناوگان مستقر شد. در انتظار دشمن.
+battleship-deploy-complete = استقرار کامل شد.
+battleship-select-cell-first = ابتدا یک مختصات در شبکه انتخاب کنید.
+battleship-deploy-in-progress = استقرار هنوز در حال انجام است.
+battleship-deploy-status-header = مرحله‌ی قرار دادن کشتی‌ها.
+battleship-deploy-status-ready-self = شما آماده هستید.
+battleship-deploy-status-ready-other = { $player } آماده است.
+battleship-deploy-status-not-ready-self = شما هنوز آماده نیستید.
+battleship-deploy-status-not-ready-other = { $player } هنوز آماده نیست.
+# مرحله‌ی نبرد
+battleship-battle-start = همه‌ی کشتی‌ها در موقعیت خود. آتش!
+# اصابت - اول شخص (شلیک‌کننده)، دوم شخص (هدف)، سوم شخص (تماشاگر)
+battleship-hit-self = شما به { $coord } شلیک می‌کنید. اصابت مستقیم!
+battleship-hit-target = { $player } به { $coord } شما شلیک می‌کند. اصابت مستقیم!
+battleship-hit-spectator = { $player } به { $coord } { $target } شلیک می‌کند. اصابت مستقیم!
+# خطا - اول/دوم/سوم شخص
+battleship-miss-self = شما به { $coord } شلیک می‌کنید. خطا رفت.
+battleship-miss-target = { $player } به { $coord } شما شلیک می‌کند. خطا رفت.
+battleship-miss-spectator = { $player } به { $coord } { $target } شلیک می‌کند. خطا رفت.
+# غرق - اول/دوم/سوم شخص
+battleship-sunk-self = شما { $ship } دشمن را غرق کردید!
+battleship-sunk-target = { $player } { $ship } شما را غرق کرد!
+battleship-sunk-spectator = { $player } { $ship } { $target } را غرق کرد!
+# پیروزی - اول/دوم/سوم شخص
+battleship-victory-self = شما برنده شدید! همه‌ی کشتی‌های دشمن غرق شدند.
+battleship-victory-target = { $player } برنده شد! همه‌ی کشتی‌های شما غرق شدند.
+battleship-victory-spectator = { $player } برنده شد! همه‌ی کشتی‌های { $target } غرق شدند.
+battleship-shot-in-flight = یک گلوله هنوز در حال پرواز است. قبل از شلیک مجدد منتظر نتیجه باشید.
+battleship-not-your-turn = نوبت شلیک شما نیست. منتظر { $player } برای انتخاب مختصات باشید.
+battleship-wait-for-turn = قبل از انتخاب مختصات، منتظر دستور شلیک بعدی باشید.
+battleship-already-shot = شما قبلاً به { $coord } شلیک کرده‌اید. یک مختصات ناشناخته انتخاب کنید.
+battleship-switch-to-shots = شما در حال مشاهده‌ی آب‌های خود هستید، بنابراین شلیک مسدود است. برای تغییر به شبکه‌ی هدف، V را فشار دهید.
+battleship-timeout-fire = زمان تمام شد! شلیک خودکار به { $coord }.
+# تغییر نمای
+battleship-view-own = مشاهده‌ی آب‌های خود.
+battleship-view-shots = مشاهده‌ی شبکه‌ی هدف.
+# برچسب‌های سلول‌ها
+battleship-cell-empty = { $coord }، آب باز.
+battleship-cell-ship-placed = { $coord }، { $ship }.
+battleship-cell-unknown = { $coord }، ناشناخته.
+battleship-cell-hit = { $coord }، اصابت.
+battleship-cell-sunk = { $coord }، { $ship }، غرق‌شده.
+battleship-cell-miss = { $coord }، خطا.
+battleship-cell-own-ship = { $coord }، { $ship } شما.
+battleship-cell-own-hit = { $coord }، { $ship } شما، اصابت.
+battleship-cell-own-sunk = { $coord }، { $ship } شما، غرق‌شده.
+battleship-cell-own-miss = { $coord }، خطای ورودی.
+# وضعیت ناوگان
+battleship-fleet-header = ناوگان شما
+battleship-status-intact = آماده‌ی نبرد
+battleship-status-damaged = آسیب‌دیده ({ $hits } از { $size } اصابت)
+battleship-status-sunk = غرق‌شده
+battleship-enemy-fleet-header = ناوگان دشمن
+battleship-enemy-fleet-summary = { $sunk } از { $total } شناور دشمن غرق شد.
+battleship-enemy-ship-sunk = { $ship } (اندازه { $size }): غرق‌شده
+# صفحه‌ی پایان
+battleship-winner-line = { $player } برنده شد!
+battleship-stats-line = { $player }: { $shots } شلیک، { $hits } اصابت، { $accuracy }% دقت

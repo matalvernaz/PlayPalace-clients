@@ -1,120 +1,156 @@
-# Chess
+# chess.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-game-name-chess = Chess
-
-# Options
-chess-set-turn-timer = Turn timer: { $mode }
-chess-select-turn-timer = Select turn timer
-chess-option-changed-turn-timer = Turn timer set to { $mode }.
-
-chess-toggle-auto-draw = Auto-draw on repetition/50 moves: { $enabled }
-chess-option-changed-auto-draw = Auto-draw { $enabled }.
-
-chess-toggle-show-coordinates = Show coordinates in moves: { $enabled }
-chess-option-changed-show-coordinates = Show coordinates { $enabled }.
-
-# Game start
-chess-game-started = { $white } is white, { $black } is black. White moves first.
-
-# Turn / move messages
-chess-you-select = Selected { $piece } at { $square }. Click destination.
-chess-no-piece = No piece to select there.
-chess-move-cancelled = Move cancelled.
-chess-illegal-move = Illegal move.
-
-chess-you-move = You move { $piece } from { $from } to { $to }.
-chess-player-moves = { $player } moves { $piece } from { $from } to { $to }.
-chess-you-capture = You capture { $captured } on { $to } with { $piece } from { $from }.
-chess-player-captures = { $player } captures { $captured } on { $to } with { $piece } from { $from }.
-
-chess-you-en-passant = You capture en passant on { $to } with pawn from { $from }.
-chess-player-en-passant = { $player } captures en passant on { $to } with pawn from { $from }.
-
-chess-you-castle-kingside = You castle kingside.
-chess-player-castles-kingside = { $player } castles kingside.
-chess-you-castle-queenside = You castle queenside.
-chess-player-castles-queenside = { $player } castles queenside.
-
-chess-you-promote = You promote pawn to { $piece } on { $square }.
-chess-player-promotes = { $player } promotes pawn to { $piece } on { $square }.
-
-# Check / checkmate / draw
-chess-check = Check!
-chess-checkmate = Checkmate! { $winner } wins.
-chess-you-win-checkmate = Checkmate! You win.
-chess-stalemate = Stalemate. The game is a draw.
-chess-draw-fifty = Draw by fifty-move rule.
-chess-draw-repetition = Draw by threefold repetition.
-chess-draw-material = Draw by insufficient material.
-chess-draw-agreement = Draw by agreement.
-
-# Resign
-chess-you-resign = You resign. { $opponent } wins.
-chess-player-resigns = { $player } resigns. { $opponent } wins.
-
-# Draw offer
-chess-offer-draw = Offer draw
-chess-you-offer-draw = You offer a draw.
-chess-player-offers-draw = { $player } offers a draw.
-chess-you-accept-draw = You accept the draw.
-chess-player-accepts-draw = { $player } accepts the draw.
-chess-you-decline-draw = You decline the draw.
-chess-player-declines-draw = { $player } declines the draw.
-chess-no-draw-offer = There is no draw offer to respond to.
-chess-already-offered = You have already offered a draw.
-
-# Undo
-chess-undo-request = Undo last move
-chess-you-request-undo = You request to undo the last move.
-chess-player-requests-undo = { $player } requests to undo the last move.
-chess-you-accept-undo = You accept the undo.
-chess-player-accepts-undo = { $player } accepts the undo. Move undone.
-chess-you-decline-undo = You decline the undo.
-chess-player-declines-undo = { $player } declines the undo request.
-chess-no-undo-request = There is no undo request to respond to.
-chess-no-moves-to-undo = There are no moves to undo.
-chess-already-requested-undo = You have already requested an undo.
-chess-undo-applied = Last move undone. It is now { $player }'s turn.
-
-# Promotion
-chess-select-promotion = Select promotion piece
-
-# View board
-chess-view-board = View board
-chess-flip-board = Flip board
-chess-viewer-own = your
-chess-viewer-opponent = opponent's
-chess-board-flipped = Flipped board to view { $viewer } perspective ({ $color }).
-chess-board-rank = Rank { $rank }: { $pieces }
-chess-empty = empty
-chess-board-header = Board state:
-
-# Status / scores
-chess-status-white = White: { $player }
-chess-status-black = Black: { $player }
-chess-status-turn = Turn: { $color }
-chess-status-move-count = Moves: { $count }
-chess-check-status = Check game status
-
-# FEN
-chess-import-fen = Import FEN
-chess-enter-fen = Paste FEN string
-chess-fen-loaded = FEN loaded successfully.
-chess-fen-error = Error loading FEN.
-
-# Piece names
-chess-piece-pawn = pawn
-chess-piece-knight = knight
-chess-piece-bishop = bishop
-chess-piece-rook = rook
-chess-piece-queen = queen
-chess-piece-king = king
-
-# Timer
-chess-check-turn-timer = Turn timer
-chess-turn-timeout = Time's up!
-
-# Timer choice labels (game-specific durations)
-chess-timer-120 = 2 minutes
-chess-timer-180 = 3 minutes
-chess-timer-300 = 5 minutes
+game-name-chess = Catur
+chess-set-time-control = Kontrol waktu: { $control }
+chess-select-time-control = Pilih kontrol waktu
+chess-option-changed-time-control = Kontrol waktu diatur menjadi { $control }.
+chess-desc-time-control = Pilih waktu bermain, mulai dari tanpa batas waktu hingga bullet, blitz, rapid, atau klasik.
+chess-time-untimed = Tanpa batas waktu
+chess-time-bullet-1-0 = Bullet 1+0
+chess-time-bullet-2-1 = Bullet 2+1
+chess-time-blitz-3-0 = Blitz 3+0
+chess-time-blitz-3-2 = Blitz 3+2
+chess-time-blitz-5-0 = Blitz 5+0
+chess-time-rapid-10-0 = Rapid 10+0
+chess-time-rapid-10-5 = Rapid 10+5
+chess-time-classical-30-0 = Klasik 30+0
+chess-set-draw-handling = Penetapan remis: { $mode }
+chess-select-draw-handling = Pilih cara menetapkan remis
+chess-option-changed-draw-handling = Penetapan remis diatur menjadi { $mode }.
+chess-desc-draw-handling = Tentukan apakah kondisi remis langsung mengakhiri permainan atau harus diklaim oleh pemain.
+chess-draw-handling-automatic = Otomatis
+chess-draw-handling-claim-required = Harus diklaim
+chess-toggle-draw-offers = Izinkan tawaran remis: { $enabled }
+chess-option-changed-draw-offers = Izin tawaran remis diatur menjadi { $enabled }.
+chess-desc-allow-draw-offers = Tentukan apakah pemain boleh menawarkan remis dan menerima atau menolak tawaran lawan.
+chess-toggle-undo-requests = Izinkan permintaan pembatalan langkah: { $enabled }
+chess-option-changed-undo-requests = Izin permintaan pembatalan langkah diatur menjadi { $enabled }.
+chess-desc-allow-undo-requests = Tentukan apakah pemain boleh meminta pembatalan langkah yang dapat diterima atau ditolak oleh lawan.
+chess-error-invalid-time-control = Kontrol waktu "{ $control }" tidak didukung dalam Catur.
+chess-error-invalid-draw-handling = Cara penetapan remis "{ $mode }" tidak didukung dalam Catur.
+chess-read-board = Baca papan
+chess-check-status = Periksa status
+chess-flip-board = Balik arah papan
+chess-check-clock = Periksa waktu
+chess-claim-draw = Klaim remis
+chess-offer-draw = Tawarkan remis
+chess-accept-draw = Terima remis
+chess-decline-draw = Tolak remis
+chess-request-undo = Minta pembatalan langkah
+chess-accept-undo = Terima pembatalan langkah
+chess-decline-undo = Tolak pembatalan langkah
+chess-type-move = Ketik langkah
+chess-enter-move = Ketik langkah Anda, misalnya e2e4, Nf3, O-O, atau e8=Q
+chess-promote-queen = Promosi menjadi menteri
+chess-promote-rook = Promosi menjadi benteng
+chess-promote-bishop = Promosi menjadi gajah
+chess-promote-knight = Promosi menjadi kuda
+chess-color-white = putih
+chess-color-black = hitam
+chess-piece-pawn = pion
+chess-piece-knight = kuda
+chess-piece-bishop = gajah
+chess-piece-rook = benteng
+chess-piece-queen = menteri
+chess-piece-king = raja
+chess-piece-with-color = { $piece } { $color }
+chess-square-empty-label = { $square }, kosong
+chess-square-piece-label = { $square }, { $piece }
+chess-square-selected-label = dipilih, { $label }
+chess-square-move-target = { $square }, langkah sah
+chess-square-capture-target = { $square }, tangkap { $piece }
+chess-square-empty = { $square } kosong.
+chess-square-occupied = { $square }: { $piece }.
+chess-select-own-piece = Pilih salah satu buah catur Anda terlebih dahulu.
+chess-piece-no-legal-moves = Buah catur itu tidak memiliki langkah yang sah.
+chess-piece-selected = { $piece } di { $square } dipilih. Ada { $count } langkah yang sah.
+chess-selection-cleared = Pilihan dibatalkan.
+chess-illegal-move = Langkah tidak sah.
+chess-invalid-castle = Rokade tidak dapat dilakukan di posisi itu.
+chess-promotion-pending = Pilih buah catur untuk promosi terlebih dahulu.
+chess-choose-promotion = Pilih buah catur untuk promosi.
+chess-typed-move-empty = Ketik langkah sebelum mengirim.
+chess-typed-move-parse-error = "{ $move }" tidak dikenali sebagai langkah catur. Coba notasi koordinat seperti e2e4, notasi aljabar seperti Nf3, rokade seperti O-O, atau promosi seperti e8=Q.
+chess-typed-move-ambiguous = "{ $move }" dapat berarti lebih dari satu langkah yang sah. Tambahkan lajur, baris, atau petak asal lengkap, misalnya Nbd2 atau Rae1.
+chess-typed-move-illegal = "{ $move }" tidak sah dalam posisi saat ini.
+chess-typed-move-bad-promotion = "{ $move }" mencantumkan buah catur untuk promosi, tetapi promosi hanya dapat dilakukan saat pion mencapai baris terakhir. Pilih menteri, benteng, gajah, atau kuda.
+chess-game-started = Catur dimulai. { $white } memegang putih. { $black } memegang hitam.
+chess-you-win-checkmate = Skakmat. Anda menang.
+chess-player-wins-checkmate = Skakmat. { $player } menang.
+chess-draw = Remis.
+chess-draw-stalemate = Remis karena pat.
+chess-draw-fifty-move = Remis berdasarkan aturan lima puluh langkah.
+chess-draw-seventy-five-move = Remis wajib berdasarkan aturan tujuh puluh lima langkah.
+chess-draw-threefold = Remis karena posisi berulang tiga kali.
+chess-draw-fivefold = Remis wajib karena posisi berulang lima kali.
+chess-draw-insufficient-material = Remis karena buah catur yang tersisa tidak cukup untuk skakmat.
+chess-draw-agreement = Remis atas kesepakatan bersama.
+chess-draw-timeout-insufficient = Remis. Waktu lawan habis, tetapi buah catur yang tersisa tidak cukup untuk skakmat.
+chess-you-are-in-check = Raja Anda sedang diskak.
+chess-player-is-in-check = Raja { $player } sedang diskak.
+chess-you-lose-on-time = Waktu Anda habis. { $winner } menang karena waktu.
+chess-player-loses-on-time = Waktu { $player } habis. { $winner } menang karena waktu.
+chess-you-en-passant = Anda memindahkan { $piece } dari { $from_square } ke { $to_square } dan menangkap dengan en passant.
+chess-player-en-passant = { $player } memindahkan { $piece } dari { $from_square } ke { $to_square } dan menangkap dengan en passant.
+chess-you-en-passant-brief = Anda { $from_square } ke { $to_square }, en passant.
+chess-player-en-passant-brief = { $player } { $from_square } ke { $to_square }, en passant.
+chess-you-capture = Anda memindahkan { $piece } dari { $from_square } ke { $to_square } dan menangkap { $captured_piece }.
+chess-player-captures = { $player } memindahkan { $piece } dari { $from_square } ke { $to_square } dan menangkap { $captured_piece }.
+chess-you-capture-brief = Anda { $from_square } ke { $to_square }, menangkap.
+chess-player-captures-brief = { $player } { $from_square } ke { $to_square }, menangkap.
+chess-you-castle-kingside = Anda melakukan rokade pendek.
+chess-player-castles-kingside = { $player } melakukan rokade pendek.
+chess-you-castle-kingside-brief = Anda rokade pendek.
+chess-player-castles-kingside-brief = { $player } rokade pendek.
+chess-you-castle-queenside = Anda melakukan rokade panjang.
+chess-player-castles-queenside = { $player } melakukan rokade panjang.
+chess-you-castle-queenside-brief = Anda rokade panjang.
+chess-player-castles-queenside-brief = { $player } rokade panjang.
+chess-you-move = Anda memindahkan { $piece } dari { $from_square } ke { $to_square }.
+chess-player-moves = { $player } memindahkan { $piece } dari { $from_square } ke { $to_square }.
+chess-you-move-brief = Anda { $from_square } ke { $to_square }.
+chess-player-moves-brief = { $player } { $from_square } ke { $to_square }.
+chess-you-promote = Anda melakukan promosi di { $square }.
+chess-player-promotes = { $player } melakukan promosi di { $square }.
+chess-you-promote-to = Anda mempromosikan pion di { $square } menjadi { $piece }.
+chess-player-promotes-to = { $player } mempromosikan pion di { $square } menjadi { $piece }.
+chess-you-promote-to-brief = Anda mempromosikan pion di { $square } menjadi { $piece }.
+chess-player-promotes-to-brief = { $player } mempromosikan pion di { $square } menjadi { $piece }.
+chess-you-offer-draw = Anda menawarkan remis.
+chess-player-offers-draw = { $player } menawarkan remis.
+chess-you-accept-draw = Anda menerima remis.
+chess-player-accepts-draw = { $player } menerima remis.
+chess-you-decline-draw = Anda menolak remis.
+chess-player-declines-draw = { $player } menolak remis.
+chess-you-request-undo = Anda meminta pembatalan langkah.
+chess-player-requests-undo = { $player } meminta pembatalan langkah.
+chess-you-accept-undo = Anda menerima permintaan pembatalan langkah.
+chess-player-accepts-undo = { $player } menerima permintaan pembatalan langkah.
+chess-you-decline-undo = Anda menolak permintaan pembatalan langkah.
+chess-player-declines-undo = { $player } menolak permintaan pembatalan langkah.
+chess-draw-offer-too-early = Remis baru boleh ditawarkan setelah kedua pemain masing-masing melangkah setidaknya sekali.
+chess-claim-available-fifty-move = Remis berdasarkan aturan lima puluh langkah dapat diklaim sekarang.
+chess-claim-available-threefold = Remis karena posisi berulang tiga kali dapat diklaim sekarang.
+chess-you-claim-draw-fifty-move = Anda mengklaim remis berdasarkan aturan lima puluh langkah.
+chess-draw-claimed-fifty-move = { $player } mengklaim remis berdasarkan aturan lima puluh langkah.
+chess-you-claim-draw-threefold = Anda mengklaim remis karena posisi berulang tiga kali.
+chess-draw-claimed-threefold = { $player } mengklaim remis karena posisi berulang tiga kali.
+chess-status-white = Putih: { $player }
+chess-status-black = Hitam: { $player }
+chess-status-turn = Giliran: { $color } ({ $player })
+chess-status-move-count = Langkah penuh selesai: { $count }. Setengah langkah dimainkan: { $plies }.
+chess-status-promotion-pending = Pilihan promosi belum ditentukan.
+chess-status-check = Pihak yang mendapat giliran sedang diskak.
+chess-status-time-control = Kontrol waktu: { $control }
+chess-status-draw-offer = Tawaran remis dari { $player } menunggu jawaban.
+chess-status-undo-request = Permintaan pembatalan langkah dari { $player } menunggu jawaban.
+chess-clock-line = Waktu { $color }: { $time }
+chess-clock-untimed = tidak terbatas
+chess-clock-announcement = Putih { $white }. Hitam { $black }.
+chess-clock-announcement-untimed = Permainan ini tidak dibatasi waktu.
+chess-board-flipped = Papan dibalik ke sisi { $color }.
+chess-empty = kosong
+chess-board-rank-line = Baris { $rank }: { $pieces }
+chess-end-winner = { $player } menang dengan buah catur { $color }.
+chess-end-move-count = Langkah penuh selesai: { $count }. Setengah langkah dimainkan: { $plies }.

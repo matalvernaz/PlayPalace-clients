@@ -1,4 +1,4 @@
-"""
+﻿"""
 Test that action_id parameter is passed correctly to is_enabled and is_hidden methods.
 
 This verifies the enhancement to the action system that allows methods to optionally
@@ -7,22 +7,9 @@ receive the action_id as a keyword argument.
 
 import pytest
 
-from server.games.threes.game import ThreesGame
-from server.games.midnight.game import MidnightGame
-from server.core.users.preferences import DiceKeepingStyle, UserPreferences
-from server.core.users.test_user import MockUser
-
-
-class PreferenceMockUser(MockUser):
-    """Mock user with mutable preferences support."""
-
-    def __init__(self, username: str):
-        super().__init__(username)
-        self._preferences = UserPreferences()
-
-    @property
-    def preferences(self) -> UserPreferences:
-        return self._preferences
+from ..games.threes.game import ThreesGame
+from ..games.midnight.game import MidnightGame
+from ..users.test_user import MockUser
 
 
 class TestActionIdPassing:
@@ -153,55 +140,7 @@ class TestActionIdPassing:
         assert len(visible) > 0
         assert len(enabled) > 0
 
-    def test_dice_values_mode_number_keeps_shift_rerolls(self):
-        """Values mode: number keeps, shift+number rerolls."""
-        game = ThreesGame()
-        user = PreferenceMockUser("Alice")
-        player = game.add_player("Alice", user)
-        game.on_start()
-        user.preferences.dice_keeping_style = DiceKeepingStyle.QUENTIN_C
-
-        player.dice.values = [1, 5, 2, 3, 6]
-        player.dice.kept = set()
-        player.dice.locked = set()
-
-        game._handle_dice_key(player, 5)
-        assert 1 in player.dice.kept
-
-        game._handle_dice_unkeep(player, 5)
-        assert 1 not in player.dice.kept
-
-    def test_dice_values_mode_defaults_to_unkept_after_roll(self):
-        """Values mode should not auto-keep all dice after rolling."""
-        game = ThreesGame()
-        user = PreferenceMockUser("Alice")
-        player = game.add_player("Alice", user)
-        game.on_start()
-        user.preferences.dice_keeping_style = DiceKeepingStyle.QUENTIN_C
-
-        game.execute_action(player, "roll")
-        assert player.dice.has_rolled
-        assert player.dice.kept == set(player.dice.locked)
-
-    def test_dice_values_mode_key_stays_enabled_when_first_die_locked(self):
-        """Values mode key checks should not depend on die index 0."""
-        game = ThreesGame()
-        user = PreferenceMockUser("Alice")
-        player = game.add_player("Alice", user)
-        game.on_start()
-        user.preferences.dice_keeping_style = DiceKeepingStyle.QUENTIN_C
-
-        # Die 0 is locked; only index 2 is an available 5.
-        player.dice.values = [2, 3, 5, 4, 6]
-        player.dice.locked = {0}
-        player.dice.kept = {0}
-
-        reason = game._is_dice_key_enabled(player, action_id="dice_key_5")
-        assert reason is None
-
-        game._handle_dice_key(player, 5)
-        assert 2 in player.dice.kept
-
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+

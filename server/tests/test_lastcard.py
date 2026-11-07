@@ -19,7 +19,7 @@ from ..games.lastcard.game import (
     RANK_WILD_DRAW_FOUR,
 )
 from ..game_utils.cards import Card, Deck
-from server.core.users.bot import Bot
+from server.users.bot import Bot
 
 
 # ============================================================================
@@ -80,7 +80,8 @@ def setup_turn(
         p.draws_this_turn = 0
         p.called_last_card = False
     game._sync_turn_actions(game.players[player_index])
-    game.rebuild_all_menus()
+    game.refresh_menus()
+    game.flush_menus()
 
 
 def advance_ticks(game: LastCardGame, count: int) -> None:
@@ -113,7 +114,7 @@ def test_game_creation():
     assert game.get_name() == "Last Card"
     assert game.get_name_key() == "game-name-lastcard"
     assert game.get_type() == "lastcard"
-    assert game.get_category() == "category-playaural"
+    assert game.get_category() == "cards"
     assert game.get_min_players() == 2
     assert game.get_max_players() == 10
 
@@ -1455,7 +1456,7 @@ def test_prestart_validate_too_many_cards():
     """Reject hand sizes that exceed the deck."""
     game = LastCardGame(options=LastCardOptions(hand_size=15))
     for i in range(8):
-        game.add_player(f"P{i}", Bot(f"P{i}"))
+        game.add_player(f"Bot{i}", Bot(f"Bot{i}"))
     errors = game.prestart_validate()
     assert any(
         "lastcard-error-too-many-cards" in (e[0] if isinstance(e, tuple) else e) for e in errors
@@ -1466,7 +1467,7 @@ def test_prestart_validate_ok():
     """Normal config passes validation."""
     game = LastCardGame(options=LastCardOptions(hand_size=7))
     for i in range(4):
-        game.add_player(f"P{i}", Bot(f"P{i}"))
+        game.add_player(f"Bot{i}", Bot(f"Bot{i}"))
     errors = game.prestart_validate()
     assert not errors
 
@@ -1542,7 +1543,7 @@ def test_web_buzzer_visible_during_callout():
 
     # With web client_type: visible
     bot_user = game.get_user(p)
-    bot_user.set_client_type("web")
+    bot_user.client_type = "web"
     assert game._is_buzzer_hidden(p) == Visibility.VISIBLE
 
 
@@ -1566,13 +1567,13 @@ def test_web_jump_in_visible_during_window():
 
     # With web: visible
     bot_user = game.get_user(p)
-    bot_user.set_client_type("web")
+    bot_user.client_type = "web"
     assert game._is_jump_in_hidden(p) == Visibility.VISIBLE
 
     # Current player should still be hidden (can't jump in on own turn)
     cp = players[0]
     cp_user = game.get_user(cp)
-    cp_user.set_client_type("web")
+    cp_user.client_type = "web"
     assert game._is_jump_in_hidden(cp) == Visibility.HIDDEN
 
 
@@ -1590,7 +1591,7 @@ def test_web_sort_visible_in_turn_menu():
 
     # With web: visible
     bot_user = game.get_user(p)
-    bot_user.set_client_type("web")
+    bot_user.client_type = "web"
     assert game._is_sort_turn_hidden(p) == Visibility.VISIBLE
 
 
@@ -1603,7 +1604,7 @@ def test_web_turn_menu_order():
 
     # Make this a web user
     bot_user = game.get_user(p)
-    bot_user.set_client_type("web")
+    bot_user.client_type = "web"
 
     setup_turn(game, 0, make_card(50, 5, COLOR_RED))
     p.hand = [Card(id=200, rank=5, suit=COLOR_BLUE), Card(id=201, rank=3, suit=COLOR_RED)]

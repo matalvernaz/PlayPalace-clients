@@ -1,28 +1,65 @@
-# Snakes and Ladders localization
+# snakesandladders.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-game-name-snakesandladders = Snakes and Ladders
-game-snakesandladders-desc = The classic race to 100! Climb ladders and avoid snakes.
-category-board-games = Board Games
-
-# Actions
-snakes-roll = Roll Dice
-
-# Game Status
-snakes-turn = { $player }'s turn. Square { $position }.
-snakes-roll-result = { $player } rolled a { $roll }.
-snakes-move = { $player } moved to square { $position }.
-snakes-ladder = { $player } climbed a ladder! Moved from { $start } to { $end }.
-snakes-snake = Oh no! { $player } was bitten by a snake! Slid down from { $start } to { $end }.
-snakes-bounce = { $player } passed 100 and bounced back to { $position }.
-snakes-win = { $player } wins!
-
-# Check Positions
-check-positions = Check positions
-snakes-positions-header = Current Positions:
-snakes-position-entry = { $player }: Square { $position }
-
-# Status Check
-snakes-status-player = { $player } is at square { $position }.
-
-# End Game
-snakes-end-score = { $rank }. { $player }: Square { $position }
+game-name-snakesandladders = Ular Tangga
+game-snakesandladders-desc = Berlombalah dari area awal menuju petak 100. Naiki tangga, turuni ular, dan jadilah yang pertama mencapai finis.
+snakes-roll = Lempar dadu
+snakes-check-positions = Periksa posisi
+snakes-turn-start-you = Giliran Anda. Bidak Anda berada di area awal sebelum petak 1.
+snakes-turn-start-other = Giliran { $player }. Bidaknya berada di area awal sebelum petak 1.
+snakes-turn-you = Giliran Anda. Anda berada di petak { $position }.
+snakes-turn-other = Giliran { $player }. Posisinya di petak { $position }.
+snakes-roll-you = Dadu Anda menunjukkan angka { $roll }.
+snakes-roll-other = Dadu { $player } menunjukkan angka { $roll }.
+snakes-enter-you = Anda bergerak dari area awal ke petak { $position }.
+snakes-enter-other = { $player } bergerak dari area awal ke petak { $position }.
+snakes-enter-you-brief = Anda: petak { $position }.
+snakes-enter-other-brief = { $player }: petak { $position }.
+snakes-move-you = Anda maju { $roll } petak dari petak { $start } ke petak { $position }.
+snakes-move-other = { $player } maju { $roll } petak dari petak { $start } ke petak { $position }.
+snakes-move-you-brief = Anda: petak { $position }.
+snakes-move-other-brief = { $player }: petak { $position }.
+snakes-bounce-you = Dari petak { $start }, hasil dadu { $roll } membawa Anda melewati petak { $target }. Anda bergerak mundur dari finis hingga petak { $position }.
+snakes-bounce-other = Dari petak { $start }, hasil dadu { $roll } membawa { $player } melewati petak { $target }, lalu mundur dari finis hingga petak { $position }.
+snakes-bounce-you-brief = Anda mundur ke petak { $position }.
+snakes-bounce-other-brief = { $player } mundur ke petak { $position }.
+snakes-restored-bounce-you = Gerakan dari hasil dadu yang tersimpan dilanjutkan. Anda mundur ke petak { $position }.
+snakes-restored-bounce-other = Gerakan dari hasil dadu { $player } yang tersimpan dilanjutkan, mundur ke petak { $position }.
+snakes-exact-miss-you = Anda perlu angka { $needed } untuk mencapai petak { $target }, tetapi mendapat { $roll }. Anda tetap di petak { $position }.
+snakes-exact-miss-other = { $player } perlu angka { $needed } untuk mencapai petak { $target }, tetapi mendapat { $roll } dan tetap di petak { $position }.
+snakes-exact-miss-you-brief = Anda perlu { $needed }, mendapat { $roll }, tetap di petak { $position }.
+snakes-exact-miss-other-brief = { $player } perlu { $needed }, mendapat { $roll }, tetap di petak { $position }.
+snakes-ladder-you = Anda berhenti di kaki tangga pada petak { $start }, lalu naik ke petak { $end }, maju { $distance } petak.
+snakes-ladder-other = { $player } berhenti di kaki tangga pada petak { $start }, lalu naik ke petak { $end }, maju { $distance } petak.
+snakes-ladder-you-brief = Anda naik dari petak { $start } ke { $end }.
+snakes-ladder-other-brief = { $player } naik dari petak { $start } ke { $end }.
+snakes-snake-you = Anda berhenti di kepala ular pada petak { $start }, lalu turun ke ekornya pada petak { $end }, mundur { $distance } petak.
+snakes-snake-other = { $player } berhenti di kepala ular pada petak { $start }, lalu turun ke ekornya pada petak { $end }, mundur { $distance } petak.
+snakes-snake-you-brief = Anda turun dari petak { $start } ke { $end }.
+snakes-snake-other-brief = { $player } turun dari petak { $start } ke { $end }.
+snakes-extra-turn-you = Anda mendapat angka 6 dan mendapat giliran tambahan dari petak { $position }.
+snakes-extra-turn-other = { $player } mendapat angka 6 dan mendapat giliran tambahan dari petak { $position }.
+snakes-win-you = Anda mencapai petak { $position } dan memenangkan permainan!
+snakes-win-other = { $player } mencapai petak { $position } dan memenangkan permainan!
+snakes-status-goal = Tujuan: petak { $target }. Aturan finis: { $rule }.
+snakes-status-current-start = { $player }: area awal sebelum petak 1. Sedang mendapat giliran.
+snakes-status-player-start = { $player }: area awal sebelum petak 1.
+snakes-status-current-position = { $player }: petak { $position }, tersisa { $remaining } petak. Sedang mendapat giliran.
+snakes-status-player-position = { $player }: petak { $position }, tersisa { $remaining } petak.
+snakes-status-player-finished = { $player }: petak { $position }, sudah finis.
+snakes-finish-bounce-back = Mundur jika melewati finis
+snakes-finish-exact-stay = Harus tepat, tetap di tempat jika berlebih
+snakes-set-finish-rule = Aturan finis: { $rule }
+snakes-select-finish-rule = Pilih aturan finis
+snakes-option-changed-finish-rule = Aturan finis diubah menjadi { $rule }.
+snakesandladders-desc-finish-rule = Menentukan apakah hasil dadu yang melewati petak 100 membuat bidak mundur dari finis atau tetap di tempat menunggu angka yang tepat.
+snakes-set-extra-turn-six = Giliran tambahan saat mendapat 6: { $enabled }
+snakes-option-changed-extra-turn-six = Giliran tambahan saat mendapat 6 diubah menjadi { $enabled }.
+snakesandladders-desc-extra-turn-on-six = Menentukan apakah hasil dadu 6 memberikan giliran tambahan.
+snakes-error-roll-not-playing = Anda baru dapat melempar dadu setelah permainan Ular Tangga dimulai.
+snakes-error-roll-not-your-turn = Pemain lain sedang mendapat giliran. Tunggu hingga giliran Anda sebelum melempar dadu.
+snakes-error-roll-resolving = Hasil lemparan dadu sebelumnya masih diproses. Tunggu hingga gerakan, penurunan ular, atau kenaikan tangga selesai sebelum melempar lagi.
+snakes-error-positions-not-playing = Posisi hanya tersedia saat permainan Ular Tangga berlangsung.
+snakes-error-invalid-finish-rule = Aturan finis { $rule } tidak didukung. Pilih Mundur jika melewati finis atau Harus tepat, tetap di tempat jika berlebih.
+snakes-end-score = { $rank }. { $player }: petak { $position }
+snakes-end-score-start = { $rank }. { $player }: area awal sebelum petak 1

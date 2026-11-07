@@ -8,7 +8,8 @@ from pathlib import Path
 from dataclasses import dataclass, field
 
 from server.core.tables.table import Table
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
+from server.persistence.game_format import GAME_ENGINE_FORMAT
 
 LOG = logging.getLogger("playpalace.database")
 
@@ -76,6 +77,7 @@ class SavedTableRecord:
     game_json: str
     members_json: str
     saved_at: str
+    game_engine: str = ""
 
 
 @dataclass
@@ -222,7 +224,24 @@ class Database:
                 host TEXT NOT NULL,
                 members_json TEXT NOT NULL,
                 game_json TEXT,
-                status TEXT DEFAULT 'waiting'
+                status TEXT DEFAULT 'waiting',
+                game_engine TEXT NOT NULL DEFAULT ''
+            )
+        """)
+
+        # Live tables that couldn't be restored at startup, kept rather than
+        # deleted: a game written by an older engine, or an unreadable row.
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS retired_tables (
+                table_id TEXT NOT NULL,
+                game_type TEXT NOT NULL,
+                host TEXT NOT NULL,
+                members_json TEXT NOT NULL,
+                game_json TEXT,
+                status TEXT,
+                game_engine TEXT NOT NULL DEFAULT '',
+                reason TEXT NOT NULL,
+                retired_at TEXT NOT NULL
             )
         """)
 
@@ -235,7 +254,8 @@ class Database:
                 game_type TEXT NOT NULL,
                 game_json TEXT NOT NULL,
                 members_json TEXT NOT NULL,
-                saved_at TEXT NOT NULL
+                saved_at TEXT NOT NULL,
+                game_engine TEXT NOT NULL DEFAULT ''
             )
         """)
 
@@ -366,6 +386,17 @@ class Database:
                 file=sys.stderr,
             )
             raise SystemExit(1) from exc
+
+        # Game format markers (see persistence/game_format.py). Existing rows
+        # get '' and are treated as written by an older engine.
+        for table_name in ("tables", "saved_tables"):
+            cursor.execute(f"PRAGMA table_info({table_name})")
+            table_columns = [row[1] for row in cursor.fetchall()]
+            if "game_engine" not in table_columns:
+                cursor.execute(
+                    f"ALTER TABLE {table_name} ADD COLUMN game_engine TEXT NOT NULL DEFAULT ''"
+                )
+                self._get_conn().commit()
 
         if "fluent_languages" not in columns:
             cursor.execute("ALTER TABLE users ADD COLUMN fluent_languages TEXT DEFAULT '[]'")
@@ -944,8 +975,8 @@ class Database:
 
         cursor.execute(
             """
-            INSERT OR REPLACE INTO tables (table_id, game_type, host, members_json, game_json, status)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT OR REPLACE INTO tables (table_id, game_type, host, members_json, game_json, status, game_engine)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 table.table_id,
@@ -954,6 +985,7 @@ class Database:
                 members_json,
                 table.game_json,
                 table.status,
+                GAME_ENGINE_FORMAT,
             ),
         )
         if commit:
@@ -983,6 +1015,7 @@ class Database:
             members=members,
             game_json=row["game_json"],
             status=row["status"],
+            game_engine=row["game_engine"],
         )
 
     def load_all_tables(self) -> list[Table]:
@@ -998,12 +1031,36 @@ class Database:
         for table_id in table_ids:
             try:
                 table = self.load_table(table_id)
-            except Exception:
-                LOG.exception("Skipping corrupt table row %s during restore", table_id)
+            except Exception as exc:
+                LOG.exception("Retiring corrupt table row %s during restore", table_id)
+                self.retire_table(table_id, f"unreadable row: {type(exc).__name__}")
                 continue
             if table:
                 tables.append(table)
         return tables
+
+    def retire_table(self, table_id: str, reason: str) -> None:
+        """Move a live table row into retired_tables, all or nothing.
+
+        Used at startup for a table that can't be restored, so it's kept for
+        inspection or a later migration instead of failing on every boot. The
+        copy and the delete commit together, so a crash between them leaves the
+        row in exactly one of the two tables.
+        """
+        from datetime import datetime
+
+        retired_at = datetime.now().isoformat()
+        with self._get_conn() as conn:
+            conn.execute(
+                """
+                INSERT INTO retired_tables
+                    (table_id, game_type, host, members_json, game_json, status, game_engine, reason, retired_at)
+                SELECT table_id, game_type, host, members_json, game_json, status, game_engine, ?, ?
+                FROM tables WHERE table_id = ?
+                """,
+                (reason, retired_at, table_id),
+            )
+            conn.execute("DELETE FROM tables WHERE table_id = ?", (table_id,))
 
     def delete_table(self, table_id: str) -> None:
         """Delete a table from the database."""
@@ -1036,6 +1093,7 @@ class Database:
         game_type: str,
         game_json: str,
         members_json: str,
+        game_engine: str = GAME_ENGINE_FORMAT,
     ) -> SavedTableRecord:
         """Save a table state to a user's saved tables."""
         from datetime import datetime
@@ -1045,10 +1103,10 @@ class Database:
         cursor = self._get_conn().cursor()
         cursor.execute(
             """
-            INSERT INTO saved_tables (username, save_name, game_type, game_json, members_json, saved_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO saved_tables (username, save_name, game_type, game_json, members_json, saved_at, game_engine)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-            (username, save_name, game_type, game_json, members_json, saved_at),
+            (username, save_name, game_type, game_json, members_json, saved_at, game_engine),
         )
         self._get_conn().commit()
 
@@ -1060,6 +1118,7 @@ class Database:
             game_json=game_json,
             members_json=members_json,
             saved_at=saved_at,
+            game_engine=game_engine,
         )
 
     def get_user_saved_tables(self, username: str) -> list[SavedTableRecord]:
@@ -1080,6 +1139,7 @@ class Database:
                     game_json=row["game_json"],
                     members_json=row["members_json"],
                     saved_at=row["saved_at"],
+                    game_engine=row["game_engine"],
                 )
             )
         return records
@@ -1100,6 +1160,7 @@ class Database:
             game_json=row["game_json"],
             members_json=row["members_json"],
             saved_at=row["saved_at"],
+            game_engine=row["game_engine"],
         )
 
     def delete_saved_table(self, save_id: int) -> None:

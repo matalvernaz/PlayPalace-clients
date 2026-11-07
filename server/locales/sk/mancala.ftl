@@ -1,32 +1,26 @@
-# Mancala game messages — sk
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale sk. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mankala
-
 # Actions
 mancala-pit-label = Jamka { $pit }: { $stones } kameňov
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } seje { $stones } kameňov z jamky { $pit }
 mancala-capture = { $player } zajíma { $captured } kameňov!
 mancala-extra-turn = Posledný kameň v zásobníku! { $player } hrá znova.
 mancala-winner = { $player } vyhráva s { $score } kameňmi!
 mancala-draw = Remíza! Obaja hráči majú { $score } kameňov.
-
 # Board status
-mancala-board-status =
-    Vaše jamky: { $own_pits }. Váš zásobník: { $own_store }. Jamky súpera: { $opp_pits }. Zásobník súpera: { $opp_store }.
-
+mancala-board-status = Vaše jamky: { $own_pits }. Váš zásobník: { $own_store }. Jamky súpera: { $opp_pits }. Zásobník súpera: { $opp_store }.
 # Options
 mancala-set-stones = Kameňov na jamku: { $stones }
 mancala-desc-stones = Počet kameňov v každej jamke na začiatku
 mancala-enter-stones = Zadajte počet počiatočných kameňov na jamku:
 mancala-option-changed-stones = Počiatočné kamene zmenené na { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Táto jamka je prázdna.
-
 # Rules
 mancala-rules =
     Mankala je hra pre dvoch hráčov s jamkami a kameňmi.
@@ -38,7 +32,5 @@ mancala-rules =
     Hra končí, keď je jedna strana úplne prázdna.
     Hráč s najviac kameňmi vyhráva.
     Použite klávesy 1-6 na výber jamky. Stlačte E na kontrolu dosky.
-
 # End screen
 mancala-final-score = { $player }: { $score } kameňov
-mancala-check-board = Check board

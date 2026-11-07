@@ -1,268 +1,226 @@
-# Exploding Kittens — localization
-#
-# Two editions share mechanics; only card names + flavor differ.
-# Game code passes the edition-localized $card name to action messages,
-# so this file owns the "which name shows up where" mapping.
-#
-# $who = "you" / "player" pattern is used universally.
+# explodingkittens.ftl for locale es. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# ==========================================================================
-# Game metadata
-# ==========================================================================
-game-name-explodingkittens = Exploding Kittens
-game-explodingkittens-desc = Draw cards, dodge exploding kittens, defuse what you can. Last one not exploded wins. Action cards let you skip your turn, peek at the deck, force opponents to give you cards, or shout "Nope!" to cancel anything.
-
-# Rules (for the in-game help system)
-explodingkittens-rules =
-    Exploding Kittens is a card game for 2 to 5 players.
-    Each turn, you may play any number of cards, then end your turn by drawing one card from the deck.
-    If you draw an Exploding Kitten and have a Defuse, you defuse it and tuck it back into the deck wherever you want. If you draw an Exploding Kitten and have no Defuse, you explode and are out of the game.
-    Action cards: Skip ends your turn without drawing. Attack ends your turn and forces the next player to take 2 turns in a row. See the Future shows you the top 3 cards. Shuffle reshuffles the deck. Favor lets you take a card of an opponent's choice from their hand.
-    Cat cards have no effect alone. Two matching cat cards = steal a random card from any player. Three matching cat cards = name a card and steal it if they have it.
-    Nope cards can be played at any time, even out of turn, to cancel any action card someone else just played. Another Nope cancels the Nope, and so on.
-    Last player not exploded wins. Press S to check your hand and the deck.
-
-# ==========================================================================
-# Lobby options
-# ==========================================================================
-
-# Edition (MenuOption: standard / nsfw)
-ek-set-edition = Edition: { $edition }
-ek-desc-edition = Standard uses the original card art and tame card names. NSFW (adult) replaces card names and flavor text with crude / sexual / profane parodies — same mechanics, raunchier vibe. Pick a friend group, not a family group, before turning this on.
-ek-prompt-edition = Select edition
-ek-option-changed-edition = Edition set to { $edition }.
-ek-edition-standard = standard
-ek-edition-nsfw = NSFW (adult)
-
-# Streaking Kittens variant (BoolOption)
-ek-toggle-streaking = Streaking Kittens variant: { $enabled }
-ek-desc-streaking = When on, one Streaking Kitten card joins the deck. A player holding it doesn't explode when they later draw a regular Exploding Kitten — but if they're caught holding both at once, both go off. Adds bluffing pressure to who's hoarding what.
-ek-option-changed-streaking = Streaking Kittens variant { $enabled }.
-
-# Starting hand size (IntOption)
-ek-set-hand-size = Starting hand size: { $cards } cards
-ek-desc-hand-size = Cards each player draws at the start (not counting their starting Defuse). Default is 7. Smaller hands make the game more cutthroat; larger hands give more room for combos.
-ek-prompt-hand-size = Enter starting hand size (4 to 10)
-ek-option-changed-hand-size = Starting hand size set to { $cards } cards.
-
-# See-the-future peek count (IntOption)
-ek-set-peek-count = See the Future shows: { $cards } cards
-ek-desc-peek-count = How many cards See the Future reveals from the top of the deck. Default is 3. Higher gives more information.
-ek-prompt-peek-count = Enter See the Future peek count (1 to 5)
-ek-option-changed-peek-count = See the Future shows { $cards } cards.
-
-# Nope window length (IntOption, in seconds)
-ek-set-nope-window = Nope window: { $seconds } seconds
-ek-desc-nope-window = How long after each cancellable action everyone has to play a Nope card. Default is 5 seconds. Shorter is faster, longer gives screen-reader users more time to react.
-ek-prompt-nope-window = Enter Nope window in seconds (2 to 15)
-ek-option-changed-nope-window = Nope window set to { $seconds } seconds.
-
-# ==========================================================================
-# Card names — STANDARD edition
-# ==========================================================================
-ek-card-defuse-standard = Defuse
-ek-card-exploding-kitten-standard = Exploding Kitten
-ek-card-streaking-kitten-standard = Streaking Kitten
-ek-card-skip-standard = Skip
-ek-card-attack-standard = Attack
-ek-card-see-the-future-standard = See the Future
-ek-card-shuffle-standard = Shuffle
-ek-card-favor-standard = Favor
-ek-card-nope-standard = Nope
-ek-card-tacocat-standard = Tacocat
-ek-card-hairy-potato-cat-standard = Hairy Potato Cat
-ek-card-rainbow-ralph-cat-standard = Rainbow-Ralphing Cat
-ek-card-beard-cat-standard = Beard Cat
-ek-card-cattermelon-standard = Cattermelon
-
-# ==========================================================================
-# Card names — NSFW edition
-# Crude / sexual party-game parodies in the spirit of the actual NSFW deck.
-# ==========================================================================
-ek-card-defuse-nsfw = Safe Word
-ek-card-exploding-kitten-nsfw = Exploding Asshole
-ek-card-streaking-kitten-nsfw = Streaking Asshole
-ek-card-skip-nsfw = Premature Excuse
-ek-card-attack-nsfw = Mindfuck
-ek-card-see-the-future-nsfw = Peek-a-Boo
-ek-card-shuffle-nsfw = Bend Over
-ek-card-favor-nsfw = Strip Search
-ek-card-nope-nsfw = Fuck That!
-ek-card-tacocat-nsfw = Cock-of-the-Walk
-ek-card-hairy-potato-cat-nsfw = Hairy Ballsack
-ek-card-rainbow-ralph-cat-nsfw = Vomit Hooker
-ek-card-beard-cat-nsfw = Pubic Beard
-ek-card-cattermelon-nsfw = Watermelon Tits
-
-# ==========================================================================
-# Turn / draw flow
-# ==========================================================================
-ek-turn-start = { $player }'s turn. { $remaining } cards left in the deck.{ $extra_turns ->
-    [0] {""}
-    [one] {" "}({ $extra_turns } extra turn pending.)
-    *[other] {" "}({ $extra_turns } extra turns pending.)
-}
-ek-action-draw = Draw a card
-ek-action-end-turn = Pass turn
-ek-drew-safe = { $who ->
-    [you] You drew: { $card }.
-    *[player] { $player } drew a card.
-}
-ek-drew-streaking-kitten = { $who ->
-    [you] You drew a { $card }! You don't explode while you hold it — but draw a real Exploding Kitten and you're done.
-    *[player] { $player } drew a { $card }.
-}
-ek-drew-exploding-survived = { $who ->
-    [you] You drew an { $card } — but you have a { $defuse }! You defuse it and tuck it back into the deck.
-    *[player] { $player } drew an { $card } and defused it with a { $defuse }.
-}
-ek-drew-exploding-no-defuse = { $who ->
-    [you] You drew an { $card } and have no { $defuse }! You explode and are out of the game.
-    *[player] { $player } drew an { $card } with no { $defuse } and is out of the game!
-}
-ek-defuse-prompt-position = Where do you want to put the { $card } back in the deck?
-ek-defuse-position-top = Top of the deck
-ek-defuse-position-second = Second from top
-ek-defuse-position-bottom = Bottom of the deck
-ek-defuse-position-random = Random spot
-ek-defuse-tucked = { $who ->
-    [you] You tucked the { $card } { $where }.
-    *[player] { $player } tucked the { $card } back into the deck.
-}
-
-# ==========================================================================
-# Action card plays
-# ==========================================================================
-ek-played-skip = { $who ->
-    [you] You play { $card }. Your turn ends without drawing.
-    *[player] { $player } plays { $card } and ends their turn.
-}
-ek-played-attack = { $who ->
-    [you] You play { $card }. Your turn ends and { $target } must take 2 turns in a row.
-    *[player] { $player } plays { $card }! { $target } must take 2 turns in a row.
-}
-ek-played-shuffle = { $who ->
-    [you] You play { $card }. The deck is shuffled.
-    *[player] { $player } plays { $card } and shuffles the deck.
-}
-ek-played-see-future = { $who ->
-    [you] You play { $card }. The top { $count } cards are: { $cards }.
-    *[player] { $player } plays { $card } and peeks at the top of the deck.
-}
-ek-played-favor = { $who ->
-    [you] You play { $card } targeting { $target }. They must give you a card of their choice.
-    *[player] { $player } plays { $card } targeting { $target }.
-}
-ek-played-cat-pair = { $who ->
-    [you] You play a pair of { $card } cards targeting { $target }. You steal a random card from their hand.
-    *[player] { $player } plays a pair of { $card } cards targeting { $target }.
-}
-ek-played-cat-trio = { $who ->
-    [you] You play three { $card } cards targeting { $target }. Name a card to steal if they have it.
-    *[player] { $player } plays three { $card } cards targeting { $target }.
-}
-
-# Favor / steal results
-ek-favor-given = { $who ->
-    [you] You give { $target } a { $card }.
-    *[player] { $player } gives { $target } a { $card }.
-}
-ek-favor-received = { $who ->
-    [you] { $source } gave you a { $card }.
-    *[player] {""}
-}
-ek-cat-pair-stole = { $who ->
-    [you] You stole { $card } from { $target }.
-    *[player] { $player } steals a card from { $target }.
-}
-ek-cat-pair-stole-private = { $who ->
-    [you] { $source } stole your { $card }.
-    *[player] {""}
-}
-ek-cat-pair-empty = { $who ->
-    [you] { $target } has no cards to steal.
-    *[player] { $target } has no cards to steal.
-}
-ek-cat-trio-success = { $who ->
-    [you] You stole { $card } from { $target }!
-    *[player] { $player } guessed correctly and stole a { $card } from { $target }.
-}
-ek-cat-trio-fail = { $who ->
-    [you] You named { $card } but { $target } didn't have one.
-    *[player] { $player } named { $card } but { $target } didn't have one.
-}
-
-# Cat trio name prompt
-ek-cat-trio-name-prompt = Name a card to steal from { $target }.
-
-# Target prompts
-ek-target-prompt = Choose a target.
-
-# ==========================================================================
-# Nope window
-# ==========================================================================
-ek-nope-window-open = Nope window open ({ $seconds } seconds): anyone with { $card } can cancel { $original_player }'s { $original_card }.
-ek-action-play-nope = Play { $card } to cancel
-ek-action-skip-nope = Let it stand
-ek-noped = { $who ->
-    [you] You play { $card }! { $original_player }'s { $original_card } is cancelled.
-    *[player] { $player } plays { $card }! { $original_player }'s { $original_card } is cancelled.
-}
-ek-yes-noped = { $who ->
-    [you] You play { $card } against the Nope! The original action goes through.
-    *[player] { $player } plays { $card } against the Nope! The original action goes through.
-}
-ek-nope-window-closed = Nope window closed.
-
-# ==========================================================================
-# Hand / deck inspection (S key)
-# ==========================================================================
-ek-status-deck = Deck: { $count } cards remaining.
-ek-status-deck-with-kittens = Deck: { $count } cards remaining (including { $kittens ->
-    [one] 1 Exploding Kitten
-    *[other] { $kittens } Exploding Kittens
-}).
-ek-status-discard = Discard pile: { $count } cards.
-ek-status-hand-header = Your hand ({ $count } { $count ->
-    [one] card
-    *[other] cards
-}):
-ek-status-hand-card = { $card }
-ek-status-hand-empty = Your hand is empty.
-ek-status-extra-turns = You owe { $count } extra { $count ->
-    [one] turn
-    *[other] turns
-}.
-ek-status-eliminated = You have been eliminated.
-ek-status-future-peek = Top of deck (your last peek): { $cards }.
-ek-status-future-no-peek = You haven't peeked at the deck.
-
-# Detailed status — opponent summary
-ek-status-detailed-header = Detailed status — { $count } players left.
-ek-status-detailed-line = { $player }{ $self_suffix }: { $hand_count } cards in hand.
-ek-status-detailed-out = { $player }: eliminated.
-ek-status-detailed-self-suffix = {" "}(you)
-
-# ==========================================================================
-# Game end
-# ==========================================================================
-ek-eliminated = { $player } has been eliminated! { $remaining } { $remaining ->
-    [one] player
-    *[other] players
-} left.
-ek-winner = { $player } is the last one standing!
-ek-end-score = { $rank }. { $player }: { $status }
-ek-end-status-survived = survived
-ek-end-status-eliminated = eliminated
-
-# ==========================================================================
-# Misc
-# ==========================================================================
-ek-action-not-your-turn = It's not your turn.
-ek-action-not-playing = The game is not in progress.
-ek-action-must-respond-nope = A Nope window is open — choose to play Nope or let it stand.
-ek-action-no-targets = No valid targets.
-ek-action-no-cat-pair = You don't have a pair of matching cat cards.
-ek-action-no-cat-trio = You don't have three matching cat cards.
-ek-action-no-defuse = You have no Defuse card to play.
-ek-cat-defuse-not-stealable = Defuse cards cannot be named in a three-of-a-kind steal.
+game-name-explodingkittens = Gatitos Explosivos
+explodingkittens-set-fast-game = Partida más rápida: { $enabled }
+explodingkittens-option-changed-fast-game = Partida más rápida establecida en { $enabled }.
+explodingkittens-option-fast-game-description = Para 2 o 3 jugadores, quita al azar un tercio del mazo antes de añadir los Gatitos Explosivos (desactivado por defecto).
+explodingkittens-error-fast-game-player-count = La partida más rápida solo está disponible con dos o tres jugadores.
+explodingkittens-set-advanced-combos = Combos avanzados: { $enabled }
+explodingkittens-option-changed-advanced-combos = Combos avanzados establecidos en { $enabled }.
+explodingkittens-option-advanced-combos-description = Permite parejas de cualquier carta con el mismo nombre y combos de trío. Cuando está desactivado, solo se permiten parejas de Cartas de Gato (activado por defecto).
+explodingkittens-set-nope-response = Tiempo de respuesta Nope: { $time }
+explodingkittens-select-nope-response = Elige el tiempo de respuesta Nope.
+explodingkittens-option-changed-nope-response = Tiempo de respuesta Nope establecido en { $time }.
+explodingkittens-option-nope-response-description = Cuánto tiempo tienen los jugadores para responder después de una acción o un Nope: 2, 3, 5, 10, 15, o 20 segundos. Cada Nope reinicia el temporizador (por defecto 10 segundos).
+explodingkittens-nope-response-2 = 2 segundos
+explodingkittens-nope-response-3 = 3 segundos
+explodingkittens-nope-response-5 = 5 segundos
+explodingkittens-nope-response-10 = 10 segundos
+explodingkittens-nope-response-15 = 15 segundos
+explodingkittens-nope-response-20 = 20 segundos
+explodingkittens-error-invalid-nope-response = Elige un tiempo de respuesta Nope compatible.
+explodingkittens-card-exploding-kitten = Gatito Explosivo
+explodingkittens-card-defuse = Desactivar
+explodingkittens-card-nope = Nope
+explodingkittens-card-attack = Ataque
+explodingkittens-card-skip = Saltar
+explodingkittens-card-favor = Favor
+explodingkittens-card-shuffle = Barajar
+explodingkittens-card-see-future = Ver el Futuro
+explodingkittens-card-beard-cat = Gato con Barba
+explodingkittens-card-cattermelon = Gatisandía
+explodingkittens-card-hairy-potato-cat = Gato Papa Peludo
+explodingkittens-card-rainbow-ralphing-cat = Gato Arcoíris Vomitón
+explodingkittens-card-tacocat = Tacogato
+explodingkittens-card-unknown = Carta desconocida
+explodingkittens-action-nope = Jugar Nope
+explodingkittens-action-pass = Pasar
+explodingkittens-action-draw = Robar una carta
+explodingkittens-action-start-combo = Armar un combo
+explodingkittens-action-confirm-combo = Jugar el combo seleccionado
+explodingkittens-action-cancel = Cancelar
+explodingkittens-action-use-defuse = Usar Desactivar
+explodingkittens-action-accept-explosion = Explotar sin usar Desactivar
+explodingkittens-action-read-hand = Leer mano
+explodingkittens-action-read-piles = Leer mazo y descarte
+explodingkittens-action-read-table = Leer mesa
+explodingkittens-action-check-nope-timer = Ver tiempo de Nope
+explodingkittens-action-name-pair = pareja
+explodingkittens-action-name-triple = combo de trío
+explodingkittens-target-player =
+    { $player }, { $cards ->
+        [one] 1 carta
+       *[other] { $cards } cartas
+    }
+explodingkittens-card-selected = Seleccionada: { $card }
+explodingkittens-card-not-selected = No seleccionada: { $card }
+explodingkittens-give-card-label = Dar { $card }
+explodingkittens-insert-top = Insertar arriba
+explodingkittens-insert-bottom = Insertar abajo
+explodingkittens-insert-position = Insertar con { $cards } cartas encima
+explodingkittens-error-eliminated = Ya explotaste.
+explodingkittens-error-card-missing = Esa carta ya no está disponible.
+explodingkittens-error-card-not-combo = Los Gatitos Explosivos no se pueden usar en combos.
+explodingkittens-error-combo-too-large = Un combo solo puede tener dos o tres cartas.
+explodingkittens-error-basic-combo-pair-only = Los combos avanzados están desactivados, así que este combo se limita a una pareja.
+explodingkittens-error-combo-name-mismatch = Elige cartas con el mismo nombre.
+explodingkittens-error-action-in-progress = Termina la acción actual primero.
+explodingkittens-error-finish-combo = Termina de seleccionar tu combo o cancélalo.
+explodingkittens-error-waiting-combo = Esperando a que { $player } termine de seleccionar un combo.
+explodingkittens-error-choose-target = Elige un objetivo para tu { $action }, o cancela.
+explodingkittens-error-waiting-target = Esperando a que { $player } elija un objetivo para { $action }.
+explodingkittens-error-choose-request = Elige una carta para pedirle a { $target }, o cancela.
+explodingkittens-error-waiting-request = Esperando a que { $player } elija una carta para pedirle a { $target }.
+explodingkittens-error-waiting-nope-you = Tu { $action } está esperando respuestas de Nope.
+explodingkittens-error-waiting-nope-player = El { $action } de { $player } está esperando respuestas de Nope.
+explodingkittens-error-give-favor-card = Elige una carta para darle a { $player }.
+explodingkittens-error-waiting-favor-you = Esperando a que { $target } te dé una carta.
+explodingkittens-error-waiting-favor-player = Esperando a que { $target } le dé una carta a { $player }.
+explodingkittens-error-choose-defuse = Elige si usar Desactivar o explotar.
+explodingkittens-error-waiting-defuse = Esperando a que { $player } elija si usar Desactivar.
+explodingkittens-error-choose-reinsert = Elige dónde devolver el Gatito Explosivo.
+explodingkittens-error-waiting-reinsert = Esperando a que { $player } devuelva el Gatito Explosivo.
+explodingkittens-error-kitten-reveal-you = Espera la revelación de tu Gatito Explosivo.
+explodingkittens-error-kitten-reveal-player = Esperando la revelación del Gatito Explosivo de { $player }.
+explodingkittens-error-action-resolving = Espera a que se resuelva la acción actual.
+explodingkittens-error-defuse-only-after-kitten = Desactivar solo se usa después de robar un Gatito Explosivo.
+explodingkittens-error-nope-only-in-response = Nope solo se usa mientras una acción está esperando resolverse.
+explodingkittens-error-cat-needs-combo = Juega las Cartas de Gato como una pareja o trío que coincidan.
+explodingkittens-error-cat-needs-pair = Juega las Cartas de Gato como una pareja que coincida.
+explodingkittens-error-card-not-playable = Esa carta no se puede jugar ahora.
+explodingkittens-error-deck-empty = El mazo está vacío.
+explodingkittens-error-no-combo = No tienes una pareja ni un trío que coincidan.
+explodingkittens-error-no-cat-pair = No tienes una pareja de Cartas de Gato que coincidan.
+explodingkittens-error-advanced-combo-required = Esa combinación requiere combos avanzados.
+explodingkittens-error-no-target-with-cards = Ningún otro jugador tiene una carta para dar o robar.
+explodingkittens-error-invalid-combo = Selecciona exactamente dos o tres cartas con el mismo nombre.
+explodingkittens-error-invalid-cat-pair = Selecciona exactamente dos Cartas de Gato que coincidan.
+explodingkittens-error-not-nope-window = No hay ninguna acción para que juegues un Nope ahora.
+explodingkittens-error-nothing-to-pass = No tienes nada que pasar en este momento.
+explodingkittens-error-already-passed-nope = Ya pasaste en esta ventana de Nope.
+explodingkittens-error-nope-own-action = No puedes jugar Nope sobre tu propia acción. Espera a que otro jugador responda.
+explodingkittens-error-nope-own-nope = No puedes jugar Nope sobre el Nope que acabas de jugar. Espera a que otro jugador responda.
+explodingkittens-error-no-nope = No tienes ningún Nope.
+explodingkittens-error-no-defuse = No tienes ninguna carta de Desactivar.
+explodingkittens-error-invalid-target = Ese jugador no puede ser objetivo.
+explodingkittens-error-invalid-request = Esa carta no se puede pedir.
+explodingkittens-error-invalid-position = Esa posición de reinserción ya no está disponible.
+explodingkittens-game-started = Gatitos Explosivos comienza con { $players } jugadores y { $cards } cartas en el mazo.
+explodingkittens-game-starting-wait = Espera a que comience la partida.
+explodingkittens-hand =
+    { $count ->
+        [one] Tu carta: { $cards }.
+       *[other] Tus { $count } cartas: { $cards }.
+    }
+explodingkittens-hand-empty = Tu mano está vacía.
+explodingkittens-combo-selection-count =
+    { $count ->
+        [one] 1 carta seleccionada.
+       *[other] { $count } cartas seleccionadas.
+    }
+explodingkittens-you-play-card = Juegas { $card }.
+explodingkittens-player-plays-card = { $player } juega { $card }.
+explodingkittens-you-play-targeted-card = Juegas { $card } contra { $target }.
+explodingkittens-player-plays-targeted-card = { $player } juega { $card } contra { $target }.
+explodingkittens-player-targets-you-with-card = { $player } te apunta con { $card }.
+explodingkittens-you-play-pair = Juegas una pareja de { $card } contra { $target }.
+explodingkittens-player-plays-pair = { $player } juega una pareja de { $card } contra { $target }.
+explodingkittens-player-plays-pair-target = { $player } juega una pareja de { $card } contra ti.
+explodingkittens-you-play-triple = Juegas tres cartas de { $card } contra { $target } y pides { $request }.
+explodingkittens-player-plays-triple = { $player } juega tres cartas de { $card } contra { $target } y pide { $request }.
+explodingkittens-player-plays-triple-target = { $player } juega tres cartas de { $card } contra ti y pide { $request }.
+explodingkittens-you-play-nope = Juegas Nope.
+explodingkittens-player-plays-nope = { $player } juega Nope.
+explodingkittens-you-pass-nope = Pasas.
+explodingkittens-nope-time-remaining =
+    { $seconds ->
+        [one] Queda 1 segundo.
+       *[other] Quedan { $seconds } segundos.
+    }
+explodingkittens-your-action-canceled = Tu { $action } se cancela.
+explodingkittens-player-action-canceled = El { $action } de { $player } se cancela.
+explodingkittens-your-action-resolves = Tu { $action } surte efecto.
+explodingkittens-player-action-resolves = El { $action } de { $player } surte efecto.
+explodingkittens-your-shuffle-resolves = Tu Barajar surte efecto. El mazo se baraja.
+explodingkittens-player-shuffle-resolves = El Barajar de { $player } surte efecto. El mazo se baraja.
+explodingkittens-your-attack-resolves =
+    Tu Ataque surte efecto. { $target } debe tomar { $turns ->
+        [one] 1 turno.
+       *[other] { $turns } turnos.
+    }
+explodingkittens-attack-resolves-target =
+    El Ataque de { $player } surte efecto. Debes tomar { $turns ->
+        [one] 1 turno.
+       *[other] { $turns } turnos.
+    }
+explodingkittens-player-attack-resolves =
+    El Ataque de { $player } surte efecto. { $target } debe tomar { $turns ->
+        [one] 1 turno.
+       *[other] { $turns } turnos.
+    }
+explodingkittens-future-cards = Tu Ver el Futuro surte efecto. Próximas cartas, en orden: { $cards }.
+explodingkittens-player-see-future-resolves = El Ver el Futuro de { $player } surte efecto.
+explodingkittens-your-favor-resolves = Tu Favor surte efecto. { $target } está eligiendo una carta.
+explodingkittens-favor-resolves-target = El Favor de { $player } surte efecto. Elige una carta para dar.
+explodingkittens-player-favor-resolves = El Favor de { $player } surte efecto. { $target } está eligiendo una carta.
+explodingkittens-you-draw-card = Robas { $card }.
+explodingkittens-player-draws-card = { $player } roba una carta.
+explodingkittens-you-draw-kitten = Robas un Gatito Explosivo.
+explodingkittens-player-draws-kitten = { $player } roba un Gatito Explosivo.
+explodingkittens-you-defuse = Usas Desactivar.
+explodingkittens-player-defuses = { $player } usa Desactivar.
+explodingkittens-you-reinsert-kitten = Devuelves el Gatito Explosivo al mazo.
+explodingkittens-player-reinserts-kitten = { $player } devuelve el Gatito Explosivo al mazo.
+explodingkittens-you-have-turns =
+    Te quedan { $turns ->
+        [one] 1 turno
+       *[other] { $turns } turnos
+    }.
+explodingkittens-player-has-turns =
+    A { $player } le quedan { $turns ->
+        [one] 1 turno
+       *[other] { $turns } turnos
+    }.
+explodingkittens-you-explode = Explotas.
+explodingkittens-player-explodes = { $player } explota.
+explodingkittens-you-win = Eres el último jugador en pie y ganas Gatitos Explosivos.
+explodingkittens-player-wins = { $player } es el último jugador en pie y gana Gatitos Explosivos.
+explodingkittens-favor-transfer-you = { $target } te da { $card }.
+explodingkittens-favor-transfer-target = Le das { $card } a { $player }.
+explodingkittens-favor-transfer-public = { $target } le da una carta a { $player }.
+explodingkittens-favor-empty-you = Tu Favor surte efecto, pero { $target } no tiene ninguna carta para dar.
+explodingkittens-favor-empty-target = El Favor de { $player } surte efecto, pero no tienes ninguna carta para dar.
+explodingkittens-favor-empty-public = El Favor de { $player } surte efecto, pero { $target } no tiene ninguna carta para dar.
+explodingkittens-pair-transfer-you = Tomas al azar { $card } de { $target }.
+explodingkittens-pair-transfer-target = { $player } toma al azar tu { $card }.
+explodingkittens-pair-transfer-public = { $player } toma al azar una carta de { $target }.
+explodingkittens-pair-empty-you = Tu pareja surte efecto, pero { $target } no tiene ninguna carta para tomar.
+explodingkittens-pair-empty-target = La pareja de { $player } surte efecto, pero no tienes ninguna carta para tomar.
+explodingkittens-pair-empty-public = La pareja de { $player } surte efecto, pero { $target } no tiene ninguna carta para tomar.
+explodingkittens-triple-transfer-you = { $target } te da { $card }, la carta pedida.
+explodingkittens-triple-transfer-target = Le das { $card }, la carta pedida, a { $player }.
+explodingkittens-triple-transfer-public = { $target } le da la carta pedida a { $player }.
+explodingkittens-triple-miss-you = { $target } no tiene { $card }, la carta pedida.
+explodingkittens-triple-miss-target = No tienes { $card }, la carta pedida por { $player }.
+explodingkittens-triple-miss-public = { $target } no tiene { $card }, la carta pedida por { $player }.
+explodingkittens-no-discard = sin cartas descartadas
+explodingkittens-piles = Mazo: { $deck }. Descarte: { $discard }. Descarte superior: { $top }.
+explodingkittens-table-piles = Mazo: { $deck }. Descarte: { $discard }.
+explodingkittens-table-turn =
+    Turno actual: { $player }, { $turns ->
+        [one] queda 1 turno.
+       *[other] quedan { $turns } turnos.
+    }
+explodingkittens-table-player =
+    { $player }: { $cards ->
+        [one] 1 carta
+       *[other] { $cards } cartas
+    }, { $status }.
+explodingkittens-status-alive = sigue jugando
+explodingkittens-status-eliminated = eliminado
+explodingkittens-phase-normal = Esperando una jugada o robo.
+explodingkittens-phase-favor-give = Se está entregando una carta de Favor.
+explodingkittens-phase-game-over = La partida ha terminado.
+explodingkittens-results-winner = Ganador: { $player }.
+explodingkittens-results-place = { $rank }. { $player }.

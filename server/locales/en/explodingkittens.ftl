@@ -1,5 +1,7 @@
-game-name-explodingkittens = Exploding Kittens
+# explodingkittens.ftl for locale en. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-explodingkittens = Exploding Kittens
 explodingkittens-set-fast-game = Faster game: { $enabled }
 explodingkittens-option-changed-fast-game = Faster game set to { $enabled }.
 explodingkittens-option-fast-game-description = For 2 or 3 players, randomly removes one third of the draw pile before adding the Exploding Kittens (default off).
@@ -18,7 +20,6 @@ explodingkittens-nope-response-10 = 10 seconds
 explodingkittens-nope-response-15 = 15 seconds
 explodingkittens-nope-response-20 = 20 seconds
 explodingkittens-error-invalid-nope-response = Choose a valid Nope response time.
-
 explodingkittens-card-exploding-kitten = Exploding Kitten
 explodingkittens-card-defuse = Defuse
 explodingkittens-card-nope = Nope
@@ -33,7 +34,6 @@ explodingkittens-card-hairy-potato-cat = Hairy Potato Cat
 explodingkittens-card-rainbow-ralphing-cat = Rainbow-Ralphing Cat
 explodingkittens-card-tacocat = Tacocat
 explodingkittens-card-unknown = Unknown card
-
 explodingkittens-action-nope = Play Nope
 explodingkittens-action-pass = Pass
 explodingkittens-action-draw = Draw a card
@@ -48,17 +48,17 @@ explodingkittens-action-read-table = Read table
 explodingkittens-action-check-nope-timer = Check Nope time
 explodingkittens-action-name-pair = pair
 explodingkittens-action-name-triple = three-of-a-kind combo
-explodingkittens-target-player = { $player }, { $cards ->
-    [one] 1 card
-   *[other] { $cards } cards
-}
+explodingkittens-target-player =
+    { $player }, { $cards ->
+        [one] 1 card
+       *[other] { $cards } cards
+    }
 explodingkittens-card-selected = Selected: { $card }
 explodingkittens-card-not-selected = Not selected: { $card }
 explodingkittens-give-card-label = Give { $card }
 explodingkittens-insert-top = Insert on top
 explodingkittens-insert-bottom = Insert on the bottom
 explodingkittens-insert-position = Insert with { $cards } cards above it
-
 explodingkittens-error-eliminated = You have already exploded.
 explodingkittens-error-card-missing = That card is no longer available.
 explodingkittens-error-card-not-combo = Exploding Kittens cannot be used in combos.
@@ -106,18 +106,19 @@ explodingkittens-error-no-defuse = You do not have a Defuse.
 explodingkittens-error-invalid-target = That player cannot be targeted.
 explodingkittens-error-invalid-request = That card cannot be requested.
 explodingkittens-error-invalid-position = That reinsertion position is no longer available.
-
 explodingkittens-game-started = Exploding Kittens begins with { $players } players and { $cards } cards in the draw pile.
 explodingkittens-game-starting-wait = Please wait for the game to start.
-explodingkittens-hand = { $count ->
-    [one] Your card: { $cards }.
-   *[other] Your { $count } cards: { $cards }.
-}
+explodingkittens-hand =
+    { $count ->
+        [one] Your card: { $cards }.
+       *[other] Your { $count } cards: { $cards }.
+    }
 explodingkittens-hand-empty = Your hand is empty.
-explodingkittens-combo-selection-count = { $count ->
-    [one] 1 card selected.
-   *[other] { $count } cards selected.
-}
+explodingkittens-combo-selection-count =
+    { $count ->
+        [one] 1 card selected.
+       *[other] { $count } cards selected.
+    }
 explodingkittens-you-play-card = You play { $card }.
 explodingkittens-player-plays-card = { $player } plays { $card }.
 explodingkittens-you-play-targeted-card = You play { $card } against { $target }.
@@ -132,28 +133,32 @@ explodingkittens-player-plays-triple-target = { $player } plays three { $card } 
 explodingkittens-you-play-nope = You play Nope.
 explodingkittens-player-plays-nope = { $player } plays Nope.
 explodingkittens-you-pass-nope = You pass.
-explodingkittens-nope-time-remaining = { $seconds ->
-    [one] 1 second remains.
-   *[other] { $seconds } seconds remain.
-}
+explodingkittens-nope-time-remaining =
+    { $seconds ->
+        [one] 1 second remains.
+       *[other] { $seconds } seconds remain.
+    }
 explodingkittens-your-action-canceled = Your { $action } is canceled.
 explodingkittens-player-action-canceled = { $player }'s { $action } is canceled.
 explodingkittens-your-action-resolves = Your { $action } takes effect.
 explodingkittens-player-action-resolves = { $player }'s { $action } takes effect.
 explodingkittens-your-shuffle-resolves = Your Shuffle takes effect. The draw pile is shuffled.
 explodingkittens-player-shuffle-resolves = { $player }'s Shuffle takes effect. The draw pile is shuffled.
-explodingkittens-your-attack-resolves = Your Attack takes effect. { $target } must take { $turns ->
-    [one] 1 turn.
-   *[other] { $turns } turns.
-}
-explodingkittens-attack-resolves-target = { $player }'s Attack takes effect. You must take { $turns ->
-    [one] 1 turn.
-   *[other] { $turns } turns.
-}
-explodingkittens-player-attack-resolves = { $player }'s Attack takes effect. { $target } must take { $turns ->
-    [one] 1 turn.
-   *[other] { $turns } turns.
-}
+explodingkittens-your-attack-resolves =
+    Your Attack takes effect. { $target } must take { $turns ->
+        [one] 1 turn.
+       *[other] { $turns } turns.
+    }
+explodingkittens-attack-resolves-target =
+    { $player }'s Attack takes effect. You must take { $turns ->
+        [one] 1 turn.
+       *[other] { $turns } turns.
+    }
+explodingkittens-player-attack-resolves =
+    { $player }'s Attack takes effect. { $target } must take { $turns ->
+        [one] 1 turn.
+       *[other] { $turns } turns.
+    }
 explodingkittens-future-cards = Your See the Future takes effect. Next cards, in order: { $cards }.
 explodingkittens-player-see-future-resolves = { $player }'s See the Future takes effect.
 explodingkittens-your-favor-resolves = Your Favor takes effect. { $target } is choosing a card.
@@ -167,19 +172,20 @@ explodingkittens-you-defuse = You use Defuse.
 explodingkittens-player-defuses = { $player } uses Defuse.
 explodingkittens-you-reinsert-kitten = You return the Exploding Kitten to the draw pile.
 explodingkittens-player-reinserts-kitten = { $player } returns the Exploding Kitten to the draw pile.
-explodingkittens-you-have-turns = You have { $turns ->
-    [one] 1 turn
-   *[other] { $turns } turns
-} remaining.
-explodingkittens-player-has-turns = { $player } has { $turns ->
-    [one] 1 turn
-   *[other] { $turns } turns
-} remaining.
+explodingkittens-you-have-turns =
+    You have { $turns ->
+        [one] 1 turn
+       *[other] { $turns } turns
+    } remaining.
+explodingkittens-player-has-turns =
+    { $player } has { $turns ->
+        [one] 1 turn
+       *[other] { $turns } turns
+    } remaining.
 explodingkittens-you-explode = You explode.
 explodingkittens-player-explodes = { $player } explodes.
 explodingkittens-you-win = You are the last player standing and win Exploding Kittens.
 explodingkittens-player-wins = { $player } is the last player standing and wins Exploding Kittens.
-
 explodingkittens-favor-transfer-you = { $target } gives you { $card }.
 explodingkittens-favor-transfer-target = You give { $card } to { $player }.
 explodingkittens-favor-transfer-public = { $target } gives a card to { $player }.
@@ -198,29 +204,23 @@ explodingkittens-triple-transfer-public = { $target } gives the requested card t
 explodingkittens-triple-miss-you = { $target } does not have the requested { $card }.
 explodingkittens-triple-miss-target = You do not have the { $card } requested by { $player }.
 explodingkittens-triple-miss-public = { $target } does not have the { $card } requested by { $player }.
-
 explodingkittens-no-discard = no discarded cards
 explodingkittens-piles = Draw pile: { $deck }. Discard pile: { $discard }. Top discard: { $top }.
 explodingkittens-table-piles = Draw pile: { $deck }. Discard pile: { $discard }.
-explodingkittens-table-turn = Current turn: { $player }, { $turns ->
-    [one] 1 turn remaining.
-   *[other] { $turns } turns remaining.
-}
-explodingkittens-table-player = { $player }: { $cards ->
-    [one] 1 card
-   *[other] { $cards } cards
-}, { $status }.
+explodingkittens-table-turn =
+    Current turn: { $player }, { $turns ->
+        [one] 1 turn remaining.
+       *[other] { $turns } turns remaining.
+    }
+explodingkittens-table-player =
+    { $player }: { $cards ->
+        [one] 1 card
+       *[other] { $cards } cards
+    }, { $status }.
 explodingkittens-status-alive = still playing
 explodingkittens-status-eliminated = eliminated
 explodingkittens-phase-normal = Waiting for a play or draw.
-explodingkittens-phase-combo = A combo is being selected.
-explodingkittens-phase-target = A target is being selected.
-explodingkittens-phase-request = A card is being requested.
-explodingkittens-phase-nope = A Nope window is open.
 explodingkittens-phase-favor-give = A Favor card is being given.
-explodingkittens-phase-defuse = An Exploding Kitten is awaiting a Defuse decision.
-explodingkittens-phase-reinsert = An Exploding Kitten is being returned to the draw pile.
 explodingkittens-phase-game-over = The game is over.
-
 explodingkittens-results-winner = Winner: { $player }.
 explodingkittens-results-place = { $rank }. { $player }.

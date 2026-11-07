@@ -1,11 +1,11 @@
 from pathlib import Path
 
-from server.games.uno.game import UnoGame, UnoOptions
-from server.games.uno import cards
-from server.games.uno.cards import UnoCard
-from server.core.ui.keybinds import KeybindState
-from server.core.users.bot import Bot
-from server.core.users.test_user import MockUser
+from ..games.uno.game import UnoGame, UnoOptions
+from ..games.uno import cards
+from ..games.uno.cards import UnoCard
+from ..ui.keybinds import KeybindState
+from ..users.bot import Bot
+from ..users.test_user import MockUser
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -32,7 +32,7 @@ def test_uno_game_creation():
     assert game.get_name() == "UNO"
     assert game.get_name_key() == "game-name-uno"
     assert game.get_type() == "uno"
-    assert game.get_category() == "category-card-games"
+    assert game.get_category() == "cards"
     assert game.get_min_players() == 2
     assert game.get_max_players() == 10
 
@@ -58,12 +58,7 @@ def test_uno_blocks_dependent_option_conflicts():
         )
     )
 
-    errors = [
-        entry
-        for entry in game.prestart_validate()
-        if not (isinstance(entry, tuple) and entry[0] == "action-need-more-players")
-    ]
-    assert errors == [
+    assert game.prestart_validate() == [
         "uno-error-advanced-responses-require-responses",
         "uno-error-wait-responses-require-responses",
         "uno-error-super-interceptions-require-interceptions",
@@ -76,7 +71,8 @@ def test_uno_localization_and_documentation_are_present():
     assert en_file.exists()
     assert vi_file.exists()
     assert _locale_keys(en_file) == _locale_keys(vi_file)
-    assert (ROOT / "server" / "documents" / "shared" / "uno_rules" / "en.md").exists()
+    assert (ROOT / "server" / "documentation" / "content" / "en" / "games" / "uno.md").exists()
+    assert (ROOT / "server" / "documentation" / "content" / "vi" / "games" / "uno.md").exists()
 
 
 def test_uno_blue_color_keybind_shares_b_by_game_state():
@@ -187,23 +183,12 @@ def test_uno_score_check_omits_pending_interception_penalty_elimination_mode():
     assert all("pending interception" not in message for message in spoken)
 
 
-import pytest
-
-
-@pytest.mark.skip(reason="custom bot-name prompting not ported from PlayAural yet")
 def test_uno_uses_standard_roster_audio():
     game = UnoGame()
     alice_user = MockUser("Alice", uuid="p1")
     watcher_user = MockUser("Watcher", uuid="p2")
     alice = game.add_player("Alice", alice_user)
     watcher = game.add_player("Watcher", watcher_user)
-    alice_user.clear_messages()
-    watcher_user.clear_messages()
-
-    game.broadcast_sound("join.ogg")
-    assert alice_user.get_sounds_played() == ["join.ogg"]
-    assert watcher_user.get_sounds_played() == ["join.ogg"]
-
     alice_user.clear_messages()
     watcher_user.clear_messages()
 
@@ -215,8 +200,8 @@ def test_uno_uses_standard_roster_audio():
     watcher_user.clear_messages()
 
     game._action_add_bot(alice, "Botty", "add_bot")
-    assert "join.ogg" in alice_user.get_sounds_played()
-    assert "join.ogg" in watcher_user.get_sounds_played()
+    assert "table_join.ogg" in alice_user.get_sounds_played()
+    assert "table_join.ogg" in watcher_user.get_sounds_played()
 
 
 # ---------------------------------------------------------------------------
@@ -320,7 +305,7 @@ def test_playing_wild_focuses_first_color_option_below_hand_cards():
     game, first, second = _two_player_game()
     first_user = game.get_user(first)
     assert first_user is not None
-    first_user.set_client_type("mobile")
+    first_user.client_type = "mobile"
     game.discard_pile = [_card(100, cards.RED, cards.NUMBER, 5)]
     game.current_color = cards.RED
     first.hand = [
@@ -358,7 +343,7 @@ def test_choose_color_focuses_first_matching_remaining_card():
     game, first, second = _two_player_game()
     first_user = game.get_user(first)
     assert first_user is not None
-    first_user.set_client_type("mobile")
+    first_user.client_type = "mobile"
     game.discard_pile = [_card(100, cards.RED, cards.NUMBER, 5)]
     game.current_color = cards.RED
     first.hand = [
@@ -392,7 +377,7 @@ def test_choose_color_falls_back_to_first_visible_item_without_matching_card():
     game, first, second = _two_player_game()
     first_user = game.get_user(first)
     assert first_user is not None
-    first_user.set_client_type("mobile")
+    first_user.client_type = "mobile"
     game.discard_pile = [_card(100, cards.RED, cards.NUMBER, 5)]
     game.current_color = cards.RED
     first.hand = [
@@ -448,7 +433,7 @@ def test_uno_button_pinned_for_touch_and_reports_invalid_press():
     game, first, second = _two_player_game()
     first_user = game.get_user(first)
     assert first_user is not None
-    first_user.set_client_type("mobile")
+    first_user.client_type = "mobile"
     game.discard_pile = [_card(100, cards.RED, cards.NUMBER, 5)]
     game.current_color = cards.RED
     first.hand = [
@@ -579,7 +564,7 @@ def test_opening_wild_color_choice_focuses_matching_card():
     game, (dealer, left, next_player) = _three_player_game()
     left_user = game.get_user(left)
     assert left_user is not None
-    left_user.set_client_type("mobile")
+    left_user.client_type = "mobile"
     game.dealer_index = 0
     game.turn_index = 1
     left.hand = [

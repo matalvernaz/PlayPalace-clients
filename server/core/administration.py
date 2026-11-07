@@ -4,8 +4,9 @@ import functools
 import time
 from typing import TYPE_CHECKING
 
-from .users.network_user import NetworkUser
-from .users.base import MenuItem, EscapeBehavior, TrustLevel
+from ..users.network_user import NetworkUser
+from ..users.base import MenuItem, EscapeBehavior
+from ..users.trust_level import TrustLevel, trust_rank
 from ..messages.localization import Localization
 from .menu_pagination import (
     page_summary_item,
@@ -30,7 +31,7 @@ def require_admin(func):
     @functools.wraps(func)
     async def wrapper(self, admin, *args, **kwargs):
         """Run the wrapped action if the user still has admin privileges."""
-        if admin.trust_level.value < TrustLevel.ADMIN.value:
+        if trust_rank(admin.trust_level) < TrustLevel.ADMIN.value:
             _speak_activity(admin, "not-admin-anymore")
             self._show_main_menu(admin)
             return
@@ -45,7 +46,7 @@ def require_server_owner(func):
     @functools.wraps(func)
     async def wrapper(self, owner, *args, **kwargs):
         """Run the wrapped action if the user is still the server owner."""
-        if owner.trust_level.value < TrustLevel.SERVER_OWNER.value:
+        if trust_rank(owner.trust_level) < TrustLevel.SERVER_OWNER.value:
             _speak_activity(owner, "not-server-owner")
             self._show_main_menu(owner)
             return
@@ -77,7 +78,7 @@ class AdministrationMixin:
     ) -> None:
         """Notify all online admins with a message and sound, optionally excluding one admin."""
         for username, user in self._users.items():
-            if user.trust_level.value < TrustLevel.ADMIN.value:
+            if trust_rank(user.trust_level) < TrustLevel.ADMIN.value:
                 continue  # Not an admin
             if exclude_username and username == exclude_username:
                 continue  # Skip the excluded admin
@@ -115,7 +116,7 @@ class AdministrationMixin:
             ),
         ]
         # Only server owners can promote/demote admins, manage virtual bots, and transfer ownership
-        if user.trust_level.value >= TrustLevel.SERVER_OWNER.value:
+        if trust_rank(user.trust_level) >= TrustLevel.SERVER_OWNER.value:
             items.append(
                 MenuItem(
                     text=Localization.get(user.locale, "promote-admin"),
@@ -994,7 +995,7 @@ class AdministrationMixin:
     ) -> None:
         """Reset a user's password to an admin-provided temporary value."""
         target_record = self._db.get_user(username)
-        if not target_record or target_record.trust_level.value >= TrustLevel.ADMIN.value:
+        if not target_record or trust_rank(target_record.trust_level) >= TrustLevel.ADMIN.value:
             _speak_activity(admin, "reset-user-password-unavailable", player=username)
             self._show_reset_password_user_menu(admin)
             return
@@ -1148,7 +1149,7 @@ class AdministrationMixin:
                 continue  # Don't send broadcasts to unapproved users
             if exclude_username and username == exclude_username:
                 continue  # Skip the excluded user
-            if broadcast_scope == "admins" and user.trust_level.value < TrustLevel.ADMIN.value:
+            if broadcast_scope == "admins" and trust_rank(user.trust_level) < TrustLevel.ADMIN.value:
                 continue  # Only admins if broadcasting to admins only
             _speak_activity(user, message_id, player=player_name)
             user.play_sound(sound)

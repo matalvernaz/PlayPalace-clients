@@ -6,6 +6,7 @@ from types import SimpleNamespace
 import pytest
 
 from server.core.server import Server
+from server.persistence.game_format import GAME_ENGINE_FORMAT
 
 
 class DummyTable:
@@ -13,6 +14,8 @@ class DummyTable:
         self.table_id = table_id
         self.game_type = game_type
         self.game_json = game_json
+        # Written by the current engine (persistence/game_format.py).
+        self.game_engine = GAME_ENGINE_FORMAT
         self.game = None
 
 

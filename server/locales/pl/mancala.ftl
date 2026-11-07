@@ -1,32 +1,26 @@
-# Mancala game messages — pl
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale pl. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mankala
-
 # Actions
 mancala-pit-label = Dołek { $pit }: { $stones } kamieni
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } sieje { $stones } kamieni z dołka { $pit }
 mancala-capture = { $player } przechwytuje { $captured } kamieni!
 mancala-extra-turn = Ostatni kamień w magazynie! { $player } gra ponownie.
 mancala-winner = { $player } wygrywa z { $score } kamieniami!
 mancala-draw = Remis! Obaj gracze mają { $score } kamieni.
-
 # Board status
-mancala-board-status =
-    Twoje dołki: { $own_pits }. Twój magazyn: { $own_store }. Dołki przeciwnika: { $opp_pits }. Magazyn przeciwnika: { $opp_store }.
-
+mancala-board-status = Twoje dołki: { $own_pits }. Twój magazyn: { $own_store }. Dołki przeciwnika: { $opp_pits }. Magazyn przeciwnika: { $opp_store }.
 # Options
 mancala-set-stones = Kamieni na dołek: { $stones }
 mancala-desc-stones = Liczba kamieni w każdym dołku na początku
 mancala-enter-stones = Podaj liczbę początkowych kamieni na dołek:
 mancala-option-changed-stones = Początkowe kamienie zmienione na { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Ten dołek jest pusty.
-
 # Rules
 mancala-rules =
     Mankala to gra w dołki i kamienie dla dwóch graczy.
@@ -38,7 +32,5 @@ mancala-rules =
     Gra kończy się, gdy jedna strona jest całkowicie pusta.
     Gracz z największą liczbą kamieni wygrywa.
     Użyj klawiszy 1-6 aby wybrać dołek. Naciśnij E aby sprawdzić planszę.
-
 # End screen
 mancala-final-score = { $player }: { $score } kamieni
-mancala-check-board = Check board

@@ -1,13 +1,11 @@
-# Mancala game messages
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale en. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mancala
-
 # Actions
 mancala-pit-label = Pit { $pit }: { $stones } stones
 mancala-check-board = Check board
-
 # Game events
 mancala-sow =
     { $player } sows { $stones } stones from pit { $pit }. Last stone lands in { $landed_in ->
@@ -20,21 +18,17 @@ mancala-capture = { $player }'s pit { $own_pit } captures { $captured } stones f
 mancala-extra-turn = { $player } gets another turn.
 mancala-winner = { $player } wins with { $score } stones!
 mancala-draw = It's a draw! Both players have { $score } stones.
-
 # Board status (used by Check Board action and automatic turn-start announcement)
 mancala-board-status =
     Your store: { $own_store }. Opponent's store: { $opp_store }.
     Your pits: { $own_pits }. Opponent's pits: { $opp_pits }.
-
 # Options
 mancala-set-stones = Stones per pit: { $stones }
 mancala-desc-stones = Number of stones in each pit at the start
 mancala-enter-stones = Enter the number of starting stones per pit:
 mancala-option-changed-stones = Starting stones changed to { $stones }
-
 # Disabled reasons
 mancala-pit-empty = That pit is empty.
-
 # Rules
 mancala-rules =
     Mancala is a two-player pit and stone game.
@@ -46,6 +40,5 @@ mancala-rules =
     The game ends when one side is completely empty. Remaining stones go to that player's store.
     The player with the most stones wins.
     Use keys 1 through 6 to select a pit, or swipe to browse. Press E to check the board.
-
 # End screen
 mancala-final-score = { $player }: { $score } stones

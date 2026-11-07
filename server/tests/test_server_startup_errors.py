@@ -106,13 +106,11 @@ async def test_start_invalid_tick_interval_raises(tmp_path, capsys, monkeypatch)
         port=0,
         db_path=tmp_path / "db.sqlite",
         config_path=cfg,
-        preload_locales=True,
+        
     )
     srv._validate_transport_security = lambda: None  # bypass TLS requirement
-    srv._preload_locales = False
     srv._db = DummyDB()
     srv._virtual_bots = DummyBots()
-    srv._start_localization_warmup = lambda: None
     srv._lifecycle.resolve_gate = lambda gid: None
     monkeypatch.setattr(
         "server.core.server.TickScheduler", lambda callback, interval=None: srv._tick_scheduler
@@ -133,16 +131,14 @@ async def test_start_invalid_tick_interval_raises(tmp_path, capsys, monkeypatch)
 
 @pytest.mark.asyncio
 async def test_start_virtual_bot_config_error(tmp_path, capsys, monkeypatch):
-    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
     srv._validate_transport_security = lambda: None
-    srv._preload_locales = False
     srv._db = DummyDB()
     srv._ws_server = DummyWS()
     srv._tick_scheduler = DummyTick()
     srv._virtual_bots = DummyBots(raise_config=True)
     srv._tables = DummyTables()
     # skip actual WebSocket/Tick setup
-    srv._start_localization_warmup = lambda: None
     srv._lifecycle.resolve_gate = lambda gid: None
     monkeypatch.setattr(
         "server.core.server.TickScheduler", lambda callback, interval=None: srv._tick_scheduler
@@ -161,8 +157,7 @@ async def test_start_virtual_bot_config_error(tmp_path, capsys, monkeypatch):
 
 @pytest.mark.asyncio
 async def test_stop_cleans_resources(tmp_path):
-    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
-    srv._preload_locales = False
+    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
     srv._db = DummyDB()
     srv._ws_server = DummyWS()
     srv._tick_scheduler = DummyTick()
@@ -181,15 +176,13 @@ async def test_stop_cleans_resources(tmp_path):
 async def test_start_with_restored_bots_message(tmp_path, capsys, monkeypatch):
     # Use the fixture-managed monkeypatch so patched startup classes are restored
     # after this test; a raw pytest.MonkeyPatch() here leaks state to later modules.
-    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
     srv._validate_transport_security = lambda: None
-    srv._preload_locales = False
     srv._db = DummyDB()
     srv._virtual_bots = DummyBots()
     srv._virtual_bots.loaded = 2
     srv._ws_server = DummyWS()
     srv._tick_scheduler = DummyTick()
-    srv._start_localization_warmup = lambda: None
     srv._lifecycle.resolve_gate = lambda gid: None
     srv._tables = DummyTables()
     monkeypatch.setattr(

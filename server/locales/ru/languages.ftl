@@ -1,3 +1,6 @@
+# languages.ftl for locale ru. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Language names translated into this language
 language-ar = Арабский
 language-cs = Чешский
@@ -11,7 +14,6 @@ language-hr = Хорватский
 language-hu = Венгерский
 language-id = Индонезийский
 language-it = Итальянский
-language-ja = Японский
 language-ko = Корейский
 language-mk = Македонский
 language-mn = Монгольский
@@ -30,3 +32,4 @@ language-uk = Украинский
 language-vi = Вьетнамский
 language-zh = Китайский
 language-zu = Зулу
+language-ja = Японский

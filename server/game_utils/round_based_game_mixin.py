@@ -13,7 +13,7 @@ class RoundBasedGameMixin:
     Provides default implementations for:
         - on_start(): Initialize game state and start first round.
         - _start_round(): Increment round counter, reset turn order, announce.
-        - _start_turn(): Reset player state, announce turn, set up bots, rebuild menus.
+        - _start_turn(): Reset player state, announce turn, set up bots, refresh menus.
         - _on_turn_end(): Advance to next player or end round.
 
     Games override hooks to customize behavior:
@@ -54,8 +54,13 @@ class RoundBasedGameMixin:
         """Reset per-player state at turn start. Override in each game."""
 
     def _announce_turn_start(self, player) -> None:
-        """Announce the start of a player's turn. Default: announce_turn()."""
-        self.announce_turn()
+        """Announce the start of a player's turn. Default: announce_turn().
+
+        The turn sound is named explicitly: the engine's default "turn.ogg"
+        is not in our client sound tree, while "game_pig/turn.ogg" is the
+        same recording and is what these games have always played.
+        """
+        self.announce_turn(turn_sound="game_pig/turn.ogg")
 
     def _setup_bot_for_turn(self, player) -> None:
         """Set up bot AI for the current turn. Default: no-op."""
@@ -77,8 +82,8 @@ class RoundBasedGameMixin:
         active_players = self.get_active_players()
         self.set_turn_players(active_players)
 
-        self._team_manager.team_mode = self.get_team_mode()
-        self._team_manager.setup_teams([p.name for p in active_players])
+        # Keeps teams the host arranged in the lobby; otherwise assigns them.
+        self._setup_team_manager_for_start(self.get_team_mode(), active_players)
 
         if self.should_reset_all_scores():
             self._team_manager.reset_all_scores()
@@ -113,7 +118,7 @@ class RoundBasedGameMixin:
         self._reset_player_for_turn(player)
         self._announce_turn_start(player)
         self._setup_bot_for_turn(player)
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _on_turn_end(self) -> None:
         """Advance to next player or trigger round end."""

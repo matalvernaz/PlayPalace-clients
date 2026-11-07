@@ -1,94 +1,78 @@
-# Ninety Nine - Persian Localization
+# ninetynine.ftl for locale fa. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game info
-ninetynine-name = نود و نه
-ninetynine-description = بازی کارتی که در آن بازیکنان سعی می‌کنند مجموع را بیش از ۹۹ نکنند. آخرین بازیکن باقی‌مانده برنده است!
-
-# Round
+game-name-ninetynine = نود و نه
 ninetynine-round = دور { $round }.
-
-# Turn
-ninetynine-player-turn = نوبت { $player }.
-
-# Playing cards
-ninetynine-you-play = شما { $card } بازی می‌کنید. شمارش اکنون { $count } است.
-ninetynine-player-plays = { $player } کارت { $card } بازی می‌کند. شمارش اکنون { $count } است.
-
-# Direction reverse
+ninetynine-you-play = شما { $card } بازی می‌کنید. مجموع اکنون { $count } است.
+ninetynine-player-plays = { $player } { $card } بازی می‌کند. مجموع اکنون { $count } است.
 ninetynine-direction-reverses = جهت بازی معکوس می‌شود!
-
-# Skip
-ninetynine-player-skipped = { $player } رد می‌شود.
-
-# Token loss
-ninetynine-you-lose-tokens = شما { $amount } { $amount ->
-    [one] ژتون
-    *[other] ژتون
-} از دست می‌دهید.
-ninetynine-player-loses-tokens = { $player } تعداد { $amount } { $amount ->
-    [one] ژتون
-    *[other] ژتون
-} از دست می‌دهد.
-
-# Elimination
+ninetynine-you-skipped = نوبت شما رد شد.
+ninetynine-player-skipped = نوبت { $player } رد شد.
+n99-card-plus-10 = ۱۰+
+n99-card-minus-10 = ۱۰-
+n99-card-pass = گذشتن
+n99-card-reverse = معکوس
+n99-card-skip = پرش
+n99-card-ninety-nine = نود و نه
+ninetynine-you-lose-tokens =
+    شما { $amount } { $amount ->
+        [one] نشان
+       *[other] نشان
+    } از دست می‌دهید.
+ninetynine-player-loses-tokens =
+    { $player } { $amount } { $amount ->
+        [one] نشان
+       *[other] نشان
+    } از دست می‌دهد.
+ninetynine-you-eliminated = شما حذف شدید!
 ninetynine-player-eliminated = { $player } حذف شد!
-
-# Game end
-ninetynine-player-wins = { $player } بازی را برد!
-
-# Dealing
-ninetynine-you-deal = شما کارت‌ها را پخش می‌کنید.
-ninetynine-player-deals = { $player } کارت‌ها را پخش می‌کند.
-
-# Drawing cards
-ninetynine-you-draw = شما { $card } برمی‌دارید.
-ninetynine-player-draws = { $player } یک کارت برمی‌دارد.
-
-# No valid cards
-ninetynine-no-valid-cards = { $player } کارتی ندارد که از ۹۹ بیشتر نشود!
-
-# Status - for C key
-ninetynine-current-count = شمارش { $count } است.
-
-# Hand check - for H key
-ninetynine-hand-cards = کارت‌های شما: { $cards }.
-ninetynine-hand-empty = شما کارتی ندارید.
-
-# Ace choice
-ninetynine-ace-choice = اُس را به عنوان +۱ یا +۱۱ بازی کنید؟
-ninetynine-ace-add-eleven = اضافه کردن ۱۱
-ninetynine-ace-add-one = اضافه کردن ۱
-
-# Ten choice
-ninetynine-ten-choice = ۱۰ را به عنوان +۱۰ یا -۱۰ بازی کنید؟
-ninetynine-ten-add = اضافه کردن ۱۰
-ninetynine-ten-subtract = کم کردن ۱۰
-
-# Manual draw
-ninetynine-draw-card = برداشتن کارت
-ninetynine-draw-prompt = Space یا D را فشار دهید تا کارت بردارید.
-
-# Options
-ninetynine-set-tokens = ژتون‌های شروع: { $tokens }
-ninetynine-enter-tokens = تعداد ژتون‌های شروع را وارد کنید:
-ninetynine-option-changed-tokens = ژتون‌های شروع به { $tokens } تنظیم شد.
+ninetynine-you-win = شما بازی را برنده شدید!
+ninetynine-player-wins = { $player } بازی را برنده شد!
+ninetynine-end-score =
+    { $rank }. { $player }: { $tokens } { $tokens ->
+        [one] نشان
+       *[other] نشان
+    }
+ninetynine-you-draw = شما { $card } می‌کشید.
+ninetynine-player-draws = { $player } یک کارت می‌کشد.
+ninetynine-you-no-valid-cards = شما هیچ کارتی ندارید که از ۹۹ بیشتر نشود!
+ninetynine-player-no-valid-cards = { $player } هیچ کارتی ندارد که از ۹۹ بیشتر نشود!
+ninetynine-no-valid-cards = { $player } هیچ کارتی ندارد که از ۹۹ بیشتر نشود!
+ninetynine-current-count = مجموع { $count } است.
+ninetynine-next-round-wait = دور بعدی در { $seconds } ثانیه شروع می‌شود.
+ninetynine-ace-choice = آس را به عنوان ۱+ یا ۱۱+ بازی کنید؟
+ninetynine-ace-add-eleven = ۱۱+ اضافه کن
+ninetynine-ace-add-one = ۱+ اضافه کن
+ninetynine-ten-choice = ۱۰ را به عنوان ۱۰+ یا ۱۰- بازی کنید؟
+ninetynine-ten-add = ۱۰+ اضافه کن
+ninetynine-ten-subtract = ۱۰- کم کن
+ninetynine-select-card-choice = نحوه‌ی بازی این کارت را انتخاب کنید.
+ninetynine-choice-1 = گزینه‌ی ۱
+ninetynine-choice-2 = گزینه‌ی ۲
+ninetynine-draw-card = کشیدن کارت
+ninetynine-draw-prompt = لطفاً یک کارت بکشید.
+ninetynine-no-card-to-draw = هیچ کارتی برای کشیدن در دسترس نیست. با دست فعلی خود ادامه دهید.
+ninetynine-set-tokens = نشان‌های شروع: { $tokens }
+ninetynine-enter-tokens = تعداد نشان‌های شروع را وارد کنید:
+ninetynine-option-changed-tokens = نشان‌های شروع روی { $tokens } تنظیم شد.
+ninetynine-desc-starting-tokens = تعداد نشان‌های بقا که هر بازیکن نود و نه با آن شروع می‌کند. بازیکن پس از از دست دادن همه‌ی نشان‌ها حذف می‌شود (پیش‌فرض ۹، محدوده ۱-۵۰).
 ninetynine-set-rules = نوع قوانین: { $rules }
 ninetynine-select-rules = نوع قوانین را انتخاب کنید
-ninetynine-option-changed-rules = نوع قوانین به { $rules } تنظیم شد.
-ninetynine-set-hand-size = اندازه دست: { $size }
-ninetynine-enter-hand-size = اندازه دست را وارد کنید:
-ninetynine-option-changed-hand-size = اندازه دست به { $size } تنظیم شد.
-ninetynine-set-autodraw = برداشت خودکار: { $enabled }
-ninetynine-option-changed-autodraw = برداشت خودکار به { $enabled } تنظیم شد.
-
-# Rules variant announcements (shown at game start)
-ninetynine-rules-quentin = قوانین Quentin C.
-ninetynine-rules-rsgames = قوانین RS Games.
-
-# Rules variant choices (for menu display)
-ninetynine-rules-variant-quentin_c = Quentin C
-ninetynine-rules-variant-rs_games = RS Games
-
-# Disabled action reasons
+ninetynine-option-changed-rules = نوع قوانین روی { $rules } تنظیم شد.
+ninetynine-desc-rules-variant = دسته‌ی استاندارد ۵۲ کارتی نود و نه یا دسته‌ی کارت‌های ویژه‌ی اقدام را انتخاب می‌کند.
+ninetynine-set-hand-size = اندازه‌ی دست: { $size }
+ninetynine-enter-hand-size = اندازه‌ی دست را وارد کنید:
+ninetynine-option-changed-hand-size = اندازه‌ی دست روی { $size } تنظیم شد.
+ninetynine-desc-hand-size = تعداد کارت‌هایی که در شروع هر دور نود و نه به هر بازیکن داده می‌شود (پیش‌فرض ۳، محدوده ۱-۱۳).
+ninetynine-set-autodraw = کشیدن خودکار: { $enabled }
+ninetynine-option-changed-autodraw = کشیدن خودکار روی { $enabled } تنظیم شد.
+ninetynine-desc-autodraw = وقتی فعال باشد، بازیکنان پس از بازی کردن به‌طور خودکار یک کارت جایگزین می‌کشند. وقتی خاموش باشد، بازیکنان باید دستی بکشند.
+ninetynine-rules-action-cards = قوانین کارت‌های اقدام.
+ninetynine-rules-variant-standard = استاندارد
+ninetynine-rules-variant-action-cards = کارت‌های اقدام
 ninetynine-choose-first = ابتدا باید یک انتخاب کنید.
-ninetynine-draw-first = ابتدا باید یک کارت بردارید.
+ninetynine-round-transition-waiting = در انتظار شروع دور بعدی.
+ninetynine-pause-timer = توقف زمان‌سنج
+ninetynine-timer-not-active = زمان‌سنج دور فعال نیست.
+ninetynine-error-too-many-cards = کارت‌های زیادی نیاز است: { $players } بازیکن × { $hand_size } کارت از دسته‌ی { $deck_size } کارتی بیشتر است.
+ninetynine-check-count = بررسی مجموع

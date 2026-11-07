@@ -11,6 +11,7 @@ from typing import NamedTuple
 import random
 
 from ..base import Game, Player, GameOptions
+from ..categories import CATEGORY_BOARD
 from ..registry import register_game
 from ...game_utils.action_guard_mixin import ActionGuardMixin
 from ...game_utils.round_based_game_mixin import RoundBasedGameMixin
@@ -19,7 +20,7 @@ from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.options import IntOption, option_field
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
+from server.ui.keybinds import KeybindState
 
 
 # Board layout (14 positions):
@@ -99,7 +100,11 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-board-games"
+        return CATEGORY_BOARD
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -265,6 +270,7 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     def on_tick(self) -> None:
         super().on_tick()
+        self.process_scheduled_sounds()
         BotHelper.on_tick(self)
 
     def _reset_player_for_game(self, player: MancalaPlayer) -> None:
@@ -362,6 +368,7 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 handler="_action_check_board",
                 is_enabled="_is_check_board_enabled",
                 is_hidden="_is_check_board_hidden",
+                include_spectators=True,
             )
         )
         return action_set
@@ -501,30 +508,23 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             scores[active[0].name] = p0_score
             scores[active[1].name] = p1_score
 
-        winner_name = None
+        winner = None
         winner_score = 0
         if p0_score > p1_score and len(active) >= 1:
-            winner_name = active[0].name
+            winner = active[0]
             winner_score = p0_score
         elif p1_score > p0_score and len(active) >= 2:
-            winner_name = active[1].name
+            winner = active[1]
             winner_score = p1_score
 
         return GameResult(
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
-            player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot,
-                    is_virtual_bot=getattr(p, "is_virtual_bot", False),
-                )
-                for p in active
-            ],
+            player_results=[PlayerResult.from_player(p) for p in active],
             custom_data={
-                "winner_name": winner_name,
+                "winner_name": winner.name if winner else None,
+                "winner_ids": [winner.id] if winner else [],
                 "winner_score": winner_score,
                 "final_scores": scores,
                 "stones_per_pit": self.options.stones_per_pit,

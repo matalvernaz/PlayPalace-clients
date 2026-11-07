@@ -1,5 +1,5 @@
-"""UI definitions for client communication."""
+"""Core UI flows. Keybind types live in server.ui, shared with the game engine."""
 
-from .keybinds import Keybind, KeybindScope, KeybindState
+from ...ui.keybinds import Keybind, KeybindScope, KeybindState
 
 __all__ = ["Keybind", "KeybindScope", "KeybindState"]

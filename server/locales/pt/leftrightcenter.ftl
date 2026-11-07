@@ -1,49 +1,112 @@
-# Mensagens do jogo Left Right Center (Português)
+# leftrightcenter.ftl for locale pt. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Nome do jogo
-game-name-leftrightcenter = Esquerda Direita Centro
-
-# Ações
-lrc-roll = Jogar { $count } { $count ->
-    [one] dado
-   *[other] dados
-}
-
-# Faces dos dados
+game-name-leftrightcenter = Esquerda Centro Direita
+lrc-roll =
+    Rolar { $count } { $count ->
+        [one] dado
+       *[other] dados
+    }
+lrc-roll-label = Rolar dados
 lrc-face-left = Esquerda
-lrc-face-right = Direita
 lrc-face-center = Centro
+lrc-face-right = Direita
 lrc-face-dot = Ponto
-
-# Eventos do jogo
-lrc-roll-results = { $player } joga { $results }.
-lrc-pass-left = { $player } passa { $count } { $count ->
-    [one] ficha
-   *[other] fichas
-} para { $target }.
-lrc-pass-right = { $player } passa { $count } { $count ->
-    [one] ficha
-   *[other] fichas
-} para { $target }.
-lrc-pass-center = { $player } coloca { $count } { $count ->
-    [one] ficha
-   *[other] fichas
-} no centro.
-lrc-no-chips = { $player } não tem fichas para jogar.
-lrc-center-pot = { $count } { $count ->
-    [one] ficha
-   *[other] fichas
-} no centro.
-lrc-player-chips = { $player } agora tem { $count } { $count ->
-    [one] ficha
-   *[other] fichas
-}.
-lrc-winner = { $player } vence com { $count } { $count ->
-    [one] ficha
-   *[other] fichas
-}!
-
-# Opções
+lrc-you-roll = Você rola { $results }.
+lrc-player-rolls = { $player } rola { $results }.
+lrc-you-roll-brief = Você: { $results }.
+lrc-player-rolls-brief = { $player }: { $results }.
+lrc-you-pass-left =
+    Você passa { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    } à esquerda para { $target }. Você tem { $remaining } restantes; { $target } agora tem { $target_total }.
+lrc-player-passes-left =
+    { $player } passa { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    } à esquerda para { $target }. { $player } tem { $remaining } restantes; { $target } agora tem { $target_total }.
+lrc-you-pass-left-brief = Você, à esquerda para { $target }: { $count }. Restantes: { $remaining }.
+lrc-player-passes-left-brief = { $player }, à esquerda para { $target }: { $count }. Restantes: { $remaining }.
+lrc-you-pass-right =
+    Você passa { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    } à direita para { $target }. Você tem { $remaining } restantes; { $target } agora tem { $target_total }.
+lrc-player-passes-right =
+    { $player } passa { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    } à direita para { $target }. { $player } tem { $remaining } restantes; { $target } agora tem { $target_total }.
+lrc-you-pass-right-brief = Você, à direita para { $target }: { $count }. Restantes: { $remaining }.
+lrc-player-passes-right-brief = { $player }, à direita para { $target }: { $count }. Restantes: { $remaining }.
+lrc-you-pass-center =
+    Você coloca { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    } no centro. Você tem { $remaining } restantes; o centro agora possui { $center }.
+lrc-player-passes-center =
+    { $player } coloca { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    } no centro. { $player } tem { $remaining } restantes; o centro agora possui { $center }.
+lrc-you-pass-center-brief = Você, centro: { $count }. Restantes: { $remaining }. Total do centro: { $center }.
+lrc-player-passes-center-brief = { $player }, centro: { $count }. Restantes: { $remaining }. Total do centro: { $center }.
+lrc-you-keep-all =
+    Todos os seus dados são pontos, então { $count ->
+        [one] você mantém sua única ficha
+       *[other] você mantém todas as { $count } fichas
+    }.
+lrc-player-keeps-all =
+    Todos os dados de { $player } são pontos, então { GENDER_TERM($player_gender, "subject-have") } { $count ->
+        [one] a única ficha
+       *[other] todas as { $count } fichas
+    }.
+lrc-you-keep-all-brief =
+    Você: sem transferências; { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    }.
+lrc-player-keeps-all-brief =
+    { $player }: sem transferências; { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    }.
+lrc-you-skip-no-chips = Você não tem fichas, então seu turno é pulado. Você continua no jogo e pode receber fichas de qualquer vizinho.
+lrc-player-skips-no-chips = { $player } não tem fichas, então o turno { GENDER_TERM($player_gender, "possessive-determiner") } é pulado. { GENDER_TERM($player_gender, "subject-capitalized") } continua no jogo e pode receber fichas de qualquer vizinho.
+lrc-you-skip-no-chips-brief = Você: sem fichas; turno pulado.
+lrc-player-skips-no-chips-brief = { $player }: sem fichas; turno pulado.
+lrc-you-win =
+    Você é o último jogador com fichas e vence com { $count } restantes. Você reivindica { $center ->
+        [one] a única ficha no centro
+       *[other] as { $center } fichas no centro
+    }.
+lrc-player-wins =
+    { $player } é o último jogador com fichas e vence com { $count } restantes. { GENDER_TERM($player_gender, "subject-capitalized") } recebe { $center ->
+        [one] a única ficha no centro
+       *[other] as { $center } fichas no centro
+    }.
+lrc-you-win-brief = Você vence. Suas fichas: { $count }. Centro: { $center }.
+lrc-player-wins-brief = { $player } vence. Fichas: { $count }. Centro: { $center }.
+lrc-roll-already-resolving = Sua rolagem já está sendo resolvida. Aguarde o término das transferências de fichas.
+lrc-no-chips-to-roll = Você não tem fichas para rolar. Seu turno será pulado automaticamente.
+lrc-center-pot =
+    Pote central: { $count } { $count ->
+        [one] ficha
+       *[other] fichas
+    }.
+lrc-check-center = Verificar pote central
+lrc-check-last-roll = Verificar última rolagem
+lrc-last-roll-none = Nenhum dado foi rolado ainda.
+lrc-last-roll-you = Sua última rolagem foi { $results }.
+lrc-last-roll-player = { $player } rolou por último { $results }.
 lrc-set-starting-chips = Fichas iniciais: { $count }
 lrc-enter-starting-chips = Digite as fichas iniciais:
 lrc-option-changed-starting-chips = Fichas iniciais definidas para { $count }.
+leftrightcenter-desc-starting-chips = Quantidade de fichas com que cada jogador começa em Esquerda Centro Direita (padrão 3, intervalo de 1 a 10).
+lrc-error-starting-chips-invalid = As fichas iniciais devem estar entre { $min } e { $max }; o valor atual é { $count }.
+lrc-line-format =
+    { $player }: { $chips } { $chips ->
+        [one] ficha
+       *[other] fichas
+    }

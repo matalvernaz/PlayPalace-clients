@@ -1,3 +1,6 @@
+# languages.ftl for locale hu. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Language names translated into this language
 language-ar = Arab
 language-cs = Cseh
@@ -11,7 +14,6 @@ language-hr = Horvát
 language-hu = Magyar
 language-id = Indonéz
 language-it = Olasz
-language-ja = Japán
 language-ko = Koreai
 language-mk = Macedón
 language-mn = Mongol
@@ -30,3 +32,4 @@ language-uk = Ukrán
 language-vi = Vietnámi
 language-zh = Kínai
 language-zu = Zulu
+language-ja = Japán

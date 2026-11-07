@@ -13,6 +13,7 @@ from datetime import datetime
 import random
 
 from ..base import Game, Player, GameOptions
+from ..categories import CATEGORY_CARDS
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.cards import Card, Deck, DeckFactory, card_name
@@ -22,9 +23,9 @@ from ...game_utils.bot_helper import BotHelper
 from ...game_utils.poker_timer import PokerTurnTimer
 from ...messages.localization import Localization
 from ...game_utils.game_status import GameStatus
-from server.core.ui.keybinds import KeybindState
-from server.core.users.bot import Bot
-from server.core.users.base import User
+from server.ui.keybinds import KeybindState
+from server.users.bot import Bot
+from server.users.base import User
 from .bot import bot_think, bot_react
 from ...game_utils.turn_timer_mixin import TurnTimerMixin
 
@@ -510,7 +511,7 @@ class LastCardGame(Game, TurnTimerMixin):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-playaural"
+        return CATEGORY_CARDS
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -527,10 +528,10 @@ class LastCardGame(Game, TurnTimerMixin):
     def create_player(self, player_id: str, name: str, is_bot: bool = False) -> LastCardPlayer:
         return LastCardPlayer(id=player_id, name=name, is_bot=is_bot)
 
-    def broadcast_sound(self, name: str, volume: int = 100, pan: int = 0, pitch: int = 100) -> None:
+    def broadcast_sound(self, name: str, *args, **kwargs) -> str:
         if name in ("join.ogg", "leave.ogg", "join_spectator.ogg", "leave_spectator.ogg"):
-            return
-        super().broadcast_sound(name, volume, pan, pitch)
+            return ""
+        return super().broadcast_sound(name, *args, **kwargs)
 
     def add_player(self, name: str, user: User) -> LastCardPlayer:
         player = super().add_player(name, user)
@@ -789,18 +790,10 @@ class LastCardGame(Game, TurnTimerMixin):
     # Menu syncing
     # ==========================================================================
 
-    def rebuild_player_menu(self, player: Player) -> None:
+    def before_menu_build(self, player: Player) -> None:
+        # Runs before every menu paint, bots included, so the per-card
+        # actions always match the hand when a menu is built or a bot acts.
         self._sync_turn_actions(player)
-        super().rebuild_player_menu(player)
-
-    def update_player_menu(self, player: Player, selection_id: str | None = None) -> None:
-        self._sync_turn_actions(player)
-        super().update_player_menu(player, selection_id=selection_id)
-
-    def rebuild_all_menus(self) -> None:
-        for player in self.players:
-            self._sync_turn_actions(player)
-        super().rebuild_all_menus()
 
     def _sync_turn_actions(self, player: Player) -> None:
         if not isinstance(player, LastCardPlayer):
@@ -990,6 +983,13 @@ class LastCardGame(Game, TurnTimerMixin):
 
         # Turn timer
         self.on_tick_turn_timer()
+        # Per-card actions are synced when a menu is painted, and a bot can act
+        # before its next paint (a card drawn earlier this tick, say). Bring
+        # the acting bot's actions up to date first, as the old engine's
+        # BotHelper did, so it never waits on a play action that isn't there.
+        current = self.current_player
+        if current is not None and current.is_bot:
+            self._sync_turn_actions(current)
         BotHelper.on_tick(self)
 
     def _start_new_hand(self) -> None:
@@ -1077,13 +1077,15 @@ class LastCardGame(Game, TurnTimerMixin):
             self._force_draw_pending(player)
             return
 
-        self.announce_turn()
+        # The engine's default turn.ogg is not in our client sound tree;
+        # game_pig/turn.ogg is the same recording this game always played.
+        self.announce_turn(turn_sound="game_pig/turn.ogg")
         if player.is_bot:
             BotHelper.jolt_bot(player, ticks=random.randint(20, 40))
 
         self.start_turn_timer()
         self._sync_turn_actions(player)
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _advance_turn(self) -> None:
         self.advance_turn(announce=False)
@@ -1150,7 +1152,7 @@ class LastCardGame(Game, TurnTimerMixin):
             player.selected_cards.remove(card_id)
         else:
             player.selected_cards.add(card_id)
-        self.update_player_menu(player)
+        self.refresh_menus(player)
 
     def _action_play_selected(self, player: Player, action_id: str) -> None:
         p = self._require_active_player(player)
@@ -1161,7 +1163,7 @@ class LastCardGame(Game, TurnTimerMixin):
         if not p.selected_cards:
             user = self.get_user(p)
             if user:
-                user.speak_l("lastcard-multi-no-cards", buffer="table")
+                user.speak_l("lastcard-multi-no-cards", buffer="game")
             return
 
         selected = [c for c in p.hand if c.id in p.selected_cards]
@@ -1175,7 +1177,7 @@ class LastCardGame(Game, TurnTimerMixin):
             p.selected_cards.clear()
             user = self.get_user(p)
             if user:
-                user.speak_l("lastcard-multi-same-rank", buffer="table")
+                user.speak_l("lastcard-multi-same-rank", buffer="game")
             return
         rank = ranks.pop()
 
@@ -1184,7 +1186,7 @@ class LastCardGame(Game, TurnTimerMixin):
             p.selected_cards.clear()
             user = self.get_user(p)
             if user:
-                user.speak_l("lastcard-multi-no-wilds", buffer="table")
+                user.speak_l("lastcard-multi-no-wilds", buffer="game")
             return
 
         # At least one selected card must be playable (matching top card / active color)
@@ -1198,7 +1200,7 @@ class LastCardGame(Game, TurnTimerMixin):
             p.selected_cards.clear()
             user = self.get_user(p)
             if user:
-                user.speak_l("lastcard-multi-not-playable", buffer="table")
+                user.speak_l("lastcard-multi-not-playable", buffer="game")
             return
         if playable_idx > 0:
             selected.insert(0, selected.pop(playable_idx))
@@ -1251,7 +1253,7 @@ class LastCardGame(Game, TurnTimerMixin):
             self.interrupt_wd4_player_id = ""
             self.interrupt_wd4_had_matching = False
             BotHelper.jolt_bots(self, ticks=random.randint(10, 30))
-            self.rebuild_all_menus()
+            self.refresh_menus()
             return
 
         # Apply stacked effects
@@ -1301,7 +1303,7 @@ class LastCardGame(Game, TurnTimerMixin):
                     self.swap_player_id = cur.id
                     if cur.is_bot:
                         BotHelper.jolt_bot(cur, ticks=random.randint(10, 20))
-                    self.rebuild_all_menus()
+                    self.refresh_menus()
                     return
 
         if rank == 0 and self.options.zero_card_rule == "rotate_hands":
@@ -1313,7 +1315,7 @@ class LastCardGame(Game, TurnTimerMixin):
             self.interrupt_phase = "jump_in_window"
             self.interrupt_timer_ticks = self.options.interrupt_timer * 20
             BotHelper.jolt_bots(self, ticks=random.randint(10, 30))
-            self.rebuild_all_menus()
+            self.refresh_menus()
             return
 
         self._advance_turn()
@@ -1326,7 +1328,7 @@ class LastCardGame(Game, TurnTimerMixin):
             card_names = [self.format_card(c, user.locale) for c in cards]
             user.speak_l(
                 "lastcard-player-plays-multi",
-                buffer="table",
+                buffer="game",
                 player=player.name,
                 count=len(cards),
                 cards=", ".join(card_names),
@@ -1364,7 +1366,7 @@ class LastCardGame(Game, TurnTimerMixin):
             if player.is_bot:
                 BotHelper.jolt_bot(player, ticks=random.randint(10, 20))
             self.start_turn_timer()
-            self.rebuild_all_menus()
+            self.refresh_menus()
             return
 
         # Non-wild card
@@ -1388,7 +1390,7 @@ class LastCardGame(Game, TurnTimerMixin):
             self.interrupt_wd4_player_id = player.id if card.rank == RANK_WILD_DRAW_FOUR else ""
             self.interrupt_wd4_had_matching = had_matching_color
             BotHelper.jolt_bots(self, ticks=random.randint(10, 30))
-            self.rebuild_all_menus()
+            self.refresh_menus()
             return
 
         # WD4 challenge window
@@ -1410,10 +1412,10 @@ class LastCardGame(Game, TurnTimerMixin):
         if next_p:
             user = self.get_user(next_p)
             if user:
-                user.speak_l("lastcard-can-challenge", buffer="table")
+                user.speak_l("lastcard-can-challenge", buffer="game")
 
         BotHelper.jolt_bots(self, ticks=random.randint(20, 40))
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _apply_card_effects_and_advance(self, card: Card) -> None:
         """Apply card effects (skip, reverse, draw, etc.) and advance turn."""
@@ -1423,7 +1425,7 @@ class LastCardGame(Game, TurnTimerMixin):
             if self.options.skip_card_rule == "all":
                 # Skip all — current player plays again
                 self.play_sound(SOUND_SKIP)
-                self.rebuild_all_menus()
+                self.refresh_menus()
                 self._start_turn()
                 return
             else:
@@ -1477,7 +1479,7 @@ class LastCardGame(Game, TurnTimerMixin):
                     self.swap_player_id = player.id
                     if player.is_bot:
                         BotHelper.jolt_bot(player, ticks=random.randint(10, 20))
-                    self.rebuild_all_menus()
+                    self.refresh_menus()
                     return
 
         if card.rank == 0 and self.options.zero_card_rule == "rotate_hands":
@@ -1488,7 +1490,7 @@ class LastCardGame(Game, TurnTimerMixin):
             self.interrupt_phase = "jump_in_window"
             self.interrupt_timer_ticks = self.options.interrupt_timer * 20
             BotHelper.jolt_bots(self, ticks=random.randint(10, 30))
-            self.rebuild_all_menus()
+            self.refresh_menus()
             return
 
         self._advance_turn()
@@ -1563,7 +1565,7 @@ class LastCardGame(Game, TurnTimerMixin):
                 # Keep drawing state - player can draw again or will auto-draw
                 self.turn_has_drawn = False
             self.start_turn_timer()
-            self.rebuild_all_menus()
+            self.refresh_menus()
             if p.is_bot:
                 BotHelper.jolt_bot(p, ticks=random.randint(10, 20))
             return
@@ -1572,7 +1574,7 @@ class LastCardGame(Game, TurnTimerMixin):
         if self.options.force_play and playable:
             self.start_turn_timer()
             prefix = "toggle_card_" if self.options.allow_multiple_play else "play_card_"
-            self.update_player_menu(p, selection_id=f"{prefix}{card.id}")
+            self.request_menu_focus(p, f"{prefix}{card.id}")
             if p.is_bot:
                 BotHelper.jolt_bot(p, ticks=random.randint(10, 20))
             return
@@ -1583,7 +1585,10 @@ class LastCardGame(Game, TurnTimerMixin):
             selection_id = f"{prefix}{card.id}"
         else:
             selection_id = None
-        self.update_player_menu(p, selection_id=selection_id)
+        if selection_id:
+            self.request_menu_focus(p, selection_id)
+        else:
+            self.refresh_menus(p)
         if p.is_bot:
             BotHelper.jolt_bot(p, ticks=random.randint(10, 20))
 
@@ -1648,7 +1653,7 @@ class LastCardGame(Game, TurnTimerMixin):
                 self.play_sound(SOUND_BUZZER_PRESS)
                 user = self.get_user(player)
                 if user:
-                    user.speak_l("lastcard-you-called", buffer="table")
+                    user.speak_l("lastcard-you-called", buffer="game")
                 return
             return
 
@@ -1670,7 +1675,7 @@ class LastCardGame(Game, TurnTimerMixin):
                 # Already called — too late to catch
                 user = self.get_user(player)
                 if user:
-                    user.speak_l("lastcard-already-called", buffer="table")
+                    user.speak_l("lastcard-already-called", buffer="game")
                 return
             # Caught! Target draws penalty
             self.play_sound(SOUND_BUZZER_CAUGHT)
@@ -1760,7 +1765,7 @@ class LastCardGame(Game, TurnTimerMixin):
         if not matching:
             user = self.get_user(player)
             if user:
-                user.speak_l("lastcard-no-matching-card", buffer="table")
+                user.speak_l("lastcard-no-matching-card", buffer="game")
             return
 
         card = matching[0]
@@ -1932,20 +1937,20 @@ class LastCardGame(Game, TurnTimerMixin):
             return
         locale = user.locale
         if not player.hand:
-            user.speak_l("lastcard-hand-empty", buffer="table")
+            user.speak_l("lastcard-hand-empty", buffer="game")
             return
         sorted_hand = self._sort_hand(player)
         card_names = [self.format_card(c, locale) for c in sorted_hand]
         text = Localization.get(
             locale, "lastcard-your-hand", count=len(player.hand), cards=", ".join(card_names)
         )
-        user.speak(text, buffer="table")
+        user.speak(text, buffer="game")
 
     def _action_read_top(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
         if not user:
             return
-        user.speak(self.format_top_card(user.locale), buffer="table")
+        user.speak(self.format_top_card(user.locale), buffer="game")
 
     def _action_read_counts(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
@@ -1962,7 +1967,7 @@ class LastCardGame(Game, TurnTimerMixin):
         if deck_count > 0:
             parts.append(Localization.get(locale, "lastcard-deck-count", count=deck_count))
         text = ", ".join(parts) if parts else Localization.get(locale, "lastcard-no-players")
-        user.speak(text, buffer="table")
+        user.speak(text, buffer="game")
 
     def _action_check_turn_timer(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
@@ -1970,9 +1975,9 @@ class LastCardGame(Game, TurnTimerMixin):
             return
         remaining = self.timer.seconds_remaining()
         if remaining <= 0:
-            user.speak_l("lastcard-timer-disabled", buffer="table")
+            user.speak_l("lastcard-timer-disabled", buffer="game")
         else:
-            user.speak_l("lastcard-timer-remaining", buffer="table", seconds=remaining)
+            user.speak_l("lastcard-timer-remaining", buffer="game", seconds=remaining)
 
     def _action_read_draw_penalty(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
@@ -1980,10 +1985,10 @@ class LastCardGame(Game, TurnTimerMixin):
             return
         if self.pending_draw_count > 0:
             user.speak_l(
-                "lastcard-draw-penalty-active", buffer="table", count=self.pending_draw_count
+                "lastcard-draw-penalty-active", buffer="game", count=self.pending_draw_count
             )
         else:
-            user.speak_l("lastcard-draw-penalty-none", buffer="table")
+            user.speak_l("lastcard-draw-penalty-none", buffer="game")
 
     def _action_cycle_hand_sort(self, player: Player, action_id: str) -> None:
         if not isinstance(player, LastCardPlayer):
@@ -1997,9 +2002,9 @@ class LastCardGame(Game, TurnTimerMixin):
         player.hand_sort = HAND_SORT_MODES[(idx + 1) % len(HAND_SORT_MODES)]
         label_key = HAND_SORT_LABELS.get(player.hand_sort, "lastcard-sort-by-color")
         mode_label = Localization.get(user.locale, label_key)
-        user.speak_l("lastcard-sort-changed", buffer="table", mode=mode_label)
+        user.speak_l("lastcard-sort-changed", buffer="game", mode=mode_label)
         self._sync_turn_actions(player)
-        self.rebuild_player_menu(player)
+        self.refresh_menus(player)
 
     # ==========================================================================
     # Action state helpers
@@ -2568,7 +2573,7 @@ class LastCardGame(Game, TurnTimerMixin):
             if not user:
                 continue
             user.speak_l(
-                "lastcard-start-card", buffer="table", card=self.format_top_card(user.locale)
+                "lastcard-start-card", buffer="game", card=self.format_top_card(user.locale)
             )
 
     def _broadcast_color_chosen(self, color: int) -> None:
@@ -2577,7 +2582,7 @@ class LastCardGame(Game, TurnTimerMixin):
             if not user:
                 continue
             user.speak_l(
-                "lastcard-color-chosen", buffer="table", color=self._color_name(color, user.locale)
+                "lastcard-color-chosen", buffer="game", color=self._color_name(color, user.locale)
             )
 
     def _broadcast_play(self, player: LastCardPlayer, card: Card) -> None:
@@ -2587,7 +2592,7 @@ class LastCardGame(Game, TurnTimerMixin):
                 continue
             user.speak_l(
                 "lastcard-player-plays",
-                buffer="table",
+                buffer="game",
                 player=player.name,
                 card=self.format_card(card, user.locale),
             )
@@ -2598,14 +2603,14 @@ class LastCardGame(Game, TurnTimerMixin):
             user = self.get_user(p)
             if not user:
                 continue
-            user.speak_l(key, buffer="table", player=player.name, count=count)
+            user.speak_l(key, buffer="game", player=player.name, count=count)
 
     def _broadcast_pass(self, player: LastCardPlayer) -> None:
         for p in self.players:
             user = self.get_user(p)
             if not user:
                 continue
-            user.speak_l("lastcard-player-passes", buffer="table", player=player.name)
+            user.speak_l("lastcard-player-passes", buffer="game", player=player.name)
 
     # ==========================================================================
     # Sounds
@@ -2685,7 +2690,7 @@ class LastCardGame(Game, TurnTimerMixin):
                 return
 
         self.hand_wait_ticks = 5 * 20
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _end_round_deadlock(self) -> None:
         """End the round when all players are forced to pass (deck exhausted, no playable cards)."""
@@ -2717,7 +2722,7 @@ class LastCardGame(Game, TurnTimerMixin):
                 return
 
         self.hand_wait_ticks = 5 * 20
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _hand_points(self, hand: list[Card]) -> int:
         total = 0
@@ -2757,13 +2762,17 @@ class LastCardGame(Game, TurnTimerMixin):
                 "winner_ids": [winner.id] if winner else [],
                 "winner_score": winner.score if winner else 0,
                 "final_scores": final_scores,
+                "scoring_mode": self.options.scoring_mode,
             },
         )
 
     def format_end_screen(self, result: GameResult, locale: str) -> list[str]:
         lines = [Localization.get(locale, "game-final-scores")]
         final_scores = result.custom_data.get("final_scores", {})
-        reverse = self.options.scoring_mode == "classic"
+        # The next lobby's game can repaint this screen, so the scoring mode
+        # comes from the result rather than the (changeable) lobby options.
+        scoring_mode = result.custom_data.get("scoring_mode", self.options.scoring_mode)
+        reverse = scoring_mode == "classic"
         sorted_scores = sorted(final_scores.items(), key=lambda item: item[1], reverse=reverse)
         for i, (name, score) in enumerate(sorted_scores, 1):
             lines.append(

@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import random
 
-from ...game_utils.game_status import GameStatus
 from ..base import Game, Player, GameOptions
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility
@@ -12,9 +11,8 @@ from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.options import IntOption, MenuOption, BoolOption, option_field
 from ...game_utils.bot_helper import BotHelper
 from ...messages.localization import Localization
-from ...core.ui.keybinds import KeybindState
-from ...core.users.bot import Bot
-from ...core.users.base import User
+from ...ui.keybinds import KeybindState
+from ...users.base import User
 from . import cards
 from .cards import UnoCard
 from .bot import bot_think_turn, bot_think_out_of_turn, bot_choose_color
@@ -221,7 +219,7 @@ class UnoGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-card-games"
+        return "cards"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -239,52 +237,13 @@ class UnoGame(Game):
     # Lobby roster
     # ==========================================================================
 
-    def _action_add_bot(self, player: Player, bot_name: str, action_id: str) -> None:
-        bot_name = self._resolve_add_bot_name(player, bot_name)
-        if bot_name is None:
-            return
-        self.add_player(bot_name, Bot(bot_name))
-        self.broadcast_l("table-joined", buffer="game", player=bot_name)
-        self.broadcast_sound("join.ogg")
-        self.refresh_menus()
-
     def _action_remove_bot(self, player: Player, action_id: str) -> None:
         for i in range(len(self.players) - 1, -1, -1):
             if self.players[i].is_bot:
-                self.remove_player(self.players[i].id)
-                self.broadcast_sound("leave.ogg")
+                bot = self.players[i]
+                self.remove_player(bot.id)
+                self.play_table_leave_sound(bot, is_bot=True)
                 break
-        self.refresh_menus()
-
-    def _perform_leave_game(self, player: Player) -> None:
-        if player.is_spectator:
-            self.remove_spectator(player.id)
-            if self._table:
-                self._table.remove_member(player.name)
-            self.broadcast_sound("leave_spectator.ogg")
-            self.refresh_menus()
-            return
-
-        if self.status == "playing" and not player.is_bot:
-            other_humans = any(
-                not p.is_bot and not p.is_spectator and p.id != player.id
-                for p in self.players
-            )
-            if other_humans:
-                if self._replace_with_bot(player):
-                    self.broadcast_sound("leave.ogg")
-                self.refresh_menus()
-                return
-
-        self.remove_player(player.id)
-        self.broadcast_sound("leave.ogg")
-        if self.status == "waiting" and self._table:
-            self._table.remove_member(player.name)
-
-        has_humans = any(not p.is_bot and not p.is_spectator for p in self.players)
-        if not has_humans:
-            self.destroy()
-            return
         self.refresh_menus()
 
     # ==========================================================================
@@ -545,7 +504,7 @@ class UnoGame(Game):
         return errors
 
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self.game_active = True
         self.round = 0
         self.turn_direction = 1
@@ -752,7 +711,11 @@ class UnoGame(Game):
                 if not user:
                     continue
                 if p.id == chooser.id:
-                    user.speak_l("uno-choose-opening-color-you", buffer="game")
+                    user.speak_l(
+                        "uno-choose-opening-color-you",
+                        buffer="game",
+                        history=False,
+                    )
                 else:
                     user.speak_l(
                         "uno-choose-opening-color-player",
@@ -1123,7 +1086,7 @@ class UnoGame(Game):
         self.swap_replay = replay
         user = self.get_user(player)
         if user and not player.is_bot:
-            user.speak_l("uno-choose-swap", buffer="game")
+            user.speak_l("uno-choose-swap", buffer="game", history=False)
         if player.is_bot:
             BotHelper.jolt_bot(player, ticks=random.randint(15, 25))
         self.refresh_menus()
@@ -2064,7 +2027,10 @@ class UnoGame(Game):
             if p.id == actor.id:
                 user.speak_l(you_key, buffer="game", **kwargs)
             else:
-                user.speak_l(other_key, buffer="game", player=actor.name, **kwargs)
+                payload = self._resolve_broadcast_kwargs(
+                    user.locale, {"player": actor, **kwargs}
+                )
+                user.speak_l(other_key, buffer="game", **payload)
 
     def _broadcast_card(self, player: UnoPlayer, card: UnoCard, you_key: str, other_key: str) -> None:
         """Announce a card play/intercept, with second-person to the actor."""
@@ -2304,11 +2270,7 @@ class UnoGame(Game):
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot and not p.replaced_human,
-                )
+                PlayerResult.from_player(p)
                 for p in active
             ],
             custom_data={

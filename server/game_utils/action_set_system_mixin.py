@@ -3,16 +3,16 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..games.base import Player
+    from .player import Player
 
 from .actions import Action, ActionSet, ResolvedAction
 
 
 class ActionSetSystemMixin:
-    """Manage per-player action sets and resolve action state.
+    """Mixin providing action set management (get, add, remove, find, resolve).
 
-    Expected Game attributes:
-        player_action_sets: dict[str, list[ActionSet]].
+    Expects on the Game class:
+        - self.player_action_sets: dict[str, list[ActionSet]]
     """
 
     def get_action_sets(self, player: "Player") -> list[ActionSet]:

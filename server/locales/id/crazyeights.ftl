@@ -1,57 +1,62 @@
-# Crazy Eights
+# crazyeights.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 game-name-crazyeights = Crazy Eights
-
-crazyeights-set-winning-score = Skor kemenangan: { $score }
-crazyeights-enter-winning-score = Masukkan skor kemenangan
-crazyeights-option-changed-winning-score = Skor kemenangan diatur ke { $score }.
-
-crazyeights-set-turn-timer = Timer giliran: { $mode }
-crazyeights-select-turn-timer = Pilih timer giliran
-crazyeights-option-changed-turn-timer = Timer giliran diatur ke { $mode }.
-
-crazyeights-draw = Ambil
-crazyeights-pass = Lewati
-crazyeights-read-top = Baca kartu atas
+crazyeights-set-winning-score = Target kemenangan: { $score }
+crazyeights-enter-winning-score = Masukkan target kemenangan
+crazyeights-option-changed-winning-score = Target kemenangan diubah menjadi { $score }.
+crazyeights-desc-winning-score = Target poin untuk mengakhiri pertandingan Crazy Eights. Nilai awal 500, dengan rentang 1 sampai 10000.
+crazyeights-set-turn-timer = Batas waktu giliran: { $mode }
+crazyeights-select-turn-timer = Pilih batas waktu giliran
+crazyeights-option-changed-turn-timer = Batas waktu giliran diubah menjadi { $mode }.
+crazyeights-desc-turn-timer = Batas waktu setiap giliran Crazy Eights dapat diatur ke 5, 10, 15, 20, 30, 45, 60, atau 90 detik, atau Tanpa batas. Nilai awal Tanpa batas.
+crazyeights-draw = Ambil kartu
+crazyeights-pass = Lewati giliran
+crazyeights-read-top = Baca kartu teratas
 crazyeights-read-counts = Baca jumlah kartu
-crazyeights-deck-count = dek { $count }
-
+crazyeights-count-entry = { $player }: { $count }
+crazyeights-deck-count = tumpukan ambil { $count }
+crazyeights-game-blocked = Permainan buntu! Tidak ada yang bisa memainkan kartu.
 crazyeights-new-hand = Ronde { $round }.
+crazyeights-start-card-you = Anda membuka { $card }.
 crazyeights-start-card = { $player } membuka { $card }.
-crazyeights-you-turn-up = Anda membuka { $card }.
-crazyeights-wild-played = { $player } memainkan Wild 8.
-
 crazyeights-no-players = Tidak ada pemain.
-crazyeights-no-hands = Tidak ada permainan yang sedang berlangsung.
-crazyeights-no-top = Tidak ada kartu atas.
-
+crazyeights-no-top = Tidak ada kartu teratas.
 crazyeights-wild = Wild 8
 crazyeights-wild-suit = Wild 8, { $suit }
-crazyeights-reverse = Reverse { $suit }
-crazyeights-skip = Skip { $suit }
-crazyeights-draw-two = Draw Two { $suit }
-
-crazyeights-suit-chosen = { $suit }
-
-crazyeights-round-summary = { $player } menang. { $details }. { $player } mendapat { $total }.
-crazyeights-you-win-round = Anda menang. { $details }. Anda mendapat { $total }.
-crazyeights-round-details-none = Tidak ada poin yang diambil dari lawan.
-crazyeights-round-winner = { $player } memenangkan { $points } poin. { $detail }
+crazyeights-reverse = Balik Arah { $suit }
+crazyeights-skip = Lewati Giliran { $suit }
+crazyeights-draw-two = Ambil Dua { $suit }
+crazyeights-you-choose-suit = Anda memilih { $suit }. Pemain berikutnya harus mengikuti jenis itu atau memainkan Wild 8 lainnya.
+crazyeights-player-chooses-suit = { $player } memilih { $suit }. Pemain berikutnya harus mengikuti jenis itu atau memainkan Wild 8 lainnya.
+crazyeights-round-summary = { $player } memenangkan ronde. { $details }. { $player } mendapat { $total } poin.
+crazyeights-round-summary-you = Anda memenangkan ronde. { $details }. Anda mendapat { $total } poin.
+crazyeights-round-details-none = Tidak ada poin yang diperoleh dari lawan.
 crazyeights-round-points-from = { $points } dari { $player }
-crazyeights-dealt-cards = Semua orang dibagikan { $cards } kartu.
-crazyeights-one-card = 1 kartu.
-
-crazyeights-game-winner = { $player } menang dengan { $score } poin.
-crazyeights-you-win-game = Anda menang dengan { $score } poin.
-
-crazyeights-player-plays = { $player } memainkan { $card }.
+crazyeights-dealt-cards = Setiap pemain mendapat { $cards } kartu.
+crazyeights-game-winner = { $player } memenangkan permainan dengan { $score } poin.
+crazyeights-game-winner-you = Anda memenangkan permainan dengan { $score } poin.
 crazyeights-you-play = Anda memainkan { $card }.
-crazyeights-player-draws-one = { $player } mengambil kartu.
-crazyeights-you-draw-one = Anda mengambil kartu.
-crazyeights-player-draws-many = { $player } mengambil { $count } kartu.
+crazyeights-player-plays = { $player } memainkan { $card }.
+crazyeights-you-draw-one = Anda mengambil satu kartu.
 crazyeights-you-draw-many = Anda mengambil { $count } kartu.
-crazyeights-player-passes = { $player } melewatkan.
-crazyeights-you-pass = Anda melewatkan.
-
-crazyeights-player-skipped = Melewati { $player }.
-crazyeights-you-are-skipped = Melewati Anda.
+crazyeights-player-draws-one = { $player } mengambil satu kartu.
+crazyeights-player-draws-many = { $player } mengambil { $count } kartu.
+crazyeights-you-pass = Anda melewati giliran.
+crazyeights-player-passes = { $player } melewati giliran.
+crazyeights-error-choose-suit-first = Pilih jenis kartu untuk Wild 8 sebelum melakukan tindakan lain.
+crazyeights-error-wild-transition = Tunggu sampai jenis kartu pilihan diterapkan sebelum memainkan kartu lain.
+crazyeights-error-card-not-playable = Anda tidak bisa memainkan { $card }. Kartu teratas adalah { $top } dan jenis kartu yang berlaku adalah { $suit }. Ikuti jenis tersebut, samakan nilainya, atau mainkan Wild 8.
+crazyeights-line-format = { $rank }. { $player }: { $score }
+crazyeights-check-turn-timer = Periksa sisa waktu giliran
+crazyeights-timer-5 = 5 detik
+crazyeights-timer-10 = 10 detik
+crazyeights-timer-15 = 15 detik
+crazyeights-timer-20 = 20 detik
+crazyeights-timer-30 = 30 detik
+crazyeights-timer-45 = 45 detik
+crazyeights-timer-60 = 60 detik
+crazyeights-timer-90 = 90 detik
+crazyeights-timer-unlimited = Tanpa batas
+crazyeights-timer-disabled = Batas waktu giliran dinonaktifkan.
+crazyeights-timer-remaining = Tersisa { $seconds } detik.

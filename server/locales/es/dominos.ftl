@@ -1,99 +1,102 @@
-game-name-dominos = Dominos
+# dominos.ftl for locale es. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-dominos = Dominó
+dominos-desc-team-mode = Juega individualmente, o usa cualquier organización de equipos pares válida según la cantidad actual de jugadores.
 # Options
-dominos-set-target-score = Target score: { $score }
-dominos-enter-target-score = Enter target score
-dominos-option-changed-target-score = Target score set to { $score }.
-
-dominos-set-draw-mode = Mode: { $mode }
-dominos-select-draw-mode = Select mode
-dominos-option-changed-draw-mode = Mode set to { $mode }.
-
-dominos-set-domino-set = Domino set: { $domino_set }
-dominos-select-domino-set = Select domino set
-dominos-option-changed-domino-set = Domino set changed to { $domino_set }.
-
-dominos-set-spinner = Spinner: { $enabled }
-dominos-option-changed-spinner = Spinner set to { $enabled }.
-
-dominos-set-opening-rule = Opening rule: { $opening_rule }
-dominos-select-opening-rule = Select opening rule
-dominos-option-changed-opening-rule = Opening rule set to { $opening_rule }.
-
+dominos-set-target-score = Puntuación objetivo: { $score }
+dominos-enter-target-score = Ingresa la puntuación objetivo
+dominos-option-changed-target-score = Puntuación objetivo establecida en { $score }.
+dominos-desc-target-score = Puntuación objetivo necesaria para ganar en Dominó (por defecto 100, rango 20-500).
+dominos-set-draw-mode = Modo: { $mode }
+dominos-select-draw-mode = Selecciona el modo
+dominos-option-changed-draw-mode = Modo establecido en { $mode }.
+dominos-desc-draw-mode = Elige el modo Robo, donde los jugadores roban del pozo, o el modo Bloqueo, donde los jugadores bloqueados pasan.
+dominos-set-domino-set = Juego de fichas: { $domino_set }
+dominos-select-domino-set = Selecciona el juego de fichas
+dominos-option-changed-domino-set = Juego de fichas cambiado a { $domino_set }.
+dominos-desc-domino-set = Tamaño del juego de fichas. Doble-6 admite hasta 5 jugadores, Doble-9 admite hasta 7 jugadores, y Doble-12 admite hasta 12 jugadores (por defecto Doble-6).
+dominos-set-spinner = Doble giratorio: { $enabled }
+dominos-option-changed-spinner = Doble giratorio establecido en { $enabled }.
+dominos-desc-spinner-enabled = Controla si el doble de apertura crea un cruce en cuatro direcciones (por defecto activado).
+dominos-set-opening-rule = Regla de apertura: { $opening_rule }
+dominos-select-opening-rule = Selecciona la regla de apertura
+dominos-option-changed-opening-rule = Regla de apertura establecida en { $opening_rule }.
+dominos-desc-opening-rule = Elige cómo se selecciona la primera ficha de cada ronda de Dominó.
 # Option choice labels
-dominos-mode-draw = Draw
-dominos-mode-block = Block
-
-dominos-set-double6 = Double-6
-dominos-set-double9 = Double-9
-
-dominos-opening-highest-double = Highest double
-dominos-opening-highest-tile = Highest tile
-dominos-opening-set-max-double = Highest set double
-dominos-opening-random-player = Random player
-dominos-opening-round-winner = Previous round winner
-
+dominos-mode-draw = Robo
+dominos-mode-block = Bloqueo
+dominos-set-double6 = Doble-6
+dominos-set-double9 = Doble-9
+dominos-set-double12 = Doble-12
+dominos-opening-highest-double = Doble más alto
+dominos-opening-highest-tile = Ficha más alta
+dominos-opening-set-max-double = Doble máximo del juego
+dominos-opening-random-player = Jugador aleatorio
+dominos-opening-round-winner = Ganador de la ronda anterior
 # Actions
-dominos-draw = Draw
-dominos-knock = Knock
-dominos-view-chain = View chain
-dominos-read-ends = Read ends
-dominos-read-hand = Read hand
-dominos-read-counts = Read counts
+dominos-draw = Robar
+dominos-knock = Pasar
+dominos-view-chain = Ver cadena
+dominos-read-ends = Leer extremos
+dominos-read-hand = Leer mano
+dominos-read-counts = Leer cantidades
 dominos-play-tile = { $tile }
-dominos-play-tile-at = Play { $tile } to { $side }
-dominos-play-tile-multi = Play { $tile } to { $sides }
-dominos-select-side = Select a side
-
+dominos-open-with-tile = Abrir con { $tile }
+dominos-play-tile-at = Jugar { $tile } en { $side }
+dominos-play-tile-multi = Jugar { $tile } en { $sides }
+dominos-select-side = Selecciona un lado
 # Board sides
-dominos-side-left = left
-dominos-side-right = right
-dominos-side-up = up
-dominos-side-down = down
-
+dominos-side-left = izquierda
+dominos-side-right = derecha
+dominos-side-up = arriba
+dominos-side-down = abajo
 # Validation and disabled reasons
-dominos-draw-only-mode = Drawing is only available in Draw mode.
-dominos-must-play = You already have a playable tile.
-dominos-boneyard-empty = The boneyard is empty.
-dominos-must-draw = You must draw before knocking.
-dominos-illegal-side = That side is not legal for the selected tile.
-dominos-no-play-for-tile = { $tile } cannot be played right now.
-dominos-choose-side-keybind = Choose a side with the direction keybind. Legal sides: { $sides }.
-
+dominos-draw-only-mode = Robar solo está disponible en modo Robo.
+dominos-must-play = Ya tienes una ficha jugable.
+dominos-boneyard-empty = El pozo está vacío.
+dominos-must-draw = Debes robar antes de pasar.
+dominos-illegal-side = Ese lado no es válido para la ficha seleccionada.
+dominos-no-play-for-tile = { $tile } no se puede jugar en este momento.
+dominos-choose-side-keybind = Elige un lado con la tecla de dirección. Lados válidos: { $sides }.
+dominos-opening-must-play = La ronda aún no se ha abierto. Debes elegir una ficha para iniciar la cadena.
+dominos-error-set-too-small = No se le pueden repartir suficientes fichas a { $players } jugadores con un juego Doble-{ $selected_pip }. Elige al menos Doble-{ $required_pip } para este tamaño de mesa.
 # Gameplay
-dominos-opening-play = { $player } opens with { $tile }.
-dominos-opening-spinner = { $player } opens a spinner with { $tile }.
-dominos-player-draws = { $player } draws { $count } { $count ->
-    [one] tile
-   *[other] tiles
-}.
-dominos-you-drew-single = You drew { $tile }.
-dominos-you-drew-many = You drew { $count } tiles.
-dominos-you-played = You played { $tile } to { $side }.
-dominos-you-played-drawn = You drew and played { $tile } to { $side }.
-dominos-player-played = { $player } played { $tile } to { $side }.
-dominos-player-knocks = { $player } knocks.
-dominos-round-won = { $player } wins the round and scores { $points } points.
-dominos-round-blocked-tie = The round is blocked. Lowest pip total is { $pips }, but it is tied. No points are scored.
-dominos-round-blocked-winner = The round is blocked. { $team } has the lowest pip total with { $pips } and scores { $points } points.
-dominos-match-tied-continue = Multiple teams reached { $score } points. The game continues until the tie is broken.
-dominos-match-winner = { $team } wins the game with { $score } points.
-
+dominos-you-open-round = Tú abres esta ronda. Elige cualquier ficha de tu mano para iniciar la cadena.
+dominos-player-opens-round = { $player } abre esta ronda y está eligiendo la ficha de apertura.
+dominos-you-opened = Abriste la ronda con { $tile }.
+dominos-player-opened = { $player } abrió la ronda con { $tile }.
+dominos-you-opened-spinner = Abriste la ronda con { $tile }, creando un cruce en cuatro direcciones.
+dominos-player-opened-spinner = { $player } abrió la ronda con { $tile }, creando un cruce en cuatro direcciones.
+dominos-you-drew-single = Robaste { $tile } del pozo.
+dominos-you-drew-many = Robaste { $count } fichas del pozo.
+dominos-player-drew-single = { $player } robó 1 ficha del pozo.
+dominos-player-drew-many = { $player } robó { $count } fichas del pozo.
+dominos-you-played = Jugaste { $tile } en la rama { $side }.
+dominos-you-played-drawn = Robaste y jugaste { $tile } en la rama { $side }.
+dominos-player-played = { $player } jugó { $tile } en la rama { $side }.
+dominos-you-knock = Pasas porque no tienes ninguna ficha legal para jugar.
+dominos-player-knocks = { $player } pasa.
+dominos-you-won-round = Vaciaste tu mano y anotaste { $points } puntos de las fichas de los oponentes.
+dominos-player-won-round = { $player } vació { GENDER_TERM($player_gender, "possessive-determiner") } mano y anotó { $points } puntos de las fichas de los oponentes.
+dominos-round-blocked-tie = La ronda está bloqueada. El total de puntos más bajo es { $pips }, pero hay empate. No se anotan puntos.
+dominos-round-blocked-winner = La ronda está bloqueada. { $team } tiene el total de puntos más bajo con { $pips } y anota { $points } puntos.
+dominos-match-tied-continue = Varios equipos llegaron a { $score } puntos. La partida continúa hasta romper el empate.
+dominos-match-winner = { $team } gana la partida con { $score } puntos.
 # Status boxes
-dominos-chain-header = Chain
-dominos-chain-empty = The chain is empty.
-dominos-chain-center = Center: { $tile }
-dominos-branch-empty = no tiles
-dominos-chain-branch = { $side }: { $tiles }. Open end { $open_end }.
-dominos-boneyard-count = Boneyard: { $count } tiles remaining.
+dominos-chain-header = Cadena
+dominos-chain-empty = La cadena está vacía.
+dominos-chain-center = Centro: { $tile }
+dominos-branch-empty = sin fichas
+dominos-chain-branch = { $side }: { $tiles }. Extremo abierto { $open_end }.
+dominos-boneyard-count = Pozo: quedan { $count } fichas.
 dominos-end-info = { $side } { $value }
-
-dominos-hand-header = Your hand
-dominos-hand-line = { $tile } worth { $points } points.
-dominos-hand-line-playable = { $tile } worth { $points } points. Playable on { $sides }.
-dominos-hand-total = Total pips in hand: { $pips }.
-dominos-player-count = { $player } has { $count } tiles
-dominos-no-other-players = No other players.
-
+dominos-hand-header = Tu mano
+dominos-hand-line = { $tile }, vale { $points } puntos.
+dominos-hand-line-playable = { $tile }, vale { $points } puntos. Jugable en { $sides }.
+dominos-hand-line-opening-playable = { $tile }, vale { $points } puntos. Puedes usarla para abrir esta ronda.
+dominos-hand-total = Total de puntos en mano: { $pips }.
+dominos-player-count = { $player } tiene { $count } fichas
+dominos-no-other-players = No hay otros jugadores.
 # End screen
 dominos-line-format = { $rank }. { $player }: { $points }

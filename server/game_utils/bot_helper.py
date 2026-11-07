@@ -9,17 +9,26 @@ This is a stateless helper that operates on serialized Player fields:
 from typing import TYPE_CHECKING, Callable
 
 if TYPE_CHECKING:
-    from ..games.base import Game, Player
+    from ..games.base import Game
+    from .player import Player
 
 
 class BotHelper:
-    """Stateless helper for managing bot AI in games.
+    """
+    Stateless helper for managing bot AI in games.
 
-    All bot state is stored on Player fields for serialization. This helper
-    provides utility methods for manipulating that state.
+    All bot state is stored in Player fields for serialization.
+    This class just provides utility methods for manipulating that state.
 
     Usage:
+        # In game on_tick:
         BotHelper.on_tick(self)
+
+        # Implement bot_think in your game:
+        def bot_think(self, player: Player) -> str | None:
+            return "roll"
+
+        # When something happens that should make bots pause:
         BotHelper.jolt_bots(game, ticks=10)
     """
 
@@ -132,12 +141,6 @@ class BotHelper:
             )
         if not current or not current.is_bot:
             return
-
-        # Sync dynamic action sets before the bot reads or executes them.
-        # Bots have no rendered menus, so a paint-driven sync can go stale
-        # between repaints (e.g. a card drawn since the last menu build).
-        if hasattr(game, "before_menu_build"):
-            game.before_menu_build(current)
 
         # Count down thinking time
         if current.bot_think_ticks > 0:

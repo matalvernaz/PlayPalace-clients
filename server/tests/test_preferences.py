@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from server.core.users.preferences import (
+from server.users.preferences import (
     DiceKeepingStyle,
     PREF_CATEGORIES,
     PrefMeta,

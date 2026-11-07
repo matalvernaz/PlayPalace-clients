@@ -1,30 +1,13 @@
-# Main UI messages for PlayPalace
+# main.ftl for locale uk. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game categories
-category-card-games = Карткові ігри
-category-dice-games = Ігри з кубиками
-category-rb-play-center = Центр ігор RB
-category-poker = Покер
-category-uncategorized = Без категорії
-
-# Menu titles
-main-menu-title = Головне меню
-play-menu-title = Грати
-categories-menu-title = Категорії ігор
-tables-menu-title = Доступні столи
-
-# Menu items
 play = Грати
-view-active-tables = Переглянути активні столи
 options = Налаштування
 logout = Вийти
 back = Назад
 go-back = Повернутися
 context-menu = Контекстне меню.
 no-actions-available = Немає доступних дій.
-create-table = Створити новий стіл
-join-as-player = Приєднатись як гравець
-join-as-spectator = Приєднатись як глядач
 leave-table = Покинути стіл
 start-game = Почати гру
 add-bot = Додати бота
@@ -35,19 +18,96 @@ whose-turn = Чий хід
 whos-at-table = Хто за столом
 check-scores = Перевірити рахунок
 check-scores-detailed = Детальний рахунок
-check-game-options = Перевірити параметри гри
-no-game-options = Немає параметрів гри.
-
 # Turn messages
 game-player-skipped = { $player } пропущений.
-
-# Table messages
-table-created = { $host } створив новий стіл { $game }.
 table-joined = { $player } приєднався до столу.
 table-left = { $player } покинув стіл.
 new-host = { $player } тепер господар.
-waiting-for-players = Очікуємо гравців. {$min} мін, { $max } макс.
 game-starting = Гра починається!
+table-full = Стіл заповнений.
+player-replaced-by-bot = { $player } вийшов і був замінений ботом.
+# Spectator mode
+spectate = Спостерігати
+now-playing = { $player } тепер грає.
+now-spectating = { $player } тепер спостерігає.
+spectator-left = { $player } припинив спостереження.
+# General
+welcome = Ласкаво просимо до PlayPalace!
+goodbye = До побачення!
+# Options
+language = Мова
+# Boolean option values
+option-on = увімкнено
+option-off = вимкнено
+dice-keeping-style-option = Стиль збереження кубиків: { $style }
+# Bot names
+cancel = Скасувати
+enter-bot-name = Введіть ім'я бота
+no-options-available = Немає доступних опцій.
+no-scores-available = Немає доступних рахунків.
+# Action disabled reasons
+action-not-your-turn = Зараз не ваш хід.
+action-not-playing = Гра ще не почалася.
+action-spectator = Глядачі не можуть це робити.
+action-not-host = Тільки господар може це робити.
+action-game-in-progress = Не можна це зробити під час гри.
+action-need-more-players = Потрібно більше гравців для початку.
+action-table-full = Стіл заповнений.
+action-no-bots = Немає ботів для видалення.
+action-bots-cannot = Боти не можуть це робити.
+# Dice actions
+dice-not-rolled = Ви ще не кидали кубики.
+dice-no-dice = Немає доступних кубиків.
+table-no-players = Немає гравців.
+table-players-one = { $count } гравець: { $players }.
+table-players-many = { $count } гравців: { $players }.
+table-spectators = Глядачі: { $spectators }.
+game-over = Гра закінчена
+game-final-scores = Фінальні рахунки
+game-points =
+    { $count } { $count ->
+        [one] очко
+       *[other] очок
+    }
+# Leaderboards
+leaderboards = Таблиці лідерів
+leaderboard-type-avg-points-per-turn = Середні очки за хід
+leaderboard-type-best-single-turn = Найкращий хід
+leaderboard-type-score-per-round = Рахунок за раунд
+leaderboard-score-entry = { $rank }. { $player }: { $value }
+leaderboard-avg-entry = { $rank }. { $player }: { $value } сер.
+leaderboard-no-player-stats = Ви ще не грали в цю гру.
+leaderboard-no-player-rating = У вас ще немає рейтингу для цієї гри.
+my-stats-select-game = Виберіть гру для перегляду статистики
+my-stats-header = { $game } - Ваша статистика
+my-stats-avg-per-turn = Середні очки за хід: { $value }
+my-stats-best-turn = Найкращий хід: { $value }
+confirm-leave-game = Ви впевнені, що хочете покинути стіл?
+confirm-yes = Так
+confirm-no = Ні
+# Administration
+administration = Адміністрування
+voice-status-connection-lost = { $player } lost the voice connection.
+# Game categories
+category-card-games = Карткові ігри
+category-dice-games = Ігри з кубиками
+category-rb-play-center = Центр ігор RB
+category-poker = Покер
+category-uncategorized = Без категорії
+# Menu titles
+main-menu-title = Головне меню
+play-menu-title = Грати
+categories-menu-title = Категорії ігор
+tables-menu-title = Доступні столи
+view-active-tables = Переглянути активні столи
+create-table = Створити новий стіл
+join-as-player = Приєднатись як гравець
+join-as-spectator = Приєднатись як глядач
+check-game-options = Перевірити параметри гри
+no-game-options = Немає параметрів гри.
+# Table messages
+table-created = { $host } створив новий стіл { $game }.
+waiting-for-players = Очікуємо гравців. { $min } мін, { $max } макс.
 table-listing = Стіл { $host } ({ $count } користувачів)
 table-listing-one = Стіл { $host } ({ $count } користувач)
 table-listing-with = Стіл { $host } ({ $count } користувачів) з { $members }
@@ -55,21 +115,8 @@ table-listing-game = { $game }: стіл { $host } ({ $count } користув�
 table-listing-game-one = { $game }: стіл { $host } ({ $count } користувач)
 table-listing-game-with = { $game }: стіл { $host } ({ $count } користувачів) з { $members }
 table-not-exists = Стіл більше не існує.
-table-full = Стіл заповнений.
-player-replaced-by-bot = { $player } вийшов і був замінений ботом.
 player-took-over = { $player } перейняв керування від бота.
 spectator-joined = Приєднався до столу { $host } як глядач.
-
-# Spectator mode
-spectate = Спостерігати
-now-playing = { $player } тепер грає.
-now-spectating = { $player } тепер спостерігає.
-spectator-left = { $player } припинив спостереження.
-
-# General
-welcome = Ласкаво просимо до PlayPalace!
-goodbye = До побачення!
-
 # User presence announcements
 user-online = { $player } з'явився в мережі.
 user-offline = { $player } вийшов з мережі.
@@ -80,41 +127,23 @@ online-users-one = 1 користувач: { $users }
 online-users-many = { $count } користувачів: { $users }
 online-user-not-in-game = Не в грі
 online-user-waiting-approval = Очікує схвалення
-
-# Options
-language = Мова
 language-option = Мова: { $language }
 language-changed = Мову встановлено на { $language }.
-
-# Boolean option states
-option-on = Увімкнено
-option-off = Вимкнено
-
 # Sound options
 turn-sound-option = Звук ходу: { $status }
-
 # Dice options
 clear-kept-option = Очищати збережені кубики при киданні: { $status }
-dice-keeping-style-option = Стиль збереження кубиків: { $style }
 dice-keeping-style-changed = Стиль збереження кубиків встановлено на { $style }.
 dice-keeping-style-indexes = Індекси кубиків
 dice-keeping-style-values = Значення кубиків
-
-# Bot names
-cancel = Скасувати
 no-bot-names-available = Немає доступних імен ботів.
 select-bot-name = Виберіть ім'я для бота
-enter-bot-name = Введіть ім'я бота
-no-options-available = Немає доступних опцій.
-no-scores-available = Немає доступних рахунків.
-
 # Duration estimation
 estimate-duration = Оцінити тривалість
 estimate-computing = Обчислюємо оцінку тривалості гри...
 estimate-result = Середнє для бота: { $bot_time } (± { $std_dev }). { $outlier_info }Оцінка часу для людини: { $human_time }.
 estimate-error = Не вдалося оцінити тривалість.
 estimate-already-running = Оцінка тривалості вже виконується.
-
 # Save/Restore
 saved-tables = Збережені столи
 no-saved-tables = У вас немає збережених столів.
@@ -126,56 +155,16 @@ missing-players = Не вдалося відновити: ці гравці не
 table-restored = Стіл відновлено! Всі гравці переведені.
 table-saved-destroying = Стіл збережено! Повертаємось до головного меню.
 game-type-not-found = Тип гри більше не існує.
-
-# Action disabled reasons
-action-not-your-turn = Зараз не ваш хід.
-action-not-playing = Гра ще не почалася.
-action-spectator = Глядачі не можуть це робити.
-action-not-host = Тільки господар може це робити.
-action-game-in-progress = Не можна це зробити під час гри.
-action-need-more-players = Потрібно більше гравців для початку.
-action-table-full = Стіл заповнений.
-action-no-bots = Немає ботів для видалення.
-action-bots-cannot = Боти не можуть це робити.
 action-no-scores = Рахунки ще недоступні.
-
-# Dice actions
-dice-not-rolled = Ви ще не кидали кубики.
-dice-locked = Цей кубик заблокований.
-dice-no-dice = Немає доступних кубиків.
-
-# Game actions
-game-turn-start = Хід { $player }.
-game-no-turn = Зараз нічий хід.
-table-no-players = Немає гравців.
-table-players-one = { $count } гравець: { $players }.
-table-players-many = { $count } гравців: { $players }.
-table-spectators = Глядачі: { $spectators }.
-game-leave = Вийти
-game-over = Гра закінчена
-game-final-scores = Фінальні рахунки
-game-points = { $count } { $count ->
-    [one] очко
-   *[other] очок
-}
-play = Грати
-
-# Leaderboards
-leaderboards = Таблиці лідерів
 leaderboards-menu-title = Таблиці лідерів
 leaderboards-select-game = Виберіть гру для перегляду таблиці лідерів
 leaderboard-no-data = Поки немає даних таблиці лідерів для цієї гри.
-
 # Leaderboard types
 leaderboard-type-wins = Лідери за перемогами
 leaderboard-type-rating = Рейтинг майстерності
 leaderboard-type-total-score = Загальний рахунок
 leaderboard-type-high-score = Найкращий рахунок
 leaderboard-type-games-played = Зіграних ігор
-leaderboard-type-avg-points-per-turn = Середні очки за хід
-leaderboard-type-best-single-turn = Найкращий хід
-leaderboard-type-score-per-round = Рахунок за раунд
-
 # Leaderboard headers
 leaderboard-wins-header = { $game } - Лідери за перемогами
 leaderboard-total-score-header = { $game } - Загальний рахунок
@@ -185,35 +174,26 @@ leaderboard-rating-header = { $game } - Рейтинги майстерност�
 leaderboard-avg-points-header = { $game } - Середні очки за хід
 leaderboard-best-turn-header = { $game } - Найкращий хід
 leaderboard-score-per-round-header = { $game } - Рахунок за раунд
-
 # Leaderboard entries
-leaderboard-wins-entry = { $rank }: { $player }, { $wins } { $wins ->
-    [one] перемога
-   *[other] перемог
-} { $losses } { $losses ->
-    [one] поразка
-   *[other] поразок
-}, { $percentage }% перемог
-leaderboard-score-entry = { $rank }. { $player }: { $value }
-leaderboard-avg-entry = { $rank }. { $player }: { $value } сер.
+leaderboard-wins-entry =
+    { $rank }: { $player }, { $wins } { $wins ->
+        [one] перемога
+       *[other] перемог
+    } { $losses } { $losses ->
+        [one] поразка
+       *[other] поразок
+    }, { $percentage }% перемог
 leaderboard-games-entry = { $rank }. { $player }: { $value } ігор
-
 # Player stats
 leaderboard-player-stats = Ваша статистика: { $wins } перемог, { $losses } поразок ({ $percentage }% перемог)
-leaderboard-no-player-stats = Ви ще не грали в цю гру.
-
 # Skill rating leaderboard
 leaderboard-no-ratings = Поки немає даних рейтингу для цієї гри.
 leaderboard-rating-entry = { $rank }. { $player }: { $rating } рейтинг ({ $mu } ± { $sigma })
 leaderboard-player-rating = Ваш рейтинг: { $rating } ({ $mu } ± { $sigma })
-leaderboard-no-player-rating = У вас ще немає рейтингу для цієї гри.
-
 # My Stats menu
 my-stats = Моя статистика
-my-stats-select-game = Виберіть гру для перегляду статистики
 my-stats-no-data = Ви ще не грали в цю гру.
 my-stats-no-games = Ви ще не грали в жодну гру.
-my-stats-header = { $game } - Ваша статистика
 my-stats-wins = Перемоги: { $value }
 my-stats-losses = Поразки: { $value }
 my-stats-winrate = Відсоток перемог: { $value }%
@@ -222,9 +202,6 @@ my-stats-total-score = Загальний рахунок: { $value }
 my-stats-high-score = Найкращий рахунок: { $value }
 my-stats-rating = Рейтинг майстерності: { $value } ({ $mu } ± { $sigma })
 my-stats-no-rating = Рейтинг майстерності ще немає
-my-stats-avg-per-turn = Середні очки за хід: { $value }
-my-stats-best-turn = Найкращий хід: { $value }
-
 # Prediction system
 predict-outcomes = Передбачити результати
 predict-header = Передбачені результати (за рейтингом майстерності)
@@ -233,14 +210,7 @@ predict-entry-2p = { $rank }. { $player } (рейтинг: { $rating }, { $proba
 predict-unavailable = Передбачення за рейтингом недоступні.
 predict-need-players = Потрібно принаймні 2 гравці-люди для передбачень.
 action-need-more-humans = Потрібно більше гравців-людей.
-confirm-leave-game = Ви впевнені, що хочете покинути стіл?
-confirm-yes = Так
-confirm-no = Ні
-
-# Administration
-administration = Адміністрування
 admin-menu-title = Адміністрування
-
 # Account approval
 account-approval = Схвалення облікових записів
 account-approval-menu-title = Схвалення облікових записів
@@ -249,51 +219,42 @@ approve-account = Схвалити
 decline-account = Відхилити
 account-approved = Обліковий запис { $player } схвалено.
 account-declined = Обліковий запис { $player } відхилено та видалено.
-
 # Waiting for approval (shown to unapproved users)
 waiting-for-approval = Ваш обліковий запис очікує схвалення адміністратором.
 account-approved-welcome = Ваш обліковий запис схвалено! Ласкаво просимо до PlayPalace!
-account-declined-goodbye = Ваш запит на обліковий запис відхилено.
+account-declined-goodbye =
+    Ваш запит на обліковий запис відхилено.
     Причина:
 account-banned = Ваш обліковий запис заблоковано і не може бути доступний.
-
 # Login errors
 incorrect-username = Введене вами ім'я користувача не існує.
 incorrect-password = Введений вами пароль неправильний.
 already-logged-in = Цей обліковий запис вже увійшов в систему.
-
 # Credential validation
 credential-username-length = Ім'я користувача повинно містити від { $min } до { $max } символів.
 credential-password-length = Пароль повинен містити від { $min } до { $max } символів.
-
 # Rate limiting
 rate-limit-login-ip = Забагато спроб входу з цієї адреси. Будь ласка, зачекайте і спробуйте знову.
 rate-limit-login-user = Забагато невдалих спроб входу для цього імені користувача. Будь ласка, зачекайте і спробуйте знову.
 rate-limit-registration = Забагато спроб реєстрації з цієї адреси. Будь ласка, зачекайте і спробуйте знову.
 rate-limit-refresh = Забагато спроб оновлення з цієї адреси. Будь ласка, зачекайте і спробуйте знову.
-
 # Session/auth errors
 account-not-found = Обліковий запис не знайдено.
 session-expired = Сесія закінчилась. Будь ласка, увійдіть знову.
 session-token-mismatch = Токен сесії не відповідає імені користувача.
 refresh-token-expired = Токен оновлення закінчився. Будь ласка, увійдіть знову.
 refresh-token-mismatch = Токен оновлення не відповідає імені користувача.
-
 # Registration
 registration-success = Реєстрація успішна! Ваш обліковий запис очікує схвалення.
 registration-username-taken = Це ім'я користувача вже зайняте. Будь ласка, оберіть інше.
-
 # Preference fallback
 pref-invalid-value = Невірний вибір, використовується стандартне значення.
-
 # Decline reason
 decline-reason-prompt = Введіть причину відхилення (або натисніть Escape для скасування):
 account-action-empty-reason = Причину не вказано.
-
 # Admin notifications for account requests
 account-request = запит на обліковий запис
 account-action = дію з обліковим записом виконано
-
 # Admin promotion/demotion
 promote-admin = Призначити адміністратором
 demote-admin = Зняти адміністратора
@@ -312,7 +273,6 @@ demote-announcement = { $player } знято з адміністратора.
 demote-announcement-you = Вас знято з адміністратора.
 not-admin-anymore = Ви більше не адміністратор і не можете виконати цю дію.
 not-server-owner = Тільки власник сервера може виконати цю дію.
-
 # Server ownership transfer
 transfer-ownership = Передати володіння
 transfer-ownership-menu-title = Передати володіння
@@ -320,7 +280,6 @@ no-admins-for-transfer = Немає адміністраторів для пер
 confirm-transfer-ownership = Ви впевнені, що хочете передати володіння сервером { $player }? Ви будете знижені до адміністратора.
 transfer-ownership-announcement = { $player } тепер власник сервера Play Palace!
 transfer-ownership-announcement-you = Тепер ви власник сервера Play palace!
-
 # User banning
 ban-user = Заблокувати користувача
 unban-user = Розблокувати користувача
@@ -332,12 +291,13 @@ ban-reason-prompt = Введіть причину блокування (необ
 unban-reason-prompt = Введіть причину розблокування (необов'язково):
 user-banned = { $player } заблоковано.
 user-unbanned = { $player } розблоковано.
-you-have-been-banned = Вас заблоковано на цьому сервері.
+you-have-been-banned =
+    Вас заблоковано на цьому сервері.
     Причина:
-you-have-been-unbanned = Вас розблоковано на цьому сервері.
+you-have-been-unbanned =
+    Вас розблоковано на цьому сервері.
     Причина:
 ban-no-reason = Причину не вказано.
-
 # Virtual bots (server owner only)
 virtual-bots = Віртуальні боти
 virtual-bots-fill = Заповнити сервер
@@ -347,10 +307,11 @@ virtual-bots-clear-confirm = Ви впевнені, що хочете очист
 virtual-bots-not-available = Віртуальні боти недоступні.
 virtual-bots-filled = Додано { $added } віртуальних ботів. { $online } зараз онлайн.
 virtual-bots-already-filled = Усі віртуальні боти з конфігурації вже активні.
-virtual-bots-cleared = Очищено { $bots } віртуальних ботів і знищено { $tables } { $tables ->
-    [one] стіл
-   *[other] столів
-}.
+virtual-bots-cleared =
+    Очищено { $bots } віртуальних ботів і знищено { $tables } { $tables ->
+        [one] стіл
+       *[other] столів
+    }.
 virtual-bot-table-closed = Стіл закрито адміністратором.
 virtual-bots-none-to-clear = Немає віртуальних ботів для очищення.
 virtual-bots-status-report = Віртуальні боти: { $total } всього, { $online } онлайн, { $offline } офлайн, { $in_game } в грі.
@@ -378,9 +339,7 @@ virtual-bots-profiles-header = Профілі: { $count } визначено (з
 virtual-bots-profiles-empty = Не визначено профілів.
 virtual-bots-profiles-line = { $profile } ({ $bot_count } ботів) перевизначення: { $overrides }.
 virtual-bots-profiles-no-overrides = успадковує базову конфігурацію
-
 localization-in-progress-try-again = Локалізація ще завантажується. Будь ласка, спробуйте знову за хвилину.
-
 # Voice chat
 voice-room-table-label = { $game } table
 voice-not-at-table = Join a table before starting voice chat.
@@ -393,9 +352,7 @@ voice-muted-minutes = You are muted for { $minutes } more minute(s).
 voice-muted-seconds = You are muted for { $seconds } more second(s).
 voice-status-connected = { $player } connected to voice.
 voice-status-disconnected = { $player } disconnected from voice.
-voice-status-connection-lost = { $player } lost the voice connection.
 voice-status-left-table = { $player } left the table.
-
 # Mute (admin moderation)
 mute-user = Mute user
 unmute-user = Unmute user
@@ -411,7 +368,6 @@ user-muted = Muted { $player } from voice chat.
 user-unmuted = Unmuted { $player }.
 you-have-been-muted = You have been muted from voice chat.
 you-have-been-unmuted = Your mute has been lifted.
-
 # Pagination controls for large server menus
 menu-page-summary = Showing { $start }-{ $end } of { $total } entries. Page { $page } of { $pages }.
 menu-page-refresh = Refresh list

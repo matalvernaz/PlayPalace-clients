@@ -1,19 +1,14 @@
-# Scopa game messages
-# Note: Common messages like round-start, turn-start, target-score, team-mode are in games.ftl
+# scopa.ftl for locale th. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name
 game-name-scopa = สโกปา
-
 # Game events
 scopa-initial-table = ไพ่บนโต๊ะ: { $cards }
 scopa-no-initial-table = ไม่มีไพ่บนโต๊ะตอนเริ่มเกม
-scopa-you-collect = คุณเก็บ { $cards } ด้วย { $card }
-scopa-player-collects = { $player } เก็บ { $cards } ด้วย { $card }
 scopa-you-put-down = คุณวาง { $card }
 scopa-player-puts-down = { $player } วาง { $card }
-scopa-scopa-suffix =  - สโกปา!
 scopa-clear-table-suffix = , เก็บโต๊ะหมด
-scopa-remaining-cards = { $player } ได้รับไพ่ที่เหลือบนโต๊ะ
 scopa-scoring-round = คำนวณคะแนน...
 scopa-most-cards = { $player } ได้ 1 คะแนนสำหรับไพ่มากที่สุด ({ $count } ใบ)
 scopa-most-cards-tie = ไพ่มากที่สุดเสมอกัน - ไม่มีคะแนน
@@ -29,11 +24,9 @@ scopa-round-score-line = { $player }: +{ $round_score } (รวม: { $total_sco
 scopa-table-empty = ไม่มีไพ่บนโต๊ะ
 scopa-no-such-card = ไม่มีไพ่ที่ตำแหน่งนั้น
 scopa-captured-count = คุณจับได้ { $count } ใบ
-
 # View actions
 scopa-view-table = ดูโต๊ะ
 scopa-view-captured = ดูไพ่ที่จับได้
-
 # Scopa-specific options
 scopa-enter-target-score = ใส่คะแนนเป้าหมาย (1-121)
 scopa-set-cards-per-deal = ไพ่แต่ละรอบ: { $cards }
@@ -47,7 +40,6 @@ scopa-select-mechanic = เลือกกลไกสโกปา
 scopa-toggle-instant-win = ชนะทันทีเมื่อได้สโกปา: { $enabled }
 scopa-toggle-team-scoring = รวมไพ่ทีมสำหรับคะแนน: { $enabled }
 scopa-toggle-inverse = โหมดกลับด้าน (ถึงเป้าหมาย = ตกรอบ): { $enabled }
-
 # Option change announcements
 scopa-option-changed-cards = ตั้งไพ่แต่ละรอบเป็น { $cards }
 scopa-option-changed-decks = ตั้งจำนวนสำรับเป็น { $decks }
@@ -57,14 +49,11 @@ scopa-option-changed-mechanic = ตั้งกลไกสโกปาเป็
 scopa-option-changed-instant = ชนะทันทีเมื่อได้สโกปา { $enabled }
 scopa-option-changed-team-scoring = การคะแนนไพ่ทีม { $enabled }
 scopa-option-changed-inverse = โหมดกลับด้าน { $enabled }
-
 # Scopa mechanic choices
 scopa-mechanic-normal = ปกติ
 scopa-mechanic-no_scopas = ไม่มีสโกปา
 scopa-mechanic-only_scopas = สโกปาเท่านั้น
-
 # Disabled action reasons
 scopa-timer-not-active = ตัวจับเวลารอบไม่ทำงาน
-
 # Validation errors
 scopa-error-not-enough-cards = ไพ่ไม่พอใน { $decks } สำรับสำหรับ { $players } คนด้วย { $cards_per_deal } ใบต่อคน (ต้องการ { $cards_per_deal } × { $players } = { $cards_needed } ใบ แต่มีเพียง { $total_cards } ใบ)

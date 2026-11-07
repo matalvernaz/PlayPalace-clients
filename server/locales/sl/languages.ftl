@@ -1,3 +1,6 @@
+# languages.ftl for locale sl. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Language names translated into this language
 language-ar = Arabščina
 language-cs = Češčina
@@ -11,7 +14,6 @@ language-hr = Hrvaščina
 language-hu = Madžarščina
 language-id = Indonezijščina
 language-it = Italijanščina
-language-ja = Japonščina
 language-ko = Korejščina
 language-mk = Makedonščina
 language-mn = Mongolščina
@@ -30,3 +32,4 @@ language-uk = Ukrajinščina
 language-vi = Vietnamščina
 language-zh = Kitajščina
 language-zu = Zulu
+language-ja = Japonščina

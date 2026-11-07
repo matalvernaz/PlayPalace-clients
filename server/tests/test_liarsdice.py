@@ -9,8 +9,8 @@ from server.games.liarsdice.state import (
     enumerate_valid_bids,
     is_higher_bid,
 )
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
+from server.users.test_user import MockUser
+from server.users.bot import Bot
 
 
 # ---------------------------------------------------------------------------

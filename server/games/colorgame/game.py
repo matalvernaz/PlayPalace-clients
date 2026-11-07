@@ -4,7 +4,6 @@ from dataclasses import dataclass, field
 from datetime import datetime
 import random
 
-from ...game_utils.game_status import GameStatus
 from ..base import Game, Player, GameOptions
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, EditboxInput, MenuInput, Visibility
@@ -13,7 +12,7 @@ from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.options import IntOption, MenuOption, option_field
 from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...messages.localization import Localization
-from ...core.ui.keybinds import KeybindState
+from ...ui.keybinds import KeybindState
 
 
 PHASE_BETTING = "betting"
@@ -165,7 +164,7 @@ class ColorGameGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-dice-games"
+        return "dice"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -1408,7 +1407,7 @@ class ColorGameGame(Game):
         return lines
 
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self._sync_table_status()
         self.game_active = True
         self.phase = PHASE_BETTING
@@ -1500,11 +1499,7 @@ class ColorGameGame(Game):
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=player.id,
-                    player_name=player.name,
-                    is_bot=player.is_bot and not player.replaced_human,
-                )
+                PlayerResult.from_player(player)
                 for player in sorted_players
             ],
             custom_data={

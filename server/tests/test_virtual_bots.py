@@ -12,7 +12,7 @@ from server.core.virtual_bots import (
     VirtualBotManager,
     VirtualBotState,
 )
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
 
 from server.core.administration import AdministrationMixin
 
@@ -102,7 +102,7 @@ class DummyGameForJoin:
     def broadcast_sound(self, sound):
         self.broadcasts.append(("sound", sound))
 
-    def rebuild_all_menus(self):
+    def refresh_menus(self, player=None):
         pass
 
     def initialize_lobby(self, host_name, user):

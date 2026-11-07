@@ -48,10 +48,12 @@ from server.messages.localization import Localization  # noqa: E402
 Localization.init(_MODULE_DIR / "locales")
 
 from server.games.registry import GameRegistry, get_game_class  # noqa: E402
-from server.games.base import Game, BOT_NAMES  # noqa: E402
-from server.core.users.base import User, MenuItem, TrustLevel, generate_uuid  # noqa: E402
-from server.core.users.bot import Bot  # noqa: E402
-from server.core.ui.keybinds import KeybindState  # noqa: E402
+from server.games.base import Game  # noqa: E402
+from server.game_utils.bot_names import get_localized_bot_name_pool  # noqa: E402
+from server.users.base import User, MenuItem, generate_uuid  # noqa: E402
+from server.users.trust_level import TrustLevel
+from server.users.bot import Bot  # noqa: E402
+from server.ui.keybinds import KeybindState  # noqa: E402
 from server.persistence.database import Database  # noqa: E402
 from server.auth.auth import AuthManager  # noqa: E402
 
@@ -94,23 +96,14 @@ class SpectatorUser(User):
         if not self._quiet and not self._json_mode:
             print(f"  {text}")
 
-    def speak(self, text: str, buffer: str = "misc") -> None:
+    def speak(self, text: str, buffer: str = "misc", *, history: bool = True) -> None:
         self._log(text)
 
-    def play_sound(self, name: str, volume: int = 100, pan: int = 0, pitch: int = 100) -> None:
-        self._sounds.append({"tick": self._tick, "sound": name})
-
-    def play_music(self, name: str, looping: bool = True) -> None:
-        pass  # Ignore music
-
-    def stop_music(self) -> None:
-        pass
-
-    def play_ambience(self, loop: str, intro: str = "", outro: str = "") -> None:
-        pass  # Ignore ambience
-
-    def stop_ambience(self) -> None:
-        pass
+    def send_audio_command(self, command) -> None:
+        """Record sound effects the game plays; music and ambience are ignored."""
+        if command.command == "play" and command.kind == "sfx":
+            name = command.asset or (f"{command.family}*" if command.family else "sequence")
+            self._sounds.append({"tick": self._tick, "sound": name})
 
     def show_menu(self, menu_id: str, items: list, **kwargs) -> None:
         # Extract text from MenuItem objects
@@ -159,13 +152,16 @@ class CapturingBot(Bot):
         self.captured_sounds: list[dict] = []  # {tick, sound, volume, pan, pitch}
         self._tick: int = 0
 
-    def speak(self, text: str, buffer: str = "misc") -> None:
+    def speak(self, text: str, buffer: str = "misc", *, history: bool = True) -> None:
         self.captured_speech.append(text)
 
-    def play_sound(self, name: str, volume: int = 100, pan: int = 0, pitch: int = 100) -> None:
-        self.captured_sounds.append(
-            {"tick": self._tick, "sound": name, "volume": volume, "pan": pan, "pitch": pitch}
-        )
+    def send_audio_command(self, command) -> None:
+        """Record sound effects with their volume, pan and pitch."""
+        if command.command == "play" and command.kind == "sfx":
+            name = command.asset or (f"{command.family}*" if command.family else "sequence")
+            self.captured_sounds.append(
+                {"tick": self._tick, "sound": name, "volume": command.volume, "pan": command.pan, "pitch": command.pitch}
+            )
 
     def show_menu(self, menu_id: str, items: list, **kwargs) -> None:
         item_texts = []
@@ -187,6 +183,7 @@ class CapturingBot(Bot):
         position: int | None = None,
         selection_id: str | None = None,
         play_selection_sound: bool = False,
+        **kwargs,
     ) -> None:
         self.show_menu(menu_id, items)
 
@@ -632,7 +629,7 @@ def _run_simulate(args):
     # Parse bot names
     if args.bots.isdigit():
         num_bots = int(args.bots)
-        bot_names = BOT_NAMES[:num_bots]
+        bot_names = list(get_localized_bot_name_pool("en"))[:num_bots]
     else:
         bot_names = [name.strip() for name in args.bots.split(",")]
 

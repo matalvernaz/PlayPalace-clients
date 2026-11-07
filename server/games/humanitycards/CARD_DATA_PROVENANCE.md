@@ -76,7 +76,3 @@ multiple answers without containing multiple blanks. When selected packs
 overlap, exact duplicate answers and exact duplicate prompt/pick/draw tuples
 enter the game deck only once. Any presentation tag outside the small, audited
 set above causes loading to fail instead of leaking ambiguous markup to players.
-
-## PlayPalace fork note
-
-Vendored from PlayAural HEAD 8ca0edc1 (2026-10-21). PlayAural edited the Spanish and Brazilian Portuguese files after importing them, so the hashes above describe the original imports. The vendored files hash to: `humanity_packs_es.json` f60fa7fb7e0bd08b4bbc79c137107901596376f87f9a035d406ff0bbfea64e5d, `humanity_black_cards_pt_br.json` e176843e867c08c6b0a90d0cc6a7586a332dfa7c8e4da129a5e99324a7050792, `humanity_white_cards_pt_br.json` 44b7e2ef361373ca390d174902799dd3907fa216faa37eddbeff52bbd690e04f.

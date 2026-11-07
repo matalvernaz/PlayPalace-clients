@@ -1,156 +1,169 @@
-game-name-deadmanspoker = Dead Man's Poker
+# deadmanspoker.ftl for locale pt. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-deadmanspoker-call = Call
-deadmanspoker-match-all-in = Match all-in
-deadmanspoker-fold = Fold
-deadmanspoker-coward-fold = Coward's Fold
-deadmanspoker-switch-card = Switch card
+game-name-deadmanspoker = O Pôquer do Morto
+deadmanspoker-call = Pagar
+deadmanspoker-match-all-in = Cobrir all-in
+deadmanspoker-fold = Desistir
+deadmanspoker-coward-fold = Desistência covarde
+deadmanspoker-switch-card = Trocar carta
 deadmanspoker-all-in = All-in
-deadmanspoker-read-hand = Read hand
-deadmanspoker-read-community-cards = Read community cards
-deadmanspoker-read-hand-value = Read hand strength
-deadmanspoker-read-table = Read table
-deadmanspoker-read-revolvers = Read revolvers
-
-deadmanspoker-action-sequence-running = Wait for the current sequence to finish.
-deadmanspoker-action-eliminated = You have been eliminated.
-deadmanspoker-action-folded = You are out of this hand.
-deadmanspoker-not-decision-phase = You cannot do that during this phase.
-deadmanspoker-max-bullets = You already have the maximum number of bullets committed.
-deadmanspoker-no-opponents = There is no opponent left in this hand.
-deadmanspoker-already-matched-all-in = You have already matched the all-in.
-deadmanspoker-coward-used = You have already used Coward's Fold this match.
-deadmanspoker-coward-first-decision-only = Coward's Fold is only available on your first decision of a hand.
-deadmanspoker-all-in-too-early = All-in is available only from betting round 2, after the first three community cards are revealed.
-deadmanspoker-switch-not-now = You cannot switch a card right now.
-deadmanspoker-switch-used = You have already switched a card this hand.
-deadmanspoker-switch-too-late = It is too late to switch a card.
-deadmanspoker-switch-no-cards = You do not have a private card to switch.
-deadmanspoker-switch-no-deck = The deck does not have enough replacement cards.
-deadmanspoker-switch-choice-missing = That replacement card is no longer available.
-
-deadmanspoker-match-start = Dead Man's Poker begins. Every bullet on the table is a bet with your life behind it.
-deadmanspoker-hand-start = Hand { $hand }. Each active player commits the first bullet.
-deadmanspoker-hand-start-all-alive = Hand { $hand }. Everyone commits the first bullet.
-deadmanspoker-hand-start-survivors = Hand { $hand }. Each survivor commits the first bullet.
-deadmanspoker-community-arrives = Five community cards arrive face down.
-deadmanspoker-your-hand = Your private cards: { $cards }.
-deadmanspoker-hand-empty = Your hand is empty.
-deadmanspoker-round-stage = Betting round { $round_stage }.
-deadmanspoker-community-revealed = Community cards revealed: { $cards }. Table: { $table }.
-deadmanspoker-you-call = You call and place { $added ->
-    [one] 1 bullet
-   *[other] { $added } bullets
-} on the table. Total committed: { $total }.
-deadmanspoker-player-calls = { $player } calls and places { $added ->
-    [one] 1 bullet
-   *[other] { $added } bullets
-} on the table. Total committed: { $total }.
-deadmanspoker-you-match-all-in = You match the all-in with { $added ->
-    [one] 1 bullet
-   *[other] { $added } bullets
-}. Total committed: { $total }.
-deadmanspoker-player-matches-all-in = { $player } matches the all-in with { $added ->
-    [one] 1 bullet
-   *[other] { $added } bullets
-}. Total committed: { $total }.
-deadmanspoker-you-all-in = You go all-in and place { $added ->
-    [one] 1 bullet
-   *[other] { $added } bullets
-} on the table. Total committed: { $total }.
-deadmanspoker-player-all-in = { $player } goes all-in and places { $added ->
-    [one] 1 bullet
-   *[other] { $added } bullets
-} on the table. Total committed: { $total }.
-deadmanspoker-you-fold = You fold and must face the revolver with { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-}.
-deadmanspoker-player-folds = { $player } folds and must face the revolver with { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-}.
-deadmanspoker-you-coward-fold = You use Coward's Fold and face the revolver with 1 bullet.
-deadmanspoker-player-coward-folds = { $player } uses Coward's Fold and faces the revolver with 1 bullet.
-deadmanspoker-switch-select-card = Choose the private card to switch.
-deadmanspoker-switch-card-option = Switch { $card }
-deadmanspoker-switch-candidates = Replacement choices: { $cards }.
-deadmanspoker-choose-switch-placeholder = Replacement { $index }
-deadmanspoker-choose-switch-card = Choose { $card }
-deadmanspoker-you-switch = You switch one private card and discard { $card }.
-deadmanspoker-player-switches = { $player } switches one private card and discards { $card }.
-deadmanspoker-your-private-reveal = You reveal { $cards }. Best hand: { $hand }.
-deadmanspoker-private-reveal = { $player } reveals { $cards }. Best hand: { $hand }.
-deadmanspoker-showdown-you-win = You win the showdown with { $hand }.
-deadmanspoker-showdown-winner = { $player } wins the showdown with { $hand }.
-deadmanspoker-showdown-you-draw = You tie the showdown with { $players } using { $hand }. Tied players do not win this hand.
-deadmanspoker-showdown-draw = Showdown draw: { $players } tie with { $hand }. Tied players do not win this hand.
-deadmanspoker-showdown-tie-no-penalty = The showdown is a complete draw. No one wins or faces the revolver this hand.
-deadmanspoker-you-win-hand = You win the hand uncontested.
-deadmanspoker-hand-winner = { $player } wins the hand uncontested.
-deadmanspoker-hand-no-winner = No one wins this hand.
-
-deadmanspoker-roulette-start = Roulette begins for { $players }.
-deadmanspoker-you-load-bullets = You load { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-}.
-deadmanspoker-load-bullets = { $player } loads { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-}.
-deadmanspoker-you-roulette-survived = Empty chamber. You survive after risking { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-}.
-deadmanspoker-roulette-survived = Empty chamber. { $player } survives after risking { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-}.
-deadmanspoker-you-eliminated = The gun fires. You are eliminated after risking { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-}.
-deadmanspoker-player-eliminated = The gun fires. { $player } is eliminated after risking { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-}.
-deadmanspoker-you-win-game = You are the last survivor and win Dead Man's Poker.
-deadmanspoker-player-wins = { $player } is the last survivor and wins Dead Man's Poker.
-deadmanspoker-no-winner = No winner could be determined.
-deadmanspoker-you-are-eliminated = You have been eliminated from this game.
-
-deadmanspoker-table-hand = Hand { $hand }, betting round { $round_stage }.
-deadmanspoker-table-community = Community: { $cards }. Hidden: { $hidden }.
-deadmanspoker-community-status = Community cards: { $cards }. Hidden: { $hidden }.
-deadmanspoker-table-turn = Current turn: { $player }.
-deadmanspoker-table-no-turn = No player currently has the turn.
-deadmanspoker-table-player = { $player }: { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-} committed, { $status }.
-deadmanspoker-community-none = none revealed
-deadmanspoker-hidden-community = { $count ->
-    [one] 1 hidden card
-   *[other] { $count } hidden cards
-}
-deadmanspoker-status-active = active
-deadmanspoker-status-folded = folded
-deadmanspoker-status-eliminated = eliminated
-deadmanspoker-status-waiting = waiting
-
-deadmanspoker-revolvers-header = Revolver risk
-deadmanspoker-revolver-status = { $player }: { $bullets ->
-    [one] 1 bullet
-   *[other] { $bullets } bullets
-} committed; { $risk }.
-deadmanspoker-revolver-eliminated = { $player }: eliminated.
-deadmanspoker-risk-none = no current roulette risk
-deadmanspoker-risk-normal = death chance { $bullets } in 8
-deadmanspoker-risk-eight = 95 percent death chance, 5 percent God Save survival
-
-deadmanspoker-results-header = Dead Man's Poker results
-deadmanspoker-results-winner = Winner: { $player }.
-deadmanspoker-results-survived = survived
-deadmanspoker-results-eliminated = eliminated
-deadmanspoker-results-line = { $player }: { $status }, hands won { $hands }, all-ins started { $allins }, roulette survivals { $survivals }, bullets risked { $bullets }.
+deadmanspoker-read-hand = Ler mão
+deadmanspoker-read-community-cards = Ler cartas comunitárias
+deadmanspoker-read-hand-value = Ler força da mão
+deadmanspoker-read-table = Ler mesa
+deadmanspoker-read-revolvers = Ler revólveres
+deadmanspoker-action-sequence-running = Aguarde a sequência atual terminar.
+deadmanspoker-action-eliminated = Você foi eliminado.
+deadmanspoker-action-folded = Você está fora desta mão.
+deadmanspoker-not-decision-phase = Você não pode fazer isso durante esta fase.
+deadmanspoker-max-bullets = Você já tem o número máximo de balas comprometidas.
+deadmanspoker-no-opponents = Não há oponentes restantes nesta mão.
+deadmanspoker-already-matched-all-in = Você já cobriu o all-in.
+deadmanspoker-coward-used = Você já usou a desistência covarde nesta partida.
+deadmanspoker-coward-first-decision-only = A desistência covarde está disponível apenas na sua primeira decisão de uma mão.
+deadmanspoker-all-in-too-early = O all-in está disponível apenas a partir da rodada de apostas 2, após as três primeiras cartas comunitárias serem reveladas.
+deadmanspoker-all-in-after-switch = Você não pode dar all-in no mesmo turno em que troca uma carta. Pague ou desista para encerrar o turno.
+deadmanspoker-switch-not-now = Você não pode trocar uma carta agora.
+deadmanspoker-switch-used = Você já usou Trocar carta nesta partida.
+deadmanspoker-switch-too-late = É tarde demais para trocar uma carta.
+deadmanspoker-switch-no-cards = Você não tem uma carta particular para trocar.
+deadmanspoker-switch-no-deck = O baralho não tem cartas de substituição suficientes.
+deadmanspoker-switch-choice-missing = Essa carta de substituição não está mais disponível.
+deadmanspoker-match-start = Começa o jogo O Pôquer do Morto. Cada bala na mesa é uma aposta com a sua vida em risco.
+deadmanspoker-hand-start-all-alive = Mão { $hand }. Todos apostam a primeira bala.
+deadmanspoker-hand-start-survivors = Mão { $hand }. Cada sobrevivente aposta a primeira bala.
+deadmanspoker-community-arrives = Cinco cartas comunitárias chegam viradas para baixo.
+deadmanspoker-your-hand = Suas cartas particulares: { $cards }.
+deadmanspoker-hand-empty = Sua mão está vazia.
+deadmanspoker-round-stage = Rodada de apostas { $round_stage }.
+deadmanspoker-community-revealed = Cartas comunitárias reveladas: { $cards }. Mesa: { $table }.
+deadmanspoker-you-call =
+    Você paga e coloca { $added ->
+        [one] 1 bala
+       *[other] { $added } balas
+    } na mesa. Total comprometido: { $total }.
+deadmanspoker-player-calls =
+    { $player } paga e coloca { $added ->
+        [one] 1 bala
+       *[other] { $added } balas
+    } na mesa. Total comprometido: { $total }.
+deadmanspoker-you-match-all-in =
+    Você cobre o all-in com { $added ->
+        [one] 1 bala
+       *[other] { $added } balas
+    }. Total comprometido: { $total }.
+deadmanspoker-player-matches-all-in =
+    { $player } cobre o all-in com { $added ->
+        [one] 1 bala
+       *[other] { $added } balas
+    }. Total comprometido: { $total }.
+deadmanspoker-you-all-in =
+    Você vai de all-in e coloca { $added ->
+        [one] 1 bala
+       *[other] { $added } balas
+    } na mesa. Total comprometido: { $total }.
+deadmanspoker-player-all-in =
+    { $player } vai de all-in e coloca { $added ->
+        [one] 1 bala
+       *[other] { $added } balas
+    } na mesa. Total comprometido: { $total }.
+deadmanspoker-you-fold =
+    Você desiste e deve encarar o revólver com { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    }.
+deadmanspoker-player-folds =
+    { $player } desiste e deve encarar o revólver com { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    }.
+deadmanspoker-you-coward-fold = Você usa a desistência covarde e encara o revólver com 1 bala.
+deadmanspoker-player-coward-folds = { $player } usa a desistência covarde e encara o revólver com 1 bala.
+deadmanspoker-switch-select-card = Escolha a carta particular para trocar.
+deadmanspoker-switch-card-option = Trocar { $card }
+deadmanspoker-switch-candidates = Opções de substituição: { $cards }.
+deadmanspoker-choose-switch-placeholder = Substituição { $index }
+deadmanspoker-choose-switch-card = Escolher { $card }
+deadmanspoker-you-switch = Você troca uma carta particular e descarta { $card }.
+deadmanspoker-player-switches = { $player } troca uma carta particular e descarta { $card }.
+deadmanspoker-your-private-reveal = Você revela { $cards }. Melhor mão: { $hand }.
+deadmanspoker-private-reveal = { $player } revela { $cards }. Melhor mão: { $hand }.
+deadmanspoker-showdown-you-win = Você vence o showdown com { $hand }.
+deadmanspoker-showdown-winner = { $player } vence o showdown com { $hand }.
+deadmanspoker-showdown-you-draw = Você empata no showdown com { $players } usando { $hand }. Jogadores empatados não vencem esta mão.
+deadmanspoker-showdown-draw = Empate no showdown: { $players } empatam com { $hand }. Jogadores empatados não vencem esta mão.
+deadmanspoker-showdown-tie-no-penalty = O showdown é um empate completo. Ninguém vence ou encara o revólver nesta mão.
+deadmanspoker-you-win-hand = Você vence a mão sem oposição.
+deadmanspoker-hand-winner = { $player } vence a mão sem oposição.
+deadmanspoker-hand-no-winner = Ninguém vence esta mão.
+deadmanspoker-roulette-start = A roleta começa para { $players }.
+deadmanspoker-you-load-bullets =
+    Você carrega { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    }.
+deadmanspoker-load-bullets =
+    { $player } carrega { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    }.
+deadmanspoker-you-roulette-survived =
+    Câmara vazia. Você sobrevive após arriscar { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    }.
+deadmanspoker-roulette-survived =
+    Câmara vazia. { $player } sobrevive após arriscar { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    }.
+deadmanspoker-you-eliminated =
+    A arma dispara. Você é eliminado após arriscar { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    }.
+deadmanspoker-player-eliminated =
+    A arma dispara. { $player } é eliminado após arriscar { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    }.
+deadmanspoker-you-win-game = Você é o último sobrevivente e vence o jogo O Pôquer do Morto.
+deadmanspoker-player-wins = { $player } é o último sobrevivente e vence o jogo O Pôquer do Morto.
+deadmanspoker-no-winner = Nenhum vencedor pôde ser determinado.
+deadmanspoker-you-are-eliminated = Você foi eliminado deste jogo.
+deadmanspoker-table-hand = Mão { $hand }, rodada de apostas { $round_stage }.
+deadmanspoker-table-community = Comunitárias: { $cards }. Ocultas: { $hidden }.
+deadmanspoker-community-status = Cartas comunitárias: { $cards }. Ocultas: { $hidden }.
+deadmanspoker-table-turn = Turno atual: { $player }.
+deadmanspoker-table-no-turn = Nenhum jogador tem o turno no momento.
+deadmanspoker-table-player =
+    { $player }: { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    } comprometidas, { $status }.
+deadmanspoker-community-none = nenhuma revelada
+deadmanspoker-hidden-community =
+    { $count ->
+        [one] 1 carta oculta
+       *[other] { $count } cartas ocultas
+    }
+deadmanspoker-status-active = ativo
+deadmanspoker-status-folded = desistiu
+deadmanspoker-status-eliminated = eliminado
+deadmanspoker-status-waiting = aguardando
+deadmanspoker-revolvers-header = Risco do revólver
+deadmanspoker-revolver-status =
+    { $player }: { $bullets ->
+        [one] 1 bala
+       *[other] { $bullets } balas
+    } comprometidas; { $risk }.
+deadmanspoker-revolver-eliminated = { $player }: eliminado.
+deadmanspoker-risk-none = sem risco atual de roleta
+deadmanspoker-risk-normal = chance de morte { $bullets } em 8
+deadmanspoker-risk-eight = 95 por cento de chance de morte e 5 por cento de chance de sobrevivência com Deus nos Acuda
+deadmanspoker-results-header = Resultados do jogo O Pôquer do Morto
+deadmanspoker-results-winner = Vencedor: { $player }.
+deadmanspoker-results-survived = sobreviveu
+deadmanspoker-results-eliminated = eliminado
+deadmanspoker-results-line = { $player }: { $status }, mãos vencidas { $hands }, all-ins iniciados { $allins }, sobrevivências na roleta { $survivals }, balas arriscadas { $bullets }.

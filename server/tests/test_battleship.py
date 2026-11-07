@@ -23,8 +23,8 @@ from ..games.battleship.game import (
 )
 from ..games.registry import GameRegistry
 from ..messages.localization import Localization
-from server.core.users.bot import Bot
-from server.core.users.test_user import MockUser
+from ..users.bot import Bot
+from ..users.test_user import MockUser
 
 
 _locales_dir = Path(__file__).parent.parent / "locales"
@@ -37,8 +37,7 @@ Localization.init(_locales_dir)
 
 
 def make_game(
-    start: bool = False,
-    **option_overrides,
+    start: bool = False, **option_overrides,
 ) -> BattleshipGame:
     game = BattleshipGame(options=BattleshipOptions(**option_overrides))
     game.setup_keybinds()
@@ -51,8 +50,7 @@ def make_game(
 
 
 def make_game_with_bot(
-    start: bool = False,
-    **option_overrides,
+    start: bool = False, **option_overrides,
 ) -> BattleshipGame:
     game = BattleshipGame(options=BattleshipOptions(**option_overrides))
     game.setup_keybinds()
@@ -69,7 +67,7 @@ def set_web_client(game: BattleshipGame, *players) -> None:
     for player in targets:
         user = game.get_user(player)
         if user is not None:
-            user.set_client_type("web")
+            user.client_type = "web"
 
 
 def advance_until(game: BattleshipGame, condition, max_ticks: int = 500) -> bool:
@@ -89,15 +87,13 @@ def fire_and_resolve(game: BattleshipGame, bp: BattleshipPlayer, row: int, col: 
 
 
 def choose_orientation(game: BattleshipGame, player: BattleshipPlayer, horizontal: bool) -> None:
-    """Simulate selecting orientation from the orient sub-menu."""
+    """Simulate selecting orientation from the isolated orientation menu."""
     selection = "horizontal" if horizontal else "vertical"
-    game._handle_menu_event(
-        player,
-        {
-            "menu_id": "orient_menu",
-            "selection_id": selection,
-        },
-    )
+    game.handle_event(player, {
+        "type": "menu",
+        "menu_id": "action_input_menu",
+        "selection_id": selection,
+    })
 
 
 def get_bp(game: BattleshipGame, name: str) -> BattleshipPlayer:
@@ -121,7 +117,7 @@ class TestRegistration:
     def test_class_methods(self) -> None:
         assert BattleshipGame.get_name() == "Battleship"
         assert BattleshipGame.get_type() == "battleship"
-        assert BattleshipGame.get_category() == "category-playaural"
+        assert BattleshipGame.get_category() == "board"
         assert BattleshipGame.get_min_players() == 2
         assert BattleshipGame.get_max_players() == 2
         assert BattleshipGame.get_name_key() == "game-name-battleship"
@@ -132,6 +128,25 @@ class TestRegistration:
         assert opts.placement_mode == "auto"
         assert opts.replay_on_hit is False
         assert opts.turn_timer == "0"
+
+    def test_prestart_validation_rejects_invalid_stale_options(self) -> None:
+        game = make_game(
+            grid_size="5",
+            placement_mode="diagonal",
+            turn_timer="15",
+        )
+        errors = game.prestart_validate()
+        assert ("battleship-error-invalid-grid-size", {"size": "5"}) in errors
+        assert (
+            "battleship-error-invalid-placement-mode",
+            {"mode": "diagonal"},
+        ) in errors
+        assert ("battleship-error-invalid-turn-timer", {"seconds": "15"}) in errors
+
+    def test_prestart_validation_accepts_allowed_grid_sizes(self) -> None:
+        for size in ("6", "8", "10", "12"):
+            game = make_game(grid_size=size)
+            assert game.prestart_validate() == []
 
     def test_leaderboards(self) -> None:
         assert "wins" in BattleshipGame.get_supported_leaderboards()
@@ -264,6 +279,30 @@ class TestGameInit:
         alice = get_bp(game, "Alice")
         assert not alice.viewing_own  # battle starts on shot view
 
+    def test_legacy_save_restores_orientation_action_and_clears_orphan_modal(self) -> None:
+        game = make_game(start=True, placement_mode="manual")
+        for player in game.get_active_players():
+            turn_set = game.get_action_set(player, "turn")
+            assert turn_set is not None
+            turn_set.remove("orient_placement")
+            game.placing_orientation_pending[player.id] = True
+
+        restored = BattleshipGame.from_json(game.to_json())
+        restored.rebuild_runtime_state()
+        for player in restored.get_active_players():
+            restored.attach_user(
+                player.id,
+                MockUser(player.name, uuid=player.id),
+            )
+            assert restored.find_action(player, "orient_placement") is not None
+            assert restored.placing_orientation_pending[player.id] is False
+            assert player.id not in restored.placing_row
+            assert player.id not in restored.placing_col
+
+        alice = get_bp(restored, "Alice")
+        restored.on_grid_select(alice, 0, 0)
+        assert restored._pending_actions[alice.id] == "orient_placement"
+
 
 # ------------------------------------------------------------------ #
 # Manual deployment                                                    #
@@ -287,6 +326,96 @@ class TestManualDeployment:
         assert alice.ships[0].row == 0
         assert alice.ships[0].col == 0
 
+    def test_orientation_choices_use_shared_modal_menu(self) -> None:
+        game = make_game(start=True, placement_mode="manual")
+        alice = get_bp(game, "Alice")
+        user = game.get_user(alice)
+        assert user is not None
+
+        game.on_grid_select(alice, 0, 0)
+
+        orient_menu = user.menus["action_input_menu"]
+        ids = [item.id for item in orient_menu["items"]]
+        assert ids == ["horizontal", "vertical", "_cancel"]
+        assert game._pending_actions[alice.id] == "orient_placement"
+
+        user.clear_messages()
+        game.refresh_menus(alice)
+        game.flush_menus()
+
+        refreshed = user.menus["action_input_menu"]
+        assert [item.id for item in refreshed["items"]] == ids
+        assert refreshed["selection_id"] is None
+
+    def test_orientation_cancel_clears_modal_deployment_state(self) -> None:
+        game = make_game(start=True, placement_mode="manual")
+        alice = get_bp(game, "Alice")
+
+        game.on_grid_select(alice, 0, 0)
+        game.handle_event(alice, {
+            "type": "menu",
+            "menu_id": "action_input_menu",
+            "selection_id": "_cancel",
+        })
+
+        assert alice.id not in game._pending_actions
+        assert game.placing_orientation_pending[alice.id] is False
+        assert alice.id not in game.placing_row
+        assert alice.id not in game.placing_col
+
+    def test_orientation_submit_restores_focus_to_selected_grid_cell(self) -> None:
+        game = make_game(start=True, placement_mode="manual")
+        alice = get_bp(game, "Alice")
+        user = game.get_user(alice)
+        assert user is not None
+        game.refresh_menus(alice)
+        game.flush_menus()
+        user.clear_messages()
+
+        game.handle_event(alice, {
+            "type": "menu",
+            "menu_id": "turn_menu",
+            "selection_id": "grid_cell_0_0",
+        })
+        game.handle_event(alice, {
+            "type": "menu",
+            "menu_id": "action_input_menu",
+            "selection_id": "horizontal",
+        })
+
+        turn_updates = [
+            message
+            for message in user.messages
+            if message.type == "show_menu"
+            and message.data.get("menu_id") == "turn_menu"
+        ]
+        assert turn_updates[-1].data["selection_id"] == "grid_cell_0_0"
+
+    def test_bot_replacement_discards_orientation_modal_and_draft(self) -> None:
+        game = make_game(start=True, placement_mode="manual")
+        alice = get_bp(game, "Alice")
+
+        game.on_grid_select(alice, 0, 0)
+        assert game._replace_with_bot(alice)
+
+        assert alice.id not in game._pending_actions
+        assert game.placing_orientation_pending[alice.id] is False
+
+    def test_session_handover_rebuilds_orientation_modal(self) -> None:
+        game = make_game(start=True, placement_mode="manual")
+        alice = get_bp(game, "Alice")
+        game.on_grid_select(alice, 0, 0)
+
+        replacement = MockUser("Alice", uuid=alice.id)
+        game.attach_user(alice.id, replacement, session_handover=True)
+        game.restore_session_ui(alice)
+
+        assert game._pending_actions[alice.id] == "orient_placement"
+        assert [
+            item.id
+            for item in replacement.get_current_menu_items("action_input_menu") or []
+        ] == ["horizontal", "vertical", "_cancel"]
+
     def test_place_vertical(self) -> None:
         game = make_game(start=True, placement_mode="manual")
         alice = get_bp(game, "Alice")
@@ -309,8 +438,28 @@ class TestManualDeployment:
         choose_orientation(game, alice, horizontal=True)
         # Should fail — still 1 ship placed
         assert alice.ships_placed == 1
-        # Orientation pending should be reset
+        # Failed placement returns to the grid so the player can choose again
         assert not game.placing_orientation_pending.get(alice.id, False)
+
+    def test_whose_turn_reports_deployment_readiness(self) -> None:
+        game = make_game(start=True, placement_mode="manual")
+        alice = get_bp(game, "Alice")
+        bob = get_bp(game, "Bob")
+        alice.deploy_ready = True
+        bob.deploy_ready = False
+        user = game.get_user(alice)
+        assert user is not None
+        user.clear_messages()
+
+        game._action_whose_turn(alice, "whose_turn")
+
+        assert user.get_spoken_messages() == [
+            Localization.get("en", "battleship-deploy-status-header"),
+            Localization.get("en", "battleship-deploy-status-ready-self"),
+            Localization.get(
+                "en", "battleship-deploy-status-not-ready-other", player="Bob",
+            ),
+        ]
 
     def test_reject_out_of_bounds(self) -> None:
         game = make_game(start=True, placement_mode="manual", grid_size="10")
@@ -403,9 +552,17 @@ class TestBattle:
                     game.current_player = current  # force back for testing
                     reason = game.is_grid_cell_enabled(current, r, c)
                     assert reason is None  # cell stays visible
+                    user = game.get_user(current)
+                    assert user is not None
+                    user.clear_messages()
                     old_board = [row[:] for row in current.shot_board]
                     game._on_battle_select(current, r, c)
                     assert current.shot_board == old_board  # no change
+                    assert user.get_last_spoken() == Localization.get(
+                        "en",
+                        "battleship-already-shot",
+                        coord=game._grid_cell_coordinate(r, c),
+                    )
                     return
 
     def test_sunk_ship(self) -> None:
@@ -580,13 +737,13 @@ class TestFleetStatus:
         game._action_read_fleet(alice, "read_fleet")
         user = game.get_user(alice)
         # Status box should be open
-        assert game._get_transient_display_state(alice) is not None
+        assert alice.id in game._status_box_open
 
     def test_read_enemy_fleet(self) -> None:
         game = make_game(start=True, placement_mode="auto")
         alice = get_bp(game, "Alice")
         game._action_read_enemy_fleet(alice, "read_enemy_fleet")
-        assert game._get_transient_display_state(alice) is not None
+        assert alice.id in game._status_box_open
 
 
 # ------------------------------------------------------------------ #
@@ -642,7 +799,6 @@ class TestSoundTiming:
 
     def test_result_deferred_by_10_ticks(self) -> None:
         from ..games.battleship.game import FIRE_DELAY_TICKS
-
         game = make_game(start=True, placement_mode="auto")
         current = game._as_bp(game.current_player)
         opponent = _get_opponent(game, current)
@@ -677,11 +833,16 @@ class TestSoundTiming:
             for c in range(size):
                 if opponent.own_board[r][c] == CELL_EMPTY:
                     game._fire_shot(current, r, c)
-                    # While pending, _on_battle_select silently ignores input
                     assert game.shot_pending_ticks > 0
+                    user = game.get_user(current)
+                    assert user is not None
+                    user.clear_messages()
                     old_board = [row[:] for row in current.shot_board]
                     game._on_battle_select(current, 0, 0)
                     assert current.shot_board == old_board  # blocked
+                    assert user.get_last_spoken() == Localization.get(
+                        "en", "battleship-shot-in-flight",
+                    )
                     # Resolve
                     game.shot_pending_ticks = 0
                     game._resolve_shot()
@@ -748,9 +909,7 @@ class TestBotAI:
         game.on_start()
 
         completed = advance_until(
-            game,
-            lambda: game.status == "finished",
-            max_ticks=30000,
+            game, lambda: game.status == "finished", max_ticks=30000,
         )
         assert completed, "Bot vs bot game did not complete within 10000 ticks"
 
@@ -810,11 +969,13 @@ class TestGridIntegration:
         game = make_game(start=True, placement_mode="auto")
         kwargs = game._build_grid_menu_kwargs()
         assert kwargs["grid_enabled"] is True
+        assert kwargs["grid_height"] == 10
         assert kwargs["grid_width"] == 10
 
     def test_grid_size_matches_option(self) -> None:
         game = make_game(start=True, grid_size="8")
         kwargs = game._build_grid_menu_kwargs()
+        assert kwargs["grid_height"] == 8
         assert kwargs["grid_width"] == 8
 
     def test_cursors_initialized(self) -> None:
@@ -855,6 +1016,12 @@ class TestEdgeCases:
         old_board = [row[:] for row in other_bp.shot_board]
         game._on_battle_select(other_bp, 0, 0)
         assert other_bp.shot_board == old_board  # no shot fired
+        user = game.get_user(other_bp)
+        assert user is not None
+        assert current is not None
+        assert user.get_last_spoken() == Localization.get(
+            "en", "battleship-not-your-turn", player=current.name,
+        )
 
     def test_small_grid_works(self) -> None:
         game = make_game(start=True, grid_size="6", placement_mode="auto")
@@ -866,3 +1033,38 @@ class TestEdgeCases:
         game = make_game(start=True, grid_size="12", placement_mode="auto")
         assert game.phase == "battling"
         assert game.grid_rows == 12
+
+
+# ------------------------------------------------------------------ #
+# Localization                                                         #
+# ------------------------------------------------------------------ #
+
+
+class TestLocalization:
+    def test_english_ship_names(self) -> None:
+        for type_key, _ in FLEET:
+            name = Localization.get("en", f"battleship-ship-{type_key}")
+            assert name and len(name) > 0
+
+    def test_vietnamese_ship_names(self) -> None:
+        for type_key, _ in FLEET:
+            name = Localization.get("vi", f"battleship-ship-{type_key}")
+            assert name and len(name) > 0
+
+    def test_english_cell_labels(self) -> None:
+        keys = [
+            "battleship-cell-empty",
+            "battleship-cell-ship-placed",
+            "battleship-cell-unknown",
+            "battleship-cell-hit",
+            "battleship-cell-miss",
+        ]
+        for key in keys:
+            text = Localization.get("en", key, coord="A1")
+            assert text and "A1" in text
+
+    def test_game_name_localized(self) -> None:
+        en = Localization.get("en", "game-name-battleship")
+        vi = Localization.get("vi", "game-name-battleship")
+        assert en == "Battleship"
+        assert vi == "Tàu Chiến"

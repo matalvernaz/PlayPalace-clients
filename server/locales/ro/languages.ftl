@@ -1,3 +1,6 @@
+# languages.ftl for locale ro. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Language names translated into this language
 language-ar = Arabă
 language-cs = Cehă
@@ -11,7 +14,6 @@ language-hr = Croată
 language-hu = Maghiară
 language-id = Indoneziană
 language-it = Italiană
-language-ja = Japoneză
 language-ko = Coreeană
 language-mk = Macedoneană
 language-mn = Mongolă
@@ -30,3 +32,4 @@ language-uk = Ucraineană
 language-vi = Vietnameză
 language-zh = Chineză
 language-zu = Zulu
+language-ja = Japoneză

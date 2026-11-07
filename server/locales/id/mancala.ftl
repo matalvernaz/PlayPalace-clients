@@ -1,32 +1,26 @@
-# Mancala game messages — id
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Congklak
-
 # Actions
 mancala-pit-label = Lubang { $pit }: { $stones } biji
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } menabur { $stones } biji dari lubang { $pit }
 mancala-capture = { $player } menangkap { $captured } biji!
 mancala-extra-turn = Biji terakhir di lumbung! { $player } mendapat giliran tambahan.
 mancala-winner = { $player } menang dengan { $score } biji!
 mancala-draw = Seri! Kedua pemain memiliki { $score } biji.
-
 # Board status
-mancala-board-status =
-    Lubang Anda: { $own_pits }. Lumbung Anda: { $own_store }. Lubang lawan: { $opp_pits }. Lumbung lawan: { $opp_store }.
-
+mancala-board-status = Lubang Anda: { $own_pits }. Lumbung Anda: { $own_store }. Lubang lawan: { $opp_pits }. Lumbung lawan: { $opp_store }.
 # Options
 mancala-set-stones = Biji per lubang: { $stones }
 mancala-desc-stones = Jumlah biji di setiap lubang saat mulai
 mancala-enter-stones = Masukkan jumlah biji awal per lubang:
 mancala-option-changed-stones = Biji awal diubah menjadi { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Lubang itu kosong.
-
 # Rules
 mancala-rules =
     Congklak adalah permainan lubang dan biji untuk dua pemain.
@@ -38,7 +32,5 @@ mancala-rules =
     Permainan berakhir ketika satu sisi benar-benar kosong.
     Pemain dengan biji terbanyak menang.
     Gunakan tombol 1 sampai 6 untuk memilih lubang. Tekan E untuk memeriksa papan.
-
 # End screen
 mancala-final-score = { $player }: { $score } biji
-mancala-check-board = Check board

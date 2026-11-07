@@ -12,7 +12,7 @@ import pytest
 from server.auth.voice_rate_limit import VoiceRateLimiter
 from server.core.server import Server
 from server.core.tables.manager import TableManager
-from server.core.users.test_user import MockUser
+from server.users.test_user import MockUser
 from server.persistence.database import MuteRecord
 from server.voice import VoiceService
 

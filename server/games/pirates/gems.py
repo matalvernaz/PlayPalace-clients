@@ -6,26 +6,28 @@ Defines gem types, values, and placement logic.
 
 import random
 
+from ...messages.localization import Localization
+
 # Gem names indexed by type (0-17)
 GEM_NAMES: dict[int, str] = {
-    0: "opal",
-    1: "ruby",
-    2: "garnet",
-    3: "diamond",
-    4: "sapphire",
-    5: "emerald",
-    6: "gem of the palace",
-    7: "large plastic gem (what is this doing here!)",
-    8: "awesome blue bastardstone",
-    9: "amethyst",
-    10: "golden ring",
-    11: "awesome red ppulpstone",
-    12: "awesome red gorestone",
-    13: "moonstone",
-    14: "lapis lazuli",
-    15: "amber",
-    16: "citrine",
-    17: "definitely not cursed black pearl (tm)",
+    0: "pirates-gem-0",
+    1: "pirates-gem-1",
+    2: "pirates-gem-2",
+    3: "pirates-gem-3",
+    4: "pirates-gem-4",
+    5: "pirates-gem-5",
+    6: "pirates-gem-6",
+    7: "pirates-gem-7",
+    8: "pirates-gem-8",
+    9: "pirates-gem-9",
+    10: "pirates-gem-10",
+    11: "pirates-gem-11",
+    12: "pirates-gem-12",
+    13: "pirates-gem-13",
+    14: "pirates-gem-14",
+    15: "pirates-gem-15",
+    16: "pirates-gem-16",
+    17: "pirates-gem-17",
 }
 
 # Gem types with special values (2 points)
@@ -65,7 +67,7 @@ def get_gem_name(gem_type: int) -> str:
     Returns:
         The gem name, or "unknown gem" if invalid
     """
-    return GEM_NAMES.get(gem_type, "unknown gem")
+    return GEM_NAMES.get(gem_type, "pirates-gem-unknown")
 
 
 def calculate_score_from_gems(gems: list[int]) -> int:
@@ -110,16 +112,18 @@ def place_gems(map_size: int = 40) -> dict[int, int]:
     return gem_positions
 
 
-def format_gem_list(gems: list[int]) -> str:
+def format_gem_list(gems: list[int], locale: str = "en") -> str:
     """
     Format a list of gems as a comma-separated string.
 
     Args:
         gems: List of gem type indices
+        locale: Locale to format in (default "en")
 
     Returns:
         Formatted string like "ruby, diamond, emerald"
     """
     if not gems:
-        return "no gems"
-    return ", ".join(get_gem_name(gem) for gem in gems)
+        return Localization.get(locale, "pirates-gem-none")
+    gem_names = [Localization.get(locale, get_gem_name(gem)) for gem in gems]
+    return Localization.format_list(locale, gem_names)

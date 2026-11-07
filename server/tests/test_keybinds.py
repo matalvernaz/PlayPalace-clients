@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from server.core.ui.keybinds import Keybind, KeybindScope, KeybindState
+from server.ui.keybinds import Keybind, KeybindScope, KeybindState
 
 
 class DummyGame:

@@ -12,7 +12,6 @@ from pathlib import Path
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
-from ...game_utils.game_status import GameStatus
 from ...game_utils.menu_management_mixin import MenuBuild
 from ...game_utils.options import (
     IntOption,
@@ -23,8 +22,8 @@ from ...game_utils.options import (
 )
 from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...messages.localization import Localization
-from ...core.ui.keybinds import KeybindState
-from ...core.users.base import MenuItem
+from ...ui.keybinds import KeybindState
+from ...users.base import MenuItem
 from ..base import Game, GameOptions, Player
 from ..registry import register_game
 
@@ -618,7 +617,7 @@ class HumanityCardsGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-party-games"
+        return "cards"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -885,7 +884,7 @@ class HumanityCardsGame(Game):
         for judge in self._get_judges():
             user = self.get_user(judge)
             if user and user.preferences.play_turn_sound:
-                user.play_sound("game_pig/turn.ogg")
+                user.play_sound("turn.ogg")
 
     def _select_judges(self) -> None:
         """Select judge(s) for the current round based on czar_selection option."""
@@ -1031,7 +1030,7 @@ class HumanityCardsGame(Game):
                 prompt=prompt,
             ),
             id="judge_prompt_header",
-            meta={"read_only": True},
+            read_only=True,
         )
         insert_at = next(
             (
@@ -1878,7 +1877,7 @@ class HumanityCardsGame(Game):
                     self.broadcast_l(error, buffer="game")
             return
 
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self.game_active = True
         self.cancel_sequences_by_tag(NEXT_ROUND_SEQUENCE_TAG)
         self.round = 0

@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from typing import Any, Generic, Sequence, TypeVar
 
 from ..messages.localization import Localization
-from .users.base import MenuItem
+from ..users.base import MenuItem
 
 DEFAULT_MENU_PAGE_SIZE = 100
 MAX_MENU_PAGE_SIZE = 100

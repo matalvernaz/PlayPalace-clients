@@ -1,90 +1,265 @@
-# Backgammon localization
+# backgammon.ftl for locale pt. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-game-name-backgammon = Backgammon
-
+game-name-backgammon = Gamão
+# Colors
+backgammon-color-red = vermelho
+backgammon-color-white = branco
 # Game start
-backgammon-game-started = { $red } plays Red, { $white } plays White.
-backgammon-opening-roll = Opening roll: { $red } rolls { $red_die }, { $white } rolls { $white_die }.
-backgammon-opening-tie = Both rolled { $die }, re-rolling.
-backgammon-opening-winner = { $player } goes first with { $die1 } and { $die2 }.
-
+backgammon-game-started = { $red } joga com Vermelho, { $white } joga com Branco.
+backgammon-game-started-you-red = Você joga com Vermelho. { $opponent } joga com Branco.
+backgammon-game-started-you-white = Você joga com Branco. { $opponent } joga com Vermelho.
+backgammon-opening-roll = Rolagem inicial: { $red } tirou { $red_die }, { $white } tirou { $white_die }.
+backgammon-opening-roll-you = Rolagem inicial: Você tirou { $your_die }, { $opponent } tirou { $opponent_die }.
+backgammon-opening-tie = Ambos tiraram { $die }, rolando novamente.
+backgammon-opening-winner-you = Você começa com { $die1 } e { $die2 }.
+backgammon-opening-winner-player = { $player } começa com { $die1 } e { $die2 }.
 # Dice
-backgammon-roll = { $player } rolls { $die1 } and { $die2 }.
-
+backgammon-roll-you = Você tirou { $die1 } e { $die2 }.
+backgammon-roll-player = { $player } tirou { $die1 } e { $die2 }.
 # No moves
-backgammon-no-moves = { $player } has no legal moves.
-
-# Move commentary (shorthand)
-backgammon-move-normal = { $player }: { $src } to { $dest }, { $remain } { $count }.
-backgammon-move-emptying = { $player }: Emptying { $src } to { $dest }, { $count }.
-backgammon-move-hit = { $player }: { $src } to capture on { $dest }, { $remain }.
-backgammon-move-bar = { $player }: Bar to { $dest }, { $count }.
-backgammon-move-bar-hit = { $player }: Bar to capture on { $dest }, { $count }.
-backgammon-move-bearoff = { $player }: Bearing off from { $src }, { $remain }.
-
+backgammon-no-moves-you = Você não tem jogadas válidas, então seu turno termina.
+backgammon-no-moves-player = { $player } não tem jogadas válidas, então o turno { GENDER_TERM($player_gender, "possessive-determiner") } termina.
+# Brief move commentary
+backgammon-brief-move-normal =
+    { $is_self ->
+        [yes] Você: { $src } para { $dest }.
+       *[no] { $player }: { $src } para { $dest }.
+    }
+backgammon-brief-move-hit =
+    { $is_self ->
+        [yes] Você: { $src } para { $dest }, capturou { $opponent }.
+        [spectator] { $player }: { $src } para { $dest }, capturou { $opponent }.
+       *[no] { $player }: { $src } para { $dest }, capturou você.
+    }
+backgammon-brief-move-bar =
+    { $is_self ->
+        [yes] Você: barra para { $dest }.
+       *[no] { $player }: barra para { $dest }.
+    }
+backgammon-brief-move-bar-hit =
+    { $is_self ->
+        [yes] Você: barra para { $dest }, capturou { $opponent }.
+        [spectator] { $player }: barra para { $dest }, capturou { $opponent }.
+       *[no] { $player }: barra para { $dest }, capturou você.
+    }
+backgammon-brief-move-bearoff =
+    { $is_self ->
+        [yes] Você: retirou { $src }.
+       *[no] { $player }: retirou { $src }.
+    }
+# Verbose move commentary
+backgammon-verbose-move-normal =
+    { $is_self ->
+        [yes] Você move uma dama da ponta { $src } para a ponta { $dest }.
+       *[no] { $player } move uma dama da ponta { $src } para a ponta { $dest }.
+    } { $src_count ->
+        [0] A ponta { $src } agora está vazia, há { $dest_count } na ponta { $dest }.
+       *[other] Há { $src_count } agora na ponta { $src }, e { $dest_count } na ponta { $dest }.
+    }
+backgammon-verbose-move-hit =
+    { $is_self ->
+        [yes] Você move uma dama da ponta { $src } para capturar a dama de { $opponent } na ponta { $dest }.
+        [spectator] { $player } move uma dama da ponta { $src } para capturar a dama de { $opponent } na ponta { $dest }.
+       *[no] { $player } move uma dama da ponta { $src } para capturar a sua dama na ponta { $dest }.
+    } { $src_count ->
+        [0] A ponta { $src } agora está vazia.
+       *[other] Restam { $src_count } na ponta { $src }.
+    }
+backgammon-verbose-move-bar =
+    { $is_self ->
+        [yes] Você entra da barra para a ponta { $dest }.
+       *[no] { $player } entra da barra para a ponta { $dest }.
+    } { $dest_count } agora na ponta { $dest }.
+backgammon-verbose-move-bar-hit =
+    { $is_self ->
+        [yes] Você entra da barra para capturar a dama de { $opponent } na ponta { $dest }.
+        [spectator] { $player } entra da barra para capturar a dama de { $opponent } na ponta { $dest }.
+       *[no] { $player } entra da barra para capturar a sua dama na ponta { $dest }.
+    }
+backgammon-verbose-move-bearoff =
+    { $is_self ->
+        [yes] Você retira uma dama da ponta { $src }.
+       *[no] { $player } retira uma dama da ponta { $src }.
+    } { $src_count ->
+        [0] A ponta { $src } agora está vazia.
+       *[other] Restam { $src_count } na ponta { $src }.
+    }
 # Doubling
-backgammon-doubles = { $player } doubles to { $value }.
-backgammon-accepts = { $player } accepts.
-backgammon-drops = { $player } drops.
-backgammon-accept = Accept
-backgammon-drop = Drop
-
+backgammon-doubles-you = Você oferece dobrar o cubo para { $value }.
+backgammon-doubles-player = { $player } oferece dobrar o cubo para { $value }.
+backgammon-accepts-you = Você aceita o dobro e assume a posse do cubo.
+backgammon-accepts-player = { $player } aceita o dobro e assume a posse do cubo.
+backgammon-drops-you = Você rejeita o dobro e concede o valor atual do cubo.
+backgammon-drops-player = { $player } rejeita o dobro e concede o valor atual do cubo.
+backgammon-accept = Aceitar
+backgammon-drop = Rejeitar
+# Point labels
+backgammon-point-empty = { $point }
+backgammon-point-occupied = { $point } { $color }, { $count }
+backgammon-point-occupied-selected = { $point } { $color }, quantidade selecionada: { $count }
+backgammon-point-occupied-selected-bearoff = { $point } { $color }, quantidade selecionada: { $count }; ative novamente para retirar
+# Action labels
+backgammon-label-double = Dobrar
+backgammon-label-roll = Rolar dados
+backgammon-label-undo = Desfazer
+backgammon-label-deselect = Desselecionar
+backgammon-label-next-destination = Próximo destino
+backgammon-label-previous-destination = Destino anterior
 # Selection feedback
-backgammon-selected-point = Selected point { $point }, { $count } checkers.
-backgammon-selected-bar = Selected bar.
-backgammon-deselected = Deselected.
-backgammon-no-checkers-there = No checkers there.
-backgammon-no-moves-from-here = No legal moves from here.
-backgammon-must-enter-from-bar = Must enter from bar first.
-backgammon-illegal-move = Illegal move.
-backgammon-nothing-to-undo = Nothing to undo.
-backgammon-undone = Move undone.
-
-# Hints
-backgammon-hint = { $player } asks for a hint: { $hint }
-backgammon-hint-not-now = Hints are only available during the moving phase.
-backgammon-hints-disabled = Hints are disabled. Enable them in game options.
-backgammon-hint-unavailable = Hint engine not available.
-backgammon-gnubg-fallback = GNUBG engine unavailable. Bot is using simple fallback.
-
+backgammon-no-checkers-there = Não há damas lá.
+backgammon-not-your-checkers = Essas damas não são suas.
+backgammon-no-moves-from-here = Nenhuma jogada válida a partir daqui.
+backgammon-must-enter-from-bar = Deve entrar da barra primeiro.
+backgammon-illegal-move = Jogada ilegal.
+backgammon-no-dice-remaining = Você não tem dados restantes para usar neste turno.
+backgammon-no-checkers-on-bar = Você não tem damas na barra para entrar.
+backgammon-invalid-destination = Esse destino não é uma ponta de gamão válida.
+backgammon-source-empty = A ponta { $point } não tem damas para mover.
+backgammon-source-opponent = A ponta { $point } contém as damas do seu oponente.
+backgammon-destination-blocked = A ponta { $point } está bloqueada por { $count } damas oponentes.
+backgammon-bar-entry-blocked = Você não pode entrar na ponta { $point }; ela está bloqueada por { $count } damas oponentes.
+backgammon-no-die-for-bar-entry = Nenhum dos seus dados restantes ({ $dice }) entra na ponta { $point }.
+backgammon-no-die-for-destination = Nenhum dos seus dados restantes ({ $dice }) move da ponta { $src } para a ponta { $dest }.
+backgammon-must-use-forced-die = Você deve usar { $dice } agora porque o gamão exige ambos os dados quando possível, ou o maior dado quando apenas um pode ser jogado.
+backgammon-move-would-waste-die = Essa jogada o impediria de usar tantos dados quanto as regras exigem. Escolha outra jogada válida.
+backgammon-bearoff-not-home = Você ainda não pode retirar damas. Damas fora do seu tabuleiro interno: { $outside }. Damas na barra: { $bar }. Traga todas as damas para as pontas 1 a 6 e limpe a barra primeiro.
+backgammon-bearoff-outside-home-point = A ponta { $point } está fora do seu tabuleiro interno. Somente damas nas pontas 1 a 6 podem ser retiradas.
+backgammon-bearoff-blocked = Você não pode retirar damas da ponta { $point } com um { $die }, porque há damas na sua ponta { $blocking_point }.
+backgammon-bearoff-no-die = Você não pode retirar damas da ponta { $point } com seus dados restantes ({ $die }).
+backgammon-nothing-to-undo = Nada para desfazer.
+backgammon-undo-move =
+    { $listener ->
+        [actor] Você desfaz sua jogada de { $source } para { $destination }.
+       *[observer] { $player } desfaz a jogada { GENDER_TERM($player_gender, "possessive-determiner") } de { $source } para { $destination }.
+    }
+backgammon-undo-hit =
+    { $listener ->
+        [actor] Você desfaz sua jogada de { $source } para { $destination }, restaurando a dama de { $opponent }.
+        [target] { $player } desfaz a jogada { GENDER_TERM($player_gender, "possessive-determiner") } de { $source } para { $destination }, restaurando a sua dama.
+       *[observer] { $player } desfaz a jogada { GENDER_TERM($player_gender, "possessive-determiner") } de { $source } para { $destination }, restaurando a dama de { $opponent }.
+    }
+backgammon-selection-cleared = Seleção de dama cancelada.
+backgammon-no-selection = Nenhuma dama está selecionada.
+backgammon-cannot-double = Você não pode dobrar agora.
+backgammon-double-single-game = O cubo de dobro não é usado em uma partida única.
+backgammon-double-crawford = Esta é a partida Crawford, então o cubo de dobro não está disponível.
+backgammon-double-dead-cube = Você já venceria a disputa ao ganhar com o valor atual do cubo, então o cubo está morto para você e não pode ser dobrado.
+backgammon-double-cube-owned = O cubo pertence a { $opponent }, então apenas { GENDER_TERM($opponent_gender, "subject") } pode oferecer o próximo dobro.
+backgammon-double-cube-owned-unknown = Seu oponente controla o cubo, então você não pode oferecer o próximo dobro.
+backgammon-double-before-roll-only = Você pode oferecer um dobro apenas no início do seu turno, antes de rolar os dados.
+backgammon-cannot-undo = Nada para desfazer.
+backgammon-not-doubling-phase = Nenhum dobro para responder.
+backgammon-need-roll-first = Você precisa rolar os dados antes de mover uma dama.
+backgammon-roll-before-moving-only = Você pode rolar apenas no início do seu turno, antes de mover.
+backgammon-confirm-drop-double = Rejeitar concede esta partida pelo valor atual do cubo. Pressione Rejeitar novamente dentro de { $seconds } segundos para confirmar.
 # Info keybinds
 backgammon-check-status = Status
-backgammon-check-pip = Pip count
-backgammon-check-score = Score
-backgammon-check-dice = Dice
-backgammon-status = Red bar: { $bar_red }. White bar: { $bar_white }. Red off: { $off_red }. White off: { $off_white }. Dice: { $dice }.
-backgammon-dice = { $dice }
-backgammon-dice-none = No dice.
-backgammon-pip-count = Red pip count: { $red_pip }. White pip count: { $white_pip }.
-backgammon-match-score = { $red } { $red_score }, { $white } { $white_score }. Match to { $match_length }. Cube: { $cube }.
-
-# Scoring
-backgammon-wins-game = { $player } wins { $points } point{ $points ->
-    [one] {""}
-    *[other] s
-}.
-backgammon-new-game = Starting game { $number }.
-backgammon-match-winner = { $player } wins the match!
-backgammon-crawford = Crawford game: no doubling this game.
-backgammon-resigns = { $player } resigns.
-backgammon-resign = Resign
-
+backgammon-check-cube = Cubo
+backgammon-check-pip = Contagem de pips
+backgammon-check-dice = Dados
+backgammon-check-legal-moves = Jogadas válidas
+backgammon-status =
+    { $red_self ->
+        [yes] Você, Vermelho
+       *[no] { $red }, Vermelho
+    } — barra: { $bar_red }, fora do tabuleiro interno: { $outside_red }, retiradas: { $off_red }. { $white_self ->
+        [yes] Você, Branco
+       *[no] { $white }, Branco
+    } — barra: { $bar_white }, fora do tabuleiro interno: { $outside_white }, retiradas: { $off_white }.
+backgammon-dice =
+    { $is_self ->
+        [yes] Seus dados restantes: { $dice }.
+       *[no] Dados restantes de { $player }: { $dice }.
+    }
+backgammon-dice-none = Sem dados.
+backgammon-no-dice-list = nenhum
+backgammon-cube-status =
+    Cubo em { $value }. { $owner ->
+        [center] Centralizado, qualquer jogador pode dobrar.
+        [self] Você é o dono do cubo.
+       *[other] Pertence a { $owner }.
+    } { $can_double ->
+        [yes] O dobro está disponível agora.
+        [crawford] Esta é uma partida Crawford, dobrar não é permitido.
+        [dead] O cubo está morto para o jogador atual porque o valor dele já é suficiente para vencer a disputa.
+       *[no] O dobro não está disponível agora.
+    }
+backgammon-cube-no-match = Sem cubo de dobro em partidas únicas.
+backgammon-pip-count =
+    { $red_self ->
+        [yes] Você, Vermelho
+       *[no] { $red }, Vermelho
+    }: { $red_pip } pips. { $white_self ->
+        [yes] Você, Branco
+       *[no] { $white }, Branco
+    }: { $white_pip } pips.
+backgammon-match-score-line =
+    { $is_self ->
+        [yes] Você: { $score } de { $match_length }.
+       *[no] { $player }: { $score } de { $match_length }.
+    }
+backgammon-match-score-cube-line = Cubo: { $cube }.
+# Legal move status
+backgammon-legal-moves-awaiting-roll =
+    { $is_self ->
+        [yes] Você deve rolar antes que alguma jogada de dama esteja disponível.
+       *[no] { $player } deve rolar antes que alguma jogada de dama esteja disponível.
+    }
+backgammon-legal-moves-awaiting-double-response =
+    { $is_self ->
+        [yes] Você deve aceitar ou rejeitar o dobro oferecido antes que o jogo continue.
+       *[no] { $player } deve aceitar ou rejeitar o dobro oferecido antes que o jogo continue.
+    }
+backgammon-legal-moves-none =
+    { $is_self ->
+        [yes] Você não tem nenhuma jogada de dama válida.
+       *[no] { $player } não tem nenhuma jogada de dama válida.
+    }
+backgammon-move-source-bar = barra
+backgammon-move-destination-off = fora do tabuleiro
+backgammon-legal-move-line =
+    { $is_self ->
+        [yes] Você: { $source } para { $destination } usando { $die }
+       *[no] { $player }: { $source } para { $destination } usando { $die }
+    }{ $hit ->
+        [yes] , capturando uma dama desprotegida.
+       *[no] .
+    }
+backgammon-wins-game-you =
+    Você ganha { $points } ponto{ $points ->
+        [one] { "" }
+       *[other] s
+    }. { $result ->
+        [single] Vitória normal com o cubo em { $cube }.
+        [gammon] Gammon com o cubo em { $cube }.
+        [backgammon] Backgammon com o cubo em { $cube }.
+       *[drop] Seu oponente rejeitou o dobro com o cubo em { $cube }.
+    }
+backgammon-wins-game-player =
+    { $player } ganha { $points } ponto{ $points ->
+        [one] { "" }
+       *[other] s
+    }. { $result ->
+        [single] Vitória normal com o cubo em { $cube }.
+        [gammon] Gammon com o cubo em { $cube }.
+        [backgammon] Backgammon com o cubo em { $cube }.
+       *[drop] O oponente dele rejeitou o dobro com o cubo em { $cube }.
+    }
+backgammon-new-game = Iniciando partida { $number }.
+backgammon-match-winner-you = Você venceu a disputa!
+backgammon-match-winner-player = { $player } venceu a disputa!
+backgammon-end-score = { $red } { $red_score } - { $white } { $white_score }. Disputa até { $match_length }.
+backgammon-crawford = Partida Crawford: sem dobro nesta partida.
 # Difficulty levels
-backgammon-difficulty-random = Random
-backgammon-difficulty-simple = Simple
-backgammon-difficulty-gnubg-0ply = GNUBG 0-ply
-backgammon-difficulty-gnubg-1ply = GNUBG 1-ply
-backgammon-difficulty-gnubg-2ply = GNUBG 2-ply
-backgammon-difficulty-whackgammon = Whackgammon
-
+backgammon-difficulty-random = Aleatório
+backgammon-difficulty-simple = Simples
 # Options
-backgammon-option-match-length = Match length: { $match_length }
-backgammon-option-select-match-length = Set match length (1-25)
-backgammon-option-changed-match-length = Match length set to { $match_length }.
-backgammon-option-bot-difficulty = Bot difficulty: { $bot_difficulty }
-backgammon-option-select-bot-difficulty = Select bot difficulty
-backgammon-option-changed-bot-difficulty = Bot difficulty set to { $bot_difficulty }.
-backgammon-option-verbose-commentary = Verbose commentary: { $verbose_commentary }
-backgammon-option-changed-verbose-commentary = Verbose commentary set to { $verbose_commentary }.
-backgammon-option-hints = Hints: { $hints_enabled }
-backgammon-option-changed-hints = Hints set to { $hints_enabled }.
+backgammon-option-match-length = Pontos para vencer a partida: { $match_length }
+backgammon-option-select-match-length = Definir pontos para vencer a partida (1-25)
+backgammon-option-changed-match-length = Pontos para vencer a partida definidos como { $match_length }.
+backgammon-desc-match-length = Pontos necessários para vencer a partida de Gamão. O valor 1 é um jogo único sem cubo de dobro (padrão 1, intervalo de 1 a 25).
+backgammon-option-bot-difficulty = Dificuldade do bot: { $bot_difficulty }
+backgammon-option-select-bot-difficulty = Selecionar dificuldade do bot
+backgammon-option-changed-bot-difficulty = Dificuldade do bot definida para { $bot_difficulty }.
+backgammon-desc-bot-difficulty = Escolhe como os bots fazem jogadas: Aleatório faz jogadas válidas livremente, enquanto Simples prefere jogadas táticas mais fortes.

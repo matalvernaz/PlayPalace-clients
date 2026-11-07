@@ -4,12 +4,33 @@ import copy
 import inspect
 from dataclasses import dataclass, field
 from enum import Enum
+from functools import lru_cache
 from typing import TYPE_CHECKING
 
 from mashumaro.mixins.json import DataClassJSONMixin
 
+from ..users.base import MenuItem
+
 if TYPE_CHECKING:
-    from ..games.base import Game, Player
+    from ..games.base import Game
+    from .player import Player
+
+
+@lru_cache(maxsize=None)
+def _accepts_action_id(func) -> bool:
+    """Whether a callback declares an ``action_id`` parameter.
+
+    Resolved via ``inspect.signature``, which is expensive and was previously
+    called up to three times per action on every resolution — a hot path hit
+    once per action per player per tick, both in the test sims and on the live
+    server. The answer depends only on the underlying function, which never
+    changes at runtime, so we cache it keyed on the function object (stable per
+    class, shared across game instances).
+    """
+    try:
+        return "action_id" in inspect.signature(func).parameters
+    except (TypeError, ValueError):
+        return False
 
 
 class Visibility(str, Enum):
@@ -21,63 +42,67 @@ class Visibility(str, Enum):
 
 @dataclass
 class MenuInput(DataClassJSONMixin):
-    """Request a menu selection before action executes.
+    """
+    Request menu selection before action executes.
 
-    Attributes:
-        prompt: Localization key for menu title/prompt.
-        options: Method name returning list[str] options.
-        bot_select: Optional method name for bot auto-selection.
-        include_cancel: Whether to append a cancel option (default True).
-        pre_input_check: Optional method name returning a disabled reason
-            (str or (key, params) tuple) that blocks opening the menu.
-        option_label: Optional method name returning a localized display
-            label for an option id.
-        initial_selection: Optional method name returning the option id to
-            focus when the menu opens.
+    Callback fields are method names looked up on the game object at execution
+    time. ``option_label`` and ``option_description`` receive the player and
+    raw option value and return localized row content. ``locks_gameplay``
+    declares public mutation should pause while the prompt is pending; the
+    game enforces that through ``_gameplay_input_lock_owner()`` in its actor or
+    permission checks. ``read_only_options`` lists raw option values that are
+    rendered for context but can never be submitted.
     """
 
     prompt: str  # Localization key for menu title/prompt
     options: str  # Method name that returns list[str]
     bot_select: str | None = None  # Method name for bot auto-selection
-    include_cancel: bool = True
-    pre_input_check: str | None = None
-    option_label: str | None = None
-    initial_selection: str | None = None
+    pre_input_check: str | None = None  # Method name returning disabled reason, or None
+    option_label: str | None = None  # Optional method name for localized option labels
+    option_description: str | None = None  # Optional localized help callback
+    initial_selection: str | None = None  # Optional method name returning option id to focus
+    read_only_options: list[str] = field(default_factory=list)
+    locks_gameplay: bool = False  # Game may suspend mutations while this prompt is open
 
 
 @dataclass
 class EditboxInput(DataClassJSONMixin):
-    """Request text input before action executes.
+    """
+    Request text input before action executes.
 
-    Attributes:
-        prompt: Localization key for prompt.
-        default: Default value (static string).
-        bot_input: Optional method name for bot auto-input.
+    The bot_input and should_prompt fields are method names (strings) that
+    will be looked up on the game object at execution time.
     """
 
     prompt: str  # Localization key for prompt
     default: str = ""  # Default value (static string only now)
     bot_input: str | None = None  # Method name for bot auto-input
+    should_prompt: str | None = None  # Method name returning whether humans need input
 
 
 @dataclass
 class Action(DataClassJSONMixin):
-    """A game action with declarative state callbacks.
+    """
+    A game action with declarative state callbacks.
 
-    Callback fields are stored as method names for serialization; methods are
-    resolved on the game object at runtime.
+    All callback fields are method names (strings) for serialization.
+    Methods are looked up on the game object at resolution time.
 
-    Attributes:
-        id: Unique action id.
-        label: Static label (fallback if no get_label).
-        handler: Method name for action execution.
-        is_enabled: Method name for enabled check (returns reason or None).
-        is_hidden: Method name for visibility check.
-        get_label: Optional method name for dynamic label.
-        get_sound: Optional method name for highlight sound.
-        input_request: Optional MenuInput/EditboxInput.
-        show_in_actions_menu: If True, shown in actions list.
-        disabled_message: Locale key spoken when activated while disabled.
+    Callback signatures:
+    - handler: (self, player, action_id) or (self, player, input_value, action_id)
+    - is_enabled: (self, player, *, action_id: str = None) -> str | tuple[str, dict] | None
+      Returns None if enabled, or a localization key/parameter tuple if disabled.
+      The action_id kwarg is optional and passed if the method signature accepts it.
+    - is_hidden: (self, player, *, action_id: str = None) -> Visibility
+      Returns Visibility.VISIBLE or Visibility.HIDDEN.
+      The action_id kwarg is optional and passed if the method signature accepts it.
+    - get_label: (self, player, action_id) -> str
+      Returns the dynamic label string.
+    - get_sound: (self, player, *, action_id: str = None) -> str | None
+      Returns the sound played when this item is highlighted, or None.
+      The action_id kwarg is optional and passed if the method signature accepts it.
+    - get_description: (self, player, action_id) -> str | None
+      Returns localized descriptive help for the menu row.
     """
 
     id: str
@@ -86,32 +111,45 @@ class Action(DataClassJSONMixin):
     is_enabled: str  # Method name (e.g., "_is_roll_enabled")
     is_hidden: str  # Method name (e.g., "_is_roll_hidden")
     get_label: str | None = None  # Optional method name (e.g., "_get_roll_label")
-    get_sound: str | None = None  # Optional method name (e.g., "_get_roll_sound")
+    get_sound: str | None = None  # Optional method name (e.g., "_get_point_sound")
+    description: str | None = None  # Static localized menu help
+    get_description: str | None = None  # Optional dynamic description callback
     input_request: MenuInput | EditboxInput | None = None
     show_in_actions_menu: bool = True
     include_spectators: bool = False  # Whether spectators can see/execute this action
-    disabled_message: str = ""  # Locale key spoken when activated while disabled
-    show_disabled_label: bool = True  # Append "unavailable" suffix when disabled but visible
 
 
 @dataclass
 class ResolvedAction:
-    """Action resolved for a specific player.
+    """
+    An action with its state resolved for a specific player.
 
-    This is created at menu-build time and is not serialized.
+    This is the result of calling the declarative callbacks.
+    Not serialized - created fresh when building menus.
     """
 
     action: Action
     label: str
     enabled: bool
-    disabled_reason: "str | tuple[str, dict] | None"  # Localization key (optionally with kwargs) if disabled, None if enabled
+    disabled_reason: str | tuple[str, dict] | None  # Localization key if disabled, None if enabled
     visible: bool
-    sound: str | None = None  # Sound to play on highlight
+    sound: str | None = None  # Sound to play when this item is highlighted
+    description: str | None = None  # Localized descriptive help
+
+    def to_menu_item(self, *, text: str | None = None) -> MenuItem:
+        """Convert the resolved action through the shared menu-row API."""
+        return MenuItem(
+            text=self.label if text is None else text,
+            id=self.action.id,
+            sound=self.sound,
+            description=self.description,
+        )
 
 
 @dataclass
 class ActionSet(DataClassJSONMixin):
-    """Named group of actions for a player.
+    """
+    A named group of actions for a player.
 
     Players have an ordered list of ActionSets (e.g., "turn" before "lobby").
     Action state is resolved declaratively via callbacks when building menus.
@@ -144,51 +182,96 @@ class ActionSet(DataClassJSONMixin):
         """Get an action by ID."""
         return self._actions.get(action_id)
 
-    def resolve_action(self, game: "Game", player: "Player", action: Action) -> ResolvedAction:
+    def resolve_action(
+        self, game: "Game", player: "Player", action: Action
+    ) -> ResolvedAction:
         """Resolve a single action's state for a player."""
-        # Resolve enabled state
+        disabled_reason = self._resolve_enabled_state(game, player, action)
+        visible = self._resolve_visibility(game, player, action)
+        return self._resolve_display(
+            game,
+            player,
+            action,
+            disabled_reason=disabled_reason,
+            visible=visible,
+        )
+
+    @staticmethod
+    def _resolve_enabled_state(
+        game: "Game",
+        player: "Player",
+        action: Action,
+    ) -> str | tuple[str, dict] | None:
+        """Resolve only whether an action is enabled."""
         disabled_reason: str | tuple[str, dict] | None = None
         if action.is_enabled:
             method = getattr(game, action.is_enabled, None)
             if method:
                 # Check if method accepts action_id kwarg
-                sig = inspect.signature(method)
-                if "action_id" in sig.parameters:
+                if _accepts_action_id(method.__func__):
                     disabled_reason = method(player, action_id=action.id)
                 else:
                     disabled_reason = method(player)
+        return disabled_reason
 
-        # Resolve visibility
+    @staticmethod
+    def _resolve_visibility(
+        game: "Game",
+        player: "Player",
+        action: Action,
+    ) -> bool:
+        """Resolve only whether an action belongs in the turn menu."""
         visible = True
         if action.is_hidden:
             method = getattr(game, action.is_hidden, None)
             if method:
                 # Check if method accepts action_id kwarg
-                sig = inspect.signature(method)
-                if "action_id" in sig.parameters:
+                if _accepts_action_id(method.__func__):
                     visibility = method(player, action_id=action.id)
                 else:
                     visibility = method(player)
                 visible = visibility == Visibility.VISIBLE
+        return visible
 
-        # Resolve label
+    @staticmethod
+    def _resolve_display(
+        game: "Game",
+        player: "Player",
+        action: Action,
+        *,
+        disabled_reason: str | tuple[str, dict] | None,
+        visible: bool,
+    ) -> ResolvedAction:
+        """Resolve the player-facing fields for an action already selected.
+
+        Label, sound, and description callbacks frequently localize text or
+        inspect rich game state.  Turn-menu and actions-menu collectors call
+        this only after their inexpensive eligibility filters have passed.
+        Direct ``resolve_action`` calls still resolve every field exactly as
+        before.
+        """
         label = action.label
         if action.get_label:
             method = getattr(game, action.get_label, None)
             if method:
                 label = method(player, action.id)
 
-        # Resolve sound
+        # Resolve highlight sound
         sound = None
         if action.get_sound:
             method = getattr(game, action.get_sound, None)
             if method:
                 # Check if method accepts action_id kwarg
-                sig = inspect.signature(method)
-                if "action_id" in sig.parameters:
+                if _accepts_action_id(method.__func__):
                     sound = method(player, action_id=action.id)
                 else:
                     sound = method(player)
+
+        description = action.description
+        if action.get_description:
+            method = getattr(game, action.get_description, None)
+            if method:
+                description = method(player, action.id)
 
         return ResolvedAction(
             action=action,
@@ -197,9 +280,12 @@ class ActionSet(DataClassJSONMixin):
             disabled_reason=disabled_reason,
             visible=visible,
             sound=sound,
+            description=description,
         )
 
-    def resolve_actions(self, game: "Game", player: "Player") -> list[ResolvedAction]:
+    def resolve_actions(
+        self, game: "Game", player: "Player"
+    ) -> list[ResolvedAction]:
         """Resolve all actions' states for a player."""
         result = []
         for aid in self._order:
@@ -210,26 +296,108 @@ class ActionSet(DataClassJSONMixin):
             result.append(resolved)
         return result
 
-    def get_visible_actions(self, game: "Game", player: "Player") -> list[ResolvedAction]:
+    def get_visible_actions(
+        self, game: "Game", player: "Player"
+    ) -> list[ResolvedAction]:
         """Get visible actions for the turn menu.
 
-        Visibility and enabled are independent states. Disabled actions
-        remain in the menu with an unavailable indicator.
+        Visibility and enabled are independent states: a disabled-but-visible
+        action stays in the menu (callers may flag it as unavailable). This
+        keeps persistent controls — notably the backgammon board grid, whose
+        points disable on the opponent's turn — present across turn changes, so
+        a player's grid focus keeps its anchor instead of collapsing to the
+        first cell when the menu repopulates.
+
+        Spectators receive only actions that explicitly opt in through
+        ``include_spectators``; all player-only controls remain filtered.
         """
-        return [ra for ra in self.resolve_actions(game, player) if ra.visible]
+        result = []
+        visibility_first = self.name in getattr(
+            game,
+            "visibility_first_action_sets",
+            (),
+        )
+        for aid in self._order:
+            action = self._actions.get(aid)
+            if action is None:
+                continue
+            if player.is_spectator and not action.include_spectators:
+                continue
+            if visibility_first:
+                # Large declarative sets may opt in after auditing their state
+                # callbacks as pure.  This avoids resolving enabled state for
+                # hundreds of contextually hidden rows.
+                visible = self._resolve_visibility(game, player, action)
+                if not visible:
+                    continue
+                disabled_reason = self._resolve_enabled_state(game, player, action)
+            else:
+                # Preserve the established callback order for every existing
+                # action set.  Only presentation fields are lazy globally.
+                disabled_reason = self._resolve_enabled_state(game, player, action)
+                visible = self._resolve_visibility(game, player, action)
+                if not visible:
+                    continue
+            result.append(
+                self._resolve_display(
+                    game,
+                    player,
+                    action,
+                    disabled_reason=disabled_reason,
+                    visible=True,
+                )
+            )
+        return result
 
-    def get_enabled_actions(self, game: "Game", player: "Player") -> list[ResolvedAction]:
+    def get_enabled_actions(
+        self, game: "Game", player: "Player"
+    ) -> list[ResolvedAction]:
         """Get all enabled actions for the actions menu (includes hidden)."""
-        return [
-            ra
-            for ra in self.resolve_actions(game, player)
-            if ra.enabled and ra.action.show_in_actions_menu
-        ]
+        result = []
+        for aid in self._order:
+            action = self._actions.get(aid)
+            if action is None or not action.show_in_actions_menu:
+                continue
+            if player.is_spectator and not action.include_spectators:
+                continue
+            disabled_reason = self._resolve_enabled_state(game, player, action)
+            visible = self._resolve_visibility(game, player, action)
+            if disabled_reason is not None:
+                continue
+            # Turn-menu visibility does not control the Escape/actions menu,
+            # but retain the resolved flag for callers that inspect it.
+            result.append(
+                self._resolve_display(
+                    game,
+                    player,
+                    action,
+                    disabled_reason=None,
+                    visible=visible,
+                )
+            )
+        return result
 
-    def get_all_actions(self, game: "Game", player: "Player") -> list[ResolvedAction]:
+    def get_all_actions(
+        self, game: "Game", player: "Player"
+    ) -> list[ResolvedAction]:
         """Get all actions with their resolved state."""
         return self.resolve_actions(game, player)
 
     def copy(self) -> "ActionSet":
         """Deep copy for templates."""
         return copy.deepcopy(self)
+
+    def copy_shared_actions(self) -> "ActionSet":
+        """Copy mutable collection state while sharing action definitions.
+
+        Declarative ``Action`` definitions are immutable by convention after
+        construction.  Large games may therefore reuse those definitions
+        across per-player sets while retaining independent dictionaries and
+        ordering lists for dynamic additions and removals.  Games which mutate
+        an ``Action`` object itself must continue to use ``copy()``.
+        """
+        return ActionSet(
+            name=self.name,
+            _actions=self._actions.copy(),
+            _order=self._order.copy(),
+        )

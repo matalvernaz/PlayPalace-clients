@@ -5,9 +5,10 @@ Provides Team dataclass and TeamManager for handling team assignments,
 scoring, and elimination (for inverse game modes).
 """
 
-from collections import Counter, OrderedDict
-from collections.abc import Mapping
+import re
+from collections import Counter
 from dataclasses import dataclass, field
+
 from mashumaro.mixins.json import DataClassJSONMixin
 
 from ..messages.localization import Localization
@@ -15,28 +16,21 @@ from ..messages.localization import Localization
 
 @dataclass
 class Team(DataClassJSONMixin):
-    """Team container for team-based games.
-
-    Attributes:
-        index: Team index (0-based).
-        members: Player names on the team.
-        round_score: Points earned this round.
-        total_score: Total points across rounds.
-        eliminated: True if eliminated (inverse modes).
-    """
+    """A team of players."""
 
     index: int  # Team number (0-based)
     members: list[str] = field(default_factory=list)  # Player names
-    round_score: int = 0  # Points earned this round
-    total_score: int = 0  # Total points across rounds
+    round_score: int = 0  # Score earned this round
+    total_score: int = 0  # Total score across rounds
     eliminated: bool = False  # For inverse mode
 
 
 @dataclass
 class TeamManager(DataClassJSONMixin):
-    """Manage team assignments and scoring for games.
+    """
+    Manages team assignments and scoring for games.
 
-    Supports individual mode (teams of 1) and common team configurations
+    Supports individual mode (teams of 1) and various team configurations
     like 2v2, 3v3, 2v2v2, etc.
     """
 
@@ -95,26 +89,26 @@ class TeamManager(DataClassJSONMixin):
         return [int(p) for p in parts if p.isdigit()]
 
     def rebuild_player_index(self) -> None:
-        """Rebuild the player-to-team lookup from current team members."""
+        """Rebuild the player-to-team lookup from the current team members."""
         self._player_to_team = {}
         for team in self.teams:
             for member in team.members:
                 self._player_to_team[member] = team.index
 
     def expected_team_sizes(self, player_count: int | None = None) -> list[int]:
-        """Return the expected team sizes for the configured mode."""
+        """Return the expected team sizes for the current team mode."""
         if self.team_mode == "individual":
             count = player_count if player_count is not None else len(self.teams)
             return [1 for _ in range(count)]
         return self._parse_team_mode(self.team_mode)
 
     def has_same_members(self, player_names: list[str]) -> bool:
-        """Return whether current teams contain exactly these players."""
+        """Return whether the current teams contain exactly these player names."""
         current = [member for team in self.teams for member in team.members]
         return Counter(current) == Counter(player_names)
 
     def validate_assignments(self, player_names: list[str]) -> bool:
-        """Validate current assignments against the mode and active roster."""
+        """Validate current teams against the team mode and active player names."""
         if not self.has_same_members(player_names):
             return False
 
@@ -127,48 +121,76 @@ class TeamManager(DataClassJSONMixin):
                 return False
             if team.index < 0 or team.index >= len(self.teams):
                 return False
+
+        return True
+
+    def swap_members(self, first_player: str, second_player: str) -> bool:
+        """Swap two players between their current teams."""
+        first_team = self.get_team(first_player)
+        second_team = self.get_team(second_player)
+        if not first_team or not second_team:
+            return False
+        if first_player == second_player:
+            return False
+
+        first_index = first_team.members.index(first_player)
+        second_index = second_team.members.index(second_player)
+        first_team.members[first_index] = second_player
+        second_team.members[second_index] = first_player
+        self.rebuild_player_index()
         return True
 
     def rename_member(self, old_name: str, new_name: str) -> bool:
-        """Rename a member while preserving their team placement."""
+        """Rename a team member while preserving their team placement."""
         if not old_name or not new_name or old_name == new_name:
             return False
 
         changed = False
         for team in self.teams:
-            members = [new_name if member == old_name else member for member in team.members]
-            if members != team.members:
-                team.members = members
+            updated_members = []
+            team_changed = False
+            for member in team.members:
+                if member == old_name:
+                    updated_members.append(new_name)
+                    team_changed = True
+                else:
+                    updated_members.append(member)
+            if team_changed:
+                team.members = updated_members
                 changed = True
         if changed:
             self.rebuild_player_index()
         return changed
 
     def balanced_turn_order(self, player_names: list[str]) -> list[str]:
-        """Interleave team members while preserving the first seated player."""
+        """Return players interleaved by team while preserving seat priority."""
         if not self.teams or self.team_mode == "individual":
             return list(player_names)
 
         active_names = set(player_names)
+        ordered_teams = sorted(self.teams, key=lambda team: team.index)
         team_members = [
             [member for member in team.members if member in active_names]
-            for team in sorted(self.teams, key=lambda team: team.index)
+            for team in ordered_teams
         ]
         if not any(team_members):
             return list(player_names)
 
         ordered: list[str] = []
-        for member_index in range(max(len(members) for members in team_members)):
+        max_members = max(len(members) for members in team_members)
+        for member_index in range(max_members):
             for members in team_members:
                 if member_index < len(members):
                     ordered.append(members[member_index])
 
         seen = set(ordered)
         ordered.extend(name for name in player_names if name not in seen)
-        first_seated = next((name for name in player_names if name in seen), "")
-        if first_seated:
-            start_index = ordered.index(first_seated)
+
+        first_seated_player = next((name for name in player_names if name in seen), "")
+        if first_seated_player and first_seated_player in ordered:
+            start_index = ordered.index(first_seated_player)
             ordered = ordered[start_index:] + ordered[:start_index]
+
         return ordered
 
     def get_team(self, player_name: str) -> Team | None:
@@ -197,13 +219,13 @@ class TeamManager(DataClassJSONMixin):
         return [player_name]
 
     def add_to_team_score(self, player_name: str, points: int) -> None:
-        """Add points to a player's team total score."""
+        """Add a score amount to a player's team total."""
         team = self.get_team(player_name)
         if team:
             team.total_score += points
 
     def add_to_team_round_score(self, player_name: str, points: int) -> None:
-        """Add points to a player's team round score."""
+        """Add a score amount to a player's team round total."""
         team = self.get_team(player_name)
         if team:
             team.round_score += points
@@ -267,9 +289,11 @@ class TeamManager(DataClassJSONMixin):
         if len(team.members) == 1:
             return team.members[0]
         # For actual teams, could use localization
-        return f"Team {team.index + 1}"
+        return Localization.get(locale, "game-team-name", index=team.index + 1)
 
-    def get_sorted_teams(self, by_score: bool = True, descending: bool = True) -> list[Team]:
+    def get_sorted_teams(
+        self, by_score: bool = True, descending: bool = True
+    ) -> list[Team]:
         """
         Get teams sorted by score or index.
 
@@ -341,8 +365,6 @@ class TeamManager(DataClassJSONMixin):
         Returns:
             Internal team mode string.
         """
-        import re
-
         # Check for "Individual" in any language by checking if it's a known individual string
         # We'll check against the English version and also check if there are no digits
         if "individual" in display.lower() or not any(char.isdigit() for char in display):
@@ -392,7 +414,9 @@ class TeamManager(DataClassJSONMixin):
         return modes
 
     @staticmethod
-    def get_team_modes_for_player_count(num_players: int, locale: str = "en") -> list[str]:
+    def get_team_modes_for_player_count(
+        num_players: int, locale: str = "en"
+    ) -> list[str]:
         """
         Get valid team mode options for a given number of players.
         Returns localized display strings.
@@ -404,8 +428,13 @@ class TeamManager(DataClassJSONMixin):
         Returns:
             List of valid team mode strings in user-friendly localized format.
         """
-        internal_modes = TeamManager.get_team_modes_for_player_count_internal(num_players)
-        return [TeamManager.format_team_mode_for_display(mode, locale) for mode in internal_modes]
+        internal_modes = TeamManager.get_team_modes_for_player_count_internal(
+            num_players
+        )
+        return [
+            TeamManager.format_team_mode_for_display(mode, locale)
+            for mode in internal_modes
+        ]
 
     @staticmethod
     def get_all_team_modes(min_players: int, max_players: int) -> list[str]:
@@ -427,7 +456,6 @@ class TeamManager(DataClassJSONMixin):
 
         # Sort: individual first, then by total players, then alphabetically
         def sort_key(mode: str) -> tuple:
-            """Sort key for team modes (individual first, then size)."""
             if mode == "individual":
                 return (0, 0, "")
             parts = mode.split("v")
@@ -477,60 +505,86 @@ class TeamManager(DataClassJSONMixin):
     # Score Formatting
     # ==========================================================================
 
-    def format_scores_brief(self, locale: str = "en") -> str:
+    def _format_score_line(
+        self,
+        team: Team,
+        locale: str,
+        target_score: int | None,
+        score_unit_key: str,
+    ) -> str:
+        """Format one score line with a localized, game-provided unit."""
+        name = self.get_team_name(team, locale)
+        unit_count = target_score if target_score is not None else team.total_score
+        unit = Localization.get(locale, score_unit_key, count=unit_count)
+        if target_score is not None:
+            return Localization.get(
+                locale,
+                "game-score-line-target",
+                player=name,
+                score=team.total_score,
+                target=target_score,
+                unit=unit,
+            )
+        return Localization.get(
+            locale,
+            "game-score-line",
+            player=name,
+            score=team.total_score,
+            unit=unit,
+        )
+
+    def format_scores_brief(
+        self,
+        locale: str = "en",
+        target_score: int | None = None,
+        score_unit_key: str = "game-score-unit-points",
+        descending: bool = True,
+    ) -> str:
         """
         Format scores as a brief single-line string for speaking.
 
-        Returns something like: "Alice: 5. Bob: 3. Charlie: 1."
+        Returns something like: "Alice: 5 points. Bob: 3 points."
+        The unit comes from ``score_unit_key`` and may be chips, tokens, rounds, etc.
         """
-        sorted_teams = self.get_sorted_teams(by_score=True, descending=True)
+        sorted_teams = self.get_sorted_teams(by_score=True, descending=descending)
         parts = []
         for team in sorted_teams:
-            name = self.get_team_name(team, locale)
-            parts.append(f"{name}: {team.total_score}")
+            parts.append(
+                self._format_score_line(
+                    team,
+                    locale,
+                    target_score,
+                    score_unit_key,
+                )
+            )
         return ". ".join(parts) + "."
 
-    def format_scores_detailed(self, locale: str = "en") -> list[str]:
+    def format_scores_detailed(
+        self,
+        locale: str = "en",
+        target_score: int | None = None,
+        score_unit_key: str = "game-score-unit-points",
+        descending: bool = True,
+    ) -> list[str]:
         """
-        Format localized scores as a list of lines for a status box.
+        Format scores as a list of lines for a status box.
 
-        Returns something like (English):
+        Returns something like:
         ["Alice: 5 points", "Bob: 3 points", ...]
+        Or with target:
+        ["Alice: 5/100 points", ...]
 
-        The points label is localized via the "game-points" Fluent key.
         No header needed - screen readers speak list items directly.
         """
-        sorted_teams = self.get_sorted_teams(by_score=True, descending=True)
+        sorted_teams = self.get_sorted_teams(by_score=True, descending=descending)
         lines = []
         for team in sorted_teams:
-            name = self.get_team_name(team, locale)
-            points = Localization.get(locale, "game-points", count=team.total_score)
-            lines.append(f"{name}: {points}")
+            lines.append(
+                self._format_score_line(
+                    team,
+                    locale,
+                    target_score,
+                    score_unit_key,
+                )
+            )
         return lines
-
-
-class TeamResultBuilder:
-    """Helpers for summarizing and formatting team-based results."""
-
-    @staticmethod
-    def summarize(team_manager: TeamManager):
-        """Return (sorted_teams, winner, ordered final_scores dict)."""
-        sorted_teams = team_manager.get_sorted_teams(by_score=True, descending=True)
-        winner = sorted_teams[0] if sorted_teams else None
-        final_scores: OrderedDict[str, int] = OrderedDict()
-        for team in sorted_teams:
-            name = team_manager.get_team_name(team)
-            final_scores[name] = team.total_score
-        return sorted_teams, winner, final_scores
-
-    @staticmethod
-    def format_final_scores(locale: str, final_scores: Mapping[str, int]) -> list[str]:
-        """Format localized final score lines."""
-        lines = [Localization.get(locale, "game-final-scores")]
-        for index, (name, score) in enumerate(final_scores.items(), 1):
-            points = Localization.get(locale, "game-points", count=score)
-            lines.append(f"{index}. {name}: {points}")
-        return lines
-
-
-__all__ = ["Team", "TeamManager", "TeamResultBuilder"]

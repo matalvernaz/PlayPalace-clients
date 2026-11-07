@@ -27,8 +27,8 @@ from server.games.trouble.presets import (
     matching_preset_id,
 )
 from server.game_utils.parcheesi import Token, TokenZone
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
+from server.users.test_user import MockUser
+from server.users.bot import Bot
 
 
 # ==========================================================================
@@ -40,7 +40,7 @@ class TestTroubleRegistration:
     def test_game_metadata(self):
         assert TroubleGame.get_name() == "Trouble"
         assert TroubleGame.get_type() == "trouble"
-        assert TroubleGame.get_category() == "category-board-games"
+        assert TroubleGame.get_category() == "board"
         assert TroubleGame.get_min_players() == 2
         assert TroubleGame.get_max_players() == 4
 
@@ -532,3 +532,34 @@ class TestTroubleNarration:
         assert any(
             "token" in m.lower() for m in spoken
         ), f"Check board produced no token detail: {spoken}"
+
+
+def test_raising_tokens_after_players_join_still_gives_moves_for_every_token():
+    """Bug: moves were built for the token count when each player joined, so 5 or 6 tokens stalled the game."""
+    import random
+
+    from server.users.bot import Bot
+
+    random.seed(1)
+    game = TroubleGame()
+    for index in range(2):
+        game.add_player(f"Bot{index + 1}", Bot(f"Bot{index + 1}"))
+    game.options.tokens_per_player = "6"
+    game.on_start()
+    game.flush_menus()
+    for _ in range(60000):
+        if game.status == "finished":
+            break
+        game.on_tick()
+        game.flush_menus()
+    assert game.status == "finished"
+
+
+def test_track_size_and_token_options_read_as_plain_numbers():
+    """Bug: each number was mapped to itself as a message id, so the menu said "Track size: [28]"."""
+    game = TroubleGame()
+    metas = game.options.get_option_metas()
+    assert metas["track_size"].get_localized_choice("28", "en") == "28"
+    assert metas["tokens_per_player"].get_localized_choice("5", "en") == "5"
+    assert not metas["track_size"].choice_labels
+    assert not metas["tokens_per_player"].choice_labels

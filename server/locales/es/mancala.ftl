@@ -1,32 +1,26 @@
-# Mancala game messages — es
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale es. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mancala
-
 # Actions
 mancala-pit-label = Hoyo { $pit }: { $stones } piedras
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } siembra { $stones } piedras del hoyo { $pit }
 mancala-capture = ¡{ $player } captura { $captured } piedras!
 mancala-extra-turn = ¡Última piedra en el almacén! { $player } tiene otro turno.
 mancala-winner = ¡{ $player } gana con { $score } piedras!
 mancala-draw = ¡Empate! Ambos jugadores tienen { $score } piedras.
-
 # Board status
-mancala-board-status =
-    Tus hoyos: { $own_pits }. Tu almacén: { $own_store }. Hoyos del oponente: { $opp_pits }. Almacén del oponente: { $opp_store }.
-
+mancala-board-status = Tus hoyos: { $own_pits }. Tu almacén: { $own_store }. Hoyos del oponente: { $opp_pits }. Almacén del oponente: { $opp_store }.
 # Options
 mancala-set-stones = Piedras por hoyo: { $stones }
 mancala-desc-stones = Número de piedras en cada hoyo al inicio
 mancala-enter-stones = Ingresa el número de piedras iniciales por hoyo:
 mancala-option-changed-stones = Piedras iniciales cambiadas a { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Ese hoyo está vacío.
-
 # Rules
 mancala-rules =
     Mancala es un juego de hoyos y piedras para dos jugadores.
@@ -38,7 +32,5 @@ mancala-rules =
     El juego termina cuando un lado está completamente vacío. Las piedras restantes van al almacén de ese jugador.
     El jugador con más piedras gana.
     Usa las teclas 1 a 6 para elegir un hoyo. Presiona E para revisar el tablero.
-
 # End screen
 mancala-final-score = { $player }: { $score } piedras
-mancala-check-board = Check board

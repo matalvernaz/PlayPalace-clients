@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from server.core.server import Server
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
 
 
 class DummyUser:
@@ -100,7 +100,7 @@ class DummyBotsManager:
 
 @pytest.fixture
 def server(tmp_path, monkeypatch):
-    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
     srv._db = DummyDB(users=["alice", "bob"])
     srv._virtual_bots = DummyBotsManager()
     monkeypatch.setattr(

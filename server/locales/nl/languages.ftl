@@ -1,3 +1,6 @@
+# languages.ftl for locale nl. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Language names translated into this language
 language-ar = Arabisch
 language-cs = Tsjechisch
@@ -11,7 +14,6 @@ language-hr = Kroatisch
 language-hu = Hongaars
 language-id = Indonesisch
 language-it = Italiaans
-language-ja = Japans
 language-ko = Koreaans
 language-mk = Macedonisch
 language-mn = Mongools
@@ -30,3 +32,4 @@ language-uk = Oekraïens
 language-vi = Vietnamees
 language-zh = Chinees
 language-zu = Zulu
+language-ja = Japans

@@ -1,30 +1,12 @@
-# Glavne poruke korisničkog interfejsa za PlayPalace
+# main.ftl for locale sr. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Kategorije igara
-category-card-games = Igre kartama
-category-dice-games = Igre sa kockicama
-category-board-games = Igre na tabli
-category-rb-play-center = RB Play centar
-category-poker = Poker
-category-uncategorized = Nekategorisano
-
-# Naslovi menija
-main-menu-title = Glavni meni
-play-menu-title = Igraj
-categories-menu-title = Kategorije igara
-tables-menu-title = Dostupni stolovi
-
-# Stavke menija
 play = Igraj
-view-active-tables = Prikaži aktivne stolove
 options = Podešavanja
 logout = Odjavi se
 back = Nazad
 context-menu = Kontekstni meni.
 no-actions-available = Nema dostupnih radnji.
-create-table = Napravi novi sto
-join-as-player = Pridruži se kao igrač
-join-as-spectator = Pridruži se kao posmatrač
 leave-table = Napusti sto
 start-game = Pokreni igru
 add-bot = Dodaj robota
@@ -35,19 +17,124 @@ whose-turn = Ko je na potezu
 whos-at-table = Ko je za stolom
 check-scores = Proveri rezultat
 check-scores-detailed = Detaljni rezultati
-check-game-options = Proveri opcije igre
-no-game-options = Nema opcija igre.
-
 # Poruke o redu igranja
 game-player-skipped = { $player } se preskače.
-
-# Poruke o stolu
-table-created = { $host } pravi novi sto za igru { $game }.
 table-joined = { $player } se pridružuje stolu.
 table-left = { $player } napušta sto.
 new-host = { $player } je sada vlasnik.
-waiting-for-players = Čekanje na igrače. {$min} minimalno, { $max } maksimalno.
 game-starting = Igra počinje!
+table-full = Sto je popunjen.
+player-replaced-by-bot = { $player } napušta i zamenjen/a je robotom.
+# Režim posmatrača
+spectate = Posmatraj
+now-playing = { $player } sada igra.
+now-spectating = { $player } sada posmatra.
+spectator-left = { $player } više ne posmatra.
+# Opšte
+welcome = Dobrodošli u PlayPalace!
+goodbye = Doviđenja!
+# Opcije
+language = Jezik
+# Boolean option values
+option-on = Uključeno
+option-off = Isključeno
+# Option navigation
+option-back = Nazad
+option-select-all = Izaberi sve
+option-deselect-all = Opozovi izbor svih opcija
+option-selected-count =
+    { $count } { $count ->
+        [one] stavka izabrana
+        [few] stavke izabrane
+       *[other] stavki izabrano
+    }.
+option-deselected-count =
+    { $count } { $count ->
+        [one] stavka nije izabrana
+        [few] stavke nisu izabrane
+       *[other] stavki nije izabrano
+    }.
+option-min-selected =
+    Bar { $count } { $count ->
+        [one] stavka mora biti izabrana
+        [few] stavke moraju biti izabrane
+       *[other] stavki mora biti izabrano
+    }.
+option-max-selected =
+    Najviše { $count } { $count ->
+        [one] stavka može biti izabrana
+        [few] stavke mogu biti izabrane
+       *[other] stavki može biti izabrano
+    }.
+dice-keeping-style-option = Stil čuvanja kockica: { $style }
+# Imena botova
+cancel = Otkaži
+enter-bot-name = Unesi ime robota
+no-options-available = Nema dostupnih opcija.
+no-scores-available = Nema dostupnih rezultata.
+# Razlozi onemogućenih radnji
+action-not-your-turn = Niste na potezu.
+action-not-playing = Igra još nije počela.
+action-spectator = Posmatrači ne mogu ovo da rade.
+action-not-host = Samo vlasnik može ovo da uradi.
+action-game-in-progress = Ovo ne možete uraditi dok je igra u toku.
+action-table-full = Sto je popunjen.
+action-no-bots = Nema robota za uklanjanje.
+action-bots-cannot = Roboti ne mogu ovo da rade.
+# Radnje sa kockicama
+dice-not-rolled = Još uvek niste bacili kockice.
+dice-no-dice = Nema dostupnih kockica.
+table-no-players = Nema igrača.
+table-players-one = { $count } igrač: { $players }.
+table-players-many = { $count } igrača: { $players }.
+table-spectators = Posmatrači: { $spectators }.
+game-over = Igra je gotova
+game-final-scores = Konačni rezultat
+game-points =
+    { $count } { $count ->
+        [one] poen
+       *[other] poena
+    }
+# Rang liste
+leaderboards = Rang liste
+leaderboard-type-avg-points-per-turn = Prosečno poena po potezu
+leaderboard-type-best-single-turn = Najbolji pojedinačni potez
+leaderboard-type-score-per-round = Rezultat po rundi
+leaderboard-score-entry = { $rank }. { $player }: { $value }
+leaderboard-avg-entry = { $rank }. { $player }: { $value } prosečno
+leaderboard-no-player-stats = Još uvek niste igrali ovu igru.
+leaderboard-no-player-rating = Još uvek nemate rang za ovu igru.
+my-stats-select-game = Izaberi igru za prikaz svoje statistike
+my-stats-header = { $game } - Vaša statistika
+my-stats-avg-per-turn = Prosečno poena po potezu: { $value }
+my-stats-best-turn = Najbolji pojedinačni potez: { $value }
+confirm-leave-game = Da li ste sigurni da želite da napustite sto?
+confirm-yes = Da
+confirm-no = Ne
+# Administration
+administration = Administracija
+voice-status-connection-lost = { $player } lost the voice connection.
+# Kategorije igara
+category-card-games = Igre kartama
+category-dice-games = Igre sa kockicama
+category-board-games = Igre na tabli
+category-rb-play-center = RB Play centar
+category-poker = Poker
+category-uncategorized = Nekategorisano
+# Naslovi menija
+main-menu-title = Glavni meni
+play-menu-title = Igraj
+categories-menu-title = Kategorije igara
+tables-menu-title = Dostupni stolovi
+view-active-tables = Prikaži aktivne stolove
+create-table = Napravi novi sto
+join-as-player = Pridruži se kao igrač
+join-as-spectator = Pridruži se kao posmatrač
+check-game-options = Proveri opcije igre
+no-game-options = Nema opcija igre.
+# Poruke o stolu
+table-created = { $host } pravi novi sto za igru { $game }.
+waiting-for-players = Čekanje na igrače. { $min } minimalno, { $max } maksimalno.
 table-listing = Sto igrača { $host } ({ $count } korisnika)
 table-listing-one = Sto igrača { $host } ({ $count } korisnik)
 table-listing-with = Sto igrača { $host }  ({ $count } korisnika) sa { $members }
@@ -55,21 +142,8 @@ table-listing-game = { $game }: Sto igrača { $host }  ({ $count } korisnika)
 table-listing-game-one = { $game }: sto igrača { $host }  ({ $count } korisnik)
 table-listing-game-with = { $game }: sto igrača { $host }  ({ $count } korisnika) sa { $members }
 table-not-exists = Sto više ne postoji.
-table-full = Sto je popunjen.
-player-replaced-by-bot = { $player } napušta i zamenjen/a je robotom.
 player-took-over = { $player } preuzima mesto robota.
 spectator-joined = Pridružili ste se stolu igrača { $host } kao posmatrač.
-
-# Režim posmatrača
-spectate = Posmatraj
-now-playing = { $player } sada igra.
-now-spectating = { $player } sada posmatra.
-spectator-left = { $player } više ne posmatra.
-
-# Opšte
-welcome = Dobrodošli u PlayPalace!
-goodbye = Doviđenja!
-
 # User presence announcements
 user-online = { $player } je na mreži.
 user-offline = { $player } je van mreže.
@@ -80,41 +154,23 @@ online-users-one = 1 korisnik: { $users }
 online-users-many = { $count } korisnika: { $users }
 online-user-not-in-game = Nije u igri
 online-user-waiting-approval = Čeka na odobravanje
-
-# Opcije
-language = Jezik
 language-option = Jezik: { $language }
 language-changed = Jezik je postavljen na { $language }.
-
-# Stanja logičkih opcija
-option-on = Uključeno
-option-off = Isključeno
-
 # Opcije zvuka
 turn-sound-option = Zvuk za potez: { $status }
-
 # Opcije kockica
 clear-kept-option = Skloni sačuvane kockice pri bacanju: { $status }
-dice-keeping-style-option = Stil čuvanja kockica: { $style }
 dice-keeping-style-changed = Stil čuvanja kockica je postavljen na { $style }.
 dice-keeping-style-indexes = Redni brojevi kockica
 dice-keeping-style-values = Vrednosti kockica
-
-# Imena botova
-cancel = Otkaži
 no-bot-names-available = Nema dostupnih imena za robote.
 select-bot-name = Izaberi ime za robota
-enter-bot-name = Unesi ime robota
-no-options-available = Nema dostupnih opcija.
-no-scores-available = Nema dostupnih rezultata.
-
 # Procena trajanja
 estimate-duration = Proceni trajanje
 estimate-computing = Izračunavanje procenjenog trajanja igre...
 estimate-result = Prosek bota: { $bot_time } (± { $std_dev }). { $outlier_info }Procenjeno vreme za ljude: { $human_time }.
 estimate-error = Nije moguće proceniti trajanje.
 estimate-already-running = Procena trajanja je već u toku.
-
 # Čuvanje/Vraćanje
 saved-tables = Sačuvani stolovi
 no-saved-tables = Nemate sačuvanih stolova.
@@ -126,56 +182,16 @@ missing-players = Nije moguće vratiti sto: ovi igrači nisu dostupni: { $player
 table-restored = Sto je vraćen! Svi igrači su prebačeni.
 table-saved-destroying = Sto je sačuvan! Povratak u glavni meni.
 game-type-not-found = Vrsta igre više ne postoji.
-
-# Razlozi onemogućenih radnji
-action-not-your-turn = Niste na potezu.
-action-not-playing = Igra još nije počela.
-action-spectator = Posmatrači ne mogu ovo da rade.
-action-not-host = Samo vlasnik može ovo da uradi.
-action-game-in-progress = Ovo ne možete uraditi dok je igra u toku.
-action-need-more-players = Potrebno vam je bar { $min_players } igrača za početak.
-action-table-full = Sto je popunjen.
-action-no-bots = Nema robota za uklanjanje.
-action-bots-cannot = Roboti ne mogu ovo da rade.
 action-no-scores = Još uvek nema dostupnih rezultata.
-
-# Radnje sa kockicama
-dice-not-rolled = Još uvek niste bacili kockice.
-dice-locked = Ova kockica je zaključana.
-dice-no-dice = Nema dostupnih kockica.
-
-# Radnje u igri
-game-turn-start = { $player } je na potezu.
-game-no-turn = Trenutno niko nije na potezu.
-table-no-players = Nema igrača.
-table-players-one = { $count } igrač: { $players }.
-table-players-many = { $count } igrača: { $players }.
-table-spectators = Posmatrači: { $spectators }.
-game-leave = Napusti
-game-over = Igra je gotova
-game-final-scores = Konačni rezultat
-game-points = { $count } { $count ->
-    [one] poen
-    *[other] poena
-}
-play = Igraj
-
-# Rang liste
-leaderboards = Rang liste
 leaderboards-menu-title = Rang liste
 leaderboards-select-game = Izaberi igru za prikaz rang liste
 leaderboard-no-data = Još uvek nema podataka za rang listu ove igre.
-
 # Tipovi rang listi
 leaderboard-type-wins = Najviše pobeda
 leaderboard-type-rating = Rang veštine
 leaderboard-type-total-score = Ukupan rezultat
 leaderboard-type-high-score = Najbolji rezultat
 leaderboard-type-games-played = Odigranih igara
-leaderboard-type-avg-points-per-turn = Prosečno poena po potezu
-leaderboard-type-best-single-turn = Najbolji pojedinačni potez
-leaderboard-type-score-per-round = Rezultat po rundi
-
 # Zaglavlja rang listi
 leaderboard-wins-header = { $game } - Najviše pobeda
 leaderboard-total-score-header = { $game } - Ukupan rezultat
@@ -185,37 +201,28 @@ leaderboard-rating-header = { $game } - Rangovi veštine
 leaderboard-avg-points-header = { $game } - Prosečno poena po potezu
 leaderboard-best-turn-header = { $game } - Najbolji pojedinačni potez
 leaderboard-score-per-round-header = { $game } - Rezultat po rundi
-
 # Unosi na rang listi
-leaderboard-wins-entry = { $rank }: { $player }, { $wins } { $wins ->
-    [one] pobeda
-    [few] pobede
-    *[other] pobeda
-} { $losses } { $losses ->
-    [one] poraz
-    [few] poraza
-    *[other] poraza
-}, { $percentage }% pobeda
-leaderboard-score-entry = { $rank }. { $player }: { $value }
-leaderboard-avg-entry = { $rank }. { $player }: { $value } prosečno
+leaderboard-wins-entry =
+    { $rank }: { $player }, { $wins } { $wins ->
+        [one] pobeda
+        [few] pobede
+       *[other] pobeda
+    } { $losses } { $losses ->
+        [one] poraz
+        [few] poraza
+       *[other] poraza
+    }, { $percentage }% pobeda
 leaderboard-games-entry = { $rank }. { $player }: { $value } igara
-
 # Statistika igrača
 leaderboard-player-stats = Vaša statistika: { $wins } pobeda, { $losses } poraza ({ $percentage }% uspešnost)
-leaderboard-no-player-stats = Još uvek niste igrali ovu igru.
-
 # Rang lista veština
 leaderboard-no-ratings = Još uvek nema podataka o rangu za ovu igru.
 leaderboard-rating-entry = { $rank }. { $player }: { $rating } rang ({ $mu } ± { $sigma })
 leaderboard-player-rating = Vaš rang: { $rating } ({ $mu } ± { $sigma })
-leaderboard-no-player-rating = Još uvek nemate rang za ovu igru.
-
 # Meni "Moja statistika"
 my-stats = Moja statistika
-my-stats-select-game = Izaberi igru za prikaz svoje statistike
 my-stats-no-data = Još uvek niste igrali ovu igru.
 my-stats-no-games = Još uvek niste odigrali nijednu igru.
-my-stats-header = { $game } - Vaša statistika
 my-stats-wins = Pobede: { $value }
 my-stats-losses = Porazi: { $value }
 my-stats-winrate = Procenat pobeda: { $value }%
@@ -224,9 +231,6 @@ my-stats-total-score = Ukupan rezultat: { $value }
 my-stats-high-score = Najbolji rezultat: { $value }
 my-stats-rating = Rang veštine: { $value } ({ $mu } ± { $sigma })
 my-stats-no-rating = Još uvek nema ranga veštine
-my-stats-avg-per-turn = Prosečno poena po potezu: { $value }
-my-stats-best-turn = Najbolji pojedinačni potez: { $value }
-
 # Sistem predviđanja
 predict-outcomes = Predvidi ishode
 predict-header = Predviđeni ishodi (prema rangu veštine)
@@ -235,15 +239,8 @@ predict-entry-2p = { $rank }. { $player } (rang: { $rating }, { $probability }% 
 predict-unavailable = Predviđanja ranga nisu dostupna.
 predict-need-players = Potrebna su najmanje 2 ljudska igrača za predviđanje.
 action-need-more-humans = Potrebno je više ljudskih igrača.
-confirm-leave-game = Da li ste sigurni da želite da napustite sto?
 confirm-logout = Da li ste sigurni da želite da se odjavite?
-confirm-yes = Da
-confirm-no = Ne
-
-# Administration
-administration = Administracija
 admin-menu-title = Administracija
-
 # Account approval
 account-approval = Odobravanje naloga
 account-approval-menu-title = Odobravanje naloga
@@ -252,51 +249,40 @@ approve-account = Odobri
 decline-account = Odbij
 account-approved = Nalog igrača { $player } je odobren.
 account-declined = Nalog igrača { $player } je odbijen i obrisan.
-
 # Waiting for approval (shown to unapproved users)
 waiting-for-approval = Vaš nalog čeka na odobravanje od administratora. Molimo sačekajte...
 account-approved-welcome = Vaš nalog je odobren! Dobro došli u PlayPalace!
 account-declined-goodbye = Vaš zahtev za nalog je odbijen.
-Razlog:
 account-banned = Vašem nalogu je zabranjen pristup.
-
 # Login errors
 incorrect-username = Korisničko ime koje ste upisali ne postoji.
 incorrect-password = Lozinka koju ste upisali je netačna.
 already-logged-in = Ovaj nalog je već prijavljen.
-
 # Credential validation
 credential-username-length = Korisničko ime mora imati između { $min } i { $max } znakova.
 credential-password-length = Lozinka mora imati između { $min } i { $max } znakova.
-
 # Rate limiting
 rate-limit-login-ip = Previše pokušaja prijave sa ove adrese. Sačekajte i pokušajte ponovo.
 rate-limit-login-user = Previše neuspešnih pokušaja prijave za ovo korisničko ime. Sačekajte i pokušajte ponovo.
 rate-limit-registration = Previše pokušaja registracije sa ove adrese. Sačekajte i pokušajte ponovo.
 rate-limit-refresh = Previše pokušaja osvežavanja sa ove adrese. Sačekajte i pokušajte ponovo.
-
 # Session/auth errors
 account-not-found = Nalog nije pronađen.
 session-expired = Sesija je istekla. Molimo prijavite se ponovo.
 session-token-mismatch = Token sesije se ne poklapa sa korisničkim imenom.
 refresh-token-expired = Token za osvežavanje je istekao. Molimo prijavite se ponovo.
 refresh-token-mismatch = Token za osvežavanje se ne poklapa sa korisničkim imenom.
-
 # Registration
 registration-success = Registracija je uspešna! Vaš nalog čeka na odobravanje.
 registration-username-taken = Korisničko ime je već zauzeto. Molimo izaberite drugo ime.
-
 # Preference fallback
 pref-invalid-value = Nevažeći izbor, koristim podrazumevanu vrednost.
-
 # Decline reason
 decline-reason-prompt = Upišite razlog odbijanja (ili pritisnite Escape da otkažete):
 account-action-empty-reason = Nijedan razlog nije upisan.
-
 # Admin notifications for account requests
 account-request = Zahtev naloga
 account-action = Radnja za nalog izvršena
-
 # Admin promotion/demotion
 promote-admin = Promoviši u administratora
 demote-admin = Ukloni administratora
@@ -315,7 +301,6 @@ demote-announcement = { $player } više nije administrator.
 demote-announcement-you = Više niste administrator.
 not-admin-anymore = Više niste administrator i ne možete izvršiti ovu radnju.
 not-server-owner = Samo vlasnik servera može da izvrši ovu radnju.
-
 # Server ownership transfer
 transfer-ownership = Prebaci vlasništvo
 transfer-ownership-menu-title = Prebaci vlasništvo
@@ -323,7 +308,6 @@ no-admins-for-transfer = Nema dostupnih administratora kojima se može prebaciti
 confirm-transfer-ownership = Da li ste sigurni da želite da prebacite vlasništvo servera igraču { $player }? Ostaćete administrator.
 transfer-ownership-announcement = { $player } je sada vlasnik Play Palace servera!
 transfer-ownership-announcement-you = Sada ste vlasnik Play palace servera!
-
 # User banning
 ban-user = Zabrani pristup korisniku
 unban-user = Vrati pristup korisniku
@@ -335,12 +319,13 @@ ban-reason-prompt = Upišite razlog zabrane (opciono):
 unban-reason-prompt = Upišite razlog vraćanja pristupa (opciono):
 user-banned = { $player } više nema pristup.
 user-unbanned = { $player } ponovo ima pristup.
-you-have-been-banned = Zabranjen vam je pristup ovom serveru.
+you-have-been-banned =
+    Zabranjen vam je pristup ovom serveru.
     Razlog:
-you-have-been-unbanned = Ponovo imate pristup ovom serveru.
+you-have-been-unbanned =
+    Ponovo imate pristup ovom serveru.
     Razlog:
 ban-no-reason = Bez razloga.
-
 # Virtual bots (server owner only)
 virtual-bots = Virtuelni roboti
 virtual-bots-fill = Popuni server
@@ -350,11 +335,12 @@ virtual-bots-clear-confirm = Da li ste sigurni da želite da obrišete sve virtu
 virtual-bots-not-available = Virtuelni roboti nisu dostupni.
 virtual-bots-filled = Dodato { $added } virtuelnih robota. { $online } su sada na mreži.
 virtual-bots-already-filled = Svi virtuelni roboti iz konfiguracije su sada aktivni.
-virtual-bots-cleared = Obrisano { $bots } virtuelnih robota i { $tables } { $tables ->
-    [one] sto uništen
-    [few] stola uništena
-   *[other] stolova uništeno
-}.
+virtual-bots-cleared =
+    Obrisano { $bots } virtuelnih robota i { $tables } { $tables ->
+        [one] sto uništen
+        [few] stola uništena
+       *[other] stolova uništeno
+    }.
 virtual-bot-table-closed = Administrator je zatvorio sto.
 virtual-bots-none-to-clear = Nema virtuelnih robota za brisanje.
 virtual-bots-status-report = Virtuelni roboti: { $total } ukupno, { $online } na mreži, { $offline } van mreže, { $in_game } u igri.
@@ -382,9 +368,7 @@ virtual-bots-profiles-header = Profili: { $count } definisano (podrazumevani: { 
 virtual-bots-profiles-empty = Nema definisanih profila.
 virtual-bots-profiles-line = { $profile } ({ $bot_count } robota) zamene: { $overrides }.
 virtual-bots-profiles-no-overrides = Preuzima osnovnu konfiguraciju
-
 localization-in-progress-try-again = Učitavanje prevoda u toku. Molimo pokušajte ponovo za minut.
-
 # Voice chat
 voice-room-table-label = { $game } table
 voice-not-at-table = Join a table before starting voice chat.
@@ -397,9 +381,7 @@ voice-muted-minutes = You are muted for { $minutes } more minute(s).
 voice-muted-seconds = You are muted for { $seconds } more second(s).
 voice-status-connected = { $player } connected to voice.
 voice-status-disconnected = { $player } disconnected from voice.
-voice-status-connection-lost = { $player } lost the voice connection.
 voice-status-left-table = { $player } left the table.
-
 # Mute (admin moderation)
 mute-user = Mute user
 unmute-user = Unmute user
@@ -415,7 +397,6 @@ user-muted = Muted { $player } from voice chat.
 user-unmuted = Unmuted { $player }.
 you-have-been-muted = You have been muted from voice chat.
 you-have-been-unmuted = Your mute has been lifted.
-
 # Pagination controls for large server menus
 menu-page-summary = Showing { $start }-{ $end } of { $total } entries. Page { $page } of { $pages }.
 menu-page-refresh = Refresh list

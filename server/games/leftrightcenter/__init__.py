@@ -1,4 +1,4 @@
-"""Left Right Center game implementation."""
+"""Left Center Right game implementation."""
 
 from .game import LeftRightCenterGame
 

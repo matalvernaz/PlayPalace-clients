@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from server.core.server import Server
-from server.core.users.preferences import UserPreferences, DiceKeepingStyle
+from server.users.preferences import UserPreferences, DiceKeepingStyle
 from server.messages.localization import Localization
 
 
@@ -64,7 +64,7 @@ class DummyUser:
 
 @pytest.fixture
 def server(tmp_path, monkeypatch):
-    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
     srv._db = DummyDB()
     # simplify localization helpers
     monkeypatch.setattr(
@@ -76,7 +76,7 @@ def server(tmp_path, monkeypatch):
         lambda _locale="en", fallback="en": {"en": "English", "es": "Español"},
     )
     monkeypatch.setattr(
-        "server.messages.localization.Localization.get_available_locale_codes",
+        "server.messages.localization.Localization.available_locale_codes",
         lambda: ["en", "es"],
     )
     return srv
@@ -115,20 +115,6 @@ async def test_handle_options_selection_language_opens_menu(server, monkeypatch)
 
 
 @pytest.mark.asyncio
-async def test_handle_options_selection_language_warmup_in_progress(server, monkeypatch):
-    user = DummyUser("alice")
-    Localization.set_warmup_active(True)
-
-    try:
-        await server._handle_options_selection(user, "language")
-    finally:
-        Localization.set_warmup_active(False)
-
-    # User stays on the options menu (no re-show), only hears the message
-    assert user.spoken[-1][0] == "localization-in-progress-try-again"
-
-
-@pytest.mark.asyncio
 async def test_handle_dice_style_selection_changes_pref(server, monkeypatch):
     user = DummyUser("alice")
     user.preferences.dice_keeping_style = DiceKeepingStyle.PLAYPALACE
@@ -156,35 +142,6 @@ async def test_handle_language_selection_updates_locale(server, monkeypatch):
     assert server._db.locale_updates == [("alice", "es")]
     assert ("language-changed", {"language": "Español"}) in user.spoken
     assert shown.get("options")
-
-
-def test_show_language_menu_warmup_in_progress(server, monkeypatch):
-    from server.core.ui.common_flows import show_language_menu
-
-    user = DummyUser("alice")
-    Localization.set_warmup_active(True)
-
-    try:
-        result = show_language_menu(user)
-    finally:
-        Localization.set_warmup_active(False)
-
-    assert result is False
-    assert user.spoken[-1][0] == "localization-in-progress-try-again"
-
-
-@pytest.mark.asyncio
-async def test_fluent_languages_warmup_in_progress(server, monkeypatch):
-    user = DummyUser("alice")
-    Localization.set_warmup_active(True)
-
-    try:
-        await server._handle_options_selection(user, "fluent_languages")
-    finally:
-        Localization.set_warmup_active(False)
-
-    # User stays on the options menu (no re-show), only hears the message
-    assert user.spoken[-1][0] == "localization-in-progress-try-again"
 
 
 @pytest.mark.asyncio

@@ -1,18 +1,14 @@
-# Messages du jeu Scopa
+# scopa.ftl for locale fr. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Nom du jeu
 game-name-scopa = Scopa
-
 # Événements de jeu
 scopa-initial-table = Cartes de table : { $cards }
 scopa-no-initial-table = Aucune carte sur la table pour commencer.
-scopa-you-collect = Vous collectez { $cards } avec { $card }
-scopa-player-collects = { $player } collecte { $cards } avec { $card }
 scopa-you-put-down = Vous posez { $card }.
 scopa-player-puts-down = { $player } pose { $card }.
-scopa-scopa-suffix =  - SCOPA !
 scopa-clear-table-suffix = , vidant la table.
-scopa-remaining-cards = { $player } obtient les cartes de table restantes.
 scopa-scoring-round = Calcul des scores...
 scopa-most-cards = { $player } marque 1 point pour le plus de cartes ({ $count } cartes).
 scopa-most-cards-tie = Le plus de cartes est une égalité - aucun point attribué.
@@ -28,11 +24,9 @@ scopa-round-score-line = { $player } : +{ $round_score } (total : { $total_score
 scopa-table-empty = Il n'y a aucune carte sur la table.
 scopa-no-such-card = Aucune carte à cette position.
 scopa-captured-count = Vous avez capturé { $count } cartes
-
 # Actions de vue
 scopa-view-table = Voir la table
 scopa-view-captured = Voir les capturées
-
 # Options spécifiques à Scopa
 scopa-enter-target-score = Entrez le score cible (1-121)
 scopa-set-cards-per-deal = Cartes par distribution : { $cards }
@@ -46,7 +40,6 @@ scopa-select-mechanic = Sélectionnez la mécanique scopa
 scopa-toggle-instant-win = Victoire instantanée sur scopa : { $enabled }
 scopa-toggle-team-scoring = Mettre en commun les cartes d'équipe pour le score : { $enabled }
 scopa-toggle-inverse = Mode inversé (atteindre la cible = élimination) : { $enabled }
-
 # Annonces de changement d'options
 scopa-option-changed-cards = Cartes par distribution définies sur { $cards }.
 scopa-option-changed-decks = Nombre de paquets défini sur { $decks }.
@@ -56,22 +49,20 @@ scopa-option-changed-mechanic = Mécanique scopa définie sur { $mechanic }.
 scopa-option-changed-instant = Victoire instantanée sur scopa { $enabled }.
 scopa-option-changed-team-scoring = Score des cartes d'équipe { $enabled }.
 scopa-option-changed-inverse = Mode inversé { $enabled }.
-
 # Choix de mécanique scopa
 scopa-mechanic-normal = Normal
 scopa-mechanic-no_scopas = Pas de Scopas
 scopa-mechanic-only_scopas = Scopas uniquement
-
 # Raisons d'action désactivée
 scopa-timer-not-active = La minuterie de manche n'est pas active.
-
 # Erreurs de validation
-scopa-error-not-enough-cards = Pas assez de cartes dans { $decks } { $decks ->
-    [0] paquet
-    [1] paquet
-   *[other] paquets
-} pour { $players } { $players ->
-    [0] joueur
-    [1] joueur
-   *[other] joueurs
-} avec { $cards_per_deal } cartes chacun. (Besoin de { $cards_per_deal } × { $players } = { $cards_needed } cartes, mais n'en avons que { $total_cards }.)
+scopa-error-not-enough-cards =
+    Pas assez de cartes dans { $decks } { $decks ->
+        [0] paquet
+        [1] paquet
+       *[other] paquets
+    } pour { $players } { $players ->
+        [0] joueur
+        [1] joueur
+       *[other] joueurs
+    } avec { $cards_per_deal } cartes chacun. (Besoin de { $cards_per_deal } × { $players } = { $cards_needed } cartes, mais n'en avons que { $total_cards }.)

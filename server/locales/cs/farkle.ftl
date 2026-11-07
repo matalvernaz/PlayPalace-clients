@@ -1,17 +1,17 @@
-# Farkle - České zprávy hry
+# farkle.ftl for locale cs. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Informace o hře
 game-name-farkle = Farkle
-
 # Akce - Hod a Uložení
-farkle-roll = Hodit { $count } { $count ->
-    [one] kostkou
-    [few] kostkami
-    [many] kostkou
-   *[other] kostkami
-}
+farkle-roll =
+    Hodit { $count } { $count ->
+        [one] kostkou
+        [few] kostkami
+        [many] kostkou
+       *[other] kostkami
+    }
 farkle-bank = Uložit { $points } bodů
-
 # Akce skórových kombinací
 farkle-take-single-one = Jednička za { $points } bodů
 farkle-take-single-five = Pětka za { $points } bodů
@@ -24,51 +24,27 @@ farkle-take-large-straight = Velká postupka za { $points } bodů
 farkle-take-three-pairs = Tři páry za { $points } bodů
 farkle-take-double-triplets = Dvojité trojice za { $points } bodů
 farkle-take-full-house = Full house za { $points } bodů
-
-# Herní události
-farkle-rolls = { $player } hází { $count } { $count ->
-    [one] kostkou
-    [few] kostkami
-    [many] kostkou
-   *[other] kostkami
-}...
-farkle-you-roll = Házíte { $count } { $count ->
-    [one] kostkou
-    [few] kostkami
-    [many] kostkou
-   *[other] kostkami
-}...
+farkle-you-roll =
+    Házíte { $count } { $count ->
+        [one] kostkou
+        [few] kostkami
+        [many] kostkou
+       *[other] kostkami
+    }...
 farkle-roll-result = { $dice }
-farkle-farkle = FARKLE! { $player } ztrácí { $points } bodů
 farkle-you-farkle = FARKLE! Ztrácíte { $points } bodů
-farkle-takes-combo = { $player } bere { $combo } za { $points } bodů
 farkle-you-take-combo = Berete { $combo } za { $points } bodů
-farkle-hot-dice = Horké kostky!
-farkle-banks = { $player } ukládá { $points } bodů, celkem { $total }
 farkle-you-bank = Ukládáte { $points } bodů, celkem { $total }
-farkle-winner = { $player } vyhrává s { $score } body!
 farkle-you-win = Vyhráváte s { $score } body!
+farkle-winner = { $player } vyhrává s { $score } body!
 farkle-winners-tie = Remíza! Vítězové: { $players }
-
 # Kontrola skóre tahu
 farkle-turn-score = { $player } má { $points } bodů v tomto tahu.
 farkle-no-turn = Momentálně nikdo není na tahu.
-
 # Možnosti pro Farkle
 farkle-set-target-score = Cílové skóre: { $score }
 farkle-enter-target-score = Zadejte cílové skóre (500-5000):
 farkle-option-changed-target = Cílové skóre nastaveno na { $score }.
-
 # Důvody zakázaných akcí
 farkle-must-take-combo = Musíte nejprve vzít skórovací kombinaci.
 farkle-cannot-bank = Právě teď nemůžete uložit body.
-
-# Additional Farkle options
-farkle-set-initial-bank-score = Počáteční skóre pro uložení: { $score }
-farkle-enter-initial-bank-score = Zadejte počáteční skóre pro uložení (0-1000):
-farkle-option-changed-initial-bank-score = Počáteční skóre pro uložení nastaveno na { $score }.
-farkle-toggle-hot-dice-multiplier = Násobič hot dice: { $enabled }
-farkle-option-changed-hot-dice-multiplier = Násobič hot dice nastaven na { $enabled }.
-
-# Action feedback
-farkle-minimum-initial-bank-score = Minimální počáteční skóre pro uložení je { $score }.

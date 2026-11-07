@@ -18,6 +18,8 @@ from .tossup.game import TossUpGame
 from .midnight.game import MidnightGame
 from .leftrightcenter.game import LeftRightCenterGame
 from .liarsdice.game import LiarsDiceGame
+from .zombiedice.game import ZombieDiceGame
+from .deadmansdice.game import DeadMansDiceGame
 
 # --- Card games ---
 from .scopa.game import ScopaGame
@@ -34,6 +36,9 @@ from .bunko.game import BunkoGame
 from .colorgame.game import ColorGameGame
 from .uno.game import UnoGame
 from .tienlen.game import TienLenGame
+from .skipbo.game import SkipBoGame
+from .flip7.game import Flip7Game
+from .bang.game import BangGame
 
 # --- Poker family ---
 from .fivecarddraw.game import FiveCardDrawGame
@@ -52,6 +57,7 @@ from .senet.game import SenetGame
 from .mancala.game import MancalaGame
 from .numberchain.game import NumberChainGame
 from .risk.game import RiskGame
+from .monopoly.game import MonopolyGame
 
 # --- RB Play Center ---
 from .lightturret.game import LightTurretGame
@@ -67,6 +73,7 @@ from .humanitycards.game import HumanityCardsGame
 # --- Uncategorized ---
 from .rollingballs.game import RollingBallsGame
 from .metalpipe.game import MetalPipeGame
+from .bingo.game import BingoGame
 
 # --- PlayAural games ---
 from .battleship.game import BattleshipGame

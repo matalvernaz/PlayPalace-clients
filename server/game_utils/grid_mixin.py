@@ -16,23 +16,36 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .actions import Action, ActionSet, Visibility
+from mashumaro.mixins.json import DataClassJSONMixin
+
+from .actions import Action, Visibility
 from ..messages.localization import Localization
+from ..ui.keybinds import KeybindState
 
 if TYPE_CHECKING:
-    from ..games.base import Player
-    from server.core.users.base import User
+    from .player import Player
+    from ..users.base import User
 
 
 GRID_CELL_PREFIX = "grid_cell_"
 
 
 @dataclass
-class GridCursor:
+class GridCursor(DataClassJSONMixin):
     """Per-player cursor position on the grid."""
 
     row: int = 0
     col: int = 0
+
+    def __getitem__(self, index: int) -> int:
+        if index == 0:
+            return self.row
+        if index == 1:
+            return self.col
+        raise IndexError(index)
+
+    def __len__(self) -> int:
+        return 2
 
 
 class GridGameMixin:
@@ -47,8 +60,8 @@ class GridGameMixin:
         - ``self.status``
         - ``self.get_user(player) -> User | None``
         - ``self.get_active_players() -> list[Player]``
-        - ``self.rebuild_all_menus()``
-        - ``self.update_player_menu(player, selection_id=...)``
+        - ``self.refresh_menus()``
+        - ``self.request_menu_focus(player, ...)``
 
     Serialised fields (add to your Game dataclass):
         grid_rows: int
@@ -66,19 +79,40 @@ class GridGameMixin:
         """Initialise the grid state.  Call once from ``on_start``."""
         if not hasattr(self, "grid_cursors"):
             self.grid_cursors: dict[str, GridCursor] = {}
+        else:
+            self.grid_cursors = {
+                player_id: self._coerce_grid_cursor(cursor)
+                for player_id, cursor in self.grid_cursors.items()
+            }
         for player in self.get_active_players():
             if player.id not in self.grid_cursors:
                 self.grid_cursors[player.id] = GridCursor(row=0, col=0)
         if not hasattr(self, "grid_row_labels") or not self.grid_row_labels:
             self.grid_row_labels = [str(i + 1) for i in range(self.grid_rows)]
         if not hasattr(self, "grid_col_labels") or not self.grid_col_labels:
-            self.grid_col_labels = [chr(ord("A") + i) for i in range(self.grid_cols)]
+            self.grid_col_labels = [
+                chr(ord("A") + i) for i in range(self.grid_cols)
+            ]
+
+    def _coerce_grid_cursor(self, value) -> GridCursor:
+        if isinstance(value, GridCursor):
+            return value
+        if isinstance(value, (tuple, list)) and len(value) >= 2:
+            return GridCursor(row=int(value[0]), col=int(value[1]))
+        if isinstance(value, dict):
+            return GridCursor(
+                row=int(value.get("row", 0)),
+                col=int(value.get("col", 0)),
+            )
+        return GridCursor(row=0, col=0)
 
     # ------------------------------------------------------------------ #
     # Abstract — subclasses MUST override                                 #
     # ------------------------------------------------------------------ #
 
-    def get_cell_label(self, row: int, col: int, player: "Player", locale: str) -> str:
+    def get_cell_label(
+        self, row: int, col: int, player: "Player", locale: str
+    ) -> str:
         """Return the display label for one grid cell.
 
         This is what appears as the menu item text **and** what the
@@ -104,7 +138,9 @@ class GridGameMixin:
         """
         pass
 
-    def is_grid_cell_enabled(self, player: "Player", row: int, col: int) -> str | None:
+    def is_grid_cell_enabled(
+        self, player: "Player", row: int, col: int
+    ) -> str | None:
         """Return ``None`` if the cell is selectable, or a disabled-reason
         localization key if not.  Default: all cells enabled during play.
         """
@@ -114,7 +150,9 @@ class GridGameMixin:
             return "action-spectator"
         return None
 
-    def is_grid_cell_hidden(self, player: "Player", row: int, col: int) -> Visibility:
+    def is_grid_cell_hidden(
+        self, player: "Player", row: int, col: int
+    ) -> Visibility:
         """Return cell visibility.  Default: all cells visible during play."""
         if self.status != "playing":
             return Visibility.HIDDEN
@@ -128,7 +166,9 @@ class GridGameMixin:
         cursor = self.grid_cursors.get(player.id)
         if cursor is None:
             cursor = GridCursor(row=0, col=0)
-            self.grid_cursors[player.id] = cursor
+        else:
+            cursor = self._coerce_grid_cursor(cursor)
+        self.grid_cursors[player.id] = cursor
         return cursor
 
     def _clamp_cursor(self, cursor: GridCursor) -> None:
@@ -150,7 +190,9 @@ class GridGameMixin:
     # Navigation actions (server-side spatial keybinds)                   #
     # ------------------------------------------------------------------ #
 
-    def _action_grid_move(self, player: "Player", action_id: str) -> None:
+    def _action_grid_move(
+        self, player: "Player", action_id: str
+    ) -> None:
         cursor = self._get_cursor(player)
         direction = action_id.removeprefix("grid_move_")
 
@@ -172,9 +214,11 @@ class GridGameMixin:
             locale = user.locale
             label = self.get_cell_label(cursor.row, cursor.col, player, locale)
             user.speak(label, buffer="game")
-        self.update_player_menu(player, selection_id=self._cursor_cell_id(cursor))
+        self.request_menu_focus(player, self._cursor_cell_id(cursor))
 
-    def _action_grid_select(self, player: "Player", action_id: str) -> None:
+    def _action_grid_select(
+        self, player: "Player", action_id: str
+    ) -> None:
         cursor = self._get_cursor(player)
         self.on_grid_select(player, cursor.row, cursor.col)
 
@@ -207,7 +251,9 @@ class GridGameMixin:
     # Cell action callbacks (per-cell, dispatched by action_id)           #
     # ------------------------------------------------------------------ #
 
-    def _action_grid_cell(self, player: "Player", action_id: str) -> None:
+    def _action_grid_cell(
+        self, player: "Player", action_id: str
+    ) -> None:
         """Handler for tapping / clicking a grid cell (web / touch)."""
         coords = parse_grid_cell_id(action_id)
         if coords is None:
@@ -229,7 +275,9 @@ class GridGameMixin:
             return "action-not-available"
         return self.is_grid_cell_enabled(player, coords[0], coords[1])
 
-    def _is_grid_cell_hidden(self, player: "Player", *, action_id: str | None = None) -> Visibility:
+    def _is_grid_cell_hidden(
+        self, player: "Player", *, action_id: str | None = None
+    ) -> Visibility:
         if not action_id:
             return Visibility.HIDDEN
         coords = parse_grid_cell_id(action_id)
@@ -237,7 +285,9 @@ class GridGameMixin:
             return Visibility.HIDDEN
         return self.is_grid_cell_hidden(player, coords[0], coords[1])
 
-    def _get_grid_cell_label(self, player: "Player", action_id: str) -> str:
+    def _get_grid_cell_label(
+        self, player: "Player", action_id: str
+    ) -> str:
         coords = parse_grid_cell_id(action_id)
         if coords is None:
             return action_id
@@ -258,12 +308,8 @@ class GridGameMixin:
         These server-side keybinds are a fallback for the select action
         and for any client that doesn't support native grid mode.
         """
-        from server.core.ui.keybinds import KeybindState
-
         self.define_keybind(
-            "enter",
-            "Select cell",
-            ["grid_select"],
+            "enter", "Select cell", ["grid_select"],
             state=KeybindState.ACTIVE,
         )
 
@@ -335,13 +381,22 @@ class GridGameMixin:
             return {}
         return {
             "grid_enabled": True,
+            "grid_height": self.grid_rows,
             "grid_width": self.grid_cols,
         }
 
     def _grid_cell_coordinate(self, row: int, col: int) -> str:
         """Return the human-readable coordinate label, e.g. 'A1'."""
-        col_label = self.grid_col_labels[col] if col < len(self.grid_col_labels) else str(col)
-        row_label = self.grid_row_labels[row] if row < len(self.grid_row_labels) else str(row)
+        col_label = (
+            self.grid_col_labels[col]
+            if col < len(self.grid_col_labels)
+            else str(col)
+        )
+        row_label = (
+            self.grid_row_labels[row]
+            if row < len(self.grid_row_labels)
+            else str(row)
+        )
         return f"{col_label}{row_label}"
 
 

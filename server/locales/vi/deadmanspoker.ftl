@@ -1,5 +1,7 @@
-game-name-deadmanspoker = Poker Tử Thần
+# deadmanspoker.ftl for locale vi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-deadmanspoker = Poker Tử Thần
 deadmanspoker-call = Theo
 deadmanspoker-match-all-in = Theo tất tay
 deadmanspoker-fold = Bỏ bài
@@ -11,7 +13,6 @@ deadmanspoker-read-community-cards = Đọc bài chung
 deadmanspoker-read-hand-value = Đọc sức mạnh tay bài
 deadmanspoker-read-table = Đọc tình hình bàn
 deadmanspoker-read-revolvers = Đọc rủi ro ổ đạn
-
 deadmanspoker-action-sequence-running = Hãy chờ diễn biến hiện tại kết thúc.
 deadmanspoker-action-eliminated = Bạn đã bị loại.
 deadmanspoker-action-folded = Bạn đã rời khỏi ván bài này.
@@ -22,15 +23,14 @@ deadmanspoker-already-matched-all-in = Bạn đã theo mức tất tay rồi.
 deadmanspoker-coward-used = Bạn đã dùng Bỏ non trong trận này.
 deadmanspoker-coward-first-decision-only = Bỏ non chỉ dùng được ở quyết định đầu tiên của một ván bài.
 deadmanspoker-all-in-too-early = Tất tay chỉ dùng được từ vòng cược 2, sau khi ba lá bài chung đầu tiên đã được lật.
+deadmanspoker-all-in-after-switch = Bạn không thể Tất tay trong cùng lượt vừa Đổi bài. Hãy Theo hoặc Bỏ bài để kết thúc lượt này.
 deadmanspoker-switch-not-now = Lúc này bạn không thể đổi bài.
-deadmanspoker-switch-used = Bạn đã đổi bài trong ván này rồi.
+deadmanspoker-switch-used = Bạn đã dùng Đổi bài trong trận này rồi.
 deadmanspoker-switch-too-late = Đã quá muộn để đổi bài.
 deadmanspoker-switch-no-cards = Bạn không có lá bài riêng nào để đổi.
 deadmanspoker-switch-no-deck = Bộ bài không còn đủ lá thay thế.
 deadmanspoker-switch-choice-missing = Lá thay thế đó không còn khả dụng.
-
 deadmanspoker-match-start = Poker Tử Thần bắt đầu. Mỗi viên đạn trên bàn là một lời cược bằng mạng sống.
-deadmanspoker-hand-start = Ván { $hand }. Mỗi người còn tham gia đặt viên đạn đầu tiên.
 deadmanspoker-hand-start-all-alive = Ván { $hand }. Tất cả người chơi đặt viên đạn đầu tiên.
 deadmanspoker-hand-start-survivors = Ván { $hand }. Mỗi người còn sống đặt viên đạn đầu tiên.
 deadmanspoker-community-arrives = Năm lá bài chung được đặt úp trên bàn.
@@ -65,7 +65,6 @@ deadmanspoker-showdown-tie-no-penalty = Màn so bài hòa tuyệt đối. Không
 deadmanspoker-you-win-hand = Bạn thắng ván bài vì không còn ai tranh chấp.
 deadmanspoker-hand-winner = { $player } thắng ván bài vì không còn ai tranh chấp.
 deadmanspoker-hand-no-winner = Ván bài này không có người thắng.
-
 deadmanspoker-roulette-start = Màn bóp cò bắt đầu cho { $players }.
 deadmanspoker-you-load-bullets = Bạn nạp { $bullets } viên đạn.
 deadmanspoker-load-bullets = { $player } nạp { $bullets } viên đạn.
@@ -77,7 +76,6 @@ deadmanspoker-you-win-game = Bạn là người sống sót cuối cùng và th�
 deadmanspoker-player-wins = { $player } là người sống sót cuối cùng và thắng Poker Tử Thần.
 deadmanspoker-no-winner = Không xác định được người thắng.
 deadmanspoker-you-are-eliminated = Bạn đã bị loại khỏi trận này.
-
 deadmanspoker-table-hand = Ván { $hand }, vòng cược { $round_stage }.
 deadmanspoker-table-community = Bài chung: { $cards }. Bài úp: { $hidden }.
 deadmanspoker-community-status = Bài chung: { $cards }. Bài úp: { $hidden }.
@@ -90,14 +88,12 @@ deadmanspoker-status-active = còn trong ván
 deadmanspoker-status-folded = đã bỏ bài
 deadmanspoker-status-eliminated = đã gục
 deadmanspoker-status-waiting = đang chờ
-
 deadmanspoker-revolvers-header = Rủi ro ổ đạn
 deadmanspoker-revolver-status = { $player }: đã đặt { $bullets } viên đạn; { $risk }.
 deadmanspoker-revolver-eliminated = { $player }: đã gục.
 deadmanspoker-risk-none = chưa có rủi ro bóp cò
 deadmanspoker-risk-normal = nguy cơ chết { $bullets } trên 8
 deadmanspoker-risk-eight = nguy cơ chết 95 phần trăm, 5 phần trăm cơ hội thoát chết
-
 deadmanspoker-results-header = Kết quả Poker Tử Thần
 deadmanspoker-results-winner = Người sống sót: { $player }.
 deadmanspoker-results-survived = còn sống

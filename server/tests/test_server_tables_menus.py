@@ -8,7 +8,8 @@ from types import SimpleNamespace
 import pytest
 
 from server.core.server import Server
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
+from server.persistence.game_format import GAME_ENGINE_FORMAT
 
 
 class DummyUser:
@@ -60,7 +61,7 @@ class DummyGame:
     def broadcast_sound(self, name: str):
         self.sounds.append(name)
 
-    def rebuild_all_menus(self):
+    def refresh_menus(self, player=None):
         return None
 
     def get_player_by_id(self, pid):
@@ -105,7 +106,7 @@ class DummyDB:
 
 @pytest.fixture
 def server(tmp_path, monkeypatch):
-    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
     monkeypatch.setattr(
         "server.messages.localization.Localization.get",
         lambda _locale, key, **kwargs: key,
@@ -162,7 +163,7 @@ class StubGameInstance:
     def setup_keybinds(self):
         return None
 
-    def rebuild_all_menus(self):
+    def refresh_menus(self, player=None):
         return None
 
     def broadcast_l(self, message_id, **kwargs):
@@ -310,6 +311,7 @@ def test_restore_saved_table_success(server, monkeypatch):
         game_type="stub",
         members_json='[{"username": "alice", "is_bot": false}, {"username": "bot", "is_bot": true}]',
         game_json="{}",
+        game_engine=GAME_ENGINE_FORMAT,
     )
     db = DummyDB(saved=[record])
     server._db = db

@@ -4,15 +4,7 @@ from __future__ import annotations
 
 
 def order_after_button(active_ids: list[str], button_id: str | None) -> list[str]:
-    """Return seat order starting left of the button.
-
-    Args:
-        active_ids: Active player ids in seat order.
-        button_id: Current dealer/button player id.
-
-    Returns:
-        Ordered list starting left of the button, or active_ids if no button.
-    """
+    """Return seat order starting left of the button."""
     if not active_ids:
         return []
     if button_id and button_id in active_ids:

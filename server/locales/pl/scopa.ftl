@@ -1,19 +1,14 @@
-# Scopa game messages
-# Note: Common messages like round-start, turn-start, target-score, team-mode are in games.ftl
+# scopa.ftl for locale pl. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name
 game-name-scopa = Scopa
-
 # Game events
 scopa-initial-table = Table cards: { $cards }
 scopa-no-initial-table = No cards on the table to start.
-scopa-you-collect = You collect { $cards } with { $card }
-scopa-player-collects = { $player } collects { $cards } with { $card }
 scopa-you-put-down = You put down { $card }.
 scopa-player-puts-down = { $player } puts down { $card }.
-scopa-scopa-suffix =  - SCOPA!
 scopa-clear-table-suffix = , clearing the table.
-scopa-remaining-cards = { $player } gets the remaining table cards.
 scopa-scoring-round = Scoring round...
 scopa-most-cards = { $player } scores 1 point for most cards ({ $count } cards).
 scopa-most-cards-tie = Most cards is a tie - no point awarded.
@@ -29,11 +24,9 @@ scopa-round-score-line = { $player }: +{ $round_score } (total: { $total_score }
 scopa-table-empty = There are no cards on the table.
 scopa-no-such-card = No card at that position.
 scopa-captured-count = You have captured { $count } cards
-
 # View actions
 scopa-view-table = View table
 scopa-view-captured = View captured
-
 # Scopa-specific options
 scopa-enter-target-score = Enter target score (1-121)
 scopa-set-cards-per-deal = Cards per deal: { $cards }
@@ -47,7 +40,6 @@ scopa-select-mechanic = Select scopa mechanic
 scopa-toggle-instant-win = Instant win on scopa: { $enabled }
 scopa-toggle-team-scoring = Pool team cards for scoring: { $enabled }
 scopa-toggle-inverse = Inverse mode (reach target = elimination): { $enabled }
-
 # Option change announcements
 scopa-option-changed-cards = Cards per deal set to { $cards }.
 scopa-option-changed-decks = Number of decks set to { $decks }.
@@ -57,11 +49,9 @@ scopa-option-changed-mechanic = Scopa mechanic set to { $mechanic }.
 scopa-option-changed-instant = Instant win on scopa { $enabled }.
 scopa-option-changed-team-scoring = Team card scoring { $enabled }.
 scopa-option-changed-inverse = Inverse mode { $enabled }.
-
 # Scopa mechanic choices
 scopa-mechanic-normal = Normal
 scopa-mechanic-no_scopas = No Scopas
 scopa-mechanic-only_scopas = Scopas Only
-
 # Disabled action reasons
 scopa-timer-not-active = The round timer is not active.

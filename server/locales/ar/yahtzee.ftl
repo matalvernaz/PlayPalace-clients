@@ -1,94 +1,223 @@
-# Yahtzee game messages
+# yahtzee.ftl for locale ar. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game info
-game-name-yahtzee = يات زي
-
-# Actions - Rolling
-yahtzee-roll = إعادة رمي ({ $count } متبقي)
+game-name-yahtzee = ياتزي
+yahtzee-roll = إعادة الرمي (تبقّى { $count })
 yahtzee-roll-all = ارمِ النرد
-
-# Upper section scoring categories
-yahtzee-score-ones = واحدات بـ { $points } نقطة
-yahtzee-score-twos = اثنينات بـ { $points } نقطة
-yahtzee-score-threes = ثلاثات بـ { $points } نقطة
-yahtzee-score-fours = أربعات بـ { $points } نقطة
-yahtzee-score-fives = خمسات بـ { $points } نقطة
-yahtzee-score-sixes = ستات بـ { $points } نقطة
-
-# Lower section scoring categories
-yahtzee-score-three-kind = ثلاثة من نوع بـ { $points } نقطة
-yahtzee-score-four-kind = أربعة من نوع بـ { $points } نقطة
-yahtzee-score-full-house = فل هاوس بـ { $points } نقطة
-yahtzee-score-small-straight = سلسلة صغيرة بـ { $points } نقطة
-yahtzee-score-large-straight = سلسلة كبيرة بـ { $points } نقطة
-yahtzee-score-yahtzee = يات زي بـ { $points } نقطة
-yahtzee-score-chance = فرصة بـ { $points } نقطة
-
-# Game events
-yahtzee-you-rolled = رميت: { $dice }. رميات متبقية: { $remaining }
-yahtzee-player-rolled = { $player } رمى: { $dice }. رميات متبقية: { $remaining }
-
-# Scoring announcements
-yahtzee-you-scored = سجلت { $points } نقطة في { $category }.
-yahtzee-player-scored = { $player } سجل { $points } في { $category }.
-
-# Yahtzee bonus
-yahtzee-you-bonus = مكافأة يات زي! +100 نقطة
-yahtzee-player-bonus = { $player } حصل على مكافأة يات زي! +100 نقطة
-
-# Upper section bonus
+yahtzee-score-ones =
+    خانة الواحد مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-twos =
+    خانة الاثنين مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-threes =
+    خانة الثلاثة مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-fours =
+    خانة الأربعة مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-fives =
+    خانة الخمسة مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-sixes =
+    خانة الستة مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-three-kind =
+    ثلاثة متشابهة مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-four-kind =
+    أربعة متشابهة مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-full-house =
+    فُل هاوس مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-small-straight =
+    ستريت صغير مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-large-straight =
+    ستريت كبير مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-yahtzee =
+    ياتزي مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-score-chance =
+    الفرصة مقابل { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }
+yahtzee-you-rolled =
+    رميت: { $dice }. { $remaining ->
+        [0] اختر فئة تسجيل.
+       *[other]
+            { $remaining } { $remaining ->
+                [one] رمية
+                [two] رميتان
+                [few] رميات
+                [many] رمية
+               *[other] رمية
+            } متبقّية.
+    }
+yahtzee-player-rolled =
+    رمى { $player }: { $dice }. { $remaining ->
+        [0] { GENDER_TERM($player_gender, "subject-capitalized") } بحاجة إلى اختيار فئة تسجيل.
+       *[other]
+            { $remaining } { $remaining ->
+                [one] رمية
+                [two] رميتان
+                [few] رميات
+                [many] رمية
+               *[other] رمية
+            } متبقّية.
+    }
+yahtzee-you-rolled-brief = رميت: { $dice }.
+yahtzee-player-rolled-brief = رمى { $player }: { $dice }.
+yahtzee-you-scored =
+    سجّلت { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    } في { $category }.
+yahtzee-player-scored =
+    سجّل { $player } { $points } { $points ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    } في { $category }.
+yahtzee-you-scored-brief = { $points } في { $category }.
+yahtzee-player-scored-brief = { $player }: { $points } في { $category }.
+yahtzee-you-bonus = مكافأة ياتزي! +100 نقطة
+yahtzee-player-bonus = حصل { $player } على مكافأة ياتزي! +100 نقطة
+yahtzee-you-bonus-brief = مكافأة ياتزي، +100.
+yahtzee-player-bonus-brief = { $player }: مكافأة ياتزي، +100.
 yahtzee-you-upper-bonus = مكافأة القسم العلوي! +35 نقطة ({ $total } في القسم العلوي)
-yahtzee-player-upper-bonus = { $player } حصل على مكافأة القسم العلوي! +35 نقطة
-yahtzee-you-upper-bonus-missed = فاتتك مكافأة القسم العلوي ({ $total } في القسم العلوي، كنت بحاجة إلى 63).
-yahtzee-player-upper-bonus-missed = { $player } فاتته مكافأة القسم العلوي.
-
-# Scoring mode
-yahtzee-choose-category = اختر فئة للتسجيل فيها.
-yahtzee-continuing = متابعة الدور.
-
-# Status checks
-yahtzee-check-scoresheet = تحقق من بطاقة النتائج
-yahtzee-view-dice = تحقق من نردك
+yahtzee-player-upper-bonus = حصل { $player } على مكافأة القسم العلوي! +35 نقطة ({ $total } في القسم العلوي)
+yahtzee-you-upper-bonus-brief = مكافأة القسم العلوي، +35.
+yahtzee-player-upper-bonus-brief = { $player }: مكافأة القسم العلوي، +35.
+yahtzee-you-upper-bonus-missed = فاتتك مكافأة القسم العلوي. سجّلت { $total }؛ كنت بحاجة إلى { $needed } إضافية.
+yahtzee-player-upper-bonus-missed = فاتت { $player } مكافأة القسم العلوي بـ { $total } في القسم العلوي، بنقص { $needed }.
+yahtzee-you-upper-bonus-missed-brief = فاتت مكافأة القسم العلوي؛ بنقص { $needed }.
+yahtzee-player-upper-bonus-missed-brief = { $player }: فاتت مكافأة القسم العلوي، بنقص { $needed }.
+yahtzee-check-scoresheet = عرض بطاقة النتائج
+yahtzee-check-all-scorecards = عرض بطاقة النتائج لكل اللاعبين
+yahtzee-select-scorecard-player = اختر بطاقة نتائج لاعب.
+yahtzee-scorecard-no-players = لا يملك أي لاعب نشط بطاقة نتائج في هذه اللعبة بعد.
+yahtzee-scorecard-player-unavailable = لم يعد ذلك اللاعب متاحًا للعرض. افتح قائمة بطاقات النتائج مجددًا واختر لاعبًا نشطًا.
+yahtzee-view-dice = عرض اليد
 yahtzee-your-dice = نردك: { $dice }.
-yahtzee-your-dice-kept = نردك: { $dice }. الاحتفاظ بـ: { $kept }
-yahtzee-not-rolled = لم ترمِ بعد.
-
-# Scoresheet display
-yahtzee-scoresheet-header = === بطاقة نتائج { $player } ===
+yahtzee-your-dice-kept = نردك: { $dice }. المحتفظ به: { $kept }.
+yahtzee-current-dice = نرد { $player }: { $dice }.
+yahtzee-current-dice-kept = نرد { $player }: { $dice }. المحتفظ به: { $kept }.
+yahtzee-not-rolled = لم يرمِ اللاعب الحالي بعد.
+yahtzee-scoresheet-header = بطاقة نتائج { $player }
 yahtzee-scoresheet-upper = القسم العلوي:
 yahtzee-scoresheet-lower = القسم السفلي:
-yahtzee-scoresheet-category-filled = { $category }: { $points }
-yahtzee-scoresheet-category-open = { $category }: -
-yahtzee-scoresheet-upper-total-bonus = المجموع العلوي: { $total } (مكافأة: +35)
-yahtzee-scoresheet-upper-total-needed = المجموع العلوي: { $total } ({ $needed } أخرى للمكافأة)
-yahtzee-scoresheet-yahtzee-bonus = مكافآت يات زي: { $count } × 100 = { $total }
-yahtzee-scoresheet-grand-total = المجموع الكلي: { $total }
-
-# Category names (for announcements)
-yahtzee-category-ones = واحدات
-yahtzee-category-twos = اثنينات
-yahtzee-category-threes = ثلاثات
-yahtzee-category-fours = أربعات
-yahtzee-category-fives = خمسات
-yahtzee-category-sixes = ستات
-yahtzee-category-three-kind = ثلاثة من نوع
-yahtzee-category-four-kind = أربعة من نوع
-yahtzee-category-full-house = فل هاوس
-yahtzee-category-small-straight = سلسلة صغيرة
-yahtzee-category-large-straight = سلسلة كبيرة
-yahtzee-category-yahtzee = يات زي
-yahtzee-category-chance = فرصة
-
-# Game end
-yahtzee-winner = { $player } يفوز بـ { $score } نقطة!
-yahtzee-winners-tie = إنه تعادل! { $players } جميعهم سجلوا { $score } نقطة!
-
-# Options
+yahtzee-scoresheet-upper-total-bonus = مجموع القسم العلوي: { $total } (مكافأة: +35)
+yahtzee-scoresheet-upper-total-needed = مجموع القسم العلوي: { $total } ({ $needed } إضافية للمكافأة)
+yahtzee-scoresheet-yahtzee-bonus = مكافآت ياتزي: { $count } × 100 = { $total }
+yahtzee-scoresheet-grand-total = النتيجة الإجمالية: { $total }
+yahtzee-category-ones = خانة الواحد
+yahtzee-category-twos = خانة الاثنين
+yahtzee-category-threes = خانة الثلاثة
+yahtzee-category-fours = خانة الأربعة
+yahtzee-category-fives = خانة الخمسة
+yahtzee-category-sixes = خانة الستة
+yahtzee-category-three-kind = ثلاثة متشابهة
+yahtzee-category-four-kind = أربعة متشابهة
+yahtzee-category-full-house = فُل هاوس
+yahtzee-category-small-straight = ستريت صغير
+yahtzee-category-large-straight = ستريت كبير
+yahtzee-category-yahtzee = ياتزي
+yahtzee-category-chance = الفرصة
+yahtzee-you-win =
+    تفوز بـ { $score } { $score ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }!
+yahtzee-player-wins =
+    يفوز { $player } بـ { $score } { $score ->
+        [one] نقطة
+        [two] نقطتان
+        [few] نقاط
+        [many] نقطة
+       *[other] نقطة
+    }!
+yahtzee-winners-tie = إنه تعادل! سجّل { $players } جميعًا { $score } نقطة!
 yahtzee-set-rounds = عدد الألعاب: { $rounds }
 yahtzee-enter-rounds = أدخل عدد الألعاب (1-10):
-yahtzee-option-changed-rounds = تم تعيين عدد الألعاب إلى { $rounds }.
-
-# Disabled action reasons
-yahtzee-no-rolls-left = لا توجد لديك رميات متبقية.
-yahtzee-roll-first = تحتاج إلى الرمي أولاً.
-yahtzee-category-filled = هذه الفئة ممتلئة بالفعل.
+yahtzee-option-changed-rounds = تم ضبط عدد الألعاب على { $rounds }.
+yahtzee-desc-num-games = عدد بطاقات نتائج ياتزي الكاملة التي تُلعب قبل مقارنة المجاميع النهائية (الافتراضي 1، المدى 1-10).
+yahtzee-no-rolls-left = لم تتبقَّ لك رميات؛ اختر فئة تسجيل مفتوحة لإنهاء دورك.
+yahtzee-roll-first = ارمِ النرد قبل اختيار فئة تسجيل.
+yahtzee-category-filled = تلك الفئة لديها نتيجة بالفعل. اختر فئة ما زالت مفتوحة في بطاقة نتائجك.
+yahtzee-joker-upper-required = قاعدة الجوكر: لأن هذا الياتزي يُظهر { $face }، يجب أن تسجّل في خانة القسم العلوي الخاصة بـ { $face } قبل أي فئة أخرى.
+yahtzee-joker-lower-required = قاعدة الجوكر: خانة القسم العلوي الخاصة بـ { $face } ممتلئة بالفعل، لذا يجب أن تختار فئة مفتوحة في القسم السفلي قبل استخدام خانة أخرى في القسم العلوي.

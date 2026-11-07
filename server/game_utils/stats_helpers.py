@@ -1,13 +1,8 @@
-"""
-Stats helper utilities for leaderboards and player ratings.
-
-Provides:
-- LeaderboardHelper: Build leaderboards from game results
-- RatingHelper: Track player skill ratings using OpenSkill (Plackett-Luce model)
-"""
+"""Skill-rating helpers and canonical competitive-result encoding."""
 
 from dataclasses import dataclass
-from typing import Any, Callable, TYPE_CHECKING
+import math
+from typing import Any, Iterable, TYPE_CHECKING
 
 from openskill.models import PlackettLuce
 
@@ -16,168 +11,71 @@ if TYPE_CHECKING:
     from ..persistence.database import Database
 
 
-@dataclass
-class LeaderboardEntry:
-    """Entry in a leaderboard.
+RATING_COMPETITORS_KEY = "rating_competitors"
+RATING_CONFIDENCE_Z = 3.0
 
-    Attributes:
-        player_id: Player UUID.
-        player_name: Display name.
-        value: Aggregated metric value.
-        rank: 1-based rank.
+
+def rating_competitors_from_scores(
+    ranked_competitors: Iterable[tuple[Iterable[str], Any]],
+) -> list[dict[str, Any]]:
+    """Encode already-sorted competitors with dense ranks and UUID identities.
+
+    Each competitor is either one player or a real cooperating team. Equal
+    score values receive the same rank. Games remain responsible for ordering
+    the values according to their own rules before calling this helper.
     """
+    encoded: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    previous_score: Any = object()
+    rank = -1
 
-    player_id: str
-    player_name: str
-    value: int | float
-    rank: int
+    for player_ids, score in ranked_competitors:
+        normalized_ids = list(player_ids)
+        if not normalized_ids or any(
+            not isinstance(player_id, str) or not player_id
+            for player_id in normalized_ids
+        ):
+            raise ValueError("rating competitors require non-empty player ids")
+        if len(set(normalized_ids)) != len(normalized_ids):
+            raise ValueError("a rating competitor contains duplicate player ids")
+        duplicate_ids = seen_ids.intersection(normalized_ids)
+        if duplicate_ids:
+            raise ValueError("a player cannot belong to multiple rating competitors")
 
+        if rank == -1 or score != previous_score:
+            rank += 1
+        encoded.append({"player_ids": normalized_ids, "rank": rank})
+        seen_ids.update(normalized_ids)
+        previous_score = score
 
-class LeaderboardHelper:
-    """Build leaderboards from game results.
-
-    Supports aggregation modes (sum, max, avg, count) and custom score
-    extraction functions.
-    """
-
-    @staticmethod
-    def build_from_results(
-        results: list["GameResult"],
-        score_extractor: Callable[["GameResult", str], int | float | None],
-        aggregate: str = "sum",
-    ) -> list[LeaderboardEntry]:
-        """
-        Build a leaderboard from game results.
-
-        Args:
-            results: List of game results to aggregate
-            score_extractor: Function that extracts a score for a player from a result.
-                             Takes (result, player_id) and returns score or None.
-            aggregate: Aggregation mode - "sum", "max", "avg", or "count"
-
-        Returns:
-            Sorted list of LeaderboardEntry (highest first)
-
-        Example:
-            # Total points scored across all Pig games
-            leaderboard = LeaderboardHelper.build_from_results(
-                results,
-                score_extractor=lambda r, pid: r.custom_data.get("final_scores", {}).get(pid),
-                aggregate="sum"
-            )
-        """
-        # Collect scores per player
-        player_scores: dict[str, list[int | float]] = {}
-        player_names: dict[str, str] = {}
-
-        for result in results:
-            for player in result.player_results:
-                if player.is_bot and not player.is_virtual_bot:
-                    continue  # Skip table bots in leaderboards (but include virtual bots)
-
-                score = score_extractor(result, player.player_id)
-                if score is not None:
-                    if player.player_id not in player_scores:
-                        player_scores[player.player_id] = []
-                        player_names[player.player_id] = player.player_name
-                    player_scores[player.player_id].append(score)
-
-        # Aggregate scores
-        aggregated: dict[str, int | float] = {}
-        for player_id, scores in player_scores.items():
-            if aggregate == "sum":
-                aggregated[player_id] = sum(scores)
-            elif aggregate == "max":
-                aggregated[player_id] = max(scores)
-            elif aggregate == "avg":
-                aggregated[player_id] = sum(scores) / len(scores) if scores else 0
-            elif aggregate == "count":
-                aggregated[player_id] = len(scores)
-            else:
-                raise ValueError(f"Unknown aggregate mode: {aggregate}")
-
-        # Sort and build entries
-        sorted_players = sorted(aggregated.items(), key=lambda x: x[1], reverse=True)
-
-        entries = []
-        for rank, (player_id, value) in enumerate(sorted_players, 1):
-            entries.append(
-                LeaderboardEntry(
-                    player_id=player_id,
-                    player_name=player_names[player_id],
-                    value=value,
-                    rank=rank,
-                )
-            )
-
-        return entries
-
-    @staticmethod
-    def build_wins_leaderboard(
-        results: list["GameResult"],
-        winner_extractor: Callable[["GameResult"], str | None] = None,
-    ) -> list[LeaderboardEntry]:
-        """
-        Build a leaderboard based on win count.
-
-        Args:
-            results: List of game results
-            winner_extractor: Function to extract winner player_id from result.
-                              Defaults to checking custom_data["winner_name"].
-
-        Returns:
-            Sorted list of LeaderboardEntry by wins (highest first)
-        """
-        if winner_extractor is None:
-            # Default: look up winner by name in player_results
-            def winner_extractor(r: "GameResult") -> str | None:
-                """Extract winner player_id from the GameResult."""
-                winner_name = r.custom_data.get("winner_name")
-                if winner_name:
-                    for p in r.player_results:
-                        if p.player_name == winner_name:
-                            return p.player_id
-                return None
-
-        def score_extractor(result: "GameResult", player_id: str) -> int | None:
-            """Return 1 for wins, 0 otherwise for leaderboard aggregation."""
-            winner_id = winner_extractor(result)
-            if winner_id == player_id:
-                return 1
-            return 0
-
-        return LeaderboardHelper.build_from_results(results, score_extractor, aggregate="sum")
+    return encoded
 
 
 @dataclass
 class PlayerRating:
-    """Player skill rating values.
-
-    Attributes:
-        player_id: Player UUID.
-        mu: Mean skill estimate.
-        sigma: Uncertainty (standard deviation).
-    """
+    """A player's skill rating."""
 
     player_id: str
     mu: float  # Mean skill estimate
     sigma: float  # Uncertainty (standard deviation)
 
     @property
-    def ordinal(self) -> float:
-        """Conservative skill estimate (mu - 3*sigma)."""
-        return self.mu - 3 * self.sigma
-
-    def __str__(self) -> str:
-        """Return a formatted rating string."""
-        return f"{self.mu:.1f} ± {self.sigma:.1f}"
+    def skill_score(self) -> float:
+        """Return the stable player-facing score derived from model state."""
+        return self.mu - RATING_CONFIDENCE_Z * self.sigma
 
 
 class RatingHelper:
-    """Track player ratings using OpenSkill (Plackett-Luce).
+    """
+    Helper for tracking player skill ratings using OpenSkill.
 
-    Supports multi-player games, teams, and ties. Ratings are persisted per
-    game type and updated after each completed game.
+    Uses the Plackett-Luce model which supports:
+    - Any number of players (not just 2)
+    - Teams
+    - Ties (players in same rank group)
+
+    Existing ratings are read from the database, while update calculation is
+    pure so the result and all resulting ratings can be committed atomically.
     """
 
     # Default rating values (same as OpenSkill defaults)
@@ -202,67 +100,99 @@ class RatingHelper:
 
         Returns default rating if player has no rating history.
         """
-        result = self.db.get_player_rating(player_id, self.game_type)
-        if result:
-            mu, sigma = result
-            return PlayerRating(player_id=player_id, mu=mu, sigma=sigma)
+        existing = self.get_existing_rating(player_id)
+        if existing is not None:
+            return existing
         return PlayerRating(
             player_id=player_id,
             mu=self.DEFAULT_MU,
             sigma=self.DEFAULT_SIGMA,
         )
 
+    def get_existing_rating(self, player_id: str) -> PlayerRating | None:
+        """Return a persisted rating, or ``None`` before the first rated match."""
+        result = self.db.get_player_rating(player_id, self.game_type)
+        if result is None:
+            return None
+        mu, sigma = result
+        return PlayerRating(player_id=player_id, mu=mu, sigma=sigma)
+
     def get_ratings(self, player_ids: list[str]) -> dict[str, PlayerRating]:
         """Get ratings for multiple players."""
         return {pid: self.get_rating(pid) for pid in player_ids}
 
-    def update_ratings(
+    def calculate_updates(
         self,
-        rankings: list[list[str]],
+        teams: list[list[str]],
+        ranks: list[int] | None = None,
     ) -> dict[str, PlayerRating]:
         """
-        Update ratings based on game outcome.
+        Calculate rating updates without writing them to persistence.
 
         Args:
-            rankings: Ordered list of player groups by placement.
-                      First group = 1st place, second = 2nd place, etc.
-                      Players in same group = tie for that position.
+            teams: Competitors in the match. Each inner list is either a
+                   single player or a true team of cooperating players.
+            ranks: Optional placement ranks aligned with ``teams``.
+                   Lower values are better. Equal values indicate ties.
 
         Returns:
             Dictionary of updated ratings for all players.
 
         Example:
             # Alice won, Bob and Charlie tied for 2nd
-            helper.update_ratings([["alice_id"], ["bob_id", "charlie_id"]])
+            helper.calculate_updates(
+                [["alice_id"], ["bob_id"], ["charlie_id"]],
+                ranks=[0, 1, 1],
+            )
 
-            # Free-for-all: Alice 1st, Bob 2nd, Charlie 3rd
-            helper.update_ratings([["alice"], ["bob"], ["charlie"]])
+            # Team game: Alice and Bob beat Charlie and Dana
+            helper.calculate_updates(
+                [["alice", "bob"], ["charlie", "dana"]],
+                ranks=[0, 1],
+            )
         """
-        # Flatten to get all player IDs
-        all_players = [pid for group in rankings for pid in group]
+        if ranks is not None and len(ranks) != len(teams):
+            raise ValueError("rating ranks must align with competitors")
+        if ranks is not None and any(
+            isinstance(rank, bool) or not isinstance(rank, int) or rank < 0
+            for rank in ranks
+        ):
+            raise ValueError("rating ranks must be non-negative integers")
 
-        # Get current ratings
+        all_players = [pid for group in teams for pid in group]
+        if any(not group for group in teams):
+            raise ValueError("rating competitors cannot be empty")
+        if any(not isinstance(pid, str) or not pid for pid in all_players):
+            raise ValueError("rating player ids must be non-empty strings")
+        if len(set(all_players)) != len(all_players):
+            raise ValueError("a player cannot appear in multiple rating competitors")
+        if len(teams) < 2:
+            return {}
+
         current_ratings = self.get_ratings(all_players)
 
-        # Convert to OpenSkill format
-        teams = []
-        for group in rankings:
+        model_teams = []
+        for group in teams:
             team_ratings = []
             for pid in group:
                 r = current_ratings[pid]
+                if not math.isfinite(r.mu) or not math.isfinite(r.sigma) or r.sigma <= 0:
+                    raise ValueError("stored ratings must be finite with positive sigma")
                 team_ratings.append(self.model.rating(mu=r.mu, sigma=r.sigma))
-            teams.append(team_ratings)
+            model_teams.append(team_ratings)
 
-        # Calculate new ratings
-        new_teams = self.model.rate(teams)
-
-        # Update database and build result
+        new_teams = self.model.rate(model_teams, ranks=ranks)
         updated_ratings: dict[str, PlayerRating] = {}
 
-        for group_idx, group in enumerate(rankings):
+        for group_idx, group in enumerate(teams):
             for player_idx, pid in enumerate(group):
                 new_rating = new_teams[group_idx][player_idx]
-                self.db.set_player_rating(pid, self.game_type, new_rating.mu, new_rating.sigma)
+                if (
+                    not math.isfinite(new_rating.mu)
+                    or not math.isfinite(new_rating.sigma)
+                    or new_rating.sigma <= 0
+                ):
+                    raise ValueError("rating model produced an invalid rating")
                 updated_ratings[pid] = PlayerRating(
                     player_id=pid,
                     mu=new_rating.mu,
@@ -271,76 +201,103 @@ class RatingHelper:
 
         return updated_ratings
 
-    def update_from_result(
-        self,
+    @staticmethod
+    def extract_teams_and_ranks(
         result: "GameResult",
-        ranking_extractor: Callable[["GameResult"], list[list[str]]] | None = None,
-    ) -> dict[str, PlayerRating]:
-        """
-        Update ratings from a GameResult.
+    ) -> tuple[list[list[str]], list[int]]:
+        """Build validated OpenSkill competitors from immutable result ids."""
+        human_players = [p for p in result.player_results if not p.is_bot]
+        if not human_players:
+            return [], []
+        all_player_ids = [player.player_id for player in result.player_results]
+        if any(not player_id for player_id in all_player_ids):
+            raise ValueError("game results cannot contain empty player ids")
+        if len(set(all_player_ids)) != len(all_player_ids):
+            raise ValueError("game results cannot contain duplicate player ids")
+        human_ids = {player.player_id for player in human_players}
+        result_ids = set(all_player_ids)
 
-        Args:
-            result: The game result
-            ranking_extractor: Function to extract rankings from result.
-                               Defaults to simple winner-vs-rest extraction.
+        encoded_competitors = result.custom_data.get(RATING_COMPETITORS_KEY)
+        if encoded_competitors is not None:
+            if not isinstance(encoded_competitors, list) or not encoded_competitors:
+                raise ValueError("rating competitors must be a non-empty list")
+            teams: list[list[str]] = []
+            ranks: list[int] = []
+            represented_ids: set[str] = set()
+            for entry in encoded_competitors:
+                if not isinstance(entry, dict):
+                    raise ValueError("each rating competitor must be an object")
+                player_ids = entry.get("player_ids")
+                rank = entry.get("rank")
+                if (
+                    not isinstance(player_ids, list)
+                    or not player_ids
+                    or any(not isinstance(pid, str) or not pid for pid in player_ids)
+                ):
+                    raise ValueError("rating competitors require player id lists")
+                if len(set(player_ids)) != len(player_ids):
+                    raise ValueError("a rating competitor contains duplicate ids")
+                if represented_ids.intersection(player_ids):
+                    raise ValueError("a player appears in multiple rating competitors")
+                if not set(player_ids).issubset(result_ids):
+                    raise ValueError("a rating competitor references an unknown player")
+                if isinstance(rank, bool) or not isinstance(rank, int) or rank < 0:
+                    raise ValueError("rating competitor ranks must be non-negative integers")
 
-        Returns:
-            Dictionary of updated ratings.
-        """
-        if ranking_extractor is None:
-            # Default: winner first, everyone else tied for second
-            def ranking_extractor(r: "GameResult") -> list[list[str]]:
-                """Build winner-vs-rest rankings from a GameResult."""
-                winner_name = r.custom_data.get("winner_name")
-                # Include humans and virtual bots, exclude table bots
-                human_players = [p for p in r.player_results if not p.is_bot or p.is_virtual_bot]
+                represented_ids.update(player_ids)
+                human_team = [pid for pid in player_ids if pid in human_ids]
+                if not human_team:
+                    continue
+                teams.append(human_team)
+                ranks.append(rank)
 
-                if not human_players:
-                    return []
+            if represented_ids != result_ids:
+                raise ValueError("rating competitors must cover every result participant")
+            return teams, ranks
 
-                if winner_name:
-                    winner_id = None
-                    others = []
-                    for p in human_players:
-                        if p.player_name == winner_name:
-                            winner_id = p.player_id
-                        else:
-                            others.append(p.player_id)
+        if "winner_ids" not in result.custom_data:
+            raise ValueError("rated game results must declare immutable winner ids")
+        winner_ids = result.custom_data["winner_ids"]
+        if (
+            not isinstance(winner_ids, list)
+            or any(not isinstance(pid, str) or not pid for pid in winner_ids)
+            or len(set(winner_ids)) != len(winner_ids)
+        ):
+            raise ValueError("winner ids must be a unique list of non-empty strings")
+        if not set(winner_ids).issubset(result_ids):
+            raise ValueError("winner ids must reference result participants")
 
-                    if winner_id:
-                        if others:
-                            return [[winner_id], others]
-                        return [[winner_id]]
+        human_winner_ids = [pid for pid in winner_ids if pid in human_ids]
+        if human_winner_ids:
+            winner_set = set(human_winner_ids)
+            teams = [[pid] for pid in human_winner_ids]
+            ranks = [0] * len(teams)
 
-                # No clear winner - everyone ties
-                return [[p.player_id for p in human_players]]
+            for player in human_players:
+                if player.player_id in winner_set:
+                    continue
+                teams.append([player.player_id])
+                ranks.append(1)
 
-        rankings = ranking_extractor(result)
-        if not rankings:
-            return {}
+            if teams:
+                return teams, ranks
 
-        return self.update_ratings(rankings)
+        teams = [[player.player_id] for player in human_players]
+        ranks = [0] * len(teams)
+        return teams, ranks
 
-    def get_leaderboard(self, limit: int = 10) -> list[PlayerRating]:
+    def get_leaderboard(self, limit: int = 10) -> list[tuple[str, PlayerRating]]:
         """
         Get the rating leaderboard for this game type.
 
-        Returns players sorted by ordinal (conservative skill estimate).
+        Returns entries sorted by the conservative player-facing skill score.
         """
-        rows = self.db.get_rating_leaderboard(self.game_type, limit)
-        return [PlayerRating(player_id=pid, mu=mu, sigma=sigma) for pid, mu, sigma in rows]
-
-    def predict_win_probability(self, player1_id: str, player2_id: str) -> float:
-        """
-        Predict the probability that player1 beats player2.
-
-        Returns a value between 0 and 1.
-        """
-        r1 = self.get_rating(player1_id)
-        r2 = self.get_rating(player2_id)
-
-        rating1 = self.model.rating(mu=r1.mu, sigma=r1.sigma)
-        rating2 = self.model.rating(mu=r2.mu, sigma=r2.sigma)
-
-        # Use OpenSkill's predict_win
-        return self.model.predict_win([[rating1], [rating2]])[0]
+        rows = self.db.get_rating_leaderboard(
+            self.game_type,
+            limit,
+            confidence_z=RATING_CONFIDENCE_Z,
+        )
+        return [
+            (pname, PlayerRating(player_id=pid, mu=mu, sigma=sigma))
+            for pid, pname, mu, sigma in rows
+        ]

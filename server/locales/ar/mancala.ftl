@@ -1,32 +1,26 @@
-# Mancala game messages — ar
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale ar. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = مانكالا
-
 # Actions
 mancala-pit-label = حفرة { $pit }: { $stones } حجر
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } يزرع { $stones } حجر من الحفرة { $pit }
 mancala-capture = { $player } يأسر { $captured } حجر!
 mancala-extra-turn = آخر حجر في المخزن! { $player } يحصل على دور إضافي.
 mancala-winner = { $player } يفوز بـ { $score } حجر!
 mancala-draw = تعادل! كلا اللاعبين لديهما { $score } حجر.
-
 # Board status
-mancala-board-status =
-    حفرك: { $own_pits }. مخزنك: { $own_store }. حفر الخصم: { $opp_pits }. مخزن الخصم: { $opp_store }.
-
+mancala-board-status = حفرك: { $own_pits }. مخزنك: { $own_store }. حفر الخصم: { $opp_pits }. مخزن الخصم: { $opp_store }.
 # Options
 mancala-set-stones = أحجار لكل حفرة: { $stones }
 mancala-desc-stones = عدد الأحجار في كل حفرة في البداية
 mancala-enter-stones = أدخل عدد الأحجار الابتدائية لكل حفرة:
 mancala-option-changed-stones = تم تغيير الأحجار الابتدائية إلى { $stones }
-
 # Disabled reasons
 mancala-pit-empty = هذه الحفرة فارغة.
-
 # Rules
 mancala-rules =
     مانكالا هي لعبة حفر وأحجار للاعبين اثنين.
@@ -38,7 +32,5 @@ mancala-rules =
     تنتهي اللعبة عندما يكون جانب أحد اللاعبين فارغاً تماماً. الأحجار المتبقية تذهب إلى مخزن ذلك اللاعب.
     اللاعب الذي لديه أكثر أحجار يفوز.
     استخدم المفاتيح 1 إلى 6 لاختيار حفرة. اضغط E لفحص اللوحة.
-
 # End screen
 mancala-final-score = { $player }: { $score } حجر
-mancala-check-board = Check board

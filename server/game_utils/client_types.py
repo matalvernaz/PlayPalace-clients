@@ -1,27 +1,47 @@
-"""Client type detection helpers for multi-client support."""
+"""Helpers for client capability checks."""
+
+from typing import Any
 
 
-def is_mobile_client_type(client_type: str) -> bool:
-    """Return True if the client is a native mobile app."""
-    return client_type == "mobile"
+TOUCH_CLIENT_TYPES = {"web", "mobile"}
+SELF_VOICING_CLIENT_TYPES = {"web", "mobile"}
 
 
-def is_web_client_type(client_type: str) -> bool:
-    """Return True if the client is a browser-based web client."""
-    return client_type == "web"
+def normalize_client_type(client_type: str | None) -> str:
+    """Normalize a client type string for comparisons."""
+    return (client_type or "").strip().lower()
 
 
-def is_touch_client_type(client_type: str) -> bool:
-    """Return True if the client uses touch input (mobile or web on mobile devices)."""
-    return client_type in ("mobile", "web")
+def get_client_type(user: Any) -> str:
+    """Return a normalized client type from a user-like object."""
+    return normalize_client_type(getattr(user, "client_type", ""))
 
 
-def uses_self_voicing(client_type: str) -> bool:
-    """Return True if the client manages its own TTS/speech output."""
-    return client_type in ("mobile", "macos")
+def is_touch_client_type(client_type: str | None) -> bool:
+    """Return True for clients that need touch-friendly game actions."""
+    return normalize_client_type(client_type) in TOUCH_CLIENT_TYPES
 
 
-def user_is_touch_client(user) -> bool:
-    """Return True if a user-like object is connected from a touch client."""
-    client_type = getattr(user, "client_type", "") or ""
-    return is_touch_client_type(client_type)
+def is_web_client_type(client_type: str | None) -> bool:
+    """Return True for the browser client."""
+    return normalize_client_type(client_type) == "web"
+
+
+def is_mobile_client_type(client_type: str | None) -> bool:
+    """Return True for the first-party mobile client."""
+    return normalize_client_type(client_type) == "mobile"
+
+
+def is_touch_client(user: Any) -> bool:
+    """Return True if the user is connected from a touch client."""
+    return is_touch_client_type(get_client_type(user))
+
+
+def uses_self_voicing_settings_type(client_type: str | None) -> bool:
+    """Return True for clients that manage their own speech settings."""
+    return normalize_client_type(client_type) in SELF_VOICING_CLIENT_TYPES
+
+
+def uses_self_voicing_settings(user: Any) -> bool:
+    """Return True if the user should receive self-voicing settings."""
+    return uses_self_voicing_settings_type(get_client_type(user))

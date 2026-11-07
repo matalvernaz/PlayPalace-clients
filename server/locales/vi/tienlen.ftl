@@ -1,27 +1,25 @@
-game-name-tienlen = Tiến Lên
+# tienlen.ftl for locale vi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-tienlen = Tiến Lên
 tienlen-set-variant = Biến thể: { $choice }
 tienlen-select-variant = Chọn biến thể Tiến Lên:
 tienlen-option-changed-variant = Đã đổi biến thể thành { $choice }.
 tienlen-desc-variant = Chọn luật Tiến Lên miền Nam hoặc miền Bắc.
-
 tienlen-set-coin-target = Xu khởi đầu: { $choice }
 tienlen-select-coin-target = Chọn số xu khởi đầu:
 tienlen-option-changed-coin-target = Xu khởi đầu đã đổi thành { $choice }.
 tienlen-desc-match-length = Số xu vốn của mỗi người chơi. Cộng trừ dùng đơn vị cược 10 xu; ai còn 0 xu sẽ bị loại.
-
 tienlen-set-turn-timer = Thời gian mỗi lượt: { $choice }
 tienlen-select-turn-timer = Chọn thời gian mỗi lượt:
 tienlen-option-changed-turn-timer = Đã đổi thời gian mỗi lượt thành { $choice }.
 tienlen-desc-turn-timer = Giới hạn thời gian tùy chọn cho mỗi lượt Tiến Lên: Không giới hạn, 10, 15, 20, 30, 45, 60 hoặc 90 giây (mặc định Không giới hạn).
-
 tienlen-variant-south = Tiến Lên Miền Nam
 tienlen-variant-north = Tiến Lên Miền Bắc
 tienlen-target-20 = 20 xu
 tienlen-target-50 = 50 xu
 tienlen-target-100 = 100 xu
 tienlen-target-200 = 200 xu
-
 tienlen-timer-10 = 10 giây
 tienlen-timer-15 = 15 giây
 tienlen-timer-20 = 20 giây
@@ -30,19 +28,15 @@ tienlen-timer-45 = 45 giây
 tienlen-timer-60 = 60 giây
 tienlen-timer-90 = 90 giây
 tienlen-timer-unlimited = Không giới hạn
-
 tienlen-game-start = Bắt đầu Tiến Lên.
 tienlen-new-hand = Ván { $round }.
 tienlen-dealt = Đã chia 13 lá: { $cards }.
 tienlen-variant-status = Bàn này đang chơi theo luật { $variant }.
-
 tienlen-card-unselected = { $card }
 tienlen-card-selected = { $card } (đã chọn)
-
 tienlen-play-none = Chọn bài để đánh.
 tienlen-play-invalid = Bộ bài đã chọn không hợp lệ.
 tienlen-play-combo = Đánh { $combo }
-
 tienlen-pass = Bỏ lượt
 tienlen-confirm-pass = Bỏ lượt sẽ khóa bạn khỏi vòng chặn hiện tại. Bấm Bỏ lượt lần nữa trong 10 giây để xác nhận.
 tienlen-check-trick = Xem vòng bài hiện tại
@@ -52,7 +46,6 @@ tienlen-check-variant = Xem luật đang chơi
 tienlen-check-turn-timer = Xem đồng hồ lượt
 tienlen-timer-disabled = Đồng hồ lượt đang tắt.
 tienlen-timer-remaining = Còn { $seconds } giây.
-
 tienlen-error-no-cards = Bạn chưa chọn lá bài nào.
 tienlen-error-invalid-combo = Những lá đã chọn không tạo thành bộ bài hợp lệ theo luật Tiến Lên của bàn này.
 tienlen-error-pass-lock = Bạn đã bỏ lượt trong vòng chặn này và phải chờ đến khi bàn dọn vòng.
@@ -69,7 +62,6 @@ tienlen-error-opening-card-required = Nước khai ván phải có { $card }.
 tienlen-error-invalid-variant = Hãy chọn một biến thể Tiến Lên được hỗ trợ.
 tienlen-error-invalid-starting-coins = Hãy chọn số xu khởi đầu được hỗ trợ.
 tienlen-error-invalid-turn-timer = Hãy chọn thời gian mỗi lượt được hỗ trợ.
-
 tienlen-you-play-single = Bạn đánh { $card }.
 tienlen-player-plays-single = { $player } đánh { $card }.
 tienlen-you-play-combo = Bạn đánh { $combo }: { $cards }.
@@ -84,20 +76,18 @@ tienlen-player-chop-payment = { $chopper } chặt { $chopped }. Đang chờ { $a
 tienlen-you-leftover-penalty = Bạn bị phạt { $amount } xu vì còn Heo hoặc hàng trên tay.
 tienlen-player-leftover-penalty = { $player } bị phạt { $amount } xu vì còn Heo hoặc hàng trên tay.
 tienlen-you-finish-place = Bạn đã hết bài và về hạng { $place } trong ván này.
-tienlen-player-finishes-place = { $player } đã hết bài và về hạng { $place } trong ván này.
+tienlen-player-finishes-place = { $player } đã hết bài { GENDER_TERM($player_gender, "possessive-determiner") } và về hạng { $place } trong ván này.
 tienlen-trick-empty = Bàn đang trống.
 tienlen-trick-status = { $player } đang giữ vòng bằng { $combo }: { $cards }.
 tienlen-your-hand = Bài của bạn: { $cards }.
 tienlen-card-count-line = { $player } còn { $count } lá
 tienlen-card-count-eliminated-line = { $player } đã bị loại
-
 tienlen-combo-single = rác
 tienlen-combo-pair = đôi
 tienlen-combo-triple = sám cô
 tienlen-combo-four_of_a_kind = tứ quý
 tienlen-combo-straight = sảnh
 tienlen-combo-consecutive_pairs = đôi thông
-
 tienlen-instant-six-pairs = sáu đôi
 tienlen-instant-five-consecutive-pairs = năm đôi thông
 tienlen-instant-three-consecutive-triples = ba sám cô thông
@@ -120,14 +110,14 @@ tienlen-settlement-no-change = không đổi
 tienlen-hand-settlement-line = { $place }. { $player }: { $breakdown }; ròng { $net }; còn { $total }.
 tienlen-you-eliminated = Bạn hết xu và bị loại.
 tienlen-player-eliminated = { $player } hết xu và bị loại.
-tienlen-players-remaining = { $count ->
-    [one] Còn 1 người chơi.
-   *[other] Còn { $count } người chơi.
-}
+tienlen-players-remaining =
+    { $count ->
+        [one] Còn 1 người chơi.
+       *[other] Còn { $count } người chơi.
+    }
 tienlen-you-win-match = Bạn thắng trận Tiến Lên với { $coins } xu còn lại.
 tienlen-player-wins-match = { $player } thắng trận Tiến Lên với { $coins } xu còn lại.
 tienlen-line-format = { $rank }. { $player }: { $score } xu
-
 tienlen-south-card-name = { $rank } { $suit }
 tienlen-south-rank-1 = xì
 tienlen-south-rank-2 = heo

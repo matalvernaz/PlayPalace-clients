@@ -36,9 +36,9 @@ from server.games.deadmansdeck.game import (
 )
 from server.games.deadmansdeck.bot import bot_think as deadmansdeck_bot_think
 from server.games.registry import GameRegistry
-from server.core.ui.keybinds import KeybindState
-from server.core.users.bot import Bot
-from server.core.users.test_user import MockUser
+from server.ui.keybinds import KeybindState
+from server.users.bot import Bot
+from server.users.test_user import MockUser
 
 
 def make_game(player_count: int = 2) -> DeadMansDeckGame:
@@ -116,18 +116,18 @@ def visible_action_ids(game: DeadMansDeckGame, player) -> list[str]:
 
 
 def status_texts(user: MockUser) -> list[str]:
-    return [getattr(item, "text", item) for item in user.menus["transient_display"]["items"]]
+    return [getattr(item, "text", item) for item in user.menus["status_box"]["items"]]
 
 
 def status_ids(user: MockUser) -> list[str | None]:
-    return [getattr(item, "id", None) for item in user.menus["transient_display"]["items"]]
+    return [getattr(item, "id", None) for item in user.menus["status_box"]["items"]]
 
 
 def test_game_registration_and_metadata() -> None:
     game_cls = GameRegistry.get("deadmansdeck")
     assert game_cls is DeadMansDeckGame
     assert DeadMansDeckGame.get_name() == "Dead Man's Deck"
-    assert DeadMansDeckGame.get_category() == "category-card-games"
+    assert DeadMansDeckGame.get_category() == "cards"
     assert DeadMansDeckGame.get_min_players() == 2
     assert DeadMansDeckGame.get_max_players() == 4
     assert DeadMansDeckGame.get_supported_leaderboards() == ["wins", "rating", "games_played"]
@@ -314,7 +314,7 @@ def test_card_count_action_and_keybind_are_available() -> None:
     assert "Player2: 1 card left." in texts
     assert "Player3: eliminated." in texts
     assert status_ids(user) == ["cards:p1", "cards:p2", "cards:p3"]
-    assert user.menus["transient_display"]["selection_id"] == "cards:p1"
+    assert user.menus["status_box"]["selection_id"] == "cards:p1"
 
     game.players[1].hand.append(DeadMansDeckCard(id=4, rank="ace"))
     game.refresh_menus()
@@ -335,7 +335,7 @@ def test_touch_info_actions_keep_card_counts_in_logical_order() -> None:
     game = make_game(2)
     player = game.players[0]
     user = game.get_user(player)
-    user.set_client_type("web")
+    user.client_type = "web"
 
     action_set = game.create_standard_action_set(player)
     target = [
@@ -898,14 +898,14 @@ def test_read_table_and_revolvers_use_live_status_boxes() -> None:
     table_texts = status_texts(user)
     assert any("Round" in text for text in table_texts)
     assert any("Current turn" in text for text in table_texts)
-    assert user.menus["transient_display"]["selection_id"] == "round"
+    assert user.menus["status_box"]["selection_id"] == "round"
 
     game.execute_action(player, "read_revolvers")
     revolver_texts = status_texts(user)
     assert revolver_texts[0] == "Revolver status"
     assert status_ids(user)[0] == "header"
     assert any(text.startswith("Player1:") for text in revolver_texts)
-    assert user.menus["transient_display"]["selection_id"] == "header"
+    assert user.menus["status_box"]["selection_id"] == "header"
 
     assert [message.type for message in user.messages] == ["show_menu", "show_menu"]
 

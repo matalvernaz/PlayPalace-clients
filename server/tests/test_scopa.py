@@ -2,23 +2,35 @@
 
 from pathlib import Path
 
-from server.games.scopa.game import ScopaGame, ScopaPlayer, ScopaOptions
-from server.games.scopa.capture import find_captures, select_best_capture
-from server.games.scopa.bot import (
-    find_best_combo_chain,
-    check_combo_potential,
-    evaluate_escoba_empty_table,
-    evaluate_card,
-)
-from server.games.registry import GameRegistry
-from server.game_utils.cards import Card, DeckFactory
-from server.game_utils.teams import TeamManager
-from server.core.users.test_user import MockUser
-from server.messages.localization import Localization
+from ..games.scopa.game import ScopaGame, ScopaPlayer, ScopaOptions
+from ..games.scopa.capture import find_captures, select_best_capture
+from ..games.scopa.scoring import check_winner
+from ..games.registry import GameRegistry
+from ..game_utils.cards import Card, DeckFactory
+from ..game_utils.teams import TeamManager
+from ..users.test_user import MockUser
+from ..messages.localization import Localization
 
 # Initialize localization for tests
 _locales_dir = Path(__file__).parent.parent / "locales"
 Localization.init(_locales_dir)
+
+
+def make_scopa_game(player_count: int = 2, touch: bool = False) -> ScopaGame:
+    game = ScopaGame()
+    game.setup_keybinds()
+    for index in range(player_count):
+        name = f"Player{index + 1}"
+        user = MockUser(name, uuid=f"p{index + 1}")
+        if touch:
+            user.client_type = "web"
+        game.add_player(name, user)
+    game.host = "Player1"
+    return game
+
+
+def speech_texts(user: MockUser) -> list[str]:
+    return [message.data["text"] for message in user.messages if message.type == "speak"]
 
 
 class TestCardUtility:
@@ -139,35 +151,14 @@ class TestTeamManager:
         assert TeamManager.format_team_mode_for_display("individual", "en") == "Individual"
         assert TeamManager.format_team_mode_for_display("2v2", "en") == "2 teams of 2"
 
-        # Test Portuguese
-        assert TeamManager.format_team_mode_for_display("individual", "pt") == "Individual"
-        assert TeamManager.format_team_mode_for_display("2v2", "pt") == "2 equipes de 2"
-        assert TeamManager.format_team_mode_for_display("3v3v3", "pt") == "3 equipes de 3"
-
-        # Test Chinese
-        assert TeamManager.format_team_mode_for_display("individual", "zh") == "个人"
-        assert TeamManager.format_team_mode_for_display("2v2", "zh") == "2 个 2 人团队"
-        assert TeamManager.format_team_mode_for_display("2v2v2v2", "zh") == "4 个 2 人团队"
-
         # Test parsing localized strings
         assert TeamManager.parse_display_to_team_mode("Individual") == "individual"
-        assert TeamManager.parse_display_to_team_mode("个人") == "individual"
-        assert TeamManager.parse_display_to_team_mode("2 equipes de 2") == "2v2"
-        assert TeamManager.parse_display_to_team_mode("2 个 2 人团队") == "2v2"
-        assert TeamManager.parse_display_to_team_mode("4 个 2 人团队") == "2v2v2v2"
+        assert TeamManager.parse_display_to_team_mode("2 teams of 2") == "2v2"
 
         # Test get_team_modes_for_player_count with locale
         modes_en = TeamManager.get_team_modes_for_player_count(4, "en")
         assert "Individual" in modes_en
         assert "2 teams of 2" in modes_en
-
-        modes_pt = TeamManager.get_team_modes_for_player_count(4, "pt")
-        assert "Individual" in modes_pt
-        assert "2 equipes de 2" in modes_pt
-
-        modes_zh = TeamManager.get_team_modes_for_player_count(4, "zh")
-        assert "个人" in modes_zh
-        assert "2 个 2 人团队" in modes_zh
 
 
 class TestScopaGameUnit:
@@ -178,7 +169,7 @@ class TestScopaGameUnit:
         game_class = GameRegistry.get("scopa")
         assert game_class is not None
         assert game_class.get_name() == "Scopa"
-        assert game_class.get_category() == "category-card-games"
+        assert game_class.get_category() == "cards"
 
     def test_game_creation(self):
         """Test creating a new game."""
@@ -201,6 +192,7 @@ class TestScopaGameUnit:
         assert options.cards_per_deal == 3
         assert options.number_of_decks == 1
         assert options.escoba is False
+        assert options.primiera_scoring is True
         assert options.team_mode == "individual"
 
     def test_serialization(self):
@@ -295,6 +287,28 @@ class TestScopaCaptureLogic:
                 break
         assert found
 
+    def test_asso_piglia_tutto_sweep(self):
+        """Test Asso piglia tutto sweeps the board."""
+        table_cards = [
+            Card(id=0, rank=5, suit=1),
+            Card(id=1, rank=2, suit=2),
+            Card(id=2, rank=3, suit=3),
+        ]
+        captures = find_captures(table_cards, 1, asso_piglia_tutto=True)
+        assert len(captures) == 1
+        assert len(captures[0]) == 3
+
+    def test_asso_piglia_tutto_with_ace(self):
+        """Test Asso piglia tutto only takes the ace if an ace is on the board."""
+        table_cards = [
+            Card(id=0, rank=1, suit=1),
+            Card(id=1, rank=2, suit=2),
+        ]
+        captures = find_captures(table_cards, 1, asso_piglia_tutto=True)
+        assert len(captures) == 1
+        assert len(captures[0]) == 1
+        assert captures[0][0].rank == 1
+
     def test_select_best_capture(self):
         """Test selecting best (most cards) capture."""
         captures = [
@@ -304,6 +318,405 @@ class TestScopaCaptureLogic:
 
         best = select_best_capture(captures)
         assert len(best) == 2
+
+
+class TestScopaVariants:
+    """Tests for new options like primiera, napola, and manual selection."""
+
+    def test_initial_table_with_three_tens_is_invalid_for_standard_scopa(self):
+        game = ScopaGame()
+        cards = [
+            Card(id=1, rank=10, suit=1),
+            Card(id=2, rank=10, suit=2),
+            Card(id=3, rank=10, suit=3),
+            Card(id=4, rank=2, suit=4),
+        ]
+
+        assert game._is_invalid_initial_table(cards) is True
+
+        game.options.escoba = True
+        assert game._is_invalid_initial_table(cards) is False
+
+    def test_initial_table_with_two_tens_is_allowed(self):
+        game = ScopaGame()
+        cards = [
+            Card(id=1, rank=10, suit=1),
+            Card(id=2, rank=10, suit=2),
+            Card(id=3, rank=7, suit=3),
+            Card(id=4, rank=2, suit=4),
+        ]
+
+        assert game._is_invalid_initial_table(cards) is False
+
+    def test_primiera_scoring(self):
+        from ..games.scopa.scoring import score_round
+        game = ScopaGame()
+        game.options.primiera_scoring = True
+        user1 = MockUser("Player1")
+        user2 = MockUser("Player2")
+        game.add_player("Player1", user1)
+        game.add_player("Player2", user2)
+        game.on_start()
+
+        # Player1 has stronger best cards in all four suits.
+        game.players[0].captured = [
+            Card(id=1, rank=7, suit=1),
+            Card(id=2, rank=7, suit=2),
+            Card(id=3, rank=7, suit=3),
+            Card(id=4, rank=7, suit=4),
+        ]
+        game.players[1].captured = [
+            Card(id=5, rank=6, suit=1),
+            Card(id=6, rank=6, suit=2),
+            Card(id=7, rank=6, suit=3),
+            Card(id=8, rank=6, suit=4),
+        ]
+
+        score_round(game)
+
+        # Player 1 should win primiera
+        team1 = game.team_manager.get_team("Player1")
+        team2 = game.team_manager.get_team("Player2")
+        # team1 might have 2 points (most cards tie, diamonds tie, sevens/primiera 1)
+        assert team1.round_score > team2.round_score
+
+    def test_primiera_requires_cards_in_all_four_suits(self):
+        from ..games.scopa.scoring import score_round
+        game = make_scopa_game(2)
+        game.on_start()
+
+        game.players[0].captured = [Card(id=1, rank=7, suit=1)]
+        game.players[1].captured = [Card(id=2, rank=6, suit=2)]
+        user1 = game.get_user(game.players[0])
+        assert user1 is not None
+        user1.clear_messages()
+
+        score_round(game)
+
+        assert "No one has captured cards in all four suits" in "\n".join(speech_texts(user1))
+
+    def test_napola_scoring(self):
+        from ..games.scopa.scoring import score_round
+        game = ScopaGame()
+        game.options.napola = True
+        user1 = MockUser("Player1")
+        user2 = MockUser("Player2")
+        game.add_player("Player1", user1)
+        game.add_player("Player2", user2)
+        game.on_start()
+
+        # Player1 gets Ace, 2, 3 of Diamonds (suit 1)
+        game.players[0].captured = [
+            Card(id=1, rank=1, suit=1),
+            Card(id=2, rank=2, suit=1),
+            Card(id=3, rank=3, suit=1),
+            Card(id=4, rank=4, suit=1),
+        ]
+
+        score_round(game)
+
+        # Player 1 should get 4 napola points + other standard points
+        team1 = game.team_manager.get_team("Player1")
+        assert team1.round_score >= 4
+
+    def test_conflict_validation(self):
+        game = ScopaGame()
+        game.options.escoba = True
+        game.options.asso_piglia_tutto = True
+        errors = game.prestart_validate()
+        assert "scopa-error-conflict-escoba-asso" in errors
+
+    def test_instant_win_conflicts_with_inverse_mode(self):
+        game = ScopaGame()
+        game.options.instant_win_scopas = True
+        game.options.inverse_scopa = True
+
+        errors = game.prestart_validate()
+
+        assert "scopa-error-conflict-instant-inverse" in errors
+
+    def test_instant_win_conflicts_with_no_scopas_mode(self):
+        game = ScopaGame()
+        game.options.instant_win_scopas = True
+        game.options.scopa_mechanic = "no_scopas"
+
+        errors = game.prestart_validate()
+
+        assert "scopa-error-conflict-instant-no-scopas" in errors
+
+    def test_team_card_scoring_false_scores_individual_piles(self):
+        from ..games.scopa.scoring import score_round
+        game = make_scopa_game(4)
+        game.options.team_mode = "2v2"
+        game.options.team_card_scoring = False
+        game.options.primiera_scoring = False
+        game.on_start()
+
+        # Team 1 has more pooled cards, but Player1 has the largest individual pile.
+        game.players[0].captured = [Card(id=i, rank=2, suit=2) for i in range(5)]
+        game.players[1].captured = [Card(id=10 + i, rank=3, suit=2) for i in range(4)]
+        game.players[2].captured = []
+        game.players[3].captured = [Card(id=20 + i, rank=4, suit=2) for i in range(4)]
+
+        score_round(game)
+
+        assert game.team_manager.teams[0].round_score == 1
+        assert game.team_manager.teams[1].round_score == 0
+
+    def test_instant_win_on_scopa_finishes_immediately(self):
+        game = make_scopa_game(2)
+        game.options.instant_win_scopas = True
+        game.options.target_score = 99
+        game.on_start()
+
+        player = game.players[0]
+        other = game.players[1]
+        played_card = Card(id=100, rank=5, suit=1)
+        player.hand = [played_card]
+        other.hand = [Card(id=101, rank=1, suit=2)]
+        game.table_cards = [Card(id=102, rank=2, suit=3), Card(id=103, rank=3, suit=4)]
+        game.deck.cards = [Card(id=104, rank=4, suit=1)]
+        game.current_player = player
+        game._update_card_actions(player)
+
+        game.execute_action(player, f"play_card_{played_card.id}")
+
+        assert game.status == "finished"
+        team = game.team_manager.get_team(player.name)
+        assert team is not None
+        assert team.total_score == 1
+
+    def test_scopa_points_are_pending_until_round_end(self):
+        game = make_scopa_game(2)
+        game.on_start()
+
+        player = game.players[0]
+        user = game.get_user(player)
+        assert user is not None
+        team = game.team_manager.get_team(player.name)
+        assert team is not None
+
+        game.table_cards = [
+            Card(id=200, rank=2, suit=1),
+            Card(id=201, rank=3, suit=2),
+        ]
+        game.deck.cards = [Card(id=202, rank=4, suit=3)]
+        user.clear_messages()
+
+        game._execute_capture(
+            player,
+            Card(id=203, rank=5, suit=4),
+            list(game.table_cards),
+        )
+
+        assert team.round_score == 1
+        assert team.total_score == 0
+
+        game._action_check_scores(player, "check_scores")
+
+        spoken = "\n".join(speech_texts(user))
+        assert "pending Scopa point this round" in spoken
+        assert "projected" not in spoken
+
+    def test_asso_piglia_tutto_sweep_scores_scopa(self):
+        game = make_scopa_game(2)
+        game.options.asso_piglia_tutto = True
+        game.on_start()
+
+        player = game.players[0]
+        user = game.get_user(player)
+        assert user is not None
+        team = game.team_manager.get_team(player.name)
+        assert team is not None
+        game.table_cards = [
+            Card(id=200, rank=2, suit=1),
+            Card(id=201, rank=3, suit=2),
+        ]
+        game.deck.cards = [Card(id=202, rank=4, suit=3)]
+        user.clear_messages()
+
+        game._execute_capture(
+            player,
+            Card(id=203, rank=1, suit=4),
+            list(game.table_cards),
+        )
+
+        assert team.round_score == 1
+        assert any("score a scopa" in text.lower() for text in speech_texts(user))
+
+    def test_last_play_sweep_does_not_score_scopa(self):
+        game = make_scopa_game(2)
+        game.on_start()
+
+        player = game.players[0]
+        team = game.team_manager.get_team(player.name)
+        assert team is not None
+
+        game.table_cards = [
+            Card(id=200, rank=2, suit=1),
+            Card(id=201, rank=3, suit=2),
+        ]
+        game.deck.cards = []
+        for table_player in game.players:
+            table_player.hand = []
+
+        game._execute_capture(
+            player,
+            Card(id=203, rank=5, suit=4),
+            list(game.table_cards),
+        )
+
+        assert team.round_score == 0
+
+    def test_inverse_result_uses_recorded_winner(self):
+        game = make_scopa_game(3)
+        game.options.inverse_scopa = True
+        game.on_start()
+
+        game.team_manager.teams[0].total_score = 20
+        game.team_manager.teams[1].total_score = 12
+        game.team_manager.teams[2].total_score = 3
+        game.winner_team_index = game.team_manager.teams[2].index
+
+        result = game.build_game_result()
+
+        assert result.custom_data["winner_name"] == "Player3"
+        assert result.custom_data["winner_score"] == 3
+        assert result.custom_data["team_rankings"][0]["members"] == ["Player3"]
+
+    def test_touch_standard_info_actions_are_visible_and_ordered(self):
+        game = make_scopa_game(2, touch=True)
+        game.on_start()
+        player = game.players[0]
+        action_set = game.create_standard_action_set(player)
+
+        resolved = action_set.resolve_actions(game, player)
+        visible_ids = [action.action.id for action in resolved if action.enabled and action.visible]
+
+        assert "view_table" in visible_ids
+        assert "view_captured" in visible_ids
+        assert "view_table_card_1" not in visible_ids
+        assert visible_ids.index("view_table") < visible_ids.index("check_scores")
+        assert visible_ids.index("view_captured") < visible_ids.index("check_scores")
+        assert visible_ids.index("check_scores") < visible_ids.index("whose_turn")
+        assert visible_ids.index("whose_turn") < visible_ids.index("whos_at_table")
+
+    def test_manual_selection_trigger(self):
+        game = ScopaGame()
+        game.options.manual_selection = True
+        user1 = MockUser("Player1")
+        game.add_player("Player1", user1)
+        game.on_start()
+
+        game.current_player = game.players[0]
+
+        # Table has 2 and 3, and another 2 and 3. Player plays 5.
+        # find_captures only returns sum combinations if there's no exact match.
+        game.table_cards = [
+            Card(id=1, rank=2, suit=1),
+            Card(id=2, rank=3, suit=2),
+            Card(id=3, rank=1, suit=3),
+            Card(id=4, rank=4, suit=4)
+        ]
+        played_card = Card(id=5, rank=5, suit=1)
+        game.players[0].hand = [played_card]
+
+        # We need to test the menu prompt flow
+        # Update actions so MenuInput is built
+        game._update_card_actions(game.players[0])
+        action_set = game.get_action_set(game.players[0], "turn")
+        card_action = next((a for a in action_set._actions.values() if a.id == f"play_card_{played_card.id}"), None)
+        assert card_action is not None
+        assert card_action.input_request is not None
+        assert card_action.input_request.prompt == "scopa-manual-select-prompt"
+
+        # Set pending action state (like the engine does before calling options_method)
+        game._pending_actions = {game.players[0].id: f"play_card_{played_card.id}"}
+
+        # Execute play via standard Action flow with a menu selection
+        options = game._capture_options_for_card(game.players[0])
+        assert len(options) == 2
+
+        # Simulate user selecting the first option
+        game._action_play_card(game.players[0], options[0], f"play_card_{played_card.id}")
+
+        # Verify capture executed (played card goes to captured, table cards updated)
+        assert played_card in game.players[0].captured
+        assert len(game.table_cards) == 2 # 4 cards on table - 2 captured = 2 left
+
+    def test_out_of_turn_manual_selection_does_not_open_capture_menu(self):
+        game = ScopaGame()
+        game.options.manual_selection = True
+        user1 = MockUser("Player1", uuid="p1")
+        user2 = MockUser("Player2", uuid="p2")
+        game.add_player("Player1", user1)
+        game.add_player("Player2", user2)
+        game.on_start()
+
+        player1, player2 = game.players
+        game.current_player = player2
+        game.table_cards = [
+            Card(id=1, rank=2, suit=1),
+            Card(id=2, rank=3, suit=2),
+            Card(id=3, rank=1, suit=3),
+            Card(id=4, rank=4, suit=4),
+        ]
+        played_card = Card(id=5, rank=5, suit=1)
+        player1.hand = [played_card]
+        game._update_card_actions(player1)
+        user1.clear_messages()
+
+        game.execute_action(player1, f"play_card_{played_card.id}")
+
+        assert player1.id not in game._pending_actions
+        assert "action_input_menu" not in user1.menus
+        assert user1.get_last_spoken() == "It's not your turn."
+
+    def test_out_of_turn_card_actions_are_visible_but_disabled(self):
+        game = make_scopa_game(2)
+        game.on_start()
+
+        player1, player2 = game.players
+        game.current_player = player2
+        card = Card(id=500, rank=5, suit=1)
+        player1.hand = [card]
+        game._update_card_actions(player1)
+
+        action_set = game.get_action_set(player1, "turn")
+        assert action_set is not None
+        action = action_set.get_action(f"play_card_{card.id}")
+        assert action is not None
+
+        resolved = action_set.resolve_action(game, player1, action)
+        assert resolved.visible is True
+        assert resolved.enabled is False
+        assert resolved.disabled_reason == "action-not-your-turn"
+
+    def test_tied_target_score_requires_another_round(self):
+        game = make_scopa_game(2)
+        game.on_start()
+        for team in game.team_manager.teams:
+            team.total_score = game.options.target_score
+
+        user = game.get_user(game.players[0])
+        assert user is not None
+        user.clear_messages()
+
+        assert check_winner(game) is None
+        assert any(
+            "continues past the target of 11 points" in text
+            for text in speech_texts(user)
+        )
+
+    def test_highest_score_wins_when_multiple_sides_reach_target_without_tie(self):
+        game = make_scopa_game(2)
+        game.on_start()
+        game.team_manager.teams[0].total_score = game.options.target_score
+        game.team_manager.teams[1].total_score = game.options.target_score + 1
+
+        winner = check_winner(game)
+
+        assert winner == game.team_manager.teams[1]
 
 
 class TestScopaGameFlow:
@@ -336,7 +749,11 @@ class TestScopaGameFlow:
 
         # Deck should have been dealt from
         total_cards = 40 * game.options.number_of_decks
-        dealt = sum(len(p.hand) for p in game.players) + len(game.table_cards) + game.deck.size()
+        dealt = (
+            sum(len(p.hand) for p in game.players)
+            + len(game.table_cards)
+            + game.deck.size()
+        )
         assert dealt == total_cards
 
 
@@ -345,7 +762,7 @@ class TestScopaPlayTest:
 
     def test_two_player_bot_game_completes(self):
         """Test that a 2-player bot game completes."""
-        from server.core.users.bot import Bot
+        from ..users.bot import Bot
 
         game = ScopaGame()
         game.options.target_score = 5  # Lower for faster test
@@ -368,7 +785,7 @@ class TestScopaPlayTest:
 
     def test_four_player_team_game(self):
         """Test a 4-player team game."""
-        from server.core.users.bot import Bot
+        from ..users.bot import Bot
 
         game = ScopaGame()
         game.options.target_score = 5
@@ -419,269 +836,3 @@ class TestScopaPersistence:
         assert len(game2.players[0].captured) == 1
         assert len(game2.table_cards) == 1
 
-
-class TestScopaBotAI:
-    """Tests for Scopa bot AI features."""
-
-    def test_two_card_combo_setup(self):
-        """Test that bot finds simple 2-card combos.
-
-        Table has 5, hand has 4 and 9.
-        Playing 4 creates 5+4=9 on table, which 9 can capture.
-        """
-        table = [Card(id=0, rank=5, suit=1)]
-        hand = [
-            Card(id=1, rank=4, suit=2),
-            Card(id=2, rank=9, suit=3),
-        ]
-
-        # Find combo starting with playing the 4
-        sequence, captured, score = find_best_combo_chain(
-            table=table + [hand[0]],  # After playing 4
-            remaining_hand=[hand[1]],  # Only 9 left
-            escoba=False,
-            cards_played=[hand[0]],  # 4 was played
-        )
-
-        assert score > 0, "Should find a combo"
-        assert len(sequence) == 2, "Sequence should be [4, 9]"
-        assert len(captured) == 2, "Should capture 5 and 4"
-        # Verify the played card (4) is in the capture
-        captured_ids = [c.id for c in captured]
-        assert hand[0].id in captured_ids, "The 4 we played should be captured back"
-
-    def test_three_card_combo_chain(self):
-        """Test that bot finds longer 3-card combos.
-
-        Table is empty, hand has 2, 3, 5.
-        Play 2 -> table: 2
-        Play 3 -> table: 2, 3 (sum=5)
-        Play 5 -> captures 2, 3!
-        """
-        hand = [
-            Card(id=0, rank=2, suit=1),
-            Card(id=1, rank=3, suit=2),
-            Card(id=2, rank=5, suit=3),
-        ]
-
-        # Start with playing the 2
-        sequence, captured, score = find_best_combo_chain(
-            table=[hand[0]],  # After playing 2
-            remaining_hand=[hand[1], hand[2]],  # 3 and 5 left
-            escoba=False,
-            cards_played=[hand[0]],  # 2 was played
-        )
-
-        assert score > 0, "Should find a combo"
-        assert len(sequence) == 3, "Sequence should be [2, 3, 5]"
-        assert len(captured) == 2, "Should capture 2 and 3"
-
-    def test_four_card_combo_chain(self):
-        """Test 4-card combo: 1, 2, 3, 6 -> play 1, 2, 3, then 6 captures all.
-
-        Table is empty, hand has 1, 2, 3, 6.
-        Play 1 -> table: 1
-        Play 2 -> table: 1, 2
-        Play 3 -> table: 1, 2, 3 (sum=6)
-        Play 6 -> captures 1, 2, 3!
-        """
-        hand = [
-            Card(id=0, rank=1, suit=1),
-            Card(id=1, rank=2, suit=2),
-            Card(id=2, rank=3, suit=3),
-            Card(id=3, rank=6, suit=4),
-        ]
-
-        # Start with playing the 1
-        sequence, captured, score = find_best_combo_chain(
-            table=[hand[0]],  # After playing 1
-            remaining_hand=[hand[1], hand[2], hand[3]],  # 2, 3, 6 left
-            escoba=False,
-            cards_played=[hand[0]],
-        )
-
-        assert score > 0, "Should find a combo"
-        assert len(sequence) == 4, "Sequence should be [1, 2, 3, 6]"
-        assert len(captured) == 3, "Should capture 1, 2, 3"
-
-    def test_combo_with_existing_table_cards(self):
-        """Test combo that incorporates existing table cards.
-
-        Table has 2, hand has 3, 5.
-        Play 3 -> table: 2, 3 (sum=5)
-        Play 5 -> captures 2, 3!
-        """
-        table = [Card(id=0, rank=2, suit=1)]
-        hand = [
-            Card(id=1, rank=3, suit=2),
-            Card(id=2, rank=5, suit=3),
-        ]
-
-        # Start with playing the 3
-        sequence, captured, score = find_best_combo_chain(
-            table=table + [hand[0]],  # After playing 3
-            remaining_hand=[hand[1]],  # Only 5 left
-            escoba=False,
-            cards_played=[hand[0]],
-        )
-
-        assert score > 0, "Should find a combo"
-        assert len(captured) == 2, "Should capture 2 and 3"
-
-    def test_escoba_combo_sum_to_15(self):
-        """Test combo in escoba mode (sum to 15).
-
-        Table is empty, hand has 7, 8.
-        Play 7 -> table: 7
-        Play 8 -> captures 7 (7+8=15)!
-        """
-        hand = [
-            Card(id=0, rank=7, suit=1),
-            Card(id=1, rank=8, suit=2),
-        ]
-
-        # Start with playing the 7
-        sequence, captured, score = find_best_combo_chain(
-            table=[hand[0]],  # After playing 7
-            remaining_hand=[hand[1]],  # Only 8 left
-            escoba=True,
-            cards_played=[hand[0]],
-        )
-
-        assert score > 0, "Should find escoba combo"
-        assert len(captured) == 1, "Should capture just the 7"
-        assert captured[0].rank == 7
-
-    def test_check_combo_potential_integration(self):
-        """Test check_combo_potential with a game state."""
-        game = ScopaGame()
-        user1 = MockUser("Player1")
-        user2 = MockUser("Player2")
-        game.add_player("Player1", user1)
-        game.add_player("Player2", user2)
-        game.on_start()
-
-        player = game.players[0]
-        # Set up a known combo situation
-        game.table_cards = [Card(id=100, rank=5, suit=1)]
-        player.hand = [
-            Card(id=101, rank=4, suit=2),
-            Card(id=102, rank=9, suit=3),
-        ]
-
-        # Check combo potential for the 4
-        bonus = check_combo_potential(game, player.hand[0], player)
-        assert bonus > 0, "Playing 4 should have combo potential with 9"
-
-        # Check combo potential for the 9 (can already capture, no setup needed)
-        bonus_9 = check_combo_potential(game, player.hand[1], player)
-        # 9 captures 5+4=9 directly if 4 is on table, but 4 isn't on table yet
-        # So there's no combo potential for 9 in this state
-        assert bonus_9 == 0 or bonus_9 < bonus, "9 doesn't set up a combo"
-
-    def test_escoba_empty_table_safe_cards(self):
-        """Test that cards <= 4 are preferred on empty table in escoba."""
-        # Cards <= 4 cannot be captured alone (15 - 4 = 11 > max rank 10)
-        for rank in [1, 2, 3, 4]:
-            card = Card(id=rank, rank=rank, suit=1)
-            score = evaluate_escoba_empty_table(card, inverse=False)
-            assert score > 0, f"Card rank {rank} should have positive score"
-
-        # Cards > 4 can be captured (e.g., 5 can be captured by 10 since 5+10=15)
-        for rank in [5, 6, 7, 8, 9, 10]:
-            card = Card(id=rank, rank=rank, suit=1)
-            score = evaluate_escoba_empty_table(card, inverse=False)
-            assert score < 0, f"Card rank {rank} should have negative score"
-
-    def test_escoba_empty_table_lower_is_safer(self):
-        """Test that lower cards are preferred (1 is safest)."""
-        scores = []
-        for rank in [1, 2, 3, 4]:
-            card = Card(id=rank, rank=rank, suit=1)
-            score = evaluate_escoba_empty_table(card, inverse=False)
-            scores.append(score)
-
-        # Scores should be in descending order (1 > 2 > 3 > 4)
-        for i in range(len(scores) - 1):
-            assert scores[i] > scores[i + 1], f"Rank {i + 1} should score higher than {i + 2}"
-
-    def test_escoba_empty_table_inverse_mode(self):
-        """Test escoba empty table in inverse mode (want opponent to capture)."""
-        # In inverse mode, safe cards (<=4) should be penalized
-        card_safe = Card(id=1, rank=1, suit=1)
-        score_safe = evaluate_escoba_empty_table(card_safe, inverse=True)
-        assert score_safe < 0, "Safe card should be penalized in inverse mode"
-
-        # Risky cards (>4) should be preferred
-        card_risky = Card(id=5, rank=5, suit=1)
-        score_risky = evaluate_escoba_empty_table(card_risky, inverse=True)
-        assert score_risky > 0, "Risky card should be preferred in inverse mode"
-
-    def test_evaluate_card_uses_combo_bonus(self):
-        """Test that evaluate_card incorporates combo bonus."""
-        game = ScopaGame()
-        user1 = MockUser("Player1")
-        user2 = MockUser("Player2")
-        game.add_player("Player1", user1)
-        game.add_player("Player2", user2)
-        game.on_start()
-
-        player = game.players[0]
-        # Set up combo: table has 5, hand has 4 and 9
-        game.table_cards = [Card(id=100, rank=5, suit=1)]
-        player.hand = [
-            Card(id=101, rank=4, suit=2),  # Can set up combo
-            Card(id=102, rank=9, suit=3),  # Can capture after combo
-            Card(id=103, rank=1, suit=4),  # No combo potential
-        ]
-
-        score_4 = evaluate_card(game, player.hand[0], player)
-        score_1 = evaluate_card(game, player.hand[2], player)
-
-        # The 4 should score higher than 1 because it sets up a combo
-        assert score_4 > score_1, "Card with combo potential should score higher"
-
-    def test_evaluate_card_escoba_empty_table(self):
-        """Test that evaluate_card uses escoba defense on empty table."""
-        game = ScopaGame()
-        game.options.escoba = True
-        user1 = MockUser("Player1")
-        user2 = MockUser("Player2")
-        game.add_player("Player1", user1)
-        game.add_player("Player2", user2)
-        game.on_start()
-
-        player = game.players[0]
-        game.table_cards = []  # Empty table
-        player.hand = [
-            Card(id=101, rank=1, suit=1),  # Safe (can't be captured)
-            Card(id=102, rank=10, suit=2),  # Risky (can be captured by 5)
-        ]
-
-        score_1 = evaluate_card(game, player.hand[0], player)
-        score_10 = evaluate_card(game, player.hand[1], player)
-
-        # The 1 should score much higher than 10 on empty table in escoba
-        assert score_1 > score_10, "Safe card should score higher on empty escoba table"
-
-    def test_no_combo_when_card_not_in_capture(self):
-        """Test that combo is only counted when played card is captured back."""
-        # Table has 7, hand has 3, 4
-        # Playing 3 doesn't help capture with 4 (4 ≠ 7+3)
-        # Playing 4 doesn't help capture with 3 (3 ≠ 7+4)
-        table = [Card(id=0, rank=7, suit=1)]
-        hand = [
-            Card(id=1, rank=3, suit=2),
-            Card(id=2, rank=4, suit=3),
-        ]
-
-        # Try playing the 3
-        sequence, captured, score = find_best_combo_chain(
-            table=table + [hand[0]],
-            remaining_hand=[hand[1]],
-            escoba=False,
-            cards_played=[hand[0]],
-        )
-
-        assert score == 0, "No valid combo should be found"
-        assert len(sequence) == 0

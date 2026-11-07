@@ -1,90 +1,87 @@
+# bunko.ftl for locale es. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 game-name-bunko = Bunko
-
-bunko-roll = Roll the dice
-bunko-check-status = Check status
-bunko-check-last-roll = Check latest roll
-
-bunko-game-start = Bunko begins. Players: { $players }.
-bunko-round-start = Round { $round } of { $total_rounds }. The target number for this round is { $target }.
-bunko-round-start-brief = Round { $round }/{ $total_rounds }. Target { $target }.
-bunko-you-win-round = You win round { $round } with { $score } points against target { $target }.
-bunko-player-wins-round = { $player } wins round { $round } with { $score } points against target { $target }.
-bunko-you-win-round-brief = You win R{ $round }: { $score }.
-bunko-player-wins-round-brief = { $player } wins R{ $round }: { $score }.
-
-bunko-you-roll-match = You roll { $dice } and score { $points } { $points ->
-    [one] point
-   *[other] points
-} toward target { $target }. Round total: { $round_total }. Overall score: { $total }.
-bunko-player-rolls-match = { $player } rolls { $dice } and scores { $points } { $points ->
-    [one] point
-   *[other] points
-} toward target { $target }. Round total: { $round_total }. Overall score: { $total }.
-bunko-you-roll-match-brief = You: { $dice }, +{ $points }. Round { $round_total }; total { $total }.
-bunko-player-rolls-match-brief = { $player }: { $dice }, +{ $points }. Round { $round_total }; total { $total }.
-
-bunko-you-roll-mini_bunko = You roll { $dice }, score a mini Bunko because all dice match each other but not target { $target }, and gain { $points } points. Round total: { $round_total }. Overall score: { $total }.
-bunko-player-rolls-mini_bunko = { $player } rolls { $dice }, scores a mini Bunko because all dice match each other but not target { $target }, and gains { $points } points. Round total: { $round_total }. Overall score: { $total }.
-bunko-you-roll-mini_bunko-brief = You: mini Bunko { $dice }, +{ $points }. Round { $round_total }; total { $total }.
-bunko-player-rolls-mini_bunko-brief = { $player }: mini Bunko { $dice }, +{ $points }. Round { $round_total }; total { $total }.
-
-bunko-you-roll-bunko = You roll { $dice } and score a Bunko: three target { $target }s for { $points } points. Round total: { $round_total }. Overall score: { $total }.
-bunko-player-rolls-bunko = { $player } rolls { $dice } and scores a Bunko: three target { $target }s for { $points } points. Round total: { $round_total }. Overall score: { $total }.
-bunko-you-roll-bunko-brief = You: Bunko { $dice }, +{ $points }. Round { $round_total }; total { $total }.
-bunko-player-rolls-bunko-brief = { $player }: Bunko { $dice }, +{ $points }. Round { $round_total }; total { $total }.
-
-bunko-you-roll-no_score = You roll { $dice } and score nothing because none of the dice match target { $target } and there is no mini Bunko. Your turn passes.
-bunko-player-rolls-no_score = { $player } rolls { $dice } and scores nothing because none of the dice match target { $target } and there is no mini Bunko. The turn passes.
-bunko-you-roll-no_score-brief = You: { $dice }, 0. Pass.
-bunko-player-rolls-no_score-brief = { $player }: { $dice }, 0. Pass.
-
-bunko-last-roll-none = No roll has been made yet this round.
-bunko-last-roll-match = { $player } last rolled { $dice } and scored { $points } { $points ->
-    [one] point
-   *[other] points
-} toward target { $target }.
-bunko-last-roll-match-you = You last rolled { $dice } and scored { $points } { $points ->
-    [one] point
-   *[other] points
-} toward target { $target }.
-bunko-last-roll-mini_bunko = { $player } last rolled { $dice } for a mini Bunko, scoring { $points } points because the dice matched each other but not target { $target }.
-bunko-last-roll-mini_bunko-you = You last rolled { $dice } for a mini Bunko, scoring { $points } points because the dice matched each other but not target { $target }.
-bunko-last-roll-bunko = { $player } last rolled { $dice } for a Bunko: three target { $target }s, worth { $points } points.
-bunko-last-roll-bunko-you = You last rolled { $dice } for a Bunko: three target { $target }s, worth { $points } points.
-bunko-last-roll-no_score = { $player } last rolled { $dice } and scored nothing against target { $target }.
-bunko-last-roll-no_score-you = You last rolled { $dice } and scored nothing against target { $target }.
-
-bunko-status-round = Round { $round } of { $total_rounds }. Target number: { $target }.
-bunko-status-turn = Current player: { $player }.
-bunko-status-leader = Leader: { $player } with { $rounds } { $rounds ->
-    [one] round win
-   *[other] round wins
-} and { $total } overall points.
-
-bunko-standings-header = Standings. Winner decided by { $mode }.
-bunko-score-line = { $rank }. { $player }: { $rounds } { $rounds ->
-    [one] round win
-   *[other] round wins
-}, { $total } overall points, { $current } this round, { $bunkos } { $bunkos ->
-    [one] Bunko
-   *[other] Bunkos
-}, { $mini_bunkos } { $mini_bunkos ->
-    [one] mini Bunko
-   *[other] mini Bunkos
-}
-
-bunko-roll-already-resolving = Your dice are still rolling. Wait for the result before rolling again.
-bunko-error-round-count-invalid = Bunko requires between { $min } and { $max } rounds. The current setting is { $count }.
-bunko-error-winning-mode-invalid = Bunko does not support the winning mode "{ $mode }". Choose round wins or total score.
-
-bunko-set-round-count = Rounds: { $count }
-bunko-enter-round-count = Enter the number of rounds:
-bunko-option-changed-round-count = Number of rounds changed to { $count }.
-bunko-desc-round-count = How many Bunko rounds are played before the winner is decided (default 6, range 1-12).
-
-bunko-set-winning-mode = Winning mode: { $mode }
-bunko-select-winning-mode = Select the winning mode:
-bunko-option-changed-winning-mode = Winning mode changed to { $mode }.
-bunko-desc-winning-mode = Chooses whether Bunko winners are ranked by rounds won or by total score.
-bunko-winning-mode-round-wins = round wins
-bunko-winning-mode-total-score = total score
+bunko-roll = Lanzar los dados
+bunko-check-status = Ver estado
+bunko-check-last-roll = Ver última tirada
+bunko-game-start = Comienza Bunko. Jugadores: { $players }.
+bunko-round-start = Ronda { $round } de { $total_rounds }. El número objetivo de esta ronda es { $target }.
+bunko-round-start-brief = Ronda { $round }/{ $total_rounds }. Objetivo { $target }.
+bunko-you-win-round = Ganas la ronda { $round } con { $score } puntos contra el objetivo { $target }.
+bunko-player-wins-round = { $player } gana la ronda { $round } con { $score } puntos contra el objetivo { $target }.
+bunko-you-win-round-brief = Ganas R{ $round }: { $score }.
+bunko-player-wins-round-brief = { $player } gana R{ $round }: { $score }.
+bunko-you-roll-match =
+    Sacas { $dice } y anotas { $points } { $points ->
+        [one] punto
+       *[other] puntos
+    } hacia el objetivo { $target }. Total de la ronda: { $round_total }. Puntuación general: { $total }.
+bunko-player-rolls-match =
+    { $player } saca { $dice } y anota { $points } { $points ->
+        [one] punto
+       *[other] puntos
+    } hacia el objetivo { $target }. Total de la ronda: { $round_total }. Puntuación general: { $total }.
+bunko-you-roll-match-brief = Tú: { $dice }, +{ $points }. Ronda { $round_total }; total { $total }.
+bunko-player-rolls-match-brief = { $player }: { $dice }, +{ $points }. Ronda { $round_total }; total { $total }.
+bunko-you-roll-mini_bunko = Sacas { $dice }, anotas un mini Bunko porque todos los dados coinciden entre sí pero no con el objetivo { $target }, y ganas { $points } puntos. Total de la ronda: { $round_total }. Puntuación general: { $total }.
+bunko-player-rolls-mini_bunko = { $player } saca { $dice }, anota un mini Bunko porque todos los dados coinciden entre sí pero no con el objetivo { $target }, y gana { $points } puntos. Total de la ronda: { $round_total }. Puntuación general: { $total }.
+bunko-you-roll-mini_bunko-brief = Tú: mini Bunko { $dice }, +{ $points }. Ronda { $round_total }; total { $total }.
+bunko-player-rolls-mini_bunko-brief = { $player }: mini Bunko { $dice }, +{ $points }. Ronda { $round_total }; total { $total }.
+bunko-you-roll-bunko = Sacas { $dice } y anotas un Bunko: tres { $target } para { $points } puntos. Total de la ronda: { $round_total }. Puntuación general: { $total }.
+bunko-player-rolls-bunko = { $player } saca { $dice } y anota un Bunko: tres { $target } para { $points } puntos. Total de la ronda: { $round_total }. Puntuación general: { $total }.
+bunko-you-roll-bunko-brief = Tú: Bunko { $dice }, +{ $points }. Ronda { $round_total }; total { $total }.
+bunko-player-rolls-bunko-brief = { $player }: Bunko { $dice }, +{ $points }. Ronda { $round_total }; total { $total }.
+bunko-you-roll-no_score = Sacas { $dice } y no anotas nada porque ningún dado coincide con el objetivo { $target } y no hay mini Bunko. Tu turno pasa.
+bunko-player-rolls-no_score = { $player } saca { $dice } y no anota nada porque ningún dado coincide con el objetivo { $target } y no hay mini Bunko. El turno pasa.
+bunko-you-roll-no_score-brief = Tú: { $dice }, 0. Pasas.
+bunko-player-rolls-no_score-brief = { $player }: { $dice }, 0. Pasa.
+bunko-last-roll-none = Aún no se ha hecho ninguna tirada esta ronda.
+bunko-last-roll-match =
+    { $player } sacó por última vez { $dice } y anotó { $points } { $points ->
+        [one] punto
+       *[other] puntos
+    } hacia el objetivo { $target }.
+bunko-last-roll-match-you =
+    Sacaste por última vez { $dice } y anotaste { $points } { $points ->
+        [one] punto
+       *[other] puntos
+    } hacia el objetivo { $target }.
+bunko-last-roll-mini_bunko = { $player } sacó por última vez { $dice } para un mini Bunko, anotando { $points } puntos porque los dados coincidieron entre sí pero no con el objetivo { $target }.
+bunko-last-roll-mini_bunko-you = Sacaste por última vez { $dice } para un mini Bunko, anotando { $points } puntos porque los dados coincidieron entre sí pero no con el objetivo { $target }.
+bunko-last-roll-bunko = { $player } sacó por última vez { $dice } para un Bunko: tres { $target }, con un valor de { $points } puntos.
+bunko-last-roll-bunko-you = Sacaste por última vez { $dice } para un Bunko: tres { $target }, con un valor de { $points } puntos.
+bunko-last-roll-no_score = { $player } sacó por última vez { $dice } y no anotó nada contra el objetivo { $target }.
+bunko-last-roll-no_score-you = Sacaste por última vez { $dice } y no anotaste nada contra el objetivo { $target }.
+bunko-status-round = Ronda { $round } de { $total_rounds }. Número objetivo: { $target }.
+bunko-status-turn = Jugador actual: { $player }.
+bunko-status-leader =
+    Líder: { $player } con { $rounds } { $rounds ->
+        [one] ronda ganada
+       *[other] rondas ganadas
+    } y { $total } puntos en general.
+bunko-standings-header = Clasificación. Ganador decidido por { $mode }.
+bunko-score-line =
+    { $rank }. { $player }: { $rounds } { $rounds ->
+        [one] ronda ganada
+       *[other] rondas ganadas
+    }, { $total } puntos en general, { $current } esta ronda, { $bunkos } { $bunkos ->
+        [one] Bunko
+       *[other] Bunkos
+    }, { $mini_bunkos } { $mini_bunkos ->
+        [one] mini Bunko
+       *[other] mini Bunkos
+    }
+bunko-roll-already-resolving = Tus dados todavía están rodando. Espera el resultado antes de volver a lanzar.
+bunko-error-round-count-invalid = Bunko requiere entre { $min } y { $max } rondas. El valor actual es { $count }.
+bunko-error-winning-mode-invalid = Bunko no admite el modo de victoria "{ $mode }". Elige rondas ganadas o puntuación total.
+bunko-set-round-count = Rondas: { $count }
+bunko-enter-round-count = Ingresa el número de rondas:
+bunko-option-changed-round-count = Número de rondas cambiado a { $count }.
+bunko-desc-round-count = Cuántas rondas de Bunko se juegan antes de decidir al ganador (por defecto 6, rango 1-12).
+bunko-set-winning-mode = Modo de victoria: { $mode }
+bunko-select-winning-mode = Selecciona el modo de victoria:
+bunko-option-changed-winning-mode = Modo de victoria cambiado a { $mode }.
+bunko-desc-winning-mode = Define si los ganadores de Bunko se clasifican por rondas ganadas o por puntuación total.
+bunko-winning-mode-round-wins = rondas ganadas
+bunko-winning-mode-total-score = puntuación total

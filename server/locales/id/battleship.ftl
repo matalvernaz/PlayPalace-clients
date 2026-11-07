@@ -1,118 +1,103 @@
-game-name-battleship = Battleship
+# battleship.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Options
-battleship-set-grid-size = Combat zone: { $size }
-battleship-select-grid-size = Select combat zone size
-battleship-option-changed-grid-size = Combat zone set to { $size }.
-
-battleship-set-placement-mode = Deployment: { $mode }
-battleship-select-placement-mode = Select deployment mode
-battleship-option-changed-placement-mode = Deployment mode set to { $mode }.
-
-battleship-set-replay-on-hit = Extra salvo on hit: { $enabled }
-battleship-option-changed-replay-on-hit = Extra salvo on hit set to { $enabled }.
-
-battleship-set-turn-timer = Turn timer: { $seconds }
-battleship-select-turn-timer = Select turn timer
-battleship-option-changed-turn-timer = Turn timer set to { $seconds }.
-
-# Option choice labels
-battleship-grid-6x6 = 6 by 6
-battleship-grid-8x8 = 8 by 8
-battleship-grid-10x10 = 10 by 10
-battleship-grid-12x12 = 12 by 12
-
-battleship-placement-auto = Automatic
+game-name-battleship = Kapal Perang
+battleship-set-grid-size = Area pertempuran: { $size }
+battleship-select-grid-size = Pilih ukuran area pertempuran
+battleship-option-changed-grid-size = Area pertempuran diatur menjadi { $size }.
+battleship-desc-grid-size = Menentukan ukuran papan laut Kapal Perang. Papan yang lebih besar membuat pencarian kapal lebih lama.
+battleship-set-placement-mode = Penempatan kapal: { $mode }
+battleship-select-placement-mode = Pilih cara penempatan kapal
+battleship-option-changed-placement-mode = Cara penempatan kapal diatur menjadi { $mode }.
+battleship-desc-placement-mode = Menentukan apakah kapal ditempatkan secara otomatis atau manual sebelum pertempuran dimulai.
+battleship-set-replay-on-hit = Tembakan tambahan jika mengenai sasaran: { $enabled }
+battleship-option-changed-replay-on-hit = Tembakan tambahan jika mengenai sasaran diatur menjadi { $enabled }.
+battleship-desc-replay-on-hit = Jika diaktifkan, pemain yang mengenai sasaran langsung mendapat tembakan tambahan.
+battleship-set-turn-timer = Batas waktu giliran: { $seconds }
+battleship-select-turn-timer = Pilih batas waktu giliran
+battleship-option-changed-turn-timer = Batas waktu giliran diatur menjadi { $seconds }.
+battleship-desc-turn-timer = Batas waktu opsional untuk setiap giliran Kapal Perang. Jika waktu habis, tembakan diarahkan ke koordinat acak. Pilih Nonaktif untuk bermain tanpa batas waktu.
+battleship-grid-6x6 = 6 kali 6
+battleship-grid-8x8 = 8 kali 8
+battleship-grid-10x10 = 10 kali 10
+battleship-grid-12x12 = 12 kali 12
+battleship-placement-auto = Otomatis
 battleship-placement-manual = Manual
-
-battleship-timer-off = Off
-battleship-timer-30 = 30 seconds
-battleship-timer-45 = 45 seconds
-battleship-timer-60 = 60 seconds
-
-# Ship names
-battleship-ship-carrier = Carrier
-battleship-ship-battleship = Battleship
-battleship-ship-destroyer = Destroyer
-battleship-ship-submarine = Submarine
-battleship-ship-patrol = Patrol Boat
-battleship-ship-unknown = Vessel
-
-# Orientations
-battleship-horizontal = Horizontal
-battleship-vertical = Vertical
-
-# Actions
-battleship-orient-horizontal = Deploy Horizontal
-battleship-orient-vertical = Deploy Vertical
-battleship-toggle-view = Switch Grid
-battleship-read-fleet = Fleet Status
-battleship-read-enemy-fleet = Enemy Fleet Intel
-
-# Deployment phase
-battleship-deploy-start = Deployment phase. Position your { $ship }, { $size } sectors long. Select a coordinate, then choose bearing.
-battleship-choose-orientation = Deploying { $ship } at { $coord }, { $size } sectors. Select bearing.
-battleship-ship-placed = { $ship } deployed at { $coord }, bearing { $orientation }.
-battleship-cannot-place = Cannot deploy { $ship } at { $coord } { $orientation }. Vessel does not fit or overlaps another ship.
-battleship-place-next-ship = Next vessel: { $ship }, { $size } sectors.
-battleship-deploy-done = Fleet deployed. Standing by for the enemy.
-battleship-deploy-complete = Deployment complete.
-battleship-select-cell-first = Select a coordinate on the grid first.
-battleship-deploy-in-progress = Deployment still in progress.
-
-# Battle phase
-battleship-battle-start = All ships in position. Commence firing!
-
-# Hit — first-person (shooter), second-person (target), third-person (spectator)
-battleship-hit-self = Firing on { $coord }. Direct hit!
-battleship-hit-target = { $player } fires on your { $coord }. Direct hit!
-battleship-hit-spectator = { $player } fires on { $target }'s { $coord }. Direct hit!
-
-# Miss — first/second/third
-battleship-miss-self = Firing on { $coord }. Missed.
-battleship-miss-target = { $player } fires on your { $coord }. Missed.
-battleship-miss-spectator = { $player } fires on { $target }'s { $coord }. Missed.
-
-# Sunk — first/second/third
-battleship-sunk-self = Enemy { $ship } destroyed!
-battleship-sunk-target = { $player } sank your { $ship }!
-battleship-sunk-spectator = { $player } sank { $target }'s { $ship }!
-
-# Victory — first/second/third
-battleship-victory-self = Victory! All enemy vessels have been sunk.
-battleship-victory-target = { $player } wins! All your vessels have been sunk.
-battleship-victory-spectator = { $player } wins! All of { $target }'s vessels have been sunk.
-
-battleship-already-shot = Already fired on this coordinate.
-battleship-switch-to-shots = Viewing your own waters. Press V to switch to the target grid.
-battleship-timeout-fire = Time's up! Auto-firing on { $coord }.
-
-# View toggle
-battleship-view-own = Viewing your waters.
-battleship-view-shots = Viewing target grid.
-
-# Cell labels
-battleship-cell-empty = { $coord }, open water.
+battleship-timer-off = Nonaktif
+battleship-timer-30 = 30 detik
+battleship-timer-45 = 45 detik
+battleship-timer-60 = 60 detik
+battleship-error-invalid-grid-size = Ukuran area pertempuran { $size } tidak didukung.
+battleship-error-grid-too-small = Area pertempuran { $size } kali { $size } terlalu kecil untuk seluruh armada. Gunakan setidaknya { $minimum } kali { $minimum }.
+battleship-error-invalid-placement-mode = Cara penempatan kapal { $mode } tidak didukung.
+battleship-error-invalid-turn-timer = Batas waktu giliran { $seconds } tidak didukung.
+battleship-ship-carrier = Kapal induk
+battleship-ship-battleship = Kapal tempur
+battleship-ship-destroyer = Kapal perusak
+battleship-ship-submarine = Kapal selam
+battleship-ship-patrol = Kapal patroli
+battleship-ship-unknown = Kapal
+battleship-horizontal = Mendatar
+battleship-vertical = Tegak
+battleship-orient-horizontal = Tempatkan mendatar
+battleship-orient-vertical = Tempatkan tegak
+battleship-orient-horizontal-at = Tempatkan { $ship } mendatar di { $coord }
+battleship-orient-vertical-at = Tempatkan { $ship } tegak di { $coord }
+battleship-select-orientation = Pilih arah penempatan
+battleship-toggle-view = Ganti papan
+battleship-read-fleet = Status armada
+battleship-read-enemy-fleet = Informasi armada lawan
+battleship-deploy-start = Tahap penempatan kapal. Tempatkan { $ship } Anda yang panjangnya { $size } petak. Pilih koordinat, lalu arah penempatannya.
+battleship-choose-orientation = Menempatkan { $ship } di { $coord }, sepanjang { $size } petak. Pilih arah penempatannya.
+battleship-ship-placed = { $ship } ditempatkan di { $coord }, dengan arah { $orientation }.
+battleship-cannot-place = { $ship } tidak dapat ditempatkan di { $coord } dengan arah { $orientation }. Kapal melewati batas papan atau bertumpuk dengan kapal lain.
+battleship-place-next-ship = Kapal berikutnya: { $ship }, sepanjang { $size } petak.
+battleship-deploy-done = Armada sudah ditempatkan. Menunggu lawan siap.
+battleship-deploy-complete = Penempatan kapal selesai.
+battleship-select-cell-first = Pilih koordinat pada papan terlebih dahulu.
+battleship-deploy-in-progress = Penempatan kapal masih berlangsung.
+battleship-deploy-status-header = Tahap penempatan kapal.
+battleship-deploy-status-ready-self = Anda sudah siap.
+battleship-deploy-status-ready-other = { $player } sudah siap.
+battleship-deploy-status-not-ready-self = Anda belum siap.
+battleship-deploy-status-not-ready-other = { $player } belum siap.
+battleship-battle-start = Semua kapal sudah ditempatkan. Mulai menembak!
+battleship-hit-self = Anda menembak { $coord }. Kena!
+battleship-hit-target = { $player } menembak { $coord } di perairan Anda. Kena!
+battleship-hit-spectator = { $player } menembak { $coord } di perairan { $target }. Kena!
+battleship-miss-self = Anda menembak { $coord }. Meleset.
+battleship-miss-target = { $player } menembak { $coord } di perairan Anda. Meleset.
+battleship-miss-spectator = { $player } menembak { $coord } di perairan { $target }. Meleset.
+battleship-sunk-self = Anda menenggelamkan { $ship } lawan!
+battleship-sunk-target = { $player } menenggelamkan { $ship } Anda!
+battleship-sunk-spectator = { $player } menenggelamkan { $ship } milik { $target }!
+battleship-victory-self = Anda menang! Semua kapal lawan telah tenggelam.
+battleship-victory-target = { $player } menang! Semua kapal Anda telah tenggelam.
+battleship-victory-spectator = { $player } menang! Semua kapal { $target } telah tenggelam.
+battleship-shot-in-flight = Peluru masih meluncur. Tunggu hasilnya sebelum menembak lagi.
+battleship-not-your-turn = Belum giliran Anda menembak. Tunggu { $player } memilih koordinat.
+battleship-wait-for-turn = Tunggu giliran menembak berikutnya sebelum memilih koordinat.
+battleship-already-shot = Anda sudah menembak { $coord }. Pilih koordinat yang belum ditembak.
+battleship-switch-to-shots = Anda sedang melihat perairan sendiri, jadi tidak dapat menembak. Tekan V untuk beralih ke papan sasaran.
+battleship-timeout-fire = Waktu habis! Menembak otomatis ke { $coord }.
+battleship-view-own = Menampilkan perairan Anda.
+battleship-view-shots = Menampilkan papan sasaran.
+battleship-cell-empty = { $coord }, laut kosong.
 battleship-cell-ship-placed = { $coord }, { $ship }.
-battleship-cell-unknown = { $coord }, uncharted.
-battleship-cell-hit = { $coord }, hit.
-battleship-cell-sunk = { $coord }, { $ship }, sunk.
-battleship-cell-miss = { $coord }, miss.
-battleship-cell-own-ship = { $coord }, your { $ship }.
-battleship-cell-own-hit = { $coord }, your { $ship }, hit.
-battleship-cell-own-sunk = { $coord }, your { $ship }, sunk.
-battleship-cell-own-miss = { $coord }, incoming miss.
-
-# Fleet status
-battleship-fleet-header = Your Fleet
-battleship-status-intact = Battle-ready
-battleship-status-damaged = Damaged ({ $hits } of { $size } hit)
-battleship-status-sunk = Sunk
-
-battleship-enemy-fleet-header = Enemy Fleet
-battleship-enemy-fleet-summary = { $sunk } of { $total } enemy vessels sunk.
-battleship-enemy-ship-sunk = { $ship } (size { $size }): Sunk
-
-# End screen
-battleship-winner-line = { $player } wins!
-battleship-stats-line = { $player }: { $shots } shots fired, { $hits } hits, { $accuracy }% accuracy
+battleship-cell-unknown = { $coord }, belum ditembak.
+battleship-cell-hit = { $coord }, kena.
+battleship-cell-sunk = { $coord }, { $ship }, tenggelam.
+battleship-cell-miss = { $coord }, meleset.
+battleship-cell-own-ship = { $coord }, { $ship } Anda.
+battleship-cell-own-hit = { $coord }, { $ship } Anda, terkena tembakan.
+battleship-cell-own-sunk = { $coord }, { $ship } Anda, tenggelam.
+battleship-cell-own-miss = { $coord }, tembakan lawan meleset.
+battleship-fleet-header = Armada Anda
+battleship-status-intact = Siap tempur
+battleship-status-damaged = Rusak ({ $hits } dari { $size } petak terkena tembakan)
+battleship-status-sunk = Tenggelam
+battleship-enemy-fleet-header = Armada lawan
+battleship-enemy-fleet-summary = { $sunk } dari { $total } kapal lawan tenggelam.
+battleship-enemy-ship-sunk = { $ship } (panjang { $size }): Tenggelam
+battleship-winner-line = { $player } menang!
+battleship-stats-line = { $player }: { $shots } tembakan, { $hits } mengenai sasaran, akurasi { $accuracy } persen

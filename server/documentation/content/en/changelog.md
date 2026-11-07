@@ -1,0 +1,893 @@
+Changelog
+
+Tuesday 20 October 2026
+
+New Additions:
+
+* Last Outpost has been added for 1 to 4 players. Hold together against waves of the undead across Abandoned Outpost, Switchyard, or Floodworks in Operations, Siege, Salvage, and Classic Extraction modes, with Recruit, Standard, and Veteran difficulty. Open permanent gates to shape your routes, repair barricades and vital infrastructure, share supplies, upgrade weapons, rescue downed teammates, and complete cargo, relay, defense, and extraction objectives. The game includes coordinated bots, solo recovery, accessible objective, teammate, equipment, and map views, rich 3D combat and environmental audio, survival leaderboards, and complete English and Vietnamese guidance.
+
+Improvements:
+
+* Active games now pause for five seconds after an unexpected disconnect before a bot can take over, giving the player a brief chance to return. Intentional departures are handled immediately, information and host controls remain available while play is paused, and the game resumes only after a human-controlled player is active.
+* Disconnect, return, cancellation, and ranking announcements are clearer. They identify the affected player, avoid duplicate feedback, distinguish a closed table from a completed unranked match, and explain when a permanent seat removal or substitution makes the match unranked. Returning to the same account-owned seat still preserves ranking eligibility.
+* Help and Feedback, pre-sign-in Contact, connection guidance, and update progress introduced in the previous release are now fully translated into Arabic, Spanish, Indonesian, and Brazilian Portuguese.
+
+Bug Fixes:
+
+* Music, ambience, and 3D sound are more reliable across Desktop, Web, and Mobile when audio loads slowly or changes rapidly. Stopped or replaced sounds no longer start late, and movement and volume changes remain correct while audio is loading.
+* An unexpectedly disconnected spectator host now keeps the table and host role during the existing recovery period, including for private and restored tables, without incorrectly allowing a bot-only game to continue.
+
+Friday 16 October 2026
+
+New Additions:
+
+* Help and Feedback is now available from the main menu and in-game Actions menu. Contact the developers to send a private request about accessibility, gameplay, account or connection help, suggestions, or another question. Conversations and replies are saved for your return, updates arrive after sign-in, and you can follow up, close, or reopen a request.
+* A Contact option is now available before sign-in on Desktop, Web, and Mobile, with Telegram and email details that can be read, copied, or opened in the appropriate app. The Web sign-in page also offers direct Windows desktop (ZIP) and Android (APK) downloads.
+
+Improvements:
+
+* Desktop updates now distinguish checking installed files, downloading only the required data, and preparing and verifying the result. Progress begins promptly, shows the actual download size, and uses less processor time and network overhead. Desktop full-download recovery and Mobile sound updates also retry more smoothly on unstable connections.
+* Smaller Breach Point bot squads now coordinate split attacks, support and regroup calls, and responses to sustained footsteps more effectively without abandoning the other objective too readily.
+* Who's at the table now describes table roles without incorrectly calling a reserved seat Online or Offline after its user has left the table.
+
+Bug Fixes:
+
+* Desktop sign-in, registration, and password recovery now report the actual server or network problem instead of a misleading generic verification failure. Planned server restarts also reconnect more quietly and reliably on Desktop, Web, and Mobile.
+* When the game changes while a choice, Actions menu, or status view is open on Mobile, the screen now moves safely to the current menu instead of leaving outdated choices available.
+* Moving an active session to Desktop now restores the table before reconnecting listen-only Voice Chat, preventing a delayed old connection from disrupting the replacement session.
+* The Breach Point beginner guide now gives the correct tactical clock and bomb-fuse length for every team size.
+
+Monday 12 October 2026
+
+New Additions:
+
+* Indonesian is now available across the server, desktop, web, mobile, and player guides as a community translation by Muhammad and the PlayAural Indonesia community. Content not yet translated into Indonesian falls back to English.
+* Breach Point now includes a numbered Tactical radio. Open it from the actions menu, or press Z on Desktop and Web, to ask the nearest available bot or the whole squad to cover, advance, hold, regroup, retreat, or report. Commands and responses stay within the team, use each agent's positional voice, and clearly refuse unsafe orders or orders that conflict with the objective.
+
+Improvements:
+
+* Breach Point bots now coordinate more decisively around objectives, enemy footsteps, focus fire, rotations, crossfires, equipment, weapon choices, and the round economy. They remember tactical calls for an appropriate length of time while still abandoning an order when the live situation makes it unsafe.
+
+Bug Fixes:
+
+* When playing in Arabic, adding a bot no longer disconnects the game.
+* On Mobile, chat and game text fields now clear correctly after their contents are sent. If sending fails, the text remains available so you can try again instead of losing it.
+* Breach Point purchase menus now list every side's weapons and equipment in the same order as their numbered shortcuts, including after the teams switch sides.
+
+Saturday 10 October 2026 (Update 2)
+
+New Additions:
+
+* Arabic is now available across the server, desktop, web, mobile, and player guides as a right-to-left community translation maintained by the Lumora Nova team. Content not yet translated into Arabic falls back to English.
+
+Improvements:
+
+* Turning your Voice Chat microphone on or off now confirms success with one concise spoken message and sound after the change actually takes effect. Routine channel transfers stay quiet.
+
+Bug Fixes:
+
+* When an older Desktop or Mobile release must update, it now opens the correct complete download without repeatedly announcing disconnections. Desktop also no longer reports a connection timeout immediately after you accept an update.
+* On Android, in-app sound updates now continue reliably in the background, and long sounds retain their full three-dimensional positioning instead of unexpectedly falling back to standard playback.
+* Team Voice Chat no longer interrupts an active microphone when another team's player or bot membership changes.
+
+Saturday 10 October 2026
+
+New Additions:
+
+* Breach Point now includes private Team Chat for both text and Voice Chat. Use the channel control beside the chat box, or Alt+T on Desktop and Web, to switch between Table Chat and Team Chat without leaving the table. You continue to hear every voice channel you are allowed to join, while your microphone publishes only to the selected channel; the game returns you to Table Chat when a private channel no longer exists.
+* Updates now use much less data. Desktop and Mobile reuse the sounds already installed and download only changed audio files. Desktop application updates also fetch only changed content, resume safely after interruptions, restore the previous version if the updated app cannot start, and ask before using the complete standalone ZIP as a last resort. Spoken progress is limited to ten-percent steps, while full ZIP releases remain available for clean installs and manual updates. On Mobile, sounds install inside the app without storage permission; Android application updates open the direct-download or Google Play destination selected by the server.
+
+Improvements:
+
+* Chat and shared announcements now use each listener's point of view consistently. Your own messages and actions say "You," while everyone else hears your player name. This applies to Global Chat, Table Chat, Team Chat, table and host changes, moderation, Voice Chat, timers, and supported game actions.
+* Turning your Voice Chat microphone on or off now confirms success with one concise sound after the change actually takes effect. Routine channel transfers stay quiet, while restrictions and failures remain spoken.
+* Desktop now preserves saved sign-in accounts and preferences more reliably. Existing settings migrate automatically, a damaged settings file no longer causes repeated startup trouble, and cancelling an audio option preview restores the previous value.
+
+Bug Fixes:
+
+* Restoring a saved table no longer stops its game music as soon as the restored game opens.
+* Moving a live session between Desktop, Web, and Mobile no longer lets a slow or stale Voice Chat connection block the replacement device.
+* In Cards Against Humanity, the question-card shortcut now clearly reports when no question card is active.
+
+Tuesday 6 October 2026
+
+New Additions:
+
+* Skip-Bo has been added for 2 to 6 players, with individual play and two-person partnerships at four- or six-player tables. Empty your stock pile by building shared piles from 1 through 12 with cards from your hand, your stock and discard piles, or a partner's public piles, while Skip-Bo wild cards fill any missing number. Tables can choose standard or shorter stock piles, a single game or a scored match, and a match target. Strategic bots, stable card and destination choices, off-turn access to your hand, detailed pile views, keyboard and touch controls, background music, and complete game text and beginner guides in English, Vietnamese, Spanish, and Brazilian Portuguese are included.
+* Dead Man's Dice has been added for 2 to 4 players. Hide five dice beneath your cup, keep raising the table's bid, or challenge with Liar or Spot On before a second dose of poison eliminates you. Traditional rules with wild ones and Basic rules with exact faces are both available, alongside fair-information bots, accessible bid and review controls, complete game text and beginner guides in English, Vietnamese, Spanish, and Brazilian Portuguese, and a fully spatial tavern of cups, dice, poison, and the final fall.
+* Zombie Dice has been added for 2 to 8 players. Roll three dice at a time, keep brains, reroll footprints, and decide when to stop before three shotgun blasts wipe out the brains from your turn. The official thirteen-die cup, equal-turn final round, repeatable leader-only tiebreaks, adjustable winning target, challenging bots, live turn and table views, keyboard and touch controls, and complete game text and beginner guides in English, Vietnamese, Spanish, and Brazilian Portuguese are included. Its spatial swamp surrounds the table with a moving zombie soundscape, responsive dice, bites, gunfire, impacts, and music.
+* Flip 7 has been added for 3 to 10 players. Keep flipping for points or stop and bank before a repeated number makes you bust; Double and additive modifiers change the score, while Second Chance, Freeze, and Flip Three can turn the round around. Completing seven different numbers earns the Flip 7 bonus and ends the round. The complete 94-card deck, adjustable target score, tied-leader continuation, fair-information bots, phase-aware table reviews, keyboard and touch controls, and full game text and beginner guides in English, Vietnamese, Spanish, and Brazilian Portuguese are included.
+
+Improvements:
+
+* Dead Man's Poker now treats Switch Card as a once-per-match escape. The private replacement choice narrows from four cards to three and then two as community cards are revealed, and switching must be followed by Call or Fold rather than an All-in on the same turn. Bots make stronger decisions from information they can legitimately know, and the opening position continues correctly after an elimination.
+* Cards Against Humanity tables can now choose English, Spanish, or Brazilian Portuguese card text independently of the interface language. English includes the current US 3.0 main deck by default, with official, historical, family, and community packs available to mix without duplicate cards. Ordered multi-card answers, private hand review, anonymous answer review, judge controls, keyboard and touch play, and the beginner guide have also been refined; the guide now clearly warns about the game's mature and potentially offensive content.
+
+Friday 2 October 2026
+
+New Additions:
+
+* Voice Chat now includes table-specific moderation and listening controls. Hosts can choose Host Management > Manage Voice Chat to disable or allow another table member's microphone. From Who's at the table, anyone can open Personal Voice Settings for another member to mute that member only for themselves, set a separate listening volume for that member, or reset those choices. These settings remain with the table through game switches and planned server restarts.
+
+Improvements:
+
+* Voice Chat now stays connected when a host switches the table to another game or a live session moves to another device. The replacement device reconnects listen-only, and its microphone remains off until the player explicitly turns it on.
+* Leaderboards and My Stats now show Skill Rating as one clearer number. Game results, statistics, leaderboards, and ratings are now more accurate for team games and ties, and when players disconnect, return to their seats, are replaced by bots, or are permanently removed.
+* The unreliable Predict outcomes action has been removed from table menus.
+
+Bug Fixes:
+
+* Host Management no longer offers Pass Host to Another Player for disconnected or bot-controlled seats. If the selected person leaves, the member action menu now returns safely to Who's at the table instead of becoming stale.
+* On Android, TalkBack now reads live typing normally in sign-in, chat, password recovery, and game text fields instead of repeatedly announcing the entire field.
+
+Thursday 1 October 2026
+
+New Additions:
+
+* 75-ball Bingo has been added for 2 to 12 players. Everyone plays at the same time on an accessible 5-by-5 card, with adjustable calling pace, bots, spectators, keyboard and touch controls, and four winning patterns: Any Line, Four Corners, Letter X, and Blackout.
+* Host Management now includes Player Substitution. With everyone’s consent, a spectator can take over a human, bot, or reserved player seat during a game and inherit its exact current position, private information, time, and result.
+* Hosts can now choose Host Management > Switch to Another Game without rebuilding the table. The host, privacy, bans, present players, spectators, bots, and voice room stay together while the new game opens in a fresh waiting lobby.
+* Profile now includes the optional Gender choices Male, Female, Non-binary, and Not set. Announcements use this choice to refer to users and players more naturally.
+
+Improvements:
+
+* Friends now includes Sent Requests, where outgoing requests can be reviewed or cancelled. Offline friends also show when they were last online.
+* Report a user is now available from Who's at the table, including for spectators and disconnected human seats; bots cannot be reported.
+* General options now places Global Chat Language directly below Language and contains Game options as a submenu. Focus returns to the item that opened each submenu.
+* Press F1 on Desktop or Web to hear a description of the focused menu item. In Mobile self-voicing mode, use a three-finger single tap. Confirmation prompts are now both visible and spoken, while brief menu feedback no longer fills message history.
+* Signing in from another Desktop, Web, or Mobile client now transfers the live session cleanly while preserving the current table, player seat, turn, and voice connection. Closing or signing out of an app also leaves tables and voice sessions more reliably.
+* Spectating hosts can now keep an active table running and manage its waiting lobby. Invitations and role changes also recover more reliably if someone disconnects, changes role, or responds late.
+* Bot names now follow your selected language, remain easy to distinguish, and stay consistent through reconnection, player replacement, and saved-table restoration.
+* Breach Point now uses a simultaneous buy phase, a number of tactical rounds that adapts to squad size, damaging bomb blasts, free recovery of a dropped bomb after T reaches it, and stricter protection for actions and purchase sounds that enemies cannot observe.
+* Breach Point bots now listen for enemy activity, coordinate map control and objectives, adapt to previous rounds, use equipment and money more intelligently, and value weapons and pickups more realistically. Players also receive varied team-only radio calls that sound from each distinct male or female agent’s position.
+
+Bug Fixes:
+
+* The Desktop client now starts correctly on older Windows computers that previously closed before reaching sign-in.
+* Signing in and social actions now handle usernames with international characters or different letter casing consistently, while preventing duplicate accounts that look like the same name.
+* Changing language while connected now updates menus and client text immediately without briefly mixing the old and new languages.
+
+Saturday 26 September 2026
+
+New Additions:
+
+* Global chat is now organized into language channels. No channel is selected by default; choose Personal and Options > General options > Global Chat Language before sending or receiving global messages. Outside a table, ordinary messages go to your selected channel; at a table, ordinary messages stay in table chat and `/g` sends to the global channel.
+* Report a user is now available for serious or repeated abuse. Reports record the reason, language channel, and exact submission time for manual review without notifying or automatically punishing the reported user. Global chat messages are retained with their sender and time until a developer clears the history, so reports can be reviewed in context; you can block the user immediately while awaiting review.
+* Breach Point is now fully available in Spanish and Portuguese, including all game text and beginner guides.
+
+Improvements:
+
+* Informational rows throughout menus are now consistently read-only. Selecting one no longer performs an action or unexpectedly returns to the previous menu.
+* Chat spam protection now treats global chat more strictly than table chat. It rejects only the spam-like message instead of automatically muting the account, while repeated incidents can be sent for manual review.
+* Server maintenance now gives clear start and completion notices when gameplay and account changes must pause temporarily. Current menus remain visible until normal service resumes.
+
+Bug Fixes:
+
+* Web game sounds, music, and ambience now work reliably in Apple browsers and recover correctly after the browser returns from the background.
+* On Mobile, a sound that loads slowly or fails no longer blocks later footsteps, gunfire, or other game audio, and long matches no longer gradually lose spatial sounds.
+* Breach Point now keeps squad membership, sides, bomb ownership, and scores correct through halftime, overtime, disconnected-seat replacement, seat recovery, and saved-table restoration. Blocked actions no longer reveal hidden enemy movement or utility details, spectators receive a neutral pre-plant bomb status, and Mobile gunfire is quieter to reduce clipping.
+* Game timing no longer speeds up to catch up after a temporary server slowdown.
+
+Wednesday 23 September 2026
+
+New Additions:
+
+* Breach Point has been added for two equal squads from 2v2 through 5v5. This turn-based tactical game on Dust pits T, which must plant and defend the bomb, against CT, which must prevent the plant or defuse it. It includes fog of war, sightlines and held angles, weapons, armor and grenades, a round-to-round economy with refunds and teammate purchases, dropped weapons, MR7, MR12, and MR15 formats, optional repeatable MR3 overtime, objective-aware bots, accessible buy and combat menus, a fully spatial soundscape, and beginner guides in English and Vietnamese.
+* Desktop, Web, and Mobile can now play supported sounds in three-dimensional space. Cues may come from above, below, around you, at a distance, or in motion, while connected and overlapping effects remain synchronized. Directional stereo keeps these cues useful when full spatial playback is unavailable.
+
+Improvements:
+
+* History on Desktop and Web now keeps the exact message you are reviewing selected when new messages arrive or a muted backlog returns. The left and right bracket keys move between buffers, while comma and period move between messages; each navigation cue travels from left to right to show your position from oldest to newest.
+* On Mobile, turning self-voicing off now lets TalkBack queue and speak server and interface announcements in order without interrupting current speech. Navigating or performing another action clears pending announcements so current feedback takes priority. With self-voicing on, Android now retries the default voice and other installed TTS engines if the selected voice or engine cannot speak, instead of remaining silent.
+
+Bug Fixes:
+
+* Saving and restoring a table now preserves its private status and table ban list, including through planned server restarts. A private table stays private, and anyone removed with Kick and Ban a Player cannot rejoin after restoration. Saved tables from older versions continue to load normally.
+
+Friday 11 September 2026
+
+New Additions:
+
+* History now provides six message buffers on Desktop, Web, and Mobile, in this order: All, Chat, Private Messages, Game, System, and Misc. Each buffer can be reviewed and muted separately. Muting All silences every buffer; when an individual buffer is unmuted, messages received while it was muted return to All in their original order. Muting Chat or Private Messages also silences its notification sounds. Message history is kept only for the current session.
+* The Web client now lets you collapse or expand Chat and Voice, Volume, and Shortcuts, with Volume collapsed by default. The familiar in-game Tab order remains unchanged.
+* Mobile Language now opens the complete list of available languages, marks the current choice, preserves anything already entered on the login or registration screen, and returns focus to the Language button after choosing a language or going Back.
+
+Improvements:
+
+* Mobile navigation is more reliable throughout login and play. Self-voicing recognizes one-, two-, and three-finger gestures more consistently. Back closes the visible dialog or text box before moving away from the current screen, and Help and gestures now keeps instructions and build information together.
+* Large game boards such as Battleship now keep readable touch targets and scroll smoothly in every direction on Web and Mobile, including two-finger panning with TalkBack. Focused cells are brought into view without delaying cursor movement or speech.
+* Read online users now announces the total first, followed by developers, administrators, and other users. Open online users list follows the same order, stays on the current page while it refreshes, and keeps account actions available as people come online, go offline, or change roles.
+* Text in right-to-left languages now uses the correct writing direction throughout Desktop, Web, and Mobile while keeping the familiar layout and navigation order.
+
+Bug Fixes:
+
+* A game that finishes in the background no longer replaces a global menu, closes a text box, or interrupts a private message being written. The result appears when you return to the table.
+* Private messages to your own account are now rejected with a clear explanation, and a private message with no text is no longer sent.
+
+Thursday 27 August 2026
+
+New Additions:
+
+* Portuguese is now available across the server, desktop, web, mobile, and player guides as a community translation by Tadeu Junior. Content not yet translated into Portuguese falls back to English.
+
+Improvements:
+
+* The Windows desktop updater now installs PlayAural and sound-pack updates in a dedicated accessible window. It checks the downloaded package before changing the installation, waits for every PlayAural window to close, verifies that the updated client starts correctly, and restores the previous working version if startup fails. Failed or cancelled updates also clean up temporary files and give clearer recovery instructions.
+* Play Typing Sounds now works in the desktop chat box and text boxes opened by games, as well as supported web chat and text boxes. Ordinary keys use a wider variety of sounds, while number keys, Delete, and Enter have distinct feedback. The built-in Windows Vietnamese Telex keyboard and other language keyboards now keep a sound for each key without duplicates while forming accented characters.
+* Backgammon now includes a live Legal moves view; clearer Deselect, failed bearing-off, Undo, Status, Pip count, Dice, Cube, and score feedback; personalized wording for the player moving and everyone else; steadier touch focus; and a rebuilt beginner guide. Touch players roll by tapping any board point without moving focus, while Next destination and Previous destination move focus only when requested.
+* User blocking, table membership summaries, and Backgammon doubling-cube play are now available in Spanish.
+
+Bug Fixes:
+
+* Starting a table with only bots and no active human player is now stopped before the game begins. The table stays open and explains that a human must return to a player seat, instead of starting and then being cancelled.
+* Backgammon now scores accepted and dropped doubles, cube ownership, Crawford games, normal wins, gammons, and backgammons correctly. It also prevents a pointless double when the current cube value is already enough to win the match, and Undo restores a hit checker with clear feedback for everyone at the table.
+
+Tuesday 25 August 2026
+
+New Additions:
+
+* User blocking is now available from friend requests, profiles, online-user and table-member menus, or from Personal and Options > Friends > Block a User. Blocking removes any friendship and pending requests between the two accounts, prevents friend requests, private messages, table invites, and ordinary chat in both directions, and prevents either person from newly entering a table hosted by the other. Blocked Users lets you review and unblock people later. Blocking does not remove anyone from a shared table, mute table Voice Chat, or prevent either person from recovering a reserved seat; saved tables containing both people remain safely stored but require the block to be removed before restoration.
+
+Improvements:
+
+* Reserved seats in active tables, including private tables, now remain recoverable through ordinary disconnects and planned server restarts. Returning players are placed back into their table automatically. If the only active human player disconnects and leaves the table unattended, play pauses for up to 15 minutes before the table closes; this grace period is preserved across a planned restart without counting time while the server is offline.
+* Restoring a saved table is now owner-only and all-or-nothing: every participant is transferred successfully or the original table and save remain unchanged. Human seats held by replacement bots are restored correctly, and unavailable players, incompatible saved data, or blocking conflicts now produce clear guidance without deleting the save.
+* Who's at the table summaries now omit empty categories. Active-table listings name all human players, report bots only as a count, show a short spectator preview with any remaining total, and identify the host clearly when the host is spectating.
+* Backgammon bearing off is now faster and clearer. Activating a checker bears it off immediately when that is its only legal destination; when an on-board move is also possible, the checker remains selected so a second activation can bear it off. Invalid attempts explain whether checkers remain outside the home board or on the bar, whether the dice do not fit, or whether a higher occupied point blocks the move. Status now includes each color's checkers outside the home board, and doubling restrictions give specific explanations.
+* Table arrivals, voluntary departures, kicks, network disconnects, and reserved-seat returns now have distinct audio cues. Simultaneous table and Voice Chat changes no longer pile up duplicate sounds, while events that happen separately remain individually audible. System notifications also use a more varied set of cues, and chat, private-message, invitation, typing, and Voice Chat feedback has been refreshed.
+* Mobile Voice Chat now more firmly preserves full-quality stereo game audio and the wired, Bluetooth, or speaker route selected by the device. Music, ambience, ordinary effects, and looping effects continue independently while Voice Chat is active, and the microphone still turns on only after an explicit user action.
+* Chat now gives clear feedback when a channel is unavailable or a message is invalid or too long, instead of silently failing or sending it through the wrong conversation.
+
+Bug Fixes:
+
+* Backgammon now evaluates each move against the complete remaining roll, so people, bots, and keyboard navigation consistently use both dice when possible and the higher die when only one can be played. This fixes legal sequences that previously became stranded after the first move, including bearing off with the remaining die after a hit.
+
+Tuesday 18 August 2026
+
+Improvements:
+
+* Monopoly is now fully available in Spanish, including its boards, menus, announcements, and beginner guide, thanks to community translator UnDuende (Storm Demoner).
+* Choice menus can now update while they remain open without dropping screen-reader focus. Options, labels, descriptions, and balances follow the current game state; submitting or cancelling returns focus to the control that opened the prompt; text entries are not reset by background updates; and opening speech or sounds do not repeat during those updates. This keeps Monopoly's Read all portfolios, Manage properties, and Propose a trade choices, Battleship's manual deployment bearings, Mile by Mile's unplayable-card prompt, and 21 (Survival Rules) Change-card choices stable through game updates and reconnects.
+* Monopoly auction controls now remain visible for every participating bidder, update to show the current minimum bid, and stay unavailable while another bidder acts. They close only when you leave the auction or the auction ends.
+* Monopoly rent settlement now gives the property owner, the player paying, and other listeners one concise message from the appropriate perspective. Brief announcements remain shorter, and duplicate rent notices have been removed.
+* Explicitly choosing End turn in Monopoly now returns only your focus to Roll dice; another player's turn or action does not move your cursor. The guide also clarifies that having no cash and no property is not bankruptcy unless you later owe a debt you cannot cover.
+
+Bug Fixes:
+
+* Pressing Space for Roll dice in Monopoly now performs exactly one roll. During the opening setup, Whose turn reports that nobody has the turn yet and game-changing actions ask you to wait; while a roll, token movement, rent roll, or card effect is resolving, overlapping controls remain unavailable but information views stay accessible.
+* Choosing Propose a trade now pauses other game-changing actions until you select a trade partner or cancel, so another player's roll can no longer close the selection menu.
+* Owned utilities and Hanoi landmarks now always use a fresh rent roll and charge the same amount whether their owner is a person or a bot. On the Hanoi board, One Pillar Pagoda and Long Biên Bridge charge 4,000 VND per dice pip when the owner has one landmark or 10,000 VND per pip when the owner has both; cards that send you to the nearest utility use the complete-group rate as required.
+* A completed Monopoly result screen now keeps the currency of the board that was played, even if the host selects a different board for the next game.
+
+Sunday 16 August 2026
+
+New Additions:
+
+* Monopoly has been added for 2 to 8 players. Choose from the United States, London, Paris, Germany, Italy, Madrid, Tokyo, Australia, New Zealand, and Hanoi, Vietnam boards, each with its own spaces, currency, cards, transport, and development terms. The game includes buying and auctioning property, collecting rent, completing color groups, balanced development, mortgages, trading, jail, debt and bankruptcy, configurable house rules, strategic bots, Brief announcements, screen-reader-friendly property and board views, dedicated music and sound, and beginner guides in English and Vietnamese.
+
+Improvements:
+
+* Desktop Voice Chat now remains smooth when several people speak or connections briefly fluctuate, reducing crackling, stuttering, cut-off words, and delayed audio while preserving incoming stereo quality.
+
+Bug Fixes:
+
+* Account registration no longer occasionally fails with a server error while other account or game records are being updated.
+* Choice menus and text prompts now remain tied to the current table state. Responses from an outdated menu are ignored, and prompts that no longer apply close safely instead of carrying an earlier decision into a later part of the game.
+
+Wednesday 5 August 2026
+
+New Additions:
+
+* Spanish is now available across the server, desktop, web, mobile, and player guides as a community translation by UnDuende (Storm Demoner). Content not yet translated into Spanish falls back to English.
+* Menu Hints now show available descriptions directly in menu choices by default on every client. Turn them off under Personal and Options > General options > Accessibility > Menu Hints for shorter rows; desktop users can still press Space for help on supported system and game-setup choices.
+* New account names may now use letters in any language, numbers, and single spaces, making full Vietnamese names possible while keeping the 3-to-30-character limit.
+
+Improvements:
+
+* BANG! The Bullet information actions are now easier to review: Whose turn reports pending out-of-turn choices, Read distances remains open as a live status panel, Read your hand and in-play cards includes your face-up cards, Read the table keeps public card rows concise, and target choices identify each character.
+* BANG! The Bullet now uses attack-specific defense wording and sounds for gunshots, Knife, Punch, and other attacks with a BANG! symbol. Its Western soundtrack and ambience have also been refreshed.
+* Desktop Voice Chat now joins and leaves more quickly, stays responsive during long sessions, and preserves the quality of incoming audio, including stereo. Microphone noise and echo cancellation affect only the audio you send.
+* Username matching is now case-insensitive throughout login, friend requests, profiles, and private messages, while every client continues to show the account's registered spelling.
+
+Bug Fixes:
+
+* In BANG! The Bullet, Jourdonnais may now use both his built-in and equipped Barrel checks before playing a defense from his hand. When two players have Vulture Sam's ability, the one nearest the eliminated player clockwise takes the first card, then they divide the remaining cards alternately.
+* Disconnected spectators are now removed from Who's at the table instead of remaining in the roster.
+* Sending a private message to yourself no longer reports that you are not friends with your own account.
+
+Saturday 1 August 2026
+
+Improvements:
+
+* On Android, music, ambience, and looping effects now keep playing for as long as the game requires. With TalkBack active, game audio also stays on the system-selected wired headphones, Bluetooth device, or phone speaker instead of flickering between outputs.
+
+Friday 31 July 2026
+
+New Additions:
+
+* BANG! The Bullet has been added for 3 to 8 players. Hosts can turn Expanded cards and characters off for the classic 80-card, 19-character game for 4 to 7 players or leave it on for the 120-card, 34-character game for 3 to 8, and may add High Noon, A Fistful of Cards, or mixed turn-changing events. The game includes faithful base and expanded rules, hidden-role showdowns, public roles for the special three-player rules, guided private card choices and rule-required public reveals, accessible information and reaction menus for keyboard and touch screens, strategic bots, dedicated Western audio, and beginner guides in English and Vietnamese.
+
+Improvements:
+
+* Sound effects, music, and ambience now behave consistently across desktop, web, and mobile. Looping effects stop with the event that owns them, music and ambience change smoothly, and environmental sound can move seamlessly through an introduction, loop, and ending. Reconnecting restores the live soundscape without replaying its opening, while leaving or ending a table lets authored endings finish without audio following you back to the menus.
+* Main-menu music now continues while moving through Play, Personal and Options, and their submenus. Waiting rooms are always quiet, every client provides connection audio, and game introductions begin without menu or waiting-room music playing over them.
+* Moving the same account to another device now keeps the current table, turn timers, ongoing game events, and active audio intact while rebuilding the correct controls for the new desktop, web, or mobile client. The previous device disconnects safely without temporarily replacing the player with a bot.
+* Online and offline alerts now suppress rapid duplicates and brief reconnects, respect each listener's notification settings even for administrators and developers, and use the administrator or developer sound instead of the generic friend sound when that person is a friend.
+* Update prompts now use the correct download for Windows or Android instead of opening another platform's package. If a download is not available for the current platform, the client explains this clearly.
+
+Bug Fixes:
+
+* Logging in no longer restores an old Logout or other one-time confirmation prompt, and the welcome sound now plays once at the correct time on desktop, web, and mobile.
+
+Monday 20 July 2026
+
+Improvements:
+
+* Mile by Mile now keeps each 7-second Dirty Trick opportunity open while ordinary play continues. A matching remedy closes only that opportunity, the first valid Safety or remedy decides the result when both are played almost together, and earned turns begin after the current turn finishes. Team announcements also identify the player who acted more clearly.
+* Mile by Mile bots now plan around exact finishes, race and match scores, Hazards, remedies, Safeties, Dirty Tricks, Karma, teammates, and the draw and discard piles, leading to stronger plays and discards.
+* Administration now provides one translation screen for the Message of the Day, planned server restart or shutdown reasons, and custom ban or mute reasons. Official languages are required, while community languages may use a fallback so notices reach each player in a suitable language.
+
+Saturday 18 July 2026
+
+New Additions:
+
+* Exploding Kittens has been added for 2 to 5 players with the complete 56-card Original Edition game; highly strategic bots that use only information a player could know; Faster game and Advanced combos options; configurable 2-, 3-, 5-, 10-, 15-, or 20-second Nope responses; clear guided choices for combos, targets, Favors, Defuses, and Kitten placement; dedicated audio; safe restoration of unfinished matches; and beginner guides in English and Vietnamese.
+* Persian is now available across the server, desktop, web, and mobile. When a newer game or guide has not yet been translated, its content falls back to English.
+
+Improvements:
+
+* Dice rolls now use a varied set of sounds across Pig, Farkle, Yahtzee, and other dice-driven games.
+
+Sunday 5 July 2026
+
+New Additions:
+
+* Tien Len now uses starting coins as a bankroll, with a 20-coin quick-match option, elimination at 0 coins, standard placement, chop, leftover, and instant-win payments, and concise itemized end-hand settlements.
+
+Improvements:
+
+* Menu focus is steadier on desktop, web, and mobile: when the focused row disappears, focus now moves to the next useful menu item instead of jumping by old position.
+* When a match begins, focus now moves from the waiting-room menu to the first active game item, so cards and turn actions are immediately available.
+
+Bug Fixes:
+
+* Tien Len now keeps players who passed locked out of the current trick until it clears, while still allowing valid Southern chop responses.
+
+Saturday 4 July 2026
+
+New Additions:
+
+* Mile by Mile now includes Delayed Action scoring for trips completed after the draw pile runs out, with scoring summaries and documentation updated.
+
+Improvements:
+
+* UNO is cleaner on every device: desktop players use U, touch players get UNO pinned at the top of the turn menu, and Wild color choices move focus to a useful card or menu item.
+* UNO interception penalties, score checks, starter-card announcements, color-choice announcements, and card-count checks are shorter and clearer.
+* Battle bots now choose strong fighters and moves with more variety while still making tactical attack and support choices.
+* Tien Len round flow now has cleaner audio-first announcements.
+
+Bug Fixes:
+
+* Gameplay and table menus now recover more reliably after status boxes, leave confirmations, stale actions, reconnects, restores, and accepted table invites, so players are less likely to see blank or stuck menus.
+* UNO now applies official starter-card effects for Skip, Reverse, Draw Two, and Wild, and returns Wild Draw Four to the deck before flipping a new starter card.
+* UNO callouts now let players catch a missed UNO before the next play or draw, and invalid UNO attempts give clearer feedback.
+* Mile by Mile Safety cards now clear matching active hazards more accurately, and final results now report the correct winning score and race distance.
+* Battle no longer blocks setup with hidden team settings after switching away from Team Battle.
+* Tien Len now recognizes more standard Southern instant-win hands, including dragon straight, four 2s, and three consecutive triples.
+* Tien Len now follows stricter first-hand opening and chopping rules.
+
+Friday 3 July 2026
+
+New Additions:
+
+* Ninety Nine now matches Scopa's between-round countdown controls, so hosts can pause the wait or begin the next round immediately.
+* Game setup options now include clearer help text in English and Vietnamese, with consistent wording for defaults, ranges, and choices across the manuals and option menus.
+* Language selection now shows clearer supported-language information, including translator credit and official/community status where available.
+
+Bug Fixes:
+
+* Who's at the table and member-action menus no longer require extra Back presses after blocked or stale actions, and offline replacement or bot-removal rows behave more reliably.
+* Language and documentation fallback are safer across server, web, and mobile, so partial translations stay readable and missing documents fall back to English instead of exposing raw keys or blank pages.
+* Option and preference help now follows the exact row you are focused on and ignores Back or stale menu packets.
+* Scopa now handles invalid opening layouts, Asso piglia tutto sweeps, tied target-score situations, active-player scoring piles, and conflicting setup options more accurately.
+* Ninety Nine now keeps the top discard safe when recycling the deck, reports empty manual draws clearly, keeps out-of-turn hand controls stable for touch users, and documents that 33/66 milestone penalties apply only when the total is raised up to those numbers.
+* Crazy Eights now moves focus to the best next hand card after choosing a suit for a Wild 8, with a safe fallback to the main action menu.
+* Crazy Eights blocked-hand scoring now awards only the differences from the lowest hand, and forced-draw messages now match the number of cards actually drawn.
+
+Monday 29 June 2026
+
+New Additions:
+
+* 21 (Survival Rules) now supports two to four players, with survival results across every remaining player and target choices for Change Cards that affect an opponent.
+* Administration now includes Server Power Management for scheduling reboots or shutdowns with clear reasons, multilingual custom reasons, countdown warnings, and planned reboots that preserve active tables while clients reconnect.
+* Large server menus now support search and 100-item pages with clear page ranges, First page, Previous page, Next page, and Last page controls.
+
+Bug Fixes:
+
+* Who's at the table now lists active players before spectators and clearly reports online, offline, voice chat, and bot takeover status.
+* Who's at the table and related roster menus now keep Back available, avoid duplicate or empty menu states, and preserve focus during refreshes.
+* Mobile TalkBack mode now keeps server announcements responsive, interrupts old speech when you move focus, and avoids delayed or repeated messages.
+* Color Game now keeps all-in confirmation inside the selected color's betting menu so you can press the same All-in choice again to confirm.
+* Ludo now explains that you must move a piece before rolling again when a roll has already produced a legal move.
+* Sorry! now explains that you must choose a legal move before drawing again after a card has already been drawn.
+
+Friday 26 June 2026
+
+New Additions:
+
+* Who's at the table is now an interactive roster with a table summary, each person's roles, host actions, friend actions, and bot removal where available.
+* Open online users list now opens the full friend actions menu directly when you select someone who is already your friend.
+* Pirates of the Lost Seas now shows Check position to touch players during live games.
+* Desktop and web Voice Chat now use Alt+V to join or leave and Alt+Shift+V to mute or unmute the microphone.
+* Mobile menu click and activation sounds have been refreshed.
+
+Bug Fixes:
+
+* Host Management pass-host, kick, and kick-and-ban lists now refresh automatically when people join or leave the table.
+* The desktop client now applies server language changes immediately without requiring a restart.
+* Desktop sound effect volume changes now affect sounds that are already playing.
+* The mobile TTS voice menu now selects system voices correctly and safely keeps saved voices when Android temporarily returns an empty voice list.
+
+Thursday 25 June 2026
+
+New Additions:
+
+* The web version has been rebuilt into a fuller PlayAural client with stronger keyboard navigation, touch layout, voice chat, password recovery, CAPTCHA support, stable history buffers, and a clearer low-vision interface.
+* The web version now tries to reconnect for up to 30 seconds after a network drop or server restart before showing a clear failure message.
+* Dead Man's Poker now uses one contextual Fold button instead of separate Fold and Coward's Fold buttons.
+* Dead Man's Poker now opens Read table and Read revolvers as modern live status screens.
+
+Bug Fixes:
+
+* Five Card Draw now returns you to the main betting menu immediately after drawing cards or standing pat.
+* Texas Hold'em and Five Card Draw now stop showing gameplay actions to busted players.
+* Dead Man's Poker now lets Call and All-in both call an opponent's all-in amount correctly.
+* Friends and player lists now distinguish people in the main menu from people waiting at a table.
+* End-of-game result screens are now individual, so closing your results no longer closes another player's results.
+* End-of-game result screens no longer disappear when someone joins or leaves the table.
+* Host Management invite, pass-host, kick, and kick-and-ban flows now stay open after an action so hosts can keep managing the table.
+* The mobile game connection now stays alive when the app is minimized or the screen is off.
+* Mobile voice chat microphones now keep transmitting in the background on devices that previously stopped after several seconds.
+* Mobile voice chat no longer forces game audio into mono.
+* Mobile self-voicing gestures now respond more reliably during play.
+* Mobile edit boxes now read their contents more reliably in self-voicing mode.
+* Mobile TTS voice changes now apply more reliably without restarting.
+* Mobile TTS speed changes now apply more reliably without restarting.
+* Web Tab navigation now cycles through the menu, history, and chat during play.
+* Web Escape navigation now works from more server menus, including online player lists.
+* Web input prompts now choose single-line or multiline fields from the server's request type and submit single-line inputs with Enter.
+* Web menu sounds now follow desktop-style navigation feedback more closely.
+* Web typing sounds now play during input prompts.
+* Web F4 buffer muting now works from the active buffer.
+* Web music and ambience volume shortcuts now adjust the active browser audio.
+* Web ARIA live and Web Speech output now avoids skipped messages more reliably.
+* Web buffer-reading shortcuts now work in Web Speech mode.
+* Web voice selection and speech speed controls are clearer across Windows, Android, and macOS.
+
+Sunday 21 June 2026
+
+New Additions:
+
+* Yahtzee now supports solo practice without affecting competitive rankings.
+* Yahtzee now lets players and spectators press Shift+C to check any player's scorecard.
+* Pirates of the Lost Seas Portal now includes a Random destination that can choose any valid map space, including empty seas.
+* Rolling Balls now includes richer and more accurate Around the World and Journey Through Vietnam ball sets.
+* Chaos Bear now supports Brief announcements.
+* Farkle's default Target Score is now 1000.
+
+Bug Fixes:
+
+* The platform-wide turn announcement now tells the active player "It is your turn" while everyone else hears whose turn it is.
+* Chess timeout and check announcements now use separate personal and public wording.
+* Citadels final winner announcements now use separate personal and public wording.
+* Sorry! final winner announcements now use separate personal and public wording.
+* UNO elimination, scoring, and final winner announcements now use separate personal and public wording.
+* Age of Heroes battle summaries now use separate attacker, defender, and observer wording.
+* Menu focus now restores more reliably when returning from Administration, Host Management, Options, table menus, status screens, and action prompts.
+* The Start game option now stays visible in waiting rooms and explains setup problems when selected.
+* Dice keeping preferences now explain Dice indexes and Dice values more clearly and only appear in games that use them.
+* Yahtzee standard score checks now show real Yahtzee totals.
+* Yahtzee scoring a category now returns touch focus to Roll dice.
+* Chess takeback acceptance no longer resolves the game as a draw.
+* Chess takeback requests now apply only to the latest move and clear when the game ends.
+* Chess keeps Enter Move visible as a stable focus anchor and returns touch focus there after submitting a move.
+* Pirates of the Lost Seas Sailor's Instinct no longer creates blank choices.
+* Pirates of the Lost Seas bot strategy is stronger and uses skills more intelligently.
+* Pirates of the Lost Seas skill balance, skill messages, and Portal lock-in feedback are clearer.
+* Mile by Mile now explains distance-card limits clearly and allows legal cards that do not pass the finish.
+* Mile by Mile now respects Require exact finish and over-finish options correctly.
+* Mile by Mile discard prompts now restore focus to the card you came from.
+* Snakes and Ladders now gives clearer start, ladder, snake, bounce-back, exact-finish, and winning announcements.
+* Midnight now keeps roll and score-lock focus steadier for touch clients.
+* Threes now keeps dice result, roll, and score menu focus steadier for touch clients.
+* Toss Up now returns touch focus gently after banking without stealing it during normal navigation.
+* Pig now returns touch focus gently after holding without stealing it during normal navigation.
+* Tradeoff now keeps roll, trade, and score menus steadier for touch clients.
+* Bunko now keeps roll and status menus steadier for touch clients.
+* Farkle now keeps dice-choice and roll menus steadier for touch clients.
+* Color Game now keeps betting and status menus steadier for touch clients.
+* Light Turret now keeps fire, upgrade, and status menus steadier for touch clients.
+* Left Right Center now keeps roll and chip-status menus steadier for touch clients.
+* Metal Pipe now keeps action and status menus steadier for touch clients.
+* Farkle bots now make stronger risk-versus-reward decisions.
+* Rolling Balls bots now make stronger decisions.
+* Tradeoff bots now make stronger decisions.
+* Pirates of the Lost Seas bots now use movement, attacks, and skills more strategically.
+* UNO now preserves a pending Draw stack correctly when a Draw card wins the hand.
+* Cards Against Humanity now gives clearer feedback for submissions, judging, multi-judge setup, larger hand sizes, and English-only card text.
+* Cards Against Humanity sound cues now route correctly across clients.
+
+Wednesday 17 June 2026
+
+New Additions:
+
+* UNO now has full beginner-friendly documentation in English and Vietnamese.
+* Chess now supports typed move input using common chess notation and coordinate-style moves.
+* Chess now has a stronger bounded bot.
+* Battle now supports Team Battle through the standard team setup flow.
+* Battle fighter skills are completed, rebalanced, and explained in-game.
+* Live status boxes now let scoreboards, boards, standings, rosters, and other status screens stay open and refresh while the game changes.
+
+Bug Fixes:
+
+* Coup now has clearer announcements and steadier screen reader menus.
+* Citadels now has clearer announcements and safer setup feedback.
+* Backgammon now has clearer announcements and steadier screen reader menus.
+* Battle now has clearer announcements and safer skill feedback.
+* Battleship now has clearer announcements and steadier deployment menus.
+* Chess now has clearer announcements and steadier move-entry menus.
+* Crazy Eights now has clearer announcements and steadier suit-choice menus.
+* Chaos Bear now has clearer announcements and steadier screen reader menus.
+* Dead Man's Deck now has clearer announcements and steadier action menus.
+* Dead Man's Poker now has clearer announcements and steadier betting menus.
+* Senet now has clearer announcements and steadier board menus.
+* Ludo now has clearer announcements and steadier piece menus.
+* Sorry! now has clearer announcements and steadier pawn menus.
+* Threes now has clearer announcements and steadier dice menus.
+* 21 (Survival Rules) now has clearer announcements and safer action feedback.
+* Chess now follows standard full-move counting and gives shorter Brief announcements when enabled.
+* Battleship now gives clearer deployment and firing feedback.
+* Battleship manual ship placement uses the isolated placement menu again.
+* Battleship now reports each player's deployment readiness when checking whose turn during setup.
+* Crazy Eights now handles Wild 8 suit choice more like UNO and avoids irrelevant not-your-turn errors for suit shortcuts.
+* Dead Man's Poker keeps touch action menus anchored during card exchanges and table events.
+* Dead Man's Poker showdown announcements are less repetitive and tied hands are reported as draws.
+* Dead Man's Poker bots now play more aggressively and intelligently.
+* Dead Man's Deck gives clearer rule feedback, status information, bluffing, challenge, and survival announcements.
+* Coup now applies the official two-player first-turn coin rule even when the first player is a bot.
+* Coup exchange menus now keep selected cards visible and mark exchanged cards.
+* Citadels now gives clearer build, character, and scoring feedback.
+* Senet now handles spectators correctly and uses standard S and Shift+S score shortcuts.
+* Senet no longer overwrites another open menu during board refreshes.
+* Backgammon now makes Brief announcements genuinely brief.
+* Ludo now makes Brief announcements genuinely brief.
+* Sorry! now makes Brief announcements genuinely brief.
+* Backgammon now gives a clear error if you try to move before rolling.
+* Ludo keeps touch focus steadier after rolls, automatic moves, and manual piece choices.
+* Sorry! keeps touch focus steadier after draws, automatic moves, and manual pawn choices.
+* Sorry! move prompts now include each pawn's current position.
+* Midnight and Farkle now move focus to the first dice choice after a roll asks you to keep dice.
+* 21 (Survival Rules) no longer reveals an opponent's hidden total when they stand.
+* 21 (Survival Rules) now explains when an active effect prevents drawing.
+* Age of Heroes now handles declined or unavailable road-building requests safely.
+* Basic score checks now speak each player or team separately.
+* Detailed score checks now use clear line-by-line status screens where appropriate.
+* Leaderboard menus now hide games that do not support leaderboards.
+* Table invites can no longer be declined by pressing the invite title.
+* Table invites that arrive while you are typing wait until you finish the input.
+* The Play category filter no longer leaks into Documentation, Leaderboards, or My Stats.
+* Documentation pages render escaped Markdown more consistently.
+* Desktop Ctrl+F1 How to Play no longer leaves the action menu empty after closing the rules screen.
+
+Tuesday 9 June 2026
+
+New Additions:
+
+* Age of Heroes was added with localized menus and documentation.
+* Metal Pipe was added with localized menus and documentation.
+* Nine was added with localized menus and documentation.
+* Senet was added with localized menus and documentation.
+* Cards Against Humanity was added with localized menus, documentation, dedicated audio, and English-language card text.
+* 21 (Survival Rules) was added with localized menus and documentation.
+* UNO was added as the replacement for Last Card.
+* The Play menu now has a category filter for browsing games by type.
+* Options are now split into clearer General Options and Game Options sections.
+* Game Options now support per-game preference overrides.
+* Confirm risky actions and Brief announcements were added as personal game options where games benefit from them.
+* Sound Effects Volume was added alongside Music, Ambience, and Voice Chat volume.
+* Mobile now has top navigation tabs for Main, Chat, History, and Shortcuts when self-voicing is off.
+* Web and mobile clients now honor per-item highlight sounds, including Backgammon board square sounds.
+
+Bug Fixes:
+
+* Scopa now has clearer rules, better prompts, and more natural announcements.
+* Blackjack now has clearer rules, better prompts, and more natural announcements.
+* Ninety Nine now has clearer rules, better prompts, and more natural announcements.
+* Mile by Mile now has clearer rules, better prompts, and more natural announcements.
+* Dominos now has clearer rules, better prompts, and more natural announcements.
+* 21 now has clearer rules, better prompts, and more natural announcements.
+* Tien Len now has clearer rules, better prompts, and more natural announcements.
+* Pusoy Dos now has clearer rules, better prompts, and more natural announcements.
+* Five Card Draw now has clearer rules, better prompts, and more natural announcements.
+* Texas Hold'em now has clearer rules, better prompts, and more natural announcements.
+* Ludo now has clearer rules, better prompts, and more natural announcements.
+* Sorry! now has clearer rules, better prompts, and more natural announcements.
+* Backgammon now has clearer rules, better prompts, and more natural announcements.
+* Citadels now has clearer rules, better prompts, and more natural announcements.
+* Blackjack now skips bankrupt players, uses chips consistently, locks bets when confirmed, and spaces out dealer card draws.
+* Ninety Nine now excludes eliminated players from future dealing.
+* Ninety Nine now starts each new round with a random first player and pauses briefly between rounds.
+* Ninety Nine now restores localized menus correctly after reconnecting.
+* Ninety Nine now fixes a rare count overflow bug.
+* Dead Man's Poker now tracks showdown wins correctly and handles ties with clearer draw announcements.
+* Dead Man's Poker now allows one card swap per hand and blocks first-round All-in actions.
+* Mile by Mile now recognizes Dirty Trick when the correct safety card is played during the reaction window.
+* Mile by Mile unplayable cards now explain the reason and offer discard or cancel.
+* Dominos now keeps spinner branches stable.
+* Dominos now lets the correct opening player choose their opening tile.
+* Tien Len now follows Southern and Northern rule details more closely.
+* Tien Len now supports continued play for remaining places, instant wins, chopping rules, Southern Vietnamese terminology, and coin scoring.
+* Pusoy Dos now validates rules more strictly.
+* Pusoy Dos bots now make better decisions.
+* Pusoy Dos risky passes now use safer confirmation handling.
+* Five Card Draw now keeps useful information actions available on touch clients during the hand.
+* Texas Hold'em now keeps useful information actions available on touch clients during the hand.
+* Ludo now respects each player's Brief announcements preference.
+* Sorry! now respects each player's Brief announcements preference.
+* Ludo now keeps screen reader focus routed to the next useful action after direct roll or move interactions.
+* Sorry! now keeps screen reader focus routed to the next useful action after direct draw or move interactions.
+* Touch clients now keep primary actions visible as focus anchors while still speaking clear errors when actions are not allowed.
+* Turn sounds are more consistent.
+* Crazy Eights spectator join and leave sounds now play again.
+* Table join and leave sounds now also play for kicks and bans.
+* Human players can no longer register names reserved for bots.
+* Bots can no longer impersonate human players at the same table.
+* Mobile status details now appear at the bottom of the screen reader order instead of before the main game content.
+* Desktop shortcut routing is more reliable for recently added grid and board games.
+
+Tuesday 5 May 2026
+
+New Additions:
+
+* Dead Man's Poker was added with full beginner documentation and English/Vietnamese localization.
+* Options were reorganized into categorized submenus.
+* Voice Chat Volume was added to Options.
+* Desktop now supports the Voice Chat Volume control.
+* Web now supports the Voice Chat Volume control.
+* Mobile now supports the Voice Chat Volume control.
+
+Bug Fixes:
+
+* Dead Man's Deck intro audio timing was refined for a smoother cinematic start.
+* Options submenu return paths now restore more reliably after editing values or backing out.
+
+Saturday 2 May 2026
+
+New Additions:
+
+* Team arrangement was added so hosts can assign and swap teams before supported team games.
+* Friend deletion now asks for confirmation before removing someone.
+
+Bug Fixes:
+
+* Score checks now announce exact score units for each game instead of generic terms.
+* Score checks now show replacement bot names correctly when a disconnected player has been taken over.
+
+Wednesday 29 April 2026
+
+New Additions:
+
+* Replacement bots now use a different bot name instead of taking the disconnected player's exact name.
+* Disconnected players can reclaim their exact seat while the current match is still ongoing.
+* When the host starts a match, disconnected seated players are now converted into reclaimable replacement bots.
+* Seat handoff sounds and announcements now identify both the original human and the replacement bot.
+
+Bug Fixes:
+
+* Custom bot names can no longer match anyone at the table or any registered player.
+* Disconnected spectators are now removed before a match begins.
+
+Tuesday 28 April 2026
+
+New Additions:
+
+* Dead Man's Deck was added with beginner documentation and complete English and Vietnamese game text.
+
+Sunday 26 April 2026
+
+New Additions:
+
+* Adding a bot now automatically assigns a random bot name unless Custom bot names is enabled.
+* Custom bot names now require unique names from 3 to 30 characters.
+
+Bug Fixes:
+
+* Table invites that arrive while you are typing in an input box now wait safely until you finish.
+* Reclaiming a seat from a replacement bot now announces the return to the whole table.
+* Invalid slash commands no longer broadcast as regular chat messages.
+* Mobile input cancel actions no longer freeze the menu.
+* Mobile self-voicing gestures are smoother and more reliable.
+
+Thursday 23 April 2026
+
+New Additions:
+
+* Citadels was added with comprehensive documentation and complete English and Vietnamese game text.
+* Mobile gained experimental background-running support.
+
+Bug Fixes:
+
+* Desktop interface now plays more smoothly and reliably.
+* Mobile ping checks now return results when self-voicing is off.
+* Mobile players can now discard Mile by Mile cards with the screen reader long-press gesture.
+* Mobile device language detection is smoother on first launch.
+* Mobile network connection is more stable and responsive.
+
+Sunday 19 April 2026
+
+New Additions:
+
+* Host Management now has Restart Game to return a table to the waiting room without recreating it.
+* Ninety Nine choice cards such as 10 and Ace now include Cancel.
+* Ninety Nine now gives clear Not your turn feedback.
+* Mile by Mile now gives clear Not your turn feedback.
+* Scopa now gives clear Not your turn feedback.
+
+Bug Fixes:
+
+* Ambience and background music from a previous table no longer continue after switching tables.
+* Desktop chat input works better with Vietnamese keyboards.
+* Mobile players can navigate back from the in-game action menu more reliably.
+* Mobile ambience and background music no longer cut out when joining voice chat.
+* Mobile game notifications now reach the system screen reader when self-voicing is off.
+* Mobile screen reader focus is steadier when using the system screen reader.
+* Mobile grid boards such as Battleship and Chess now display and navigate more reliably.
+
+Thursday 16 April 2026
+
+New Additions:
+
+* Real-time table Voice Chat was added.
+* Desktop now includes table Voice Chat controls.
+* Desktop now lets you choose an audio input device for Voice Chat.
+* Mobile now includes table Voice Chat in the Chat tab.
+* Web now includes table Voice Chat in the Chat area.
+
+Tuesday 14 April 2026
+
+New Additions:
+
+* Battle skill descriptions were added directly inside the skill menu.
+* Table-created notification sounds were added.
+* Table invite notification sounds were added.
+
+Bug Fixes:
+
+* Chaos Bear gameplay was rebalanced for fairer matches.
+* Battle no longer freezes in a rare match-ending case.
+* Battle now plays clearer sounds for destroyed fighters, eliminated players, and match victory.
+
+Monday 13 April 2026
+
+New Additions:
+
+* Battle was added with beginner documentation and complete English and Vietnamese game text.
+* Mobile now lets players disable self-voicing and use the device's system screen reader instead.
+* Mobile shows standard on-screen buttons for chat and shortcuts when self-voicing is off.
+
+Bug Fixes:
+
+* Table join sounds no longer incorrectly play immediately after a game round ends.
+* Backgammon spectators no longer receive false doubling-cube holder messages.
+* Crazy Eights no longer lets a player play another card immediately after changing suit with a wild 8.
+
+Saturday 11 April 2026
+
+New Additions:
+
+* The PlayAural mobile app launched for Android.
+* The mobile app includes built-in self-voicing for playing without the system screen reader.
+
+Thursday 9 April 2026
+
+New Additions:
+
+* Color Game was added with beginner documentation and complete English and Vietnamese game text.
+
+Bug Fixes:
+
+* Tien Len now sorts cards from lowest to highest and gives clearer invalid-play feedback.
+* Pusoy Dos now sorts cards from lowest to highest.
+* Ninety Nine bots now make more natural decisions.
+
+Tuesday 7 April 2026
+
+New Additions:
+
+* Tien Len was added with Southern and Northern rule variants and complete English and Vietnamese game text.
+
+Monday 6 April 2026
+
+New Additions:
+
+* Bunko was added with complete rules, beginner documentation, and complete English and Vietnamese game text.
+
+Friday 3 April 2026
+
+New Additions:
+
+* Sorry! was added with complete rules, beginner documentation, and complete English and Vietnamese game text.
+
+Thursday 2 April 2026
+
+New Additions:
+
+* Players replaced by a bot can reclaim their original seat through invites or the join menu.
+* Joining a new table while already in a game now leaves the current match safely first.
+
+Bug Fixes:
+
+* Private table visibility and table switching are more reliable.
+* Windows startup and runtime reliability were improved.
+
+Wednesday 1 April 2026
+
+New Additions:
+
+* Chess was added with complete rules and documentation, clock presets, draw offers, undo requests, automatic draw detection, and complete English and Vietnamese game text.
+* Backgammon was added with complete rules and documentation, the doubling cube, international tournament rules, and complete English and Vietnamese game text.
+
+Tuesday 31 March 2026
+
+New Additions:
+
+* Ludo was added with complete rules, detailed documentation, and natural English and Vietnamese terminology.
+
+Sunday 29 March 2026
+
+New Additions:
+
+* The online users list now displays each player's current language.
+* Coup bots now remember play patterns, bluff strategically, adapt to game phases, and fight harder to survive.
+
+Bug Fixes:
+
+* Friends list online statuses now handle username capitalization consistently.
+* Duplicate logins caused by different username capitalization are blocked.
+* The online users list now focuses the first person instead of the Back button.
+* Coup players are now eliminated correctly after losing all influence cards.
+* Coup exchange counts now work correctly when the deck is nearly empty.
+* Desktop focus stays steadier in auto-refreshing lists such as Friends.
+* Desktop Escape now works more reliably after background menu refreshes.
+* Web cursor management now keeps list navigation stable during auto-refreshes.
+
+Friday 27 March 2026
+
+New Additions:
+
+* Web poker action buttons were reordered so important mobile actions are easier to reach.
+* Poker invalid actions now give clearer feedback.
+* Several poker buttons were renamed from Reveal to Read for clarity.
+* Five Card Draw first and second betting round announcements are now distinct.
+
+Bug Fixes:
+
+* Texas Hold'em and Five Card Draw now hide Fold, Call, Raise, and similar action buttons after a hand ends or during showdown.
+* Poker betting limits now allow a player to go fully All-in.
+* Poker announcements now use clearer grammar and report actual uncontested-pot profit.
+* Five Card Draw now announces the betting phase before announcing whose turn it is.
+* Poker winner announcements now use the correct game sound channel.
+
+Wednesday 25 March 2026
+
+New Additions:
+
+* PlayAural launched as an audio-first online gaming platform for blind players.
+* The first release included 25 games across card, dice, strategy, and social game families.
+* The desktop client launched with native screen reader support and low latency.
+* The web client launched with a mobile-friendly layout.
+* English and Vietnamese support launched across the platform.
+* Player accounts launched with saved progress, skill ratings, friends, and chat.
+* Spectator mode launched for listening to active tables.
+* Desktop keyboard shortcuts and mobile-friendly button layouts launched.
+

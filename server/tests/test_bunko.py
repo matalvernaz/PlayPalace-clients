@@ -5,17 +5,17 @@ import random
 import re
 from unittest.mock import patch
 
-from server.games.bunko.game import (
+from ..games.bunko.game import (
     BunkoGame,
     BunkoOptions,
     WINNING_MODE_ROUND_WINS,
     WINNING_MODE_TOTAL_SCORE,
     evaluate_roll,
 )
-from server.games.registry import GameRegistry
-from server.messages.localization import Localization
-from server.core.users.bot import Bot
-from server.core.users.test_user import MockUser
+from ..games.registry import GameRegistry
+from ..messages.localization import Localization
+from ..users.bot import Bot
+from ..users.test_user import MockUser
 
 
 _locales_dir = Path(__file__).parent.parent / "locales"
@@ -39,7 +39,7 @@ def make_game(
         else:
             user = MockUser(name, uuid=f"p{index + 1}")
             if web_first and index == 0:
-                user.set_client_type("web")
+                user.client_type = "web"
         game.add_player(name, user)
     game.host = "Player1"
     if start:
@@ -60,7 +60,7 @@ def test_game_registered_and_defaults() -> None:
     game = BunkoGame()
     assert game.get_name() == "Bunko"
     assert game.get_type() == "bunko"
-    assert game.get_category() == "category-dice-games"
+    assert game.get_category() == "dice"
     assert game.get_min_players() == 2
     assert game.get_max_players() == 6
     assert game.get_supported_leaderboards() == ["wins", "rating", "games_played"]
@@ -282,7 +282,7 @@ def test_touch_roll_button_stays_visible_off_turn() -> None:
     player = game.players[1]
     user = game.get_user(player)
     assert isinstance(user, MockUser)
-    user.set_client_type("mobile")
+    user.client_type = "mobile"
 
     actions = {entry.action.id: entry for entry in game.get_all_visible_actions(player)}
 
@@ -306,11 +306,7 @@ def test_prestart_validate_blocks_invalid_direct_options() -> None:
     valid = BunkoGame(
         options=BunkoOptions(round_count=12, winning_mode=WINNING_MODE_ROUND_WINS)
     )
-    assert [
-        entry
-        for entry in valid.prestart_validate()
-        if entry[0] != "action-need-more-players"
-    ] == []
+    assert valid.prestart_validate() == []
 
 
 def test_check_scores_uses_selected_winning_mode_order() -> None:

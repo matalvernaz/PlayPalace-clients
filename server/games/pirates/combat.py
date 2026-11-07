@@ -7,16 +7,17 @@ scattered throughout the Lua code.
 """
 
 from __future__ import annotations
+
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
 import random
+from typing import TYPE_CHECKING
+
+from ...messages.localization import Localization
+from . import gems, skills
 
 if TYPE_CHECKING:
     from .game import PiratesGame
     from .player import PiratesPlayer
-
-from . import gems
-from . import skills
 
 
 @dataclass
@@ -29,10 +30,13 @@ class CombatResult:
     attack_bonus: int
     defense_bonus: int
     xp_gained: int
+    boarding_pending: bool = False
 
 
 def get_targets_in_range(
-    game: "PiratesGame", attacker: "PiratesPlayer", max_range: int | None = None
+    game: "PiratesGame",
+    attacker: "PiratesPlayer",
+    max_range: int | None = None,
 ) -> list["PiratesPlayer"]:
     """
     Get all valid targets within attack range.
@@ -73,7 +77,8 @@ def do_attack(
     defender: "PiratesPlayer",
     golden_moon_active: bool = False,
     global_xp_multiplier: float = 1.0,
-    gem_stealing: str = "with_roll_bonus",
+    allow_boarding: bool = True,
+    announce_fire: bool = True,
 ) -> CombatResult:
     """
     Execute an attack between two players.
@@ -84,50 +89,54 @@ def do_attack(
         defender: The defending player
         golden_moon_active: Whether golden moon is active this turn
         global_xp_multiplier: Global XP multiplier from game options
-        gem_stealing: Gem stealing mode ("with_roll_bonus", "no_roll_bonus", or "disabled")
-
     Returns:
         CombatResult with the outcome
     """
     # Play cannon sound
-    sound_num = random.randint(1, 3)  # nosec B311
+    sound_num = random.randint(1, 3)
     game.play_sound(f"game_pirates/cannon{sound_num}.ogg", volume=60)
 
-    # Announce attack
-    attacker_user = game.get_user(attacker)
-    defender_user = game.get_user(defender)
-
-    if attacker_user:
-        attacker_user.speak_l("pirates-attack-you-fire", target=defender.name, buffer="table")
-    if defender_user:
-        defender_user.speak_l("pirates-attack-incoming", attacker=attacker.name, buffer="table")
-    game.broadcast_l(
-        "pirates-attack-fired", attacker=attacker.name, defender=defender.name, exclude=attacker
-    )
+    if announce_fire:
+        _broadcast_combat_event(
+            game,
+            attacker,
+            defender,
+            attacker_key="pirates-attack-you-fire",
+            defender_key="pirates-attack-incoming",
+            observer_key="pirates-attack-fired",
+            brief_attacker_key="pirates-attack-you-fire-brief",
+            brief_defender_key="pirates-attack-incoming-brief",
+            brief_observer_key="pirates-attack-fired-brief",
+        )
 
     # Get bonuses from skills
     attack_bonus = skills.get_attack_bonus(attacker)
     defense_bonus = skills.get_defense_bonus(defender)
 
     # Roll attack
-    attack_roll = random.randint(1, 6)  # nosec B311
-    game.broadcast_l("pirates-attack-roll", roll=attack_roll)
-
-    if attack_bonus > 0:
-        game.broadcast_l("pirates-attack-bonus", bonus=attack_bonus)
-        attack_roll += attack_bonus
+    attack_die = random.randint(1, 6)
+    attack_roll = attack_die + attack_bonus
 
     # Roll defense
-    defense_roll = random.randint(1, 6)  # nosec B311
-    if defender_user:
-        defender_user.speak_l("pirates-defense-roll", roll=defense_roll, buffer="table")
-    game.broadcast_l(
-        "pirates-defense-roll-others", player=defender.name, roll=defense_roll, exclude=defender
+    defense_die = random.randint(1, 6)
+    defense_roll = defense_die + defense_bonus
+    _broadcast_combat_event(
+        game,
+        attacker,
+        defender,
+        attacker_key="pirates-combat-rolls-you",
+        defender_key="pirates-combat-rolls-defender",
+        observer_key="pirates-combat-rolls-observer",
+        brief_attacker_key="pirates-combat-rolls-you-brief",
+        brief_defender_key="pirates-combat-rolls-defender-brief",
+        brief_observer_key="pirates-combat-rolls-observer-brief",
+        attack_die=attack_die,
+        attack_bonus=attack_bonus,
+        attack_total=attack_roll,
+        defense_die=defense_die,
+        defense_bonus=defense_bonus,
+        defense_total=defense_roll,
     )
-
-    if defense_bonus > 0:
-        game.broadcast_l("pirates-defense-bonus", bonus=defense_bonus)
-        defense_roll += defense_bonus
 
     # Calculate XP multiplier
     moon_mult = 3.0 if golden_moon_active else 1.0
@@ -137,23 +146,52 @@ def do_attack(
 
     if hit:
         # Hit!
-        sound_num = random.randint(1, 3)  # nosec B311
+        sound_num = random.randint(1, 3)
         game.play_sound(f"game_pirates/cannonhit{sound_num}.ogg", volume=70)
 
-        if attacker_user:
-            attacker_user.speak_l("pirates-attack-hit-you", target=defender.name, buffer="table")
-        if defender_user:
-            defender_user.speak_l("pirates-attack-hit-them", attacker=attacker.name, buffer="table")
-        game.broadcast_l(
-            "pirates-attack-hit", attacker=attacker.name, defender=defender.name, exclude=attacker
+        if allow_boarding:
+            hit_keys = {
+                "attacker_key": "pirates-attack-hit-you",
+                "defender_key": "pirates-attack-hit-them",
+                "observer_key": "pirates-attack-hit",
+                "brief_attacker_key": "pirates-attack-hit-you-brief",
+                "brief_defender_key": "pirates-attack-hit-them-brief",
+                "brief_observer_key": "pirates-attack-hit-brief",
+            }
+        else:
+            hit_keys = {
+                "attacker_key": "pirates-attack-hit-no-boarding-you",
+                "defender_key": "pirates-attack-hit-no-boarding-them",
+                "observer_key": "pirates-attack-hit-no-boarding",
+                "brief_attacker_key": "pirates-attack-hit-no-boarding-you-brief",
+                "brief_defender_key": "pirates-attack-hit-no-boarding-them-brief",
+                "brief_observer_key": "pirates-attack-hit-no-boarding-brief",
+            }
+        _broadcast_combat_event(
+            game,
+            attacker,
+            defender,
+            **hit_keys,
+            attack_total=attack_roll,
+            defense_total=defense_roll,
         )
 
         # Give XP to attacker
-        xp_gain = random.randint(50, 150)  # nosec B311
-        attacker.leveling.give_xp(game, attacker.name, xp_gain, moon_mult, global_xp_multiplier)
+        xp_gain = random.randint(50, 150)
+        attacker.leveling.give_xp(
+            game,
+            attacker.name,
+            xp_gain,
+            moon_mult,
+            global_xp_multiplier,
+            reason="attack",
+        )
 
-        # Handle boarding action (push or steal)
-        _handle_boarding(game, attacker, defender, attack_bonus, defense_bonus, gem_stealing)
+        boarding_pending = False
+        if allow_boarding:
+            boarding_pending = game.begin_boarding(
+                attacker, defender, attack_bonus, defense_bonus
+            )
 
         return CombatResult(
             hit=True,
@@ -162,122 +200,149 @@ def do_attack(
             attack_bonus=attack_bonus,
             defense_bonus=defense_bonus,
             xp_gained=int(xp_gain * total_mult),
+            boarding_pending=boarding_pending,
         )
-    else:
-        # Miss!
-        if attacker_user:
-            attacker_user.speak_l("pirates-attack-miss-you", target=defender.name, buffer="table")
-        if defender_user:
-            defender_user.speak_l("pirates-attack-miss-them", buffer="table")
-        game.broadcast_l(
-            "pirates-attack-miss", attacker=attacker.name, defender=defender.name, exclude=attacker
-        )
+    _broadcast_combat_event(
+        game,
+        attacker,
+        defender,
+        attacker_key="pirates-attack-miss-you",
+        defender_key="pirates-attack-miss-them",
+        observer_key="pirates-attack-miss",
+        brief_attacker_key="pirates-attack-miss-you-brief",
+        brief_defender_key="pirates-attack-miss-them-brief",
+        brief_observer_key="pirates-attack-miss-brief",
+        attack_total=attack_roll,
+        defense_total=defense_roll,
+    )
 
-        # Give XP to defender for successful defense
-        xp_gain = random.randint(30, 100)  # nosec B311
-        defender.leveling.give_xp(game, defender.name, xp_gain, moon_mult, global_xp_multiplier)
+    xp_gain = random.randint(30, 100)
+    defender.leveling.give_xp(
+        game,
+        defender.name,
+        xp_gain,
+        moon_mult,
+        global_xp_multiplier,
+        reason="defense",
+    )
+    return CombatResult(
+        hit=False,
+        attack_roll=attack_roll,
+        defense_roll=defense_roll,
+        attack_bonus=attack_bonus,
+        defense_bonus=defense_bonus,
+        xp_gained=int(xp_gain * total_mult),
+    )
 
-        return CombatResult(
-            hit=False,
-            attack_roll=attack_roll,
-            defense_roll=defense_roll,
-            attack_bonus=attack_bonus,
-            defense_bonus=defense_bonus,
-            xp_gained=int(xp_gain * total_mult),
-        )
 
-
-def _handle_boarding(
+def _broadcast_combat_event(
     game: "PiratesGame",
     attacker: "PiratesPlayer",
     defender: "PiratesPlayer",
-    attack_bonus: int,
-    defense_bonus: int,
-    gem_stealing: str,
+    *,
+    attacker_key: str,
+    defender_key: str,
+    observer_key: str,
+    brief_attacker_key: str | None = None,
+    brief_defender_key: str | None = None,
+    brief_observer_key: str | None = None,
+    **kwargs,
 ) -> None:
-    """
-    Handle the boarding action after a successful attack.
-
-    The attacker can choose to push the defender or attempt to steal a gem.
-
-    Args:
-        game: The game instance
-        attacker: The attacking player
-        defender: The defending player
-        attack_bonus: Attacker's bonus (for steal roll if applicable)
-        defense_bonus: Defender's bonus (for steal roll if applicable)
-        gem_stealing: Gem stealing mode
-    """
-    attacker_user = game.get_user(attacker)
-    defender_user = game.get_user(defender)
-
-    can_steal = gem_stealing != "disabled" and defender.has_gems()
-
-    # If human and can steal, show choice menu
-    if attacker_user and can_steal and not attacker.is_bot:
-        # Request choice from player via game mechanism
-        choice = game.request_boarding_choice(attacker, defender)
-
-        if choice == "steal":
-            _attempt_gem_steal(
-                game,
-                attacker,
-                defender,
-                attack_bonus if gem_stealing == "with_roll_bonus" else 0,
-                defense_bonus if gem_stealing == "with_roll_bonus" else 0,
+    """Render one combat event exactly once for each listener role."""
+    for listener in game.players:
+        user = game.get_user(listener)
+        if not user:
+            continue
+        if listener.id == attacker.id:
+            key = (
+                brief_attacker_key
+                if brief_attacker_key and game._wants_brief(user)
+                else attacker_key
             )
-            return
-        elif choice in ("left", "right"):
-            _push_defender(game, attacker, defender, choice)
-            return
+        elif listener.id == defender.id:
+            key = (
+                brief_defender_key
+                if brief_defender_key and game._wants_brief(user)
+                else defender_key
+            )
+        else:
+            key = (
+                brief_observer_key
+                if brief_observer_key and game._wants_brief(user)
+                else observer_key
+            )
+        payload = game._resolve_broadcast_kwargs(
+            user.locale,
+            {
+                "attacker": attacker,
+                "defender": defender,
+                "target": defender,
+                **kwargs,
+            },
+        )
+        user.speak_l(key, buffer="game", **payload)
 
-    # Bot or timeout - random push
-    direction = random.choice(["left", "right"])  # nosec B311
-    _push_defender(game, attacker, defender, direction)
 
-
-def _push_defender(
-    game: "PiratesGame", attacker: "PiratesPlayer", defender: "PiratesPlayer", direction: str
+def push_defender(
+    game: "PiratesGame",
+    attacker: "PiratesPlayer",
+    defender: "PiratesPlayer",
+    direction: str,
 ) -> None:
     """Push the defender in the specified direction."""
-    push_amount = random.randint(3, 8)  # nosec B311
+    if direction not in {"left", "right"}:
+        raise ValueError(f"Unsupported boarding direction: {direction}")
+    push_amount = random.randint(3, 8) + skills.get_push_bonus(attacker)
     if direction == "left":
         push_amount = -push_amount
 
     old_pos = defender.position
     defender.position = max(1, min(40, defender.position + push_amount))
+    actual_distance = abs(defender.position - old_pos)
+    game.charted_tiles[defender.position] = True
 
-    attacker_user = game.get_user(attacker)
-    defender_user = game.get_user(defender)
-
-    if attacker_user:
-        attacker_user.speak_l(
-            "pirates-push-you",
-            target=defender.name,
-            direction=direction,
-            position=defender.position,
-            buffer="table",
+    direction_key = f"pirates-dir-{direction}"
+    for listener in game.players:
+        user = game.get_user(listener)
+        if not user:
+            continue
+        if listener.id == attacker.id:
+            key = (
+                "pirates-push-you-brief"
+                if game._wants_brief(user)
+                else "pirates-push-you"
+            )
+        elif listener.id == defender.id:
+            key = (
+                "pirates-push-them-brief"
+                if game._wants_brief(user)
+                else "pirates-push-them"
+            )
+        else:
+            key = (
+                "pirates-push-brief"
+                if game._wants_brief(user)
+                else "pirates-push"
+            )
+        payload = game._resolve_broadcast_kwargs(
+            user.locale,
+            {
+                "attacker": attacker,
+                "defender": defender,
+                "target": defender,
+                "direction": Localization.get(user.locale, direction_key),
+                "old_pos": old_pos,
+                "new_pos": defender.position,
+                "position": defender.position,
+                "distance": actual_distance,
+                "bonus": skills.get_push_bonus(attacker),
+            },
         )
-    if defender_user:
-        defender_user.speak_l(
-            "pirates-push-them",
-            attacker=attacker.name,
-            direction=direction,
-            position=defender.position,
-            buffer="table",
-        )
-    game.broadcast_l(
-        "pirates-push",
-        attacker=attacker.name,
-        defender=defender.name,
-        direction=direction,
-        old_pos=old_pos,
-        new_pos=defender.position,
-        exclude=attacker,
-    )
+        user.speak_l(key, buffer="game", **payload)
+    game._check_gem_collection(defender)
 
 
-def _attempt_gem_steal(
+def attempt_gem_steal(
     game: "PiratesGame",
     attacker: "PiratesPlayer",
     defender: "PiratesPlayer",
@@ -297,16 +362,39 @@ def _attempt_gem_steal(
     Returns:
         True if steal was successful
     """
-    game.broadcast_l("pirates-steal-attempt", attacker=attacker.name)
+    if not defender.gems:
+        _broadcast_combat_event(
+            game,
+            attacker,
+            defender,
+            attacker_key="pirates-steal-no-gems-you",
+            defender_key="pirates-steal-no-gems-defender",
+            observer_key="pirates-steal-no-gems",
+            brief_attacker_key="pirates-steal-no-gems-you-brief",
+            brief_defender_key="pirates-steal-no-gems-defender-brief",
+            brief_observer_key="pirates-steal-no-gems-brief",
+        )
+        return False
 
-    steal_roll = random.randint(1, 6) + attack_bonus  # nosec B311
-    defend_roll = random.randint(1, 6) + defense_bonus  # nosec B311
+    steal_roll = random.randint(1, 6) + attack_bonus
+    defend_roll = random.randint(1, 6) + defense_bonus
 
-    game.broadcast_l("pirates-steal-rolls", steal=steal_roll, defend=defend_roll)
+    _broadcast_combat_event(
+        game,
+        attacker,
+        defender,
+        attacker_key="pirates-steal-rolls-you",
+        defender_key="pirates-steal-rolls-defender",
+        observer_key="pirates-steal-rolls-observer",
+        brief_attacker_key="pirates-steal-rolls-you-brief",
+        brief_defender_key="pirates-steal-rolls-defender-brief",
+        brief_observer_key="pirates-steal-rolls-observer-brief",
+        steal=steal_roll,
+        defend=defend_roll,
+    )
 
     if steal_roll > defend_roll:
-        # Successful steal
-        stolen_index = random.randint(0, len(defender.gems) - 1)  # nosec B311
+        stolen_index = random.randint(0, len(defender.gems) - 1)
         stolen_gem = defender.remove_gem(stolen_index)
         if stolen_gem is not None:
             gem_value = gems.get_gem_value(stolen_gem)
@@ -316,37 +404,57 @@ def _attempt_gem_steal(
             defender.recalculate_score(gems.get_gem_value)
 
             # Play steal sound
-            sound_num = random.randint(1, 2)  # nosec B311
+            sound_num = random.randint(1, 2)
             game.play_sound(f"game_pirates/stealgem{sound_num}.ogg", volume=70)
 
-            gem_name = gems.get_gem_name(stolen_gem)
-            attacker_user = game.get_user(attacker)
-            defender_user = game.get_user(defender)
-
-            if attacker_user:
-                attacker_user.speak_l(
-                    "pirates-steal-success-you",
-                    gem=gem_name,
-                    target=defender.name,
-                    buffer="table",
+            gem_name_key = gems.get_gem_name(stolen_gem)
+            for listener in game.players:
+                user = game.get_user(listener)
+                if not user:
+                    continue
+                if listener.id == attacker.id:
+                    key = (
+                        "pirates-steal-success-you-brief"
+                        if game._wants_brief(user)
+                        else "pirates-steal-success-you"
+                    )
+                elif listener.id == defender.id:
+                    key = (
+                        "pirates-steal-success-them-brief"
+                        if game._wants_brief(user)
+                        else "pirates-steal-success-them"
+                    )
+                else:
+                    key = (
+                        "pirates-steal-success-brief"
+                        if game._wants_brief(user)
+                        else "pirates-steal-success"
+                    )
+                payload = game._resolve_broadcast_kwargs(
+                    user.locale,
+                    {
+                        "attacker": attacker,
+                        "defender": defender,
+                        "target": defender,
+                        "gem": Localization.get(user.locale, gem_name_key),
+                        "attacker_score": attacker.score,
+                        "defender_score": defender.score,
+                    },
                 )
-            if defender_user:
-                defender_user.speak_l(
-                    "pirates-steal-success-them",
-                    gem=gem_name,
-                    attacker=attacker.name,
-                    buffer="table",
-                )
-            game.broadcast_l(
-                "pirates-steal-success",
-                attacker=attacker.name,
-                gem=gem_name,
-                defender=defender.name,
-                exclude=attacker,
-            )
+                user.speak_l(key, buffer="game", **payload)
             return True
-    else:
-        game.broadcast_l("pirates-steal-failed")
-        return False
 
+    _broadcast_combat_event(
+        game,
+        attacker,
+        defender,
+        attacker_key="pirates-steal-failed-you",
+        defender_key="pirates-steal-failed-defender",
+        observer_key="pirates-steal-failed",
+        brief_attacker_key="pirates-steal-failed-you-brief",
+        brief_defender_key="pirates-steal-failed-defender-brief",
+        brief_observer_key="pirates-steal-failed-brief",
+        steal=steal_roll,
+        defend=defend_roll,
+    )
     return False

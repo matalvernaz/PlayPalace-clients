@@ -26,8 +26,8 @@ from server.games.risk.territories import (
     get_territory_name,
     player_controls_continent,
 )
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
+from server.users.test_user import MockUser
+from server.users.bot import Bot
 
 
 class TestTerritoryMap:

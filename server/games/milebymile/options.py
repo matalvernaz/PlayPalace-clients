@@ -97,3 +97,4 @@ class MileByMileOptions(GameOptions):
             change_msg="milebymile-option-changed-rig",
         )
     )
+

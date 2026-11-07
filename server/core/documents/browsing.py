@@ -5,8 +5,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ..users.network_user import NetworkUser
-from ..users.base import MenuItem, EscapeBehavior, TrustLevel
+from ...users.network_user import NetworkUser
+from ...users.base import MenuItem, EscapeBehavior
+from ...users.trust_level import TrustLevel, trust_rank
 from ...messages.localization import Localization
 from server.core.ui.common_flows import show_yes_no_menu
 from .manager import (
@@ -188,7 +189,7 @@ class DocumentBrowsingMixin:
 
     def _is_admin(self, user: NetworkUser) -> bool:
         """Return True if the user is an admin."""
-        return user.trust_level.value >= TrustLevel.ADMIN.value
+        return trust_rank(user.trust_level) >= TrustLevel.ADMIN.value
 
     def _get_user_visible_locales(self, user: NetworkUser, folder_name: str) -> list[str]:
         """Return document locales the user is allowed to read."""
@@ -268,12 +269,12 @@ class DocumentBrowsingMixin:
     def _get_title_candidate_locales(self, user: NetworkUser) -> list[str]:
         """Return locales this user may target for title edits."""
         if self._is_admin(user):
-            return sorted(Localization.get_available_locale_codes())
+            return sorted(Localization.available_locale_codes())
 
         assigned = self._get_user_assigned_languages(user.username)
         return [
             code
-            for code in Localization.get_available_locale_codes()
+            for code in Localization.available_locale_codes()
             if code in assigned
         ]
 
@@ -285,7 +286,7 @@ class DocumentBrowsingMixin:
             return []
         existing_locales = set(meta.get("locales", {}).keys())
         if self._is_admin(user):
-            candidates = Localization.get_available_locale_codes()
+            candidates = Localization.available_locale_codes()
         else:
             candidates = sorted(self._get_user_assigned_languages(user.username))
         return [code for code in candidates if code not in existing_locales]

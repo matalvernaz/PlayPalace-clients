@@ -110,6 +110,7 @@ def _apply_population_growth(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -
         player,
         "ageofheroes-population-growth-you",
         "ageofheroes-population-growth",
+        buffer="game",
     )
     game.play_sound("game_ageofheroes/build.ogg")
 
@@ -119,7 +120,7 @@ def _announce_event_discard(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer, ca
     user = game.get_user(player)
     if user:
         card_name = get_card_name(card, user.locale)
-        user.speak_l("ageofheroes-discard-card-you", card=card_name)
+        user.speak_l("ageofheroes-discard-card-you", card=card_name, buffer="game")
     _broadcast_discard(game, player, card)
 
 
@@ -142,7 +143,7 @@ def discard_player_card(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer, event_
             user = game.get_user(player)
             if user:
                 card_name = get_card_name(removed, user.locale)
-                user.speak_l("ageofheroes-block-with-card-you", card=card_name)
+                user.speak_l("ageofheroes-block-with-card-you", card=card_name, buffer="game")
 
             for p in game.players:
                 if p != player:
@@ -153,6 +154,7 @@ def discard_player_card(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer, event_
                             "ageofheroes-block-with-card",
                             player=player.name,
                             card=card_name,
+                            buffer="game",
                         )
             return True
     return False
@@ -163,7 +165,7 @@ def apply_hunger_effect(game: AgeOfHeroesGame, source_player: AgeOfHeroesPlayer)
 
     Can be blocked by Fortune card.
     """
-    game.broadcast_l("ageofheroes-hunger-strikes")
+    game.broadcast_l("ageofheroes-hunger-strikes", buffer="game")
     game.play_sound("game_ageofheroes/disaster.ogg")
 
     for player in game.get_active_players():
@@ -188,7 +190,7 @@ def apply_hunger_effect(game: AgeOfHeroesGame, source_player: AgeOfHeroesPlayer)
                 user = game.get_user(player)
                 if user:
                     card_name = get_card_name(removed, user.locale)
-                    user.speak_l("ageofheroes-lose-card-hunger", card=card_name)
+                    user.speak_l("ageofheroes-lose-card-hunger", card=card_name, buffer="game")
                 break
 
 
@@ -201,7 +203,10 @@ def apply_barbarians_effect(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) ->
         return
 
     game.broadcast_personal_l(
-        player, "ageofheroes-barbarians-attack-you", "ageofheroes-barbarians-attack"
+        player,
+        "ageofheroes-barbarians-attack-you",
+        "ageofheroes-barbarians-attack",
+        buffer="game",
     )
     game.play_sound("game_ageofheroes/disaster.ogg")
 
@@ -228,7 +233,7 @@ def apply_barbarians_effect(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) ->
                 user = game.get_user(player)
                 if user:
                     card_name = get_card_name(removed, user.locale)
-                    user.speak_l("ageofheroes-lose-card-barbarians", card=card_name)
+                    user.speak_l("ageofheroes-lose-card-barbarians", card=card_name, buffer="game")
                 found = True
                 break
         if not found:
@@ -278,6 +283,7 @@ def apply_earthquake_effect(
         target_player,
         "ageofheroes-earthquake-strikes-you",
         "ageofheroes-earthquake-strikes",
+        buffer="game",
         attacker=source_player.name,
     )
     game.play_sound("game_ageofheroes/disaster.ogg")
@@ -294,7 +300,7 @@ def apply_earthquake_effect(
 
         user = game.get_user(target_player)
         if user:
-            user.speak_l("ageofheroes-armies-disabled", count=available_armies)
+            user.speak_l("ageofheroes-armies-disabled", count=available_armies, buffer="game")
 
 
 def apply_eruption_effect(
@@ -311,6 +317,7 @@ def apply_eruption_effect(
         target_player,
         "ageofheroes-eruption-strikes-you",
         "ageofheroes-eruption-strikes",
+        buffer="game",
         attacker=source_player.name,
     )
     game.play_sound("game_ageofheroes/disaster.ogg")
@@ -332,7 +339,7 @@ def apply_eruption_effect(
 
         user = game.get_user(target_player)
         if user:
-            user.speak_l("ageofheroes-city-destroyed")
+            user.speak_l("ageofheroes-city-destroyed", buffer="game")
 
 
 def _broadcast_discard(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer, card: Card) -> None:
@@ -343,4 +350,4 @@ def _broadcast_discard(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer, card: C
         user = game.get_user(p)
         if user:
             card_name = get_card_name(card, user.locale)
-            user.speak_l("ageofheroes-discard-card", player=player.name, card=card_name)
+            user.speak_l("ageofheroes-discard-card", player=player.name, card=card_name, buffer="game")

@@ -1,3 +1,6 @@
+# languages.ftl for locale fr. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Noms de langues traduits dans cette langue
 language-ar = Arabe
 language-cs = Tchèque

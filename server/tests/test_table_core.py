@@ -158,12 +158,12 @@ def test_save_game_result_notifies_server():
     received = []
 
     class Server:
-        def on_game_result(self, result):
-            received.append(result)
+        def on_game_result(self, result, rating_updates=None):
+            received.append((result, rating_updates))
 
     table = Table(table_id="t1", game_type="poker", host="host")
     table._server = Server()
 
-    table.save_game_result({"winner": "alice"})
+    table.save_game_result({"winner": "alice"}, rating_updates={"p1": (26.0, 7.5)})
 
-    assert received == [{"winner": "alice"}]
+    assert received == [({"winner": "alice"}, {"p1": (26.0, 7.5)})]

@@ -7,7 +7,8 @@ import pytest
 
 from server.core import administration
 from server.core.administration import AdministrationMixin, require_admin, require_server_owner
-from server.core.users.base import TrustLevel, MenuItem
+from server.users.base import MenuItem
+from server.users.trust_level import TrustLevel
 
 
 @pytest.fixture(autouse=True)

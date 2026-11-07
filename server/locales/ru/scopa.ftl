@@ -1,19 +1,14 @@
-# Scopa game messages
-# Note: Common messages like round-start, turn-start, target-score, team-mode are in games.ftl
+# scopa.ftl for locale ru. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name
 game-name-scopa = Скопа
-
 # Game events
 scopa-initial-table = Карты на столе: { $cards }
 scopa-no-initial-table = На столе нет карт для начала игры.
-scopa-you-collect = Вы забираете { $cards } картой { $card }
-scopa-player-collects = { $player } забирает { $cards } картой { $card }
 scopa-you-put-down = Вы выкладываете карту: { $card }.
 scopa-player-puts-down = { $player } выкладывает карту: { $card }.
-scopa-scopa-suffix =  — СКОПА!
 scopa-clear-table-suffix = , очищая стол.
-scopa-remaining-cards = { $player } забирает оставшиеся на столе карты.
 scopa-scoring-round = Подсчёт очков...
 scopa-most-cards = { $player } получает 1 очко за наибольшее количество карт ({ $count }).
 scopa-most-cards-tie = По количеству карт ничья — очко не присуждается.
@@ -28,16 +23,15 @@ scopa-round-scores = Очки за раунд:
 scopa-round-score-line = { $player }: +{ $round_score } (всего: { $total_score })
 scopa-table-empty = На столе нет карт.
 scopa-no-such-card = На этой позиции нет карты.
-scopa-captured-count = Вы забрали { $count } { $count ->
-    [one] карту
-    [few] карты
-   *[other] карт
-}
-
+scopa-captured-count =
+    Вы забрали { $count } { $count ->
+        [one] карту
+        [few] карты
+       *[other] карт
+    }
 # View actions
 scopa-view-table = Посмотреть на стол
 scopa-view-captured = Посмотреть забранные карты
-
 # Scopa-specific options
 scopa-enter-target-score = Введите конечный счёт (1–121)
 scopa-set-cards-per-deal = Карт при раздаче: { $cards }
@@ -51,7 +45,6 @@ scopa-select-mechanic = Выберите механику игры
 scopa-toggle-instant-win = Мгновенная победа при «Скопе»: { $enabled }
 scopa-toggle-team-scoring = Общие карты команды при подсчёте: { $enabled }
 scopa-toggle-inverse = Инверсивный режим (цель = выбывание): { $enabled }
-
 # Option change announcements
 scopa-option-changed-cards = Количество карт при раздаче установлено на { $cards }.
 scopa-option-changed-decks = Количество колод установлено на { $decks }.
@@ -61,26 +54,24 @@ scopa-option-changed-mechanic = Механика игры установлена
 scopa-option-changed-instant = Мгновенная победа при «Скопе»: { $enabled }.
 scopa-option-changed-team-scoring = Командный подсчёт карт: { $enabled }.
 scopa-option-changed-inverse = Инверсивный режим: { $enabled }.
-
 # Scopa mechanic choices
 scopa-mechanic-normal = Обычная
 scopa-mechanic-no_scopas = Без «Скоп»
 scopa-mechanic-only_scopas = Только «Скопы»
-
 # Disabled action reasons
 scopa-timer-not-active = Таймер раунда не активен.
-
 # Validation errors
-scopa-error-not-enough-cards = Недостаточно карт в { $decks } { $decks ->
-    [one] колоде
-    [few] колодах
-   *[other] колодах
-} для { $players } { $players ->
-    [one] игрока
-    [few] игроков
-   *[other] игроков
-} при раздаче по { $cards_per_deal } { $cards_per_deal ->
-    [one] карте
-    [few] карты
-   *[other] карт
-}. (Нужно { $cards_needed }, но в наличии только { $total_cards }.)
+scopa-error-not-enough-cards =
+    Недостаточно карт в { $decks } { $decks ->
+        [one] колоде
+        [few] колодах
+       *[other] колодах
+    } для { $players } { $players ->
+        [one] игрока
+        [few] игроков
+       *[other] игроков
+    } при раздаче по { $cards_per_deal } { $cards_per_deal ->
+        [one] карте
+        [few] карты
+       *[other] карт
+    }. (Нужно { $cards_needed }, но в наличии только { $total_cards }.)

@@ -1,34 +1,65 @@
-# Main UI messages for PlayPalace
+# main.ftl for locale en. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game categories
-category-card-games = Card Games
-category-dice-games = Dice Games
-category-arcade-games = Arcade Games
-category-board-games = Board Games
-category-rb-play-center = RB Play Center
-category-poker = Poker
-category-uncategorized = Uncategorized
-category-playaural = PlayAural
-
-# Menu titles
-main-menu-title = Main Menu
-play-menu-title = Play
-categories-menu-title = Game Categories
-tables-menu-title = Available Tables
-
-# Menu items
+auth-username-password-required = Username and password are required.
+auth-registration-success = Registration successful! You can now log in with your credentials.
+auth-username-taken = Username already taken. Please choose a different username.
+auth-username-reserved = This name is reserved by PlayAural. Please choose a different username.
+auth-registration-error = Registration failed due to a server error. Please try again.
+auth-error-wrong-password = Incorrect password.
+auth-error-user-not-found = User does not exist.
+username-ambiguous = More than one legacy account matches “{ $username }”. Enter the exact registered spelling.
+auth-kicked-logged-in-elsewhere = You have been disconnected because your account was logged in from another device.
+admin-smtp-updated-success = SMTP setting updated successfully
+admin-smtp-settings = SMTP Settings
+email-reset-subject = PlayAural Password Reset Code
+email-reset-body = Hello { $username },\n\nYou requested a password reset for your PlayAural account.\nYour 6-digit reset code is: { $code }\n\nThis code will expire in 15 minutes.\nIf you did not request this, please ignore this email.
+email-reset-body-html =
+    <p>Hi { $username },</p>
+    <p>We received a request to reset the password for your PlayAural account.</p>
+    <p>Your 6-digit recovery code is:</p>
+    <h2>{ $code }</h2>
+    <p>This code will expire in exactly 15 minutes.</p>
+    <p>If you did not request this, please ignore this email. Your account remains secure.</p>
+    <p>Best regards,<br>Trung</p>
+email-test-subject = PlayAural SMTP Test
+email-test-body = This is a test email from the PlayAural server verifying your SMTP configuration.
+email-test-body-html =
+    <p>Hello,</p>
+    <p>This is a test email from the PlayAural server.</p>
+    <p>If you are reading this, your SMTP configuration is successfully sending HTML emails.</p>
+smtp-test-sending = Testing connection, please wait...
+smtp-test-success = Test email sent successfully to { $email }!
+smtp-test-failed = Failed to send test email: { $error }
+smtp-host = Host: { $value }
+smtp-port = Port: { $value }
+smtp-username = Username: { $value }
+smtp-password = Password: { $value }
+smtp-from-email = From Email: { $value }
+smtp-from-name = From Name: { $value }
+smtp-encryption = Encryption: { $value }
+smtp-test-connection = Test Connection
+smtp-not-set = Not set
+smtp-prompt-host = Enter SMTP Host (e.g., smtp.gmail.com):
+smtp-prompt-port = Enter SMTP Port (e.g., 587 or 465):
+smtp-prompt-username = Enter SMTP Username:
+smtp-prompt-password = Enter SMTP Password:
+smtp-prompt-from-email = Enter From Email address:
+smtp-prompt-from-name = Enter From Name (e.g., PlayAural Support):
+smtp-prompt-test-email = Enter target email address for test:
+smtp-enc-none = No encryption
+smtp-enc-ssl = Use SSL
+smtp-enc-tls = Enable TLS encryption automatically (STARTTLS)
+smtp-current-enc = * { $value }
 play = Play
-view-active-tables = View active tables
 options = Options
 logout = Logout
 back = Back
-done = Done
+go-back = Go back
 context-menu = Context menu.
 no-actions-available = No actions available.
-placeholder-feature = This feature is under consideration, thus is unavailable at this time.
-create-table = Create a new table
-join-as-player = Join as player
-join-as-spectator = Join as spectator
+table-new-host-promoted-you = You are now the table host.
+return-to-table = Return to table
 leave-table = Leave table
 start-game = Start game
 add-bot = Add bot
@@ -39,633 +70,768 @@ whose-turn = Whose turn
 whos-at-table = Who's at the table
 check-scores = Check scores
 check-scores-detailed = Detailed scores
-check-game-options = Check Game Options
-no-game-options = No Game Options
-
-# Turn messages
 game-player-skipped = { $player } is skipped.
-
-# Table messages
-table-created = { $host } created a new { $game } table.
+game-player-skipped-you = Your turn is skipped.
+table-created-broadcast = { $host } created a new { $game } table.
 table-joined = { $player } joined the table.
+table-joined-you = You joined the table.
 table-left = { $player } left the table.
+table-left-you = You left the table.
+table-reconnected = { $player } reconnected to the table.
+table-reconnected-you = You reconnected to the table.
 new-host = { $player } is now the host.
-waiting-for-players = Waiting for players. Minimum { $min }, maximum { $max }.
+new-host-you = You are now the host.
 game-starting = Game starting!
-table-listing = { $host }'s table ({ $count } users)
-table-listing-one = { $host }'s table ({ $count } user)
-table-listing-with = { $host }'s table ({ $count } users) with { $members }
-table-listing-game = { $game }: { $host }'s table ({ $count } users)
-table-listing-game-one = { $game }: { $host }'s table ({ $count } user)
-table-listing-game-with = { $game }: { $host }'s table ({ $count } users) with { $members }
-table-not-exists = Table no longer exists.
+table-listing-game-composition-status = { $game } [{ $status }]: { $host }'s table. { $composition }.
+table-composition-human-players =
+    { $count } { $count ->
+        [one] player
+       *[other] players
+    }: { $names }
+table-composition-bots =
+    { $count } { $count ->
+        [one] bot
+       *[other] bots
+    }
+table-composition-spectators =
+    { $count ->
+        [one] Spectator
+       *[other] Spectators
+    }: { $names }
+table-composition-spectators-more = Spectators: { $names }; plus { $remaining } more
+table-composition-spectator-host = { $host } (host)
+table-composition-two = { $first }; { $second }
+table-composition-three = { $first }; { $second }; { $third }
+table-composition-empty = no participants
+table-status-waiting = Waiting
+table-status-playing = Playing
+table-status-finished = Finished
 table-full = Table is full.
-player-replaced-by-bot = { $player } left and was replaced by a bot.
-player-took-over = { $player } took over from the bot.
-spectator-joined = Joined { $host }'s table as a spectator.
-
-# Spectator mode
+table-closed-disconnect-timeout = Match cancelled and table closed: no player or host returned within { $minutes } minutes.
+table-paused-awaiting-return = No active players are connected. The table stays paused for up to { $minutes } minutes while a player or the host reconnects. Bots cannot continue alone.
+table-host-disconnected = Host { $player } lost connection. Table ownership is reserved for reconnection.
+player-disconnected-grace = { $player } lost connection. Waiting up to { $seconds } seconds before a bot takes over.
+player-disconnected-grace-you = Your connection was lost. Waiting up to { $seconds } seconds before a bot takes over your seat.
+player-replaced-by-bot = { $bot } has taken control of { $player }'s seat.
+game-cancelled-last-player-left = { $player } left. No players remain to continue: the match is cancelled and the table is closed.
+game-cancelled-last-player-left-you = You left as the last player. The match is cancelled and the table is closed.
+game-cancelled-no-controller = Match cancelled and table closed: no player or host remains to continue it.
+player-reclaimed-from-bot = { $player } has returned and taken { GENDER_TERM($player_gender, "possessive-determiner") } seat back from { $bot }.
+player-reclaimed-from-bot-you = You have returned and taken your seat back from { $bot }.
 spectate = Spectate
 now-playing = { $player } is now playing.
+now-playing-you = You are now playing.
 now-spectating = { $player } is now spectating.
+now-spectating-you = You are now spectating.
 spectator-left = { $player } stopped spectating.
-
-# General
-welcome = Welcome to PlayPalace!
+welcome = Welcome to PlayAural!
 goodbye = Goodbye!
-
-# Visibility control
-visibility-public = public
-visibility-private = private
-visibility-available = available
-visibility-unavailable = unavailable
-
-# User presence announcements
-user-online = { $player } came online.
-user-offline = { $player } went offline.
-user-is-admin = { $player } is an administrator of PlayPalace.
-user-is-server-owner = { $player } is the server owner of PlayPalace.
-online-users-none = No users online.
-online-users-one = 1 user: { $users }
-online-users-many = { $count } users: { $users }
-online-user-not-in-game = Not in game
-online-user-waiting-approval = Waiting for approval
-
-# Action states
-action-locked = This action is currently unavailable.
-
-# Option states and helpers
+friend-online = Your friend { $player } is now online.
+friend-offline = Your friend { $player } went offline.
+permission-denied = You do not have permission to perform this action on a Developer.
+kick-user = Kick User
+kick-broadcast = { $target } was kicked by { $actor }.
+kick-broadcast-actor = You kicked { $target }.
+user-not-online = User { $target } is not online.
+kick-confirm = Are you sure you want to kick { $player }?
+no-users-to-kick = No users available to kick.
+usage-kick = Usage: /kick <username>
+online-users-summary =
+    { $count ->
+        [one] { $count } user online. { $groups }
+       *[other] { $count } users online. { $groups }
+    }
+online-users-group =
+    { $role ->
+        [dev]
+            { $count ->
+                [one] { $count } developer: { $users }.
+               *[other] { $count } developers: { $users }.
+            }
+        [admin]
+            { $count ->
+                [one] { $count } administrator: { $users }.
+               *[other] { $count } administrators: { $users }.
+            }
+       *[user]
+            { $staff_count ->
+                [0] { $users }.
+               *[other]
+                    { $count ->
+                        [one] { $count } user: { $users }.
+                       *[other] { $count } users: { $users }.
+                    }
+            }
+    }
+online-users-more = { $count } more
+presence-status-main-menu = Main menu
+presence-status-waiting-table = Waiting at { $game } table
+presence-status-playing = Playing { $game }
+presence-status-spectating = Spectating { $game }
+presence-status-watching-table = Watching { $game } table
+presence-status-reviewing-results = Reviewing { $game } results
+presence-status-spectating-results = Watching { $game } results
+user-role-dev = Developer
+user-role-admin = Administrator
+user-role-user = User
+client-type-web = Web
+client-type-python = Desktop
+client-type-mobile = Mobile
+client-type-with-platform = { $client } ({ $platform })
+online-user-full-entry = { $username } ({ $role }, { $client }, { $language }): { $status }
+user-not-online-anymore = This user is no longer online.
+close-menu = Close
+language = Language
+language-menu-entry =
+    { $official ->
+        [true] { $language }. Official PlayAural language. Translators: { $translators }.
+       *[false] { $language }. Community translation. Translators: { $translators }.
+    }
+language-menu-entry-missing-metadata = { $language }. Translator metadata unavailable.
+language-menu-current-entry = Current: { $entry }
 option-on = On
 option-off = Off
-option-locked = This option is currently locked by another setting.
-
-# Options
-language = Language
-language-option = Language: { $language }
-language-changed = Language set to { $language }.
-
-fluent-languages-option = Fluent languages ({ $count })
-
-# Preference categories
-pref-category-display = Display
-pref-category-sounds = Sounds
-pref-category-dice = Dice Behaviour
-pref-category-gameplay = Gameplay
-
-# Preference labels (shown in menus)
-pref-set-play-turn-sound = Turn sound: { $status }
-pref-desc-play-turn-sound = Play a sound when it becomes your turn
-pref-changed-play-turn-sound = Turn sound { $status }.
-
-pref-set-music-volume = Music volume: { $choice } percent
-pref-desc-music-volume = How loud background music plays. Setting this here syncs across all your clients (iOS, desktop, web) and persists across sessions.
-pref-select-music-volume = Select music volume
-pref-changed-music-volume = Music volume set to { $choice } percent.
-
-pref-set-ambience-volume = Ambience volume: { $choice } percent
-pref-desc-ambience-volume = How loud ambient sound loops play. Setting this here syncs across all your clients.
-pref-select-ambience-volume = Select ambience volume
-pref-changed-ambience-volume = Ambience volume set to { $choice } percent.
-
-pref-volume-0 = 0
-pref-volume-10 = 10
-pref-volume-20 = 20
-pref-volume-30 = 30
-pref-volume-40 = 40
-pref-volume-50 = 50
-pref-volume-60 = 60
-pref-volume-70 = 70
-pref-volume-80 = 80
-pref-volume-90 = 90
-pref-volume-100 = 100
-
-pref-set-brief-announcements = Brief announcements: { $status }
-pref-desc-brief-announcements = Use shorter announcements during gameplay instead of detailed commentary
-pref-changed-brief-announcements = Brief announcements { $status }.
-
-pref-set-clear-kept-on-roll = Clear kept dice when rolling: { $status }
-pref-desc-clear-kept-on-roll = Automatically unkeep all dice after each roll
-pref-changed-clear-kept-on-roll = Clear kept dice when rolling { $status }.
-
-pref-set-dice-keeping-style = Dice keeping style: { $choice }
-pref-desc-dice-keeping-style = How dice are selected for keeping
-pref-select-dice-keeping-style = Select dice keeping style:
-pref-changed-dice-keeping-style = Dice keeping style set to { $choice }.
-pref-dice-keeping-style-playpalace = Dice indexes
-pref-dice-keeping-style-quentin_c = Dice values
-
-pref-set-confirm-destructive-actions = Confirm destructive actions: { $status }
-pref-desc-confirm-destructive-actions = Request confirmation when performing destructive actions like passing your turn
-pref-changed-confirm-destructive-actions = Confirm destructive actions { $status }.
-
-# Preference system
-pref-back = Back
-pref-reset-all = Reset all preferences to defaults
-pref-reset-category = Reset { $category } to defaults
-pref-reset-done = Preferences reset to defaults.
-pref-per-game-for = { $game }: { $value }
-pref-default = Default
-
-# Legacy keys (kept for compatibility)
-turn-sound-option = Turn sound: { $status }
-clear-kept-option = Clear kept dice when rolling: { $status }
+# Multi-select option sub-menu controls
+option-back = Back
+option-select-all = Select all
+option-deselect-all = Deselect all
+option-selected-count = { $count } selected
+option-deselected-count = { $count } deselected
+option-multiselect-group = { $group } ({ $count } of { $total } selected)
+option-min-selected = You must select at least { $count }.
+option-max-selected = You can select at most { $count }.
+custom-bot-names-option = Custom bot names: { $status }
+option-notify-table-created = Notify when table created: { $status }
+option-notify-user-presence = User online/offline notifications: { $status }
+option-notify-friend-presence = Friend online/offline notifications: { $status }
 dice-keeping-style-option = Dice keeping style: { $style }
-dice-keeping-style-changed = Dice keeping style set to { $style }.
-dice-keeping-style-indexes = Dice indexes
-dice-keeping-style-values = Dice values
-
-# Bot names
+# Personal options split: general vs game options
+general-options = General options
+game-options = Game options
+# Game Options (declarative preferences with per-game overrides)
+pref-category-display = Display
+pref-set-brief-announcements = Brief announcements: { $status }
+pref-changed-brief-announcements = Brief announcements { $status }.
+pref-desc-brief-announcements = Shorten in-game move and event announcements; turn off for fuller spoken commentary.
+pref-category-sounds = Sounds
+pref-category-gameplay = Gameplay
+pref-category-dice = Dice
+pref-set-play-turn-sound = Turn sound: { $status }
+pref-set-confirm-destructive-actions = Confirm risky actions: { $status }
+pref-set-allow-custom-bot-names = Custom bot names: { $status }
+pref-set-clear-kept-on-roll = Clear kept dice when rolling: { $status }
+pref-set-dice-keeping-style = Dice keeping style: { $choice }
+pref-changed-play-turn-sound = Turn sound { $status }.
+pref-changed-confirm-destructive-actions = Confirm risky actions { $status }.
+pref-changed-allow-custom-bot-names = Custom bot names { $status }.
+pref-changed-clear-kept-on-roll = Clear kept dice when rolling { $status }.
+pref-changed-dice-keeping-style = Dice keeping style set to { $choice }.
+pref-desc-play-turn-sound = Play a sound when it becomes your turn.
+pref-desc-confirm-destructive-actions = Ask for confirmation before risky or irreversible actions, such as passing in Pusoy Dos.
+pref-desc-allow-custom-bot-names = Let you set custom names for bots you add to a table.
+pref-desc-clear-kept-on-roll = In supported dice games such as Yahtzee, release every kept die after each roll. Your next roll rerolls all dice unless you keep some again; with Dice values, use Shift+1-6 to keep matching dice.
+pref-desc-dice-keeping-style = Dice indexes: use 1-5, or 1-6 in Midnight, to toggle dice by position. Dice values: use 1-6 to release one kept die with that face value and Shift+1-6 to keep one matching released die. During Tradeoff's trading phase, 1-6 keeps one matching die and Shift+1-6 marks one for trading; during the taking phase, plain 1-6 takes a matching die from the pool.
 cancel = Cancel
-no-bot-names-available = No bot names available.
-select-bot-name = Select a name for the bot
 enter-bot-name = Enter bot name
+bot-name-invalid-length = Bot names must be 3 to 30 characters.
+bot-name-invalid-characters = Bot names can only contain letters, numbers, and spaces.
+table-name-already-used = A player or bot with this name is already at this table.
 no-options-available = No options available.
 no-scores-available = No scores available.
-
-# Duration estimation
-estimate-duration = Estimate duration
-estimate-computing = Computing estimated game duration...
-estimate-result = Bot average: { $bot_time } (± { $std_dev }). { $outlier_info }Estimated human time: { $human_time }.
-estimate-error = Could not estimate duration.
-estimate-already-running = Duration estimation already in progress.
-
-# Save/Restore
-saved-tables = Saved Tables
-no-saved-tables = You have no saved tables.
-no-active-tables = No active tables.
-restore-table = Restore
-delete-saved-table = Delete
-saved-table-deleted = Saved table deleted.
-missing-players = Cannot restore: these players are not available: { $players }
-table-restored = Table restored! All players have been transferred.
-table-saved-destroying = Table saved! Returning to main menu.
-game-type-not-found = Game type no longer exists.
-
-# Action disabled reasons
-action-player-not-found = Player not found.
+option-desc-generic = { $label }. Default: { $default }.
+option-desc-integer = { $label }. Enter a whole number from { $min } to { $max }. Default: { $default }.
+option-desc-number = { $label }. Enter a number from { $min } to { $max }. Default: { $default }.
+option-desc-menu = { $label }. Choose one of: { $choices }. Default: { $default }.
+option-desc-bool = { $label }. Activate this item to switch the setting on or off. Default: { $default }.
+option-desc-multiselect = { $label }. Selected now: { $selected }. Minimum selections: { $min }. Maximum selections: { $max }. Selected by default: { $default }.
+option-desc-no-choices = no choices are currently available
+option-desc-none-selected = none
+option-desc-no-maximum = no maximum
+menu-item-with-hint = { $label }: { $hint }
+general-desc-profile = View and edit your public profile details.
+general-desc-friends = Manage friends, friend requests, private messages, and friend table actions.
+general-desc-my-stats = Review your wins, losses, ratings, and supported game statistics.
+general-desc-general-options = Adjust language, global chat, audio, accessibility, notifications, and gameplay preferences.
+general-desc-game-options = Adjust gameplay preferences that can apply globally or to supported games.
+general-desc-language = Choose the language used by server menus, messages, and documentation when available.
+general-desc-audio = Adjust music, sound effects, ambience, voice chat volume, typing sounds, and desktop input device settings.
+general-desc-accessibility = Adjust accessibility-related reading, input, and client behavior available on this device.
+general-desc-notifications = Choose which chat, presence, and table creation notifications you want to hear.
+general-desc-music-volume = Change background music volume. Setting it to Off silences music.
+general-desc-sound-volume = Change game sound effect volume. Sound effects stay at least ten percent so important cues remain audible.
+general-desc-ambience-volume = Change background ambience volume. Setting it to Off silences ambience.
+general-desc-voice-volume = Change table voice chat playback volume.
+general-desc-audio-input-device = Choose the microphone or input device used by the desktop client for voice chat.
+general-desc-play-typing-sounds = Play small typing sounds while entering text in client edit fields.
+general-desc-web-speech-settings = Configure browser speech output, including ARIA live or Web Speech mode, speech speed, and voice.
+general-desc-mobile-speech-settings = Configure mobile text-to-speech engine, voice, and speech speed.
+general-desc-invert-multiline-enter = Swap the send and newline behavior for multiline text fields on the desktop client.
+general-desc-menu-hints = Show available descriptions directly in menu rows. When off, focus a described item and press F1 in Desktop or Web with a hardware keyboard, or tap once with three fingers in mobile self-voicing mode, to hear it.
+general-desc-mute-global-chat = Stop global chat messages from being spoken automatically.
+general-desc-global-chat-channel = Choose the language channel used to send and receive global chat. A channel is required even when global chat is enabled.
+general-desc-mute-table-chat = Stop table chat messages from being spoken automatically.
+general-desc-notify-user-presence = Announce when users come online or go offline.
+general-desc-notify-friend-presence = Announce when your friends come online or go offline.
+general-desc-notify-table-created = Announce when a new public table is created.
+general-desc-speech-mode = Choose whether the web client sends announcements to the screen reader through ARIA live or speaks them with the browser's Web Speech API.
+general-desc-speech-rate = Change the web client's speech speed.
+general-desc-speech-voice = Choose the voice used by the web client's Web Speech API, or return to the browser default.
+general-desc-mobile-tts-engine = Choose the mobile text-to-speech engine. Android currently uses the system-managed engine.
+general-desc-mobile-tts-voice = Choose the mobile text-to-speech voice, or return to the system default.
+general-desc-mobile-tts-rate = Change the mobile text-to-speech speed.
+no-active-tables-all = No active tables available.
+no-active-tables-waiting = No waiting tables available.
+no-active-tables-playing = No playing tables available.
+active-tables-filter = Filter: { $filter }
+filter-name-all = All
+filter-name-waiting = Waiting
+filter-name-playing = Playing
+game-category-filter = Category: { $category }
+game-category-filter-option = { $category } ({ $count })
+game-category-all = All
+game-category-cards = Card Games
+game-category-poker = Poker Games
+game-category-dice = Dice Games
+game-category-board = Board Games
+game-category-arcade = Arcade Games
+game-category-misc = Miscellaneous
+no-games-in-category = No games available in this category.
+saved-table-blocked-by-you = This saved table includes users you blocked: { $players }. To restore it, open Personal and Options, Friends, then Blocked Users and unblock them. Restoration can proceed only if direct social contact is then available for everyone. The save was kept.
+saved-table-social-blocked = This saved table cannot be restored because direct social contact is unavailable between you and: { $players }. The save was kept.
+saved-table-social-blocked-mixed = This saved table includes users you blocked: { $blocked }. Open Personal and Options, Friends, then Blocked Users and unblock them. Direct social contact is also unavailable with: { $unavailable }. The save was kept.
+saved-table-invalid = This saved table can no longer be restored because its stored game or player data is incomplete or incompatible. The save was kept.
 action-not-your-turn = It's not your turn.
 action-not-playing = The game hasn't started.
 action-spectator = Spectators cannot do this.
 action-not-host = Only the host can do this.
+action-not-available = That action isn't available right now.
 action-game-in-progress = Cannot do this while the game is in progress.
-action-need-more-players = Need at least { $min_players } players to start.
-action-start-requires-exact-players = { $required ->
-    [one] This game needs exactly 1 player to start.
-   *[other] This game needs exactly { $required } players to start.
-} { $current ->
-    [one] There is 1 player now.
-   *[other] There are { $current } players now.
-}
-action-start-needs-more-players = { $minimum ->
-    [one] This game needs at least 1 player to start.
-   *[other] This game needs at least { $minimum } players to start.
-} { $current ->
-    [one] There is 1 player now.
-   *[other] There are { $current } players now.
-}
-action-start-has-too-many-players = This game allows at most { $maximum } players. { $current ->
-    [one] There is 1 player now.
-   *[other] There are { $current } players now.
-}
-action-wait = Please wait a moment.
-action-wait-for-hand = Wait until the cards have been dealt.
-action-wait-for-intro = Wait until the round has started.
-unknown-player = Unknown player
+action-need-more-players = Need more players to start.
 action-table-full = The table is full.
+action-start-needs-more-players = Cannot start. Active players: { $current }. Minimum required: { $minimum }.
+action-start-has-too-many-players = Cannot start. Active players: { $current }. Maximum allowed: { $maximum }.
+action-start-requires-exact-players = Cannot start. Active players: { $current }. Required: exactly { $required }.
+action-start-needs-human-player = Cannot start with only bots. At least one human must participate as a player. Switch from spectator to player; if the table is full, remove a bot first.
 action-no-bots = There are no bots to remove.
 action-bots-cannot = Bots cannot do this.
-action-no-scores = No scores available yet.
-
-# Dice actions
+action-role-change-rate-limited =
+    You are switching between playing and spectating too quickly. Try again in { $seconds ->
+        [one] 1 second
+       *[other] { $seconds } seconds
+    }.
+options-category-audio = Audio
+options-category-accessibility = Accessibility
+options-category-notifications = Notifications
+music-volume-option = Music Volume: { $value }%
+sound-volume-option = Sound Effects Volume: { $value }%
+ambience-volume-option = Ambience Volume: { $value }%
+voice-volume-option = Voice Chat Volume: { $value }%
+volume-choice-off = Off
+volume-choice-percent = { $value }%
+volume-choice-current = { $label } (current)
+audio-input-device-option = Audio Input Device: { $device }
+audio-input-device-default = System Default Input Device
+mute-global-chat-option = Mute Global Chat: { $status }
+global-chat-channel-option = Global Chat Language: { $channel }
+global-chat-channel-none = No channel selected
+global-chat-channel-none-current = No channel selected (current)
+global-chat-channel-name = { $language }
+global-chat-channel-recommended = { $language } (recommended for your interface language)
+global-chat-channel-current = { $language } (current)
+global-chat-channel-current-recommended = { $language } (current, recommended for your interface language)
+global-chat-channel-selected = Global chat language set to { $language }. Global chat is not monitored in real time. If someone uses profanity or insults you, block them. Please report serious or repeated abuse for later review.
+global-chat-channel-cleared = No global chat language is selected. You will not send or receive global messages.
+mute-table-chat-option = Mute Table Chat: { $status }
+invert-multiline-enter-option = Invert Enter Key Behavior: { $status }
+menu-hints-option = Menu Hints: { $status }
+menu-hints-changed = Menu hints are now { $status }.
+play-typing-sounds-option = Play Typing Sounds: { $status }
+invalid-volume = Invalid volume.
 dice-not-rolled = You haven't rolled yet.
-dice-locked = This die is locked.
 dice-no-dice = No dice available.
-
-# Game actions
-game-turn-start = { $player }'s turn.
-game-no-turn = No one's turn right now.
 table-no-players = No players.
 table-players-one = { $count } player: { $players }.
 table-players-many = { $count } players: { $players }.
 table-spectators = Spectators: { $spectators }.
-game-leave = Leave
+table-host-suffix = (Host)
+table-voice-chat-suffix = (in voice chat)
+table-members-summary-compact = Table summary: { $composition }.
+table-summary-human-players =
+    { $count } { $count ->
+        [one] human player
+       *[other] human players
+    }
+table-summary-bots =
+    { $count } { $count ->
+        [one] bot
+       *[other] bots
+    }
+table-summary-spectators =
+    { $count } { $count ->
+        [one] spectator
+       *[other] spectators
+    }
+table-members-empty = No table members are currently listed. Use Back to return and refresh the table view.
+table-member-entry = { $player }: { $status }
+table-member-status-host = Host
+table-member-status-player = Player
+table-member-status-spectator = Spectator
+table-member-status-bot = Bot
+table-member-status-voice-chat = in voice chat
+table-member-status-bot-takeover = bot playing on { GENDER_TERM($member_gender, "possessive-determiner") } behalf: { $bot }
+table-member-no-actions = No available actions for { $player }.
+table-member-left = That person is no longer at this table.
+table-member-bot-left = That bot is no longer at this table.
 game-over = Game Over
-game-over-leave = Congratulations you did great!
 game-final-scores = Final Scores
-game-points = { $count } { $count ->
-    [one] point
-   *[other] points
-}
-play = Play
-
-# Leaderboards
+game-points =
+    { $count } { $count ->
+        [one] point
+       *[other] points
+    }
 leaderboards = Leaderboards
-leaderboards-menu-title = Leaderboards
-leaderboards-select-game = Select a game to view its leaderboard
-leaderboard-no-data = No leaderboard data yet for this game.
-
-# Leaderboard types
-leaderboard-type-wins = Win Leaders
-leaderboard-type-rating = Skill Rating
-leaderboard-type-total-score = Total Score
-leaderboard-type-high-score = High Score
-leaderboard-type-games-played = Games Played
 leaderboard-type-avg-points-per-turn = Avg Points Per Turn
 leaderboard-type-best-single-turn = Best Single Turn
 leaderboard-type-score-per-round = Score Per Round
-
-# Leaderboard headers
-leaderboard-wins-header = { $game } - Win Leaders
-leaderboard-total-score-header = { $game } - Total Score
-leaderboard-high-score-header = { $game } - High Score
-leaderboard-games-played-header = { $game } - Games Played
-leaderboard-rating-header = { $game } - Skill Ratings
-leaderboard-avg-points-header = { $game } - Avg Points Per Turn
-leaderboard-best-turn-header = { $game } - Best Single Turn
-leaderboard-score-per-round-header = { $game } - Score Per Round
-
-# Leaderboard entries
-leaderboard-wins-entry = { $rank }: { $player }, { $wins } { $wins ->
-    [one] win
-   *[other] wins
-} { $losses } { $losses ->
-    [one] loss
-   *[other] losses
-}, { $percentage }% winrate
+leaderboard-type-most-enemies-defeated = Most Enemies Defeated
+leaderboard-type-deepest-wave-reached = Deepest Wave Reached
 leaderboard-score-entry = { $rank }. { $player }: { $value }
-leaderboard-avg-entry = { $rank }. { $player }: { $value } avg
-leaderboard-games-entry = { $rank }. { $player }: { $value } games
-
-# Player stats
-leaderboard-player-stats = Your stats: { $wins } wins, { $losses } losses ({ $percentage }% win rate)
+leaderboard-avg-entry = { $rank }. { $player }: { $value }
 leaderboard-no-player-stats = You haven't played this game yet.
-
-# Skill rating leaderboard
-leaderboard-no-ratings = No rating data yet for this game.
-leaderboard-rating-entry = { $rank }. { $player }: { $rating } rating ({ $mu } ± { $sigma })
-leaderboard-player-rating = Your rating: { $rating } ({ $mu } ± { $sigma })
 leaderboard-no-player-rating = You don't have a rating for this game yet.
-
-# My Stats menu
-my-stats = My Stats
 my-stats-select-game = Select a game to view your stats
-my-stats-no-data = You haven't played this game yet.
-my-stats-no-games = You haven't played any games yet.
 my-stats-header = { $game } - Your Stats
-my-stats-wins = Wins: { $value }
-my-stats-losses = Losses: { $value }
-my-stats-winrate = Win rate: { $value }%
-my-stats-games-played = Games played: { $value }
-my-stats-total-score = Total score: { $value }
-my-stats-high-score = High score: { $value }
-my-stats-rating = Skill rating: { $value } ({ $mu } ± { $sigma })
-my-stats-no-rating = No skill rating yet
+my-stats-custom = { $name }: { $value }
 my-stats-avg-per-turn = Avg points per turn: { $value }
 my-stats-best-turn = Best single turn: { $value }
-
-# Prediction system
-predict-outcomes = Predict outcomes
-predict-header = Predicted Outcomes (by skill rating)
-predict-entry = { $rank }. { $player } (rating: { $rating })
-predict-entry-2p = { $rank }. { $player } (rating: { $rating }, { $probability }% win chance)
-predict-unavailable = Rating predictions are not available.
-predict-need-players = Need at least 2 human players for predictions.
-action-need-more-humans = Need more human players.
+my-stats-score-per-round = Score per round: { $value }
+my-stats-most-enemies-defeated = Most Enemies Defeated: { $value }
+my-stats-deepest-wave-reached = Deepest Wave Reached: { $value }
 confirm-leave-game = Are you sure you want to leave the table?
-confirm-logout = Are you sure you want to log out?
 confirm-yes = Yes
 confirm-no = No
-
-# Administration
 administration = Administration
-admin-menu-title = Administration
-
-# Account approval
-account-approval = Account Approval
-account-approval-menu-title = Account Approval
-no-pending-accounts = No pending accounts.
-approve-account = Approve
-decline-account = Decline
-account-approved = { $player }'s account has been approved.
-account-declined = { $player }'s account has been declined and deleted.
-
-# Waiting for approval (shown to unapproved users)
-waiting-for-approval = Your account is waiting for approval by an administrator.
-account-approved-welcome = Your account has been approved! Welcome to PlayPalace!
-account-declined-goodbye = Your account request has been declined.
-    Reason:
-account-banned = Your account is banned and cannot be accessed.
-
-# Login errors
-incorrect-username = The username you entered does not exist.
-incorrect-password = The password you entered is incorrect.
-already-logged-in = This account is already logged in.
-accounts-blocked = Sorry, registration is currently disabled. Only administrators or the server owner can create accounts at this time. Check back later!
-
-# Credential validation
-credential-username-length = Username must be between { $min } and { $max } characters.
-credential-password-length = Password must be between { $min } and { $max } characters.
-
-# Rate limiting
-rate-limit-login-ip = Too many login attempts from this address. Please wait and try again.
-rate-limit-login-user = Too many failed login attempts for this username. Please wait and try again.
-rate-limit-registration = Too many registration attempts from this address. Please wait and try again.
-rate-limit-refresh = Too many refresh attempts from this address. Please wait and try again.
-
-# Session/auth errors
-account-not-found = Account not found.
-session-expired = Session expired. Please log in again.
-session-token-mismatch = Session token does not match username.
-refresh-token-expired = Refresh token expired. Please log in again.
-refresh-token-mismatch = Refresh token does not match username.
-
-# Registration
-registration-success = Registration successful! Your account is waiting for approval.
-registration-username-taken = Username already taken. Please choose a different username.
-
-# Preference fallback
-pref-invalid-value = Invalid selection, using default.
-
-# Decline reason
-decline-reason-prompt = Enter a reason for declining (or press Escape to cancel):
-account-action-empty-reason = No reason given.
-
-# Admin notifications for account requests
-account-request = account request
-account-action = account action taken
-
-# Password recovery
-reset-user-password = Reset User Password
-no-users-to-reset-password = No users available for password reset.
-reset-user-password-prompt = Enter a new temporary password for { $player } (or press Escape to cancel):
-reset-user-password-done = { $player }'s password has been reset.
-reset-user-password-unavailable = { $player } is not available for password reset.
-your-password-was-reset = Your password was reset by an administrator. Please log in with the new password.
-
-# Admin promotion/demotion
-promote-admin = Promote Admin
-demote-admin = Demote Admin
-promote-admin-menu-title = Promote Admin
-demote-admin-menu-title = Demote Admin
-no-users-to-promote = No users available to promote.
-no-admins-to-demote = No admins available to demote.
-confirm-promote = Are you sure you want to promote { $player } to admin?
-confirm-demote = Are you sure you want to demote { $player } from admin?
-broadcast-to-all = Announce to all users
-broadcast-to-admins = Announce to admins only
-broadcast-to-nobody = Silent (no announcement)
-promote-announcement = { $player } has been promoted to admin!
-promote-announcement-you = You have been promoted to admin!
-demote-announcement = { $player } has been demoted from admin.
-demote-announcement-you = You have been demoted from admin.
-not-admin-anymore = You are no longer an admin and cannot perform this action.
-not-server-owner = Only the server owner can perform this action.
-
-# Server ownership transfer
-transfer-ownership = Transfer Ownership
-transfer-ownership-menu-title = Transfer Ownership
-no-admins-for-transfer = No admins available to transfer ownership to.
-confirm-transfer-ownership = Are you sure you want to transfer server ownership to { $player }? You will be demoted to admin.
-transfer-ownership-announcement = { $player } is now the Play Palace server owner!
-transfer-ownership-announcement-you = You are now the Play palace server owner!
-
-# User banning
-ban-user = Ban User
-unban-user = Unban User
-no-users-to-ban = No users available to ban.
-no-users-to-unban = No banned users to unban.
-confirm-ban = Are you sure you want to ban { $player }?
-confirm-unban = Are you sure you want to unban { $player }?
-ban-reason-prompt = Enter a reason for the ban (optional):
-unban-reason-prompt = Enter a reason for the unban (optional):
-user-banned = { $player } has been banned.
-user-unbanned = { $player } has been unbanned.
-you-have-been-banned = You have been banned from this server.
-    Reason:
-you-have-been-unbanned = You have been unbanned from this server.
-    Reason:
-ban-no-reason = No reason given.
-
-# Virtual bots (server owner only)
-virtual-bots = Virtual Bots
-virtual-bots-fill = Fill Server
-virtual-bots-clear = Clear All Bots
-virtual-bots-status = Status
-virtual-bots-clear-confirm = Are you sure you want to clear all virtual bots? This will also destroy any tables they are in.
-virtual-bots-not-available = Virtual bots are not available.
-virtual-bots-filled = Added { $added } virtual bots. { $online } are now online.
-virtual-bots-already-filled = All virtual bots from the configuration are already active.
-virtual-bots-cleared = Cleared { $bots } virtual bots and destroyed { $tables } { $tables ->
-    [one] table
-   *[other] tables
-}.
-virtual-bot-table-closed = Table closed by administrator.
-virtual-bots-none-to-clear = No virtual bots to clear.
-virtual-bots-status-report = Virtual Bots: { $total } total, { $online } online, { $offline } offline, { $in_game } in game.
-virtual-bots-guided-overview = Guided Tables
-virtual-bots-groups-overview = Bot Groups
-virtual-bots-profiles-overview = Profiles
-virtual-bots-guided-header = Guided tables: { $count } rule(s). Allocation: { $allocation }, fallback: { $fallback }, default profile: { $default_profile }.
-virtual-bots-guided-empty = No guided table rules are configured.
-virtual-bots-guided-status-active = active
-virtual-bots-guided-status-inactive = inactive
-virtual-bots-guided-table-linked = linked to table { $table_id } (host { $host }, players { $players }, humans { $humans })
-virtual-bots-guided-table-stale = table { $table_id } missing on server
-virtual-bots-guided-table-unassigned = no table is currently tracked
-virtual-bots-guided-next-change = next change in { $ticks } ticks
-virtual-bots-guided-no-schedule = no scheduling window
-virtual-bots-guided-warning = ⚠ underfilled
-virtual-bots-guided-line = { $table }: game { $game }, priority { $priority }, bots { $assigned } (min { $min_bots }, max { $max_bots }), waiting { $waiting }, unavailable { $unavailable }, status { $status }, profile { $profile }, groups { $groups }. { $table_state }. { $next_change } { $warning_text }
-virtual-bots-groups-header = Bot groups: { $count } tag(s), { $bots } configured bots.
-virtual-bots-groups-empty = No bot groups are defined.
-virtual-bots-groups-line = { $group }: profile { $profile }, bots { $total } (online { $online }, waiting { $waiting }, in-game { $in_game }, offline { $offline }), rules { $rules }.
-virtual-bots-groups-no-rules = none
-virtual-bots-no-profile = default
-virtual-bots-profile-inherit-default = inherits default profile
-virtual-bots-profiles-header = Profiles: { $count } defined (default: { $default_profile }).
-virtual-bots-profiles-empty = No profiles are defined.
-virtual-bots-profiles-line = { $profile } ({ $bot_count } bots) overrides: { $overrides }.
-virtual-bots-profiles-no-overrides = inherits base configuration
-
-# Documents
-documents = Documents
-documents-menu-title = Documents System
-documents-all = All documents
-documents-uncategorized = Uncategorized documents
-documents-no-documents = No documents found.
-documents-no-content = No content available for this document.
-
-# Document actions
-documents-view = View document content
-documents-update-contents = Edit document content
-documents-settings = Document settings
-documents-update-title = Change title
-documents-manage-visibility = Manage visibility
-documents-modify-categories = Modify category list
-documents-add-translation = Add translation
-documents-remove-translation = Remove translation
-documents-delete-document = Delete document
-documents-title-prompt = Enter the document title for the { $language } translation:
-documents-title-changed = Title updated for { $language }.
-documents-visibility-changed = Visibility updated for { $language }.
-documents-visibility-no-permission = You do not have permission to change visibility for { $language }.
-documents-categories-updated = Categories updated.
-documents-content-prompt = Enter the content for the { $language } translation:
-documents-translation-added = Translation added for { $language }.
-documents-no-languages-available = No languages available for translation.
-documents-remove-translation-confirm = Remove the { $language } translation? This cannot be undone.
-documents-remove-translation-source = The source translation cannot be removed.
-documents-remove-title-confirm = Also remove the { $language } title? Choose no to keep it for a future translation.
-documents-translation-removed = { $language } translation removed.
-documents-delete-confirm = Delete this document? It has { $count } translations. This cannot be undone.
-documents-deleted = Document deleted.
-documents-no-permission = You do not have any relevant assigned languages for this document.
-documents-visibility-count = Manage visibility ({ $public }/{ $total } languages public)
-documents-locked = This document is currently being edited by { $username }. You cannot edit it right now.
-documents-remove-translation-locked = The { $language } translation is currently being edited by { $username } and cannot be removed.
-documents-delete-locked = This document cannot be deleted because the { $language } translation is currently being edited by { $username }.
-documents-content-saved = Document content saved for { $language }.
-documents-content-unchanged = No changes to save.
-documents-editor-prompt = Edit: { $title } ({ $language })
-documents-source-label = { $language } (source)
-documents-content-label = { $language } Contents
-
-# Document & category creation
-documents-new-document = New document
-documents-new-category = New category
-documents-scope-prompt = Choose the scope for this document.
-documents-scope-shared = Shared (all servers)
-documents-scope-independent = Independent (this server only)
-documents-select-categories = Select categories for the new document.
-documents-new-document-slug-prompt = Enter the sluggified title in English. This is the internal identifier for the document, for example my_game_rules:
-documents-document-created = Document created.
-documents-slug-exists = A document with this identifier already exists.
-documents-slug-invalid = Invalid slug. Use only lowercase letters, numbers, and underscores.
-documents-new-category-slug-prompt = Enter the sluggified name in English. This is the internal identifier for the category, for example game_rules:
-documents-category-created = Category created.
-documents-slug-exists-category = A category with this slug already exists.
-
-# Category management
-documents-rename-category = Rename category
-documents-category-settings = Category settings
-documents-delete-category = Delete category
-documents-category-name-prompt = Enter the display name for this category for the { $language } translation:
-documents-category-renamed = Category renamed.
-documents-sort-method = Sort method
-documents-sort-alphabetical = Alphabetical
-documents-sort-date-created = Date created
-documents-sort-date-modified = Date modified
-documents-sort-changed = Sort method updated.
-documents-delete-category-confirm = Delete this category? Documents will not be deleted, but will lose this category association.
-documents-category-deleted = Category deleted.
-
-# Document infrastructure (sync, export, promote, contribution)
-documents-sync = Sync shared documents
-documents-sync-success = Shared documents synced successfully.
-documents-sync-failed = Sync failed: { $reason }
-documents-sync-pending-warning = Warning: { $count } uncommitted changes to shared documents exist. Export them before syncing to avoid losing local edits.
-documents-sync-local-changes = { $count } documents have local changes. Select which to discard before syncing.
-documents-sync-discard-label = { $title } (discard); ({ $description })
-documents-sync-keep-label = { $title } (keep); ({ $description })
-documents-sync-confirm = Sync now
-documents-sync-discard-all = Discard all
-documents-sync-keep-all = Keep all
-documents-sync-tag-absent = item is absent from local: keep = don't add from upstream, discard = add from upstream
-documents-sync-tag-present = item is only present on local: keep = don't delete from local, discard = delete from local
-documents-sync-tag-content = content changes
-documents-sync-tag-metadata = metadata changes
-documents-sync-tag-content-and-metadata = content and metadata changes
-documents-commit-message-prompt = Describe your changes (optional):
-documents-commit-success = Changes committed.
-documents-commit-failed = Commit failed: { $reason }
-documents-export-pending = Export pending changes ({ $count })
-documents-export-success = Exported { $count } changes to { $path }.
-documents-export-no-changes = No pending changes to export.
-documents-pending-commits-button = Pending commits ({ $count })
-documents-pending-commits-info = { $count } commits ahead of upstream. The server owner can push these changes to the repository.
-documents-pr-button = Create pull request ({ $count } commits)
-documents-pr-success = Pull request created: { $url }
-documents-pr-failed = Pull request failed: { $reason }
-documents-pr-no-commits = No commits to include in a pull request.
-documents-promote-to-shared = Promote to shared
-documents-promote-confirm = Are you sure you want to promote this document to shared scope? This makes it visible to all servers syncing from this repository.
-documents-promoted-to-shared = Document promoted to shared scope.
-documents-promote-failed = Failed to promote document. It may already be shared or a conflict exists.
-documents-based-on-stale = Upstream source changed: { $source }
-
-# Transcriber management
-transcribers-by-language = View transcribers by language
-transcribers-by-user = View transcribers by user
-transcribers-language-users = { $language } ({ $count } users)
-transcribers-language-users-one = { $language } ({ $count } user)
-transcribers-user-languages = { $user } ({ $count } languages)
-transcribers-user-languages-one = { $user } ({ $count } language)
-transcribers-no-users = No transcribers assigned to this language.
-transcribers-no-languages = No languages assigned to this user.
-transcribers-no-transcribers = No transcribers have been assigned yet.
-transcribers-add-user = Add user
-transcribers-add-users = Add users
-transcribers-add-languages = Add languages
-transcribers-remove-confirm = Remove { $user } as a transcriber for { $language }?
-transcribers-remove-lang-confirm = Remove { $language } from { $user }'s transcriber assignments?
-transcribers-removed = { $user } has been removed as a transcriber for { $language }.
-transcribers-added = { $user } has been added as a transcriber for { $language }.
-transcribers-users-added = Added { $users } as transcribers for { $language }.
-transcribers-languages-added = Added { $user } as a transcriber for { $languages }.
-transcribers-not-fluent = { $user } does not have { $language } in their fluent languages and cannot be assigned as a transcriber for it.
-transcribers-no-eligible-users = No eligible users found. Users must have this language in their fluent languages.
-transcribers-no-users-to-add = No users available to add. All users with fluent languages are already transcribers.
-transcribers-no-eligible-languages = No eligible languages found. This user has no unassigned fluent languages.
-transcribers-remove-transcriber = Remove transcriber
-transcribers-remove-all-confirm = Remove all transcriber assignments from { $user }?
-transcribers-removed-all = Removed all transcriber assignments from { $user }.
-
-localization-in-progress-try-again = Localization in progress. Please try again in a minute.
-
-# Errors
-internal-error = Something went wrong. Please try again.
-chat-rate-limited = You are sending messages too quickly. Please wait a moment.
-
-# Voice chat
-voice-room-table-label = { $game } table
-voice-not-at-table = Join a table before starting voice chat.
-voice-not-in-context = You are not at that table.
-voice-invalid-context = Voice chat is not available there.
-voice-unavailable = Voice chat is currently unavailable.
-voice-rate-limited = You are joining voice too quickly. Please wait a moment.
-voice-muted-permanent = You are muted and cannot use voice chat.
-voice-muted-minutes = You are muted for { $minutes } more minute(s).
-voice-muted-seconds = You are muted for { $seconds } more second(s).
-voice-status-connected = { $player } connected to voice.
-voice-status-disconnected = { $player } disconnected from voice.
-voice-status-connection-lost = { $player } lost the voice connection.
-voice-status-left-table = { $player } left the table.
-
-# Mute (admin moderation)
-mute-user = Mute user
-unmute-user = Unmute user
-no-users-to-mute = There are no users to mute.
-no-users-to-unmute = No users are currently muted.
-confirm-unmute = Unmute { $player }?
-mute-duration-5m = 5 minutes
-mute-duration-30m = 30 minutes
-mute-duration-1h = 1 hour
-mute-duration-1d = 1 day
-mute-duration-permanent = Permanent
-user-muted = Muted { $player } from voice chat.
-user-unmuted = Unmuted { $player }.
-you-have-been-muted = You have been muted from voice chat.
-you-have-been-unmuted = Your mute has been lifted.
-
-# Pagination controls for large server menus
-menu-page-summary = Showing { $start }-{ $end } of { $total } entries. Page { $page } of { $pages }.
-menu-page-refresh = Refresh list
-menu-page-first = First page
-menu-page-previous = Previous page
-menu-page-next = Next page
-menu-page-last = Last page
-
-# Grammatical forms for GENDER_TERM, from PlayAural's gender-aware localization.
+admin-moderation = Chat Moderation
+admin-moderation-global-chat-toggle = Global chat: { $status }
+admin-moderation-global-chat-toggle-description = Turn message sending on or off for every global language channel. This setting persists after the server restarts.
+admin-moderation-global-chat-status-description = Current server-wide state. Only a Developer can change this setting.
+admin-moderation-global-chat-update-failed = The global chat setting could not be saved, so no change was made. Please try again.
+global-chat-availability-enabled = Global chat has been enabled by the developer. Select a language channel before sending or receiving global messages.
+global-chat-availability-disabled = Global chat has been temporarily disabled by the developer.
+admin-moderation-section-reports = Reports
+admin-moderation-open-reports = Open reports: { $count }
+admin-moderation-closed-reports = Closed reports: { $count }
+admin-moderation-all-reports = All retained reports: { $count }
+admin-moderation-section-messages = Global message history
+admin-moderation-browse-messages = Browse and filter all global messages
+admin-moderation-find-history = Find global chat history by exact username
+admin-moderation-retained-summary = Retained evidence: { $messages } global messages and { $closed } closed reports.
+admin-moderation-section-retention = Permanent deletion
+admin-moderation-clear-history = Clear all retained global chat messages ({ $count })
+admin-moderation-clear-closed-reports = Clear all closed reports ({ $count })
+admin-moderation-open-report-list = Open reports, newest first
+admin-moderation-closed-report-list = Closed reports, newest first
+admin-moderation-all-report-list = All retained reports, newest first
+admin-moderation-report-row = Report #{ $id }, submitted { $time }. Reported user: { $target }, ID { $target_id }. Reason: { $reason }. Reporter: { $reporter }. Status: { $status }.
+admin-moderation-no-reports = No reports match this view.
+admin-moderation-value-unknown = unknown
+admin-moderation-status-open = open
+admin-moderation-status-reviewed = reviewed
+admin-moderation-status-dismissed = dismissed
+admin-moderation-status-actioned = action recorded
+admin-moderation-status-unknown = unknown
+admin-moderation-report-unavailable = This report no longer exists. Another developer may have cleared it.
+admin-moderation-report-id = Report ID: { $id }
+admin-moderation-report-time = Submitted at: { $time }
+admin-moderation-report-status = Status: { $status }
+admin-moderation-report-origin = Origin: { $origin }
+admin-moderation-origin-manual = submitted by a user
+admin-moderation-origin-automatic = automatically generated by System
+admin-moderation-report-reporter = Reporter: { $username }. Account ID: { $uuid }
+admin-moderation-report-target = Reported user: { $username }. Account ID: { $uuid }
+admin-moderation-report-reason = Reason: { $reason }
+admin-moderation-report-channel = Global chat context channel: { $channel }
+admin-moderation-report-scope = Detected in: { $scope }
+admin-moderation-scope-global = global chat
+admin-moderation-scope-table = table chat
+admin-moderation-detection-rate-limited = messages sent too quickly
+admin-moderation-detection-repeated-message = repeated matching messages
+admin-moderation-automatic-evidence = Automatically generated by System for manual review only; no penalty was applied. In { $scope }, the detector observed { $incidents } separate spam incidents and rejected { $rejected } attempts during a { $window } observation window. { $accepted } recent messages were accepted. Detection: { $detection }. Latest rejected message: { $sample }
+admin-moderation-automatic-evidence-unavailable = This report was automatically generated by System for manual review only, and no penalty was applied. Its structured detection evidence is unavailable or from an unsupported version.
+admin-moderation-report-anchor = Saved context anchor message ID: { $id }
+admin-moderation-report-anchor-unavailable = No saved context anchor message is available. The reported account may not have sent a retained message in this channel, or the chat history may have been cleared.
+admin-moderation-report-details = Additional details: { $details }
+admin-moderation-report-review = Reviewed by { $reviewer }, account ID { $reviewer_id }, at { $time }.
+admin-moderation-view-context = View conversation around the report time
+admin-moderation-view-target-history = View all retained global messages from the reported account ID
+admin-moderation-mark-reviewed = Mark reviewed with no recorded penalty
+admin-moderation-dismiss-report = Dismiss report
+admin-moderation-mark-actioned = Mark action recorded. This does not apply a penalty.
+admin-moderation-context-heading = Context for report #{ $id }, submitted { $time }. Channel: { $channel }. Messages are chronological; reported-user messages are identified explicitly.
+admin-moderation-context-message = { $username }: { $message } Message #{ $id }, sent { $time }. Account ID: { $uuid }. Language: { $channel }.
+admin-moderation-context-target-message = Reported user { $username }: { $message } Message #{ $id }, sent { $time }. Account ID: { $uuid }. Language: { $channel }.
+admin-moderation-context-anchor-message = Anchored reported user message from { $username }: { $message } Message #{ $id }, sent { $time }. Account ID: { $uuid }. Language: { $channel }.
+admin-moderation-context-empty = No retained global messages remain around this report time.
+admin-moderation-copy-page =
+    { $count ->
+        [one] Copy message on this page (1)
+       *[other] Copy messages on this page ({ $count })
+    }
+admin-moderation-copy-page-success =
+    { $count ->
+        [one] Copied 1 message from this page to the clipboard.
+       *[other] Copied { $count } messages from this page to the clipboard.
+    }
+admin-moderation-copy-page-failed = Could not copy this page to the clipboard. Check clipboard permission and try again.
+admin-moderation-history-prompt = Enter the exact username whose retained global chat history you want to find. Historical account IDs with the same username will be listed separately.
+admin-moderation-sender-results-heading = Retained sender identities matching the exact username "{ $username }".
+admin-moderation-sender-result = { $username }, account ID { $uuid }. { $count } messages from { $first } through { $last }.
+admin-moderation-no-sender-history = No retained global chat history matches the exact username "{ $username }".
+admin-moderation-history-heading = Retained global chat history for { $username }, account ID { $uuid }: { $count } messages, newest first.
+admin-moderation-history-message = { $username }: { $message } Message #{ $id }, sent { $time }. Language: { $channel }.
+admin-moderation-history-empty = No retained global messages remain for this account ID.
+admin-moderation-message-list-heading = Global message history. { $count } messages match. Sort: { $sort }. Language: { $channel }. Period: { $period }. All times are UTC.
+admin-moderation-message-row = { $username }: { $message } Message #{ $id }, sent { $time }. Account ID: { $uuid }. Language: { $channel }.
+admin-moderation-message-list-empty = No retained global messages match these filters.
+admin-moderation-message-filter-sort = Sort order: { $sort }
+admin-moderation-message-filter-language = Language: { $channel }
+admin-moderation-message-filter-period = Time period: { $period }
+admin-moderation-message-filter-reset = Reset all message filters
+admin-moderation-message-sort-newest = newest first
+admin-moderation-message-sort-oldest = oldest first
+admin-moderation-message-language-all = all languages
+admin-moderation-message-period-all = all time
+admin-moderation-message-period-today = today
+admin-moderation-message-period-yesterday = yesterday
+admin-moderation-message-period-last-7-days = past 7 days
+admin-moderation-message-period-last-30-days = past 30 days
+admin-moderation-message-period-current-month = current calendar month
+admin-moderation-message-period-previous-month = previous calendar month
+admin-moderation-message-language-menu = Filter messages by language. The current filter is { $channel }.
+admin-moderation-message-period-menu = Filter messages by UTC time period. The current filter is { $period }.
+admin-moderation-message-filter-current = { $value } (current)
+admin-moderation-clear-history-confirm = Permanently delete all { $count } retained global chat messages? This cannot be undone. { $open } open reports will remain, but their saved message anchors and conversation context will be removed.
+admin-moderation-clear-closed-confirm = Permanently delete all { $count } closed reports? Open reports and global chat history will remain. This cannot be undone.
+admin-moderation-report-already-closed = This report was already closed by another review action. The current record has been reloaded.
+admin-moderation-report-status-updated = Report #{ $id } is now marked { $status }. No automatic penalty was applied.
+admin-new-manual-report = New moderation report #{ $id }: { $reporter } reported { $target }.
+admin-new-automatic-report = New System spam report #{ $id } requires manual review: { $target }.
+admin-moderation-history-cleared = Permanently deleted { $count } retained global chat messages. Existing reports remain without message anchors. If no messages remain, message numbering will restart at 1.
+admin-moderation-closed-reports-cleared = Permanently deleted { $count } closed reports. Open reports remain. If no reports remain, report numbering will restart at 1.
+admin-database-management = Database Management
+admin-database-management-summary = Developer-only database maintenance. Analysis is read-only. Backup, cleanup, and compaction temporarily pause gameplay and account changes across the server.
+admin-database-backup = Back up database
+admin-database-backup-confirm = Back up the database now? Gameplay and account changes will pause while SQLite creates and verifies a recovery snapshot. The backup will be retained in the server backup directory until an operator removes it.
+admin-database-backup-success = Database backup completed: { $filename } ({ $size }).
+admin-database-backup-failed = Database backup failed. No partial backup was published. Check the server log for details.
+admin-database-size-bytes =
+    { $value ->
+        [one] 1 byte
+       *[other] { NUMBER($value, maximumFractionDigits: 0) } bytes
+    }
+admin-database-size-kib = { NUMBER($value, maximumFractionDigits: 1) } KiB
+admin-database-size-mib = { NUMBER($value, maximumFractionDigits: 1) } MiB
+admin-database-size-gib = { NUMBER($value, maximumFractionDigits: 1) } GiB
+admin-database-storage-analyze = Analyze cleanup candidates
+admin-database-storage-analysis-summary = Database size: { $size }. Reusable SQLite space: { $reusable }. Eligible database records: { $records }.
+admin-database-storage-analysis-failed = Storage analysis failed without changing any data. Check the server log for details.
+admin-database-storage-refresh-analysis = Refresh storage analysis
+admin-database-storage-cleanup = Run storage cleanup
+admin-database-storage-cleanup-confirm = Run safe storage cleanup now? Gameplay and account changes will pause while the server creates and verifies a safety backup, removes only the listed transient or orphaned records, and validates the result. The database file will not be compacted.
+admin-database-storage-cleanup-not-needed = Storage cleanup is not needed. No eligible database records or abandoned temporary backup files were found.
+admin-database-storage-cleanup-success = Storage cleanup completed. Database records removed: { $records }. Abandoned temporary backup files removed: { $files } ({ $file_size }). Reusable SQLite space: { $reusable }. Run compaction separately to reduce the database file size. Safety backup: { $filename }.
+admin-database-storage-cleanup-failed = Storage cleanup failed. Any completed safety backup was retained. Check the server log before trying again.
+admin-database-storage-no-record-candidates = No database records are currently eligible for safe cleanup.
+admin-database-storage-temporary-files = Abandoned temporary PlayAural backup files: { $count } ({ $size }).
+admin-database-storage-invalid-timestamps = Safety warning: { $count } records contain invalid retention timestamps. Cleanup will never classify them as expired by guessing their age; review them manually.
+admin-database-storage-exclusions = Always excluded from automated cleanup: saved tables, game results, global chat history, moderation reports, user accounts, valid blocks, active data, registered-game statistics, compatibility data, valid backups, and logs. Saved tables are removed only through an explicit owner or Developer action.
+admin-database-storage-category-row = { $category }: { $count }
+admin-database-storage-category-expired-table-checkpoints = Expired transient table checkpoints
+admin-database-storage-category-expired-password-reset-tokens = Expired password-reset tokens
+admin-database-storage-category-expired-bans = Ban records retained for more than { $days } days after expiry
+admin-database-storage-category-stale-pending-friend-requests = Pending friend requests older than { $days } days
+admin-database-storage-category-orphaned-friendships = Orphaned friendship records
+admin-database-storage-category-orphaned-user-blocks = Orphaned user-block records
+admin-database-storage-category-stale-user-notifications = User notifications older than { $days } days
+admin-database-storage-category-orphaned-user-notifications = Orphaned user-notification records
+admin-database-storage-category-expired-support-activity = Expired or orphaned support submission limits
+admin-database-storage-category-expired-mutes = Expired mute records
+admin-database-storage-category-orphaned-mutes = Orphaned mute records
+admin-database-compact = Compact database and reclaim unused space
+admin-database-compact-confirm = Compact the database now? Gameplay and account changes will pause. A verified safety backup will be created before SQLite rebuilds the live database. This operation requires substantial temporary disk space and should be run during a quiet period.
+admin-database-compact-success = Database compaction completed. File size changed from { $before } to { $after }; { $reclaimed } was reclaimed. Safety backup: { $filename }.
+admin-database-compact-failed = Database compaction failed. The live database was not intentionally changed, and any completed safety backup was retained. Check the server log for details.
+admin-database-maintenance-busy = Another exclusive server operation is already active. Wait for it to finish before starting database maintenance.
+database-maintenance-operation-backup = database backup
+database-maintenance-operation-cleanup = storage cleanup
+database-maintenance-operation-compaction = database compaction
+database-maintenance-not-active = Database maintenance is not currently active.
+database-maintenance-input-blocked = Server { $operation } is in progress. Gameplay, login, registration, and account changes are temporarily paused. Your current menu remains available, but actions will not run until maintenance finishes.
+database-maintenance-auth-blocked = Server database maintenance is in progress. Login, registration, and password changes are temporarily unavailable. Please try again after maintenance finishes.
+database-maintenance-backup-started = The developer is backing up the server database. Gameplay and account changes are temporarily paused; current menus remain visible. You will be notified when normal service resumes.
+database-maintenance-backup-completed = The server database backup is complete. Normal gameplay and account access are resuming now.
+database-maintenance-backup-failed = The server database backup could not be completed. No partial backup was published. Normal gameplay and account access are resuming now.
+database-maintenance-cleanup-started = The developer is performing server storage cleanup. Gameplay and account changes are temporarily paused, but current menus remain visible. A verified safety backup is being created first. You will be notified when normal service resumes.
+database-maintenance-cleanup-completed = Server storage cleanup and database validation are complete. Normal gameplay and account access are resuming now.
+database-maintenance-cleanup-failed = Server storage cleanup could not be completed safely. Normal gameplay and account access are resuming now.
+database-maintenance-compaction-started = The developer is compacting the server database. Gameplay and account changes are temporarily paused; current menus remain visible. You will be notified when normal service resumes.
+database-maintenance-compaction-completed = Server database compaction is complete. Normal gameplay and account access are resuming now.
+database-maintenance-compaction-failed = Server database compaction could not be completed. Normal gameplay and account access are resuming without applying the compaction.
+database-maintenance-reopen-failed = Critical database maintenance error: the live database could not be reopened safely, so the server remains frozen. Please wait for the developer to restore service.
+admin-search-users = Search by username
+admin-search-users-current = Search by username. Current search: { $query }.
+admin-search-prompt = Enter all or part of a username to search. Leave blank to browse all results by page.
+menu-page-summary-query = Search "{ $query }": showing { $start }-{ $end } of { $total } entries. Page { $page } of { $pages }.
+menu-list-refreshed = List refreshed.
+admin-search-no-results = No matching users found. Use Search by username to try a different term.
+admin-role-target-changed = { $player } no longer has the expected role. Refresh the list and try again.
+promote-announcement-actor = You promoted { $player } to admin!
+demote-announcement-actor = You demoted { $player } from admin.
+dev-only-action = This action is restricted to Developers only.
+ban-duration-1h = 1 hour
+ban-duration-6h = 6 hours
+ban-duration-12h = 12 hours
+ban-duration-1d = 1 day
+ban-duration-3d = 3 days
+ban-duration-1w = 1 week
+ban-duration-1m = 1 month
+ban-duration-permanent = Permanent
+reason-spam = Spam
+reason-harassment = Harassment
+reason-cheating = Cheating
+reason-inappropriate = Inappropriate behavior
+reason-custom = Other / Custom
+no-banned-users = No users are currently banned.
+admin-active-ban-entry = { $username }. Ban expiration: { $expires }. Reason: { $reason }. Issued by: { $admin }.
+admin-active-mute-entry = { $username }. Mute expiration: { $expires }. Reason: { $reason }. Issued by: { $admin }.
+admin-penalty-expiry-permanent = permanent
+admin-penalty-expiry-unknown = unknown expiration
+admin-penalty-expiry-expired = already expired
+admin-penalty-expiry-timed = { $date } ({ $remaining } remaining)
+admin-penalty-reason-unknown = unspecified reason
+admin-penalty-admin-unknown = unknown administrator
+admin-penalty-remaining-days =
+    { $count ->
+        [one] 1 day
+       *[other] { $count } days
+    }
+admin-penalty-remaining-hours =
+    { $count ->
+        [one] 1 hour
+       *[other] { $count } hours
+    }
+admin-penalty-remaining-minutes =
+    { $count ->
+        [one] 1 minute
+       *[other] { $count } minutes
+    }
+admin-penalty-remaining-less-minute = less than 1 minute
+ban-broadcast = { $target } has been banned by { $actor } for { $reason }. Duration: { $duration }.
+ban-broadcast-actor = You banned { $target } for { $reason }. Duration: { $duration }.
+unban-broadcast = { $target } has been unbanned by { $actor }.
+unban-broadcast-actor = You unbanned { $target }.
+unban-broadcast-target = You have been unbanned by { $actor }.
+banned-menu-title = Account Banned
+banned-reason = Reason: { $reason }
+banned-expires = Expires: { $expires }
+banned-permanent = Expires: Permanent
+disconnect = Disconnect
+no-muted-users = No users are currently muted.
+mute-duration-15m = 15 minutes
+mute-duration-6h = 6 hours
+mute-broadcast = { $target } has been muted by { $actor } for { $reason }. Duration: { $duration }.
+mute-broadcast-actor = You muted { $target } for { $reason }. Duration: { $duration }.
+unmute-broadcast = { $target } has been unmuted by { $actor }.
+unmute-broadcast-actor = You unmuted { $target }.
+muted-remaining-seconds = You are muted. { $seconds } seconds remaining.
+muted-remaining-minutes = You are muted. { $minutes } minutes remaining.
+muted-permanent = You are permanently muted. Contact an administrator for more information.
+chat-repeated-message = Please do not repeat the same message.
+chat-global-disabled-send = Global chat is disabled in your options. Turn global chat back on before sending global messages.
+chat-global-channel-required-send = Select a language for global chat before sending messages. Global chat is not monitored in real time. If someone uses profanity or insults you, block them. Please report serious or repeated abuse for later review.
+chat-global-log-unavailable = Global chat is temporarily unavailable because this message could not be saved safely. Please try again later.
+chat-table-disabled-send = Table chat is disabled in your options. Turn table chat back on before sending table messages.
+chat-global-temporarily-disabled-send = Global chat has been temporarily disabled by the developer.
+chat-invalid-channel = That chat channel is not available.
+communication-channel-table = Table Chat
+communication-channel-global = Global Chat
+communication-channel-team = Team Chat
+communication-channel-selected = { $channel } selected.
+communication-channel-stale = That communication channel is no longer available. Your channel selection has been refreshed.
+communication-text-restricted = You cannot send messages in this channel right now.
+communication-chat-message = { $player } in { $channel }: { $message }
+communication-chat-message-you = You in { $channel }: { $message }
+communication-voice-room-label = { $channel } voice
+communication-voice-restricted = Your microphone cannot be used in this channel right now.
+communication-voice-not-connected = Voice Chat must be connected before you can use the microphone.
+chat-invalid-message = That message could not be sent because its format is invalid.
+chat-message-too-long = That message is too long. Messages may contain at most { $limit } characters.
+report-user = Report a user
+enter-report-username = Enter the username to report.
+report-error-self = You cannot report your own account.
+report-select-reason = Report { $username }: select the reason that best describes the behavior.
+report-reason-spam = Spam or repeated disruption
+report-reason-harassment = Harassment or personal insults
+report-reason-hateful-content = Hateful content
+report-reason-sexual-content = Sexual content
+report-reason-threats = Threats of harm
+report-reason-personal-information = Sharing personal information
+report-reason-other = Other serious misconduct
+report-channel-unspecified = no global chat channel selected
+report-confirm-summary = Report { $username } for { $reason }. Context channel: { $channel }. The report will be saved for manual review. The user will not be notified or automatically penalized.
+report-submit = Submit report
+report-change-reason = Change reason
+report-submitted = Your report about { $username } was saved with its exact submission time for manual review. The user was not notified. You can also block { GENDER_TERM($username_gender, "object") } to stop direct contact and hide { GENDER_TERM($username_gender, "possessive-determiner") } global messages.
+report-target-cooldown = You recently reported { $username }. Add another report only after { $duration }; use Block now if you do not want to receive { GENDER_TERM($username_gender, "possessive-determiner") } messages.
+report-rate-limited = You have submitted several reports recently. Try again after { $duration }.
+report-failed = The report could not be saved safely. Please try again later.
+broadcast-announcement = Broadcast Announcement
+admin-broadcast-prompt = Enter the message to broadcast to all online users. (This will be sent to everyone!)
+admin-broadcast-sent = Broadcast sent to { $count } users.
+manage-motd = Manage MOTD
+create-update-motd = Create/Update MOTD
+view-motd = View Active MOTD
+delete-motd = Delete MOTD
+motd-version-prompt = Enter the new MOTD Version number (must be > 0):
+invalid-motd-version = Invalid MOTD version. It must be a positive number.
+motd-created = MOTD version { $version } has been successfully created.
+motd-deleted = MOTD has been deleted.
+motd-delete-empty = There is no active MOTD to delete.
+motd-not-exists = No active MOTD exists.
+motd-announcement = Message of the Day
+motd-broadcast = New Message of the Day: { $message }
+error-no-languages = Error: No languages found.
+ok = OK
+admin-localized-text-subject-motd = Message of the Day
+admin-localized-text-subject-power = server power reason
+admin-localized-text-subject-ban = custom ban reason
+admin-localized-text-subject-mute = custom mute reason
+admin-localized-text-instructions = Edit the { $subject } translations. Official languages are required. Community languages are optional and use { $fallback } when empty.
+admin-localized-text-motd-version = MOTD version: { $version }
+admin-localized-text-official-heading = Official languages, required
+admin-localized-text-community-heading = Community languages, optional
+admin-localized-text-field = { $language }: { $status }
+admin-localized-text-required-set = entered, required
+admin-localized-text-required-missing = not entered, required
+admin-localized-text-optional-set = entered, optional
+admin-localized-text-optional-fallback = not entered, optional, uses fallback
+admin-localized-text-prompt = Enter the { $subject } in { $language }. Maximum { $max } characters.
+admin-localized-text-too-long = That translation is too long. The maximum is { $max } characters.
+admin-localized-text-missing-required = Enter all required translations first. Missing: { $languages }.
+admin-localized-text-publish-motd = Publish MOTD
+admin-localized-text-continue = Continue
+admin-localized-text-apply-ban = Apply ban
+admin-localized-text-apply-mute = Apply mute
+unknown-player = Unknown player
+unknown-user = Unknown user
+user-account-unavailable = This user account is no longer available.
+logout-confirm-title = Are you sure you want to logout and exit the game?
+logout-confirm-yes = Yes, logout
+logout-confirm-no = No, stay
+system-name = System
+server-restarting = Server is restarting in { $seconds } seconds...
+server-shutting-down = Server is shutting down in { $seconds } seconds...
+server-shutting-down-now = Server is shutting down now. Goodbye!
+server-power-management = Server Power Management
+server-power-reboot = Reboot Server
+server-power-shutdown = Shutdown Server
+server-power-cancel = Cancel Scheduled Power Action
+server-power-active-status = Scheduled { $action }. Reason: { $reason }.
+server-power-action-reboot = reboot
+server-power-action-shutdown = shutdown
+server-power-delay-30s = In 30 seconds
+server-power-delay-1m = In 1 minute
+server-power-delay-5m = In 5 minutes
+server-power-delay-10m = In 10 minutes
+server-power-delay-30m = In 30 minutes
+server-power-delay-1h = In 1 hour
+server-power-delay-2h = In 2 hours
+server-power-delay-custom = Custom delay in minutes
+server-power-custom-delay-prompt = Enter the delay in minutes, from 1 to { $max }:
+server-power-invalid-custom-delay = Invalid delay. Enter a whole number of minutes from 1 to { $max }.
+server-power-reason-update = Update
+server-power-reason-maintenance = Maintenance
+server-power-reason-security = Security
+server-power-reason-technical = Technical issue
+server-power-reason-custom = Custom reason
+server-power-reason-unspecified = unspecified reason
+server-power-confirm-summary = Confirm server { $action } in { $duration }. Reason: { $reason }.
+server-power-scheduled = Scheduled server { $action } in { $duration }.
+server-power-already-scheduled = A server power action is already scheduled. Cancel it before scheduling another.
+server-power-cancel-none = No server power action is currently scheduled.
+server-power-cancelled = Scheduled server power action cancelled.
+server-power-cancelled-broadcast = { $admin } cancelled the scheduled server { $action }.
+server-power-cancelled-broadcast-you = You cancelled the scheduled server { $action }.
+server-power-command-removed = The /reboot and /stop chat commands have been removed. Use Administration, Server Power Management instead.
+server-power-finalizing-input-blocked = The server is finalizing a reboot or shutdown. Please wait for the client to disconnect.
+server-power-maintenance-active = A server power operation cannot be scheduled while database maintenance is active. Wait for maintenance to finish and try again.
+server-power-finalize-failed = The scheduled server { $action } could not finish safely. The server is staying online; please contact an administrator.
+server-power-reboot-warning = Server reboot in { $duration }. Reason: { $reason }. Do not disconnect manually; your client will reconnect automatically, and active tables will be preserved.
+server-power-shutdown-warning = Server shutdown in { $duration }. Reason: { $reason }. The server is going offline; save any games you want to keep before the shutdown.
+server-power-reboot-now = Server is rebooting now. Reason: { $reason }. Do not disconnect manually; your client will reconnect automatically, and active tables will be preserved.
+server-power-shutdown-now = Server is shutting down now. Reason: { $reason }. The server is going offline.
+server-power-restore-waiting = This table was restored after a planned reboot. Waiting up to { $seconds } seconds for the other players to reconnect before replacing missing seats with bots.
+server-power-restore-input-blocked = This table is still recovering from the planned reboot. Gameplay is paused for up to { $seconds } more seconds while waiting for { $players }; please try again after the grace period ends.
+server-power-restore-missing-players-fallback = the remaining players
+server-power-restore-complete = All active players have reconnected after the planned reboot. Game resumed.
+server-power-restore-complete-with-bots = Reconnect grace ended after the planned reboot. Missing seats were replaced with bots.
+duration-seconds =
+    { $count ->
+        [one] 1 second
+       *[other] { $count } seconds
+    }
+duration-minutes =
+    { $count ->
+        [one] 1 minute
+       *[other] { $count } minutes
+    }
+duration-hours =
+    { $count ->
+        [one] 1 hour
+       *[other] { $count } hours
+    }
+duration-minutes-seconds = { $minutes } minutes and { $seconds } seconds
+duration-hours-minutes = { $hours } hours and { $minutes } minutes
+server-error-changing-language = The language could not be changed. Your previous interface remains active.
+default-save-name = { $game } - { $date }
+speech-settings = Speech Settings
+speech-mode-option = Speech Mode: { $status }
+speech-rate-option = Speech Rate: { $value }%
+speech-voice-option = Voice: { $voice }
+select-voice = Select Voice
+invalid-rate = Invalid speech rate. Use a value between 50 and 300.
+mode-aria = Aria-live
+mode-web-speech = Web Speech API
+default-voice = Default Voice
+mobile-speech-settings = Mobile Speech Settings
+mobile-tts-engine-option = TTS Engine: { $engine }
+mobile-tts-engine-system = System default
+mobile-tts-engine-system-selected = System default TTS engine
+mobile-tts-engine-api-note = Android engine selection is managed by system settings in this build.
+mobile-tts-voice-option = Mobile Voice: { $voice }
+mobile-tts-rate-option = Mobile Speech Rate: { $value }%
+mobile-tts-enter-rate = Enter mobile speech rate (50-200)
+mobile-tts-invalid-rate = Invalid mobile speech rate. Use a value between 50 and 200.
+player-kicked-offline = Player { $player } has been kicked (offline).
+auth-error-username-length = Username must be between 3 and 30 characters.
+auth-error-username-invalid-chars = Username may only contain letters, numbers, and spaces (no consecutive spaces, and no special characters).
+auth-error-password-weak = Password must be at least 8 characters long and contain both letters and numbers.
+personal-and-options = Personal and Options
+profile = Profile
+friends = Friends
+profile-registration-date = Registration Date: { $date }
+profile-date-unknown = Unknown
+profile-username = Username: { $username }
+profile-email = Email: { $email }
+admin-view-email = Admin View - Email: { $email }
+profile-gender = Gender: { $gender }
+profile-bio = Bio: { $bio }
+profile-bio-empty = Not set
+profile-email-empty = Not set
+gender-male = Male
+gender-female = Female
+gender-non-binary = Non-binary
+gender-not-set = Not set
 # Shared grammatical forms for account gender. Games may override any form by
 # defining <context>-gender-term-<form> and passing that context to GENDER_TERM.
 gender-term-subject =
@@ -734,3 +900,784 @@ gender-term-reflexive =
         [female] herself
        *[other] themself
     }
+action-set-edit = Set / Edit
+action-delete = Delete
+bio-already-empty = Bio is already empty.
+bio-deleted = Bio deleted.
+bio-updated = Bio updated.
+enter-email = Enter new email address:
+email-updated = Email address updated.
+enter-bio = Enter your bio:
+gender-updated = Gender updated.
+no-changes-made = No changes made.
+confirm-email-change = Are you sure you want to change your email to { $email }?
+mandatory-email-notice = You must set an email to continue participating. Your email is private and only known to you.
+error-email-empty = Email is mandatory and cannot be empty.
+error-email-invalid = Invalid email format. Please provide a valid email address.
+reg-error-email = Email is required to register.
+error-email-taken = This email is already in use by another account.
+error-bio-length = Bio must not exceed 250 characters.
+error-captcha-failed = Verification failed. Please try again.
+error-rate-limit-login = Too many failed login attempts. Please try again in 15 minutes.
+error-rate-limit-register = You have reached the maximum number of account registrations for today.
+auth-error-rate-limit = { error-rate-limit-login }
+friends-my-friends = My Friends
+friends-pending-requests = Pending Requests ({ $count })
+friends-no-pending-requests = Pending Requests
+friends-sent-requests =
+    { $count ->
+        [0] Sent Requests
+       *[other] Sent Requests ({ $count })
+    }
+friends-send-request = Send Friend Request
+friends-block-user = Block a User
+enter-block-username = Enter the username of the person you want to block:
+friends-blocked-users =
+    { $count ->
+        [0] Blocked Users
+       *[other] Blocked Users ({ $count })
+    }
+friends-blocked-empty = You have not blocked anyone.
+friends-list-empty = You have no friends yet.
+friend-status-offline = Offline
+friend-status-offline-last-online = Offline, last online { $relative_time }
+friend-list-entry = { $username } ({ $status })
+view-profile = View Profile
+block-user = Block User
+unblock-user = Unblock User
+join-table = Join Table
+remove-friend = Remove Friend
+friend-remove-confirm = Remove { $username } from your friends list?
+friend-remove-not-friends = { $username } is no longer in your friends list.
+already-in-table = You are already in this table.
+friend-removed-success = { $username } has been removed from your friends list.
+no-pending-requests = No pending requests.
+no-sent-requests = You have no pending sent requests.
+friend-request-to = Friend request sent to { $username }
+accept = Accept
+decline = Decline
+friend-accepted-success = You are now friends with { $username }.
+request-not-found = Friend request no longer exists.
+friend-declined-success = Friend request declined.
+friend-request-manage-sent = Manage Sent Friend Request
+friend-request-accept-action = Accept Friend Request
+friend-request-cancel-action = Cancel Friend Request
+friend-request-cancel-confirm = Cancel your pending friend request to { $username }?
+friend-request-cancelled = Your friend request to { $username } was cancelled.
+friend-request-cancel-unavailable = This friend request is no longer pending, so it was not cancelled.
+relative-time-just-now = just now
+relative-time-minutes-ago =
+    { $count ->
+        [one] 1 minute ago
+       *[other] { $count } minutes ago
+    }
+relative-time-hours-ago =
+    { $count ->
+        [one] 1 hour ago
+       *[other] { $count } hours ago
+    }
+relative-time-days-ago =
+    { $count ->
+        [one] 1 day ago
+       *[other] { $count } days ago
+    }
+relative-time-weeks-ago =
+    { $count ->
+        [one] 1 week ago
+       *[other] { $count } weeks ago
+    }
+relative-time-months-ago =
+    { $count ->
+        [one] 1 month ago
+       *[other] { $count } months ago
+    }
+relative-time-years-ago =
+    { $count ->
+        [one] 1 year ago
+       *[other] { $count } years ago
+    }
+enter-friend-username = Enter the username of the person you want to friend:
+friend-error-self = You cannot send a friend request to yourself.
+friend-error-already-friends = You are already friends with this user.
+friend-error-duplicate = You already have a pending friend request to this user.
+friend-error-blocked-by-you = You blocked { $username }. Unblock { GENDER_TERM($username_gender, "object") } before sending a friend request.
+friend-error-blocked = Friend requests are unavailable between you and { $username }.
+friend-request-sent = Friend request sent to { $username }.
+block-confirm = Block { $username }? This removes any friendship and pending friend requests between you. Neither of you will be able to send the other friend requests, private messages, or table invites, and ordinary chat messages will be hidden in both directions. Until unblocked, neither user can newly enter a table hosted by the other or restore a saved table containing both users. Blocking does not remove either of you from a shared table, prevent recovery of a reserved seat, or mute table voice chat.
+block-success = You blocked { $username }. Direct social contact is now unavailable between you; { GENDER_TERM($username_gender, "possessive-determiner") } ordinary chat messages are hidden, and neither of you can newly enter a table hosted by the other or restore a saved table containing both users.
+block-error-self = You cannot block yourself.
+block-already-active = You have already blocked { $username }.
+block-no-longer-active = This block is no longer active.
+unblock-success = You unblocked { $username }. Previous friendships and requests were not restored.
+friends-grouped-requests = You have pending friend requests from: { $usernames }
+friends-grouped-accepted = Your friend requests were accepted by: { $usernames }
+friends-grouped-declined = Your friend requests were declined by: { $usernames }
+friends-grouped-removed = You were removed from the friends list by: { $usernames }
+friends-and-others =
+    { $names } and { $count } { $count ->
+        [one] other
+       *[other] others
+    }
+send-private-message = Send Private Message
+enter-pm-message = Enter your message for { $username }:
+pm-error-not-friends = You can only send private messages to friends.
+pm-error-blocked = Private messages are unavailable between you and this user.
+pm-error-offline = { $username } is not currently online.
+pm-error-self = You cannot send a private message to yourself.
+pm-error-message-required = Enter a private message. When using chat, include a user name, for example: @User hello.
+pm-sent-content = You to { $username }: { $message }
+pm-received = Private message from { $username }: { $message }
+host-management = Host Management
+table-spectator-suffix = (Spectator)
+host-management-set-private = Set Table to Private
+host-management-set-public = Set Table to Public
+host-management-invite = Invite a Friend
+host-management-voice = Manage Voice Chat
+host-management-switch-game = Switch to Another Game
+host-management-pass-host = Pass Host to Another Player
+host-management-kick = Kick a Player
+host-management-kick-ban = Kick and Ban a Player
+host-management-player-substitution = Player Substitution
+host-management-restart-game = Restart Game
+host-management-table-now-private = This table is now private. Only invited users can join.
+host-management-table-now-public = This table is now public.
+host-game-switch-current =
+    Current game: { $game }. This table has { $seats } active { $seats ->
+        [one] seat
+       *[other] seats
+    }. Only games that can hold every active seat are listed.
+host-game-switch-no-compatible-games =
+    No other game can currently hold all { $seats } active { $seats ->
+        [one] seat
+       *[other] seats
+    }.
+host-game-switch-confirm = Switch this table from { $old_game } to { $new_game }? Everyone who is still present will move into the new waiting lobby with the same playing or spectating role, and bots will remain. The current match or lobby setup, options, teams, and ready state will be discarded. Table ownership, privacy, bans, and voice chat will stay connected. Pending invitations for the old game will be cancelled.
+host-game-switch-target-unavailable = That game is no longer available as a switch target. No table state was changed.
+host-game-switch-roster-invalid = This table's live membership no longer matches its game roster, so switching games was blocked to prevent anyone from being dropped. Return to the table and try again after the roster has refreshed.
+host-game-switch-too-many-seats =
+    Cannot switch to { $game }: it supports at most { $max } active { $max ->
+        [one] seat
+       *[other] seats
+    }, but this table currently needs { $seats }.
+host-game-switch-failed = The game could not be switched safely. The current table and game were left unchanged.
+host-game-switch-you = You switched this table from { $old_game } to { $new_game }. Everyone is now in the new waiting lobby; table voice chat remains connected.
+host-game-switch-player = { $player } switched this table from { $old_game } to { $new_game }. Everyone is now in the new waiting lobby; table voice chat remains connected.
+host-restart-confirm = Restart the current game and return this table to the waiting room? Current players and voice chat will stay connected, but the current match will be cancelled.
+host-restart-broadcast = { $player } restarted the game. The table is back in the waiting room.
+host-restart-you = You restarted the game. The table is back in the waiting room.
+host-restart-not-playing = There is no active game to restart.
+player-substitution-offer-action = Substitute a Spectator into This Seat
+player-substitution-seat-bot = Bot seat: { $bot }
+player-substitution-seat-replacement = { $bot }, playing in { $player }'s reserved seat
+player-substitution-seat-self = Your seat: { $player }
+player-substitution-seat-player = Player seat: { $player }
+player-substitution-no-seats = (No active player seats are available)
+player-substitution-seat-unavailable = That player seat is no longer available for substitution. No role was changed.
+player-substitution-no-spectators = (No eligible spectators are available)
+player-substitution-spectator-unavailable = That spectator is no longer available for substitution. No role was changed.
+player-substitution-user-busy = { $player } is completing another input or status view. Try again when the view is no longer open for { GENDER_TERM($player_gender, "object") }.
+player-substitution-game-busy = The game is completing a synchronized choice or table recovery that temporarily locks player substitutions. Try again after it finishes.
+player-substitution-offer-sent = Offered { $seat }'s seat to { $player }. { GENDER_TERM($player_gender, "subject-capitalized") } must accept before control changes.
+player-substitution-self-offer-sent = Offered your seat to { $player }. If the offer is accepted by { GENDER_TERM($player_gender, "object") }, you will become a spectator and remain the table host; the seat's eventual result will be recorded for { GENDER_TERM($player_gender, "object") }.
+player-substitution-self-incoming-consent-sent = Asked { $player } to give you { GENDER_TERM($player_gender, "possessive-determiner") } seat. If this request is accepted by { GENDER_TERM($player_gender, "object") }, you will take control immediately because selecting yourself already confirmed your consent.
+player-substitution-outgoing-consent-sent = Asked { $player } to give { GENDER_TERM($player_gender, "possessive-determiner") } seat to { $substitute }. If this request is accepted by { GENDER_TERM($player_gender, "object") }, { $substitute } must also accept before control changes.
+player-substitution-offer-pending = { $player } already has a substitution request awaiting a response.
+player-substitution-seat-offer-pending = { $seat }'s seat already has a substitution request awaiting a response.
+player-substitution-self-seat-offer-pending = Your seat already has a substitution request awaiting a response.
+player-substitution-request-outgoing = { $host } wants { $player } to replace you in your current seat. If you accept, you will become a spectator and { GENDER_TERM($player_gender, "subject") } will receive your exact game state, private information, remaining turn time, and eventual result attribution. No timer will reset.
+player-substitution-request-outgoing-host-incoming = { $host } wants to replace you in your current seat. If you accept, you will become a spectator and { GENDER_TERM($host_gender, "subject") } will receive your exact game state, private information, remaining turn time, and eventual result attribution. No timer will reset.
+player-substitution-request-player = { $host } is offering you { $player }'s seat with { GENDER_TERM($player_gender, "possessive-determiner") } consent. If you accept, you will inherit the seat's exact game state, private information, remaining turn time, and eventual result attribution; no timer will reset, and { GENDER_TERM($player_gender, "subject") } will become a spectator.
+player-substitution-request-host-seat = { $host } is offering you { GENDER_TERM($host_gender, "possessive-determiner") } own seat. If you accept, you will inherit the seat's exact game state, private information, remaining turn time, and eventual result attribution; no timer will reset, and { GENDER_TERM($host_gender, "subject") } will become a spectator while remaining the table host.
+player-substitution-request-bot = { $host } is offering you the seat currently controlled by { $bot }. If you accept, you will inherit its exact game state, private information, remaining turn time, and eventual result attribution; no timer will reset.
+player-substitution-request-replacement = { $host } is offering you { $player }'s reserved seat, currently controlled by { $bot }. If you accept, you will inherit its exact game state, private information, remaining turn time, and eventual result attribution; no timer will reset, and { GENDER_TERM($player_gender, "subject") } will no longer be able to reclaim this seat.
+player-substitution-decline = Decline Substitution
+player-substitution-accept = Accept Substitution
+player-substitution-offer-expired = The substitution request expired. No role was changed.
+player-substitution-offer-expired-host = { $player } did not respond before the substitution request expired. No role was changed.
+player-substitution-offer-declined = { $player } declined the substitution request. No role was changed.
+player-substitution-no-longer-available = That substitution request is no longer available. No role was changed.
+player-substitution-awaiting-incoming = { $player } may now accept or decline the substitution. No role has changed yet.
+player-substitution-complete-player-you = You took control of { $player }'s former seat. { GENDER_TERM($player_gender, "subject-be-capitalized") } now a spectator.
+player-substitution-complete-outgoing-you = { $player } took control of your former seat. You are now a spectator.
+player-substitution-complete-player = { $player } took control of { $outgoing }'s former seat. { GENDER_TERM($outgoing_gender, "subject-be-capitalized") } now a spectator.
+player-substitution-complete-host-player-you = You took control of { $player }'s former seat. { GENDER_TERM($player_gender, "subject-be-capitalized") } now a spectator, and the table host role remains with { GENDER_TERM($player_gender, "object") }.
+player-substitution-complete-outgoing-host-you = { $player } took control of your former seat. You are now a spectator and remain the table host.
+player-substitution-complete-host = { $player } took control of { $outgoing }'s former seat. { GENDER_TERM($outgoing_gender, "subject-be-capitalized") } now a spectator and remains the table host.
+player-substitution-complete-bot-you = You took control of { $bot }'s seat.
+player-substitution-complete-bot = { $player } took control of { $bot }'s seat.
+player-substitution-complete-replacement-you = You took control of { $replaced_player }'s reserved seat from { $bot }. The former reservation has ended.
+player-substitution-complete-replacement = { $player } took control of { $replaced_player }'s reserved seat from { $bot }. The former reservation has ended.
+host-invite-no-friends = (No friends available to invite)
+host-invite-sent = Invite sent to { $player }.
+host-invite-friend-unavailable = That friend is no longer available to invite.
+host-invite-already-pending = An invite is already pending for that friend.
+host-invite-friend-busy = That friend is already in a game.
+host-invite-pair-cooldown =
+    Please wait { $seconds ->
+        [one] 1 second
+       *[other] { $seconds } seconds
+    } before inviting that friend again.
+host-invite-rate-limited =
+    You are sending table invites too quickly. Try again in { $seconds ->
+        [one] 1 second
+       *[other] { $seconds } seconds
+    }.
+host-invite-declined = { $player } declined your table invite.
+table-invite-received = { $host } has invited you to { GENDER_TERM($host_gender, "possessive-determiner") } { $game } table.
+table-invite-queued = { $host } invited you to { GENDER_TERM($host_gender, "possessive-determiner") } { $game } table. Finish your current input to respond.
+table-invite-expired = The table invite has expired.
+table-invite-no-longer-available = That table invite is no longer available.
+invite-accept = Accept Invite
+invite-decline = Decline Invite
+host-management-no-longer-host = You are no longer the host of this table.
+host-pass-no-candidates = (No players available to pass host to)
+host-pass-no-longer-host = You passed host to another player. You are no longer the host of this table.
+host-passed = { $player } is now the host.
+host-passed-you = You are now the host.
+host-pass-failed = Failed to transfer host. The player may have left.
+host-kick-no-candidates = (No players available to kick)
+host-kick-invalid-target = Invalid kick target.
+host-kick-broadcast = { $player } has been kicked from the table.
+host-kick-ban-broadcast = { $player } has been kicked and banned from the table.
+host-kick-confirm = You kicked { $player } from the table.
+host-kick-ban-confirm = You kicked and banned { $player } from the table.
+host-kick-you = You have been kicked from the table by { $host }.
+host-kick-ban-you = You have been kicked and banned from the table by { $host }.
+table-you-are-banned = You are banned from this table.
+table-private-invite-only = This table is private. You must receive an invite from the host to join.
+table-join-social-blocked = You cannot enter this table because direct social contact is unavailable between you and its host. You can still recover a seat already reserved for you.
+voice-status-connected-you = You connected to the table's Voice Chat.
+voice-status-disconnected-you = You disconnected from Voice Chat.
+voice-status-connection-lost = { $player } lost connection and was removed from Voice Chat.
+voice-status-connection-lost-you = You lost connection and were removed from Voice Chat.
+voice-status-left-table-you = You left the table and left Voice Chat.
+voice-member-status-connected = connected to Voice Chat
+voice-member-status-not-connected = not connected to Voice Chat
+voice-member-status-host-muted = microphone disabled by the host
+voice-member-status-host-unmuted = allowed to use the microphone
+voice-member-entry = { $player }: { $status }
+voice-host-management-no-members = There are no other table members to moderate.
+voice-host-target-summary = Voice status for { $player }: { $voice_status }; { $moderation_status }.
+voice-host-mute-action = Disable { $player }'s Microphone
+voice-host-unmute-action = Allow { $player } to Use Their Microphone
+voice-host-cannot-mute-self = You cannot disable your own microphone as host.
+voice-host-moderation-rate-limited = Voice moderation is changing too quickly. Try again in { $seconds } seconds.
+voice-host-muted-actor = You disabled { $player }'s microphone for this table. They can still listen, but cannot publish microphone audio.
+voice-host-muted-target = { $host } disabled your microphone for this table. You can still listen, but cannot turn your microphone on.
+voice-host-muted-observer = { $host } disabled { $player }'s microphone for this table.
+voice-host-unmuted-actor = You allowed { $player } to use their microphone again. Their microphone remains off until they explicitly turn it on.
+voice-host-unmuted-target = { $host } allowed you to use your microphone again. Your microphone remains off until you explicitly turn it on.
+voice-host-unmuted-observer = { $host } allowed { $player } to use their microphone again.
+voice-host-unmuted-self = You allowed yourself to use the microphone again. It remains off until you explicitly turn it on.
+voice-personal-settings-action = Personal Voice Settings
+voice-personal-settings-summary = Personal voice settings for { $player }: volume { $volume } percent; { $mute_status }; { $connection_status }.
+voice-personal-status-muted = locally muted
+voice-personal-status-unmuted = not locally muted
+voice-personal-mute-action = Mute { $player } for Me
+voice-personal-unmute-action = Unmute { $player } for Me
+voice-personal-volume-action = Change Personal Volume, Currently { $volume } Percent
+voice-personal-volume-choice = { $volume } Percent
+voice-personal-reset-action = Reset Personal Voice Settings
+voice-personal-muted = You locally muted { $player }. Only you will stop hearing them.
+voice-personal-unmuted = You locally unmuted { $player }.
+voice-personal-volume-set = You set { $player }'s personal voice volume to { $volume } percent.
+voice-personal-reset = You reset your personal voice settings for { $player }.
+voice-member-left = That table member is no longer at this table. Their retained table voice settings were not changed.
+voice-settings-limit-reached = This table has reached its voice-settings safety limit. No setting was changed.
+voice-settings-invalid = That voice setting is invalid. No setting was changed.
+voice-invalid-participant = That voice participant is invalid.
+voice-moderation-provider-failed = Voice moderation could not be applied right now. No setting was changed; please try again.
+error-smtp-not-configured = Password recovery is currently disabled by the administrator.
+error-email-not-found = No account found with that email address.
+success-reset-email-sent = A reset code has been sent to your email address.
+error-smtp-send-failed = Failed to send the reset email. Please try again later.
+error-invalid-reset-code = Invalid or expired reset code.
+success-password-reset = Your password has been successfully reset. You can now log in.
+game-paused-reconnect = Game paused while disconnected players reconnect.
+game-paused-no-human = Game paused: no human is playing. Reclaim your seat or ask the host to substitute a human into a slot.
+gameplay-resumed = Game resumed.
+game-unranked-removed = { $player }'s seat was removed. This match will not award leaderboard records or ratings.
+game-unranked-removed-you = Your seat was removed. This match will not award leaderboard records or ratings.
+game-unranked-released = { $player }'s reserved seat was permanently released to a bot. This match will not award leaderboard records or ratings.
+game-unranked-substituted = A different player has taken over { $player }'s seat. This match will not award leaderboard records or ratings.
+game-unranked-substituted-you = A different player has taken over your seat. This match will not award leaderboard records or ratings.
+pref-set-show-menu-hints = Menu hints: { $status }
+pref-changed-show-menu-hints = Menu hints { $status }.
+pref-desc-show-menu-hints = Read each menu item's description right after its name, where the item has one.
+table-new-host-promoted = { $player } is now the table host.
+# Game categories
+category-card-games = Card Games
+category-dice-games = Dice Games
+category-arcade-games = Arcade Games
+category-board-games = Board Games
+category-rb-play-center = RB Play Center
+category-poker = Poker
+category-uncategorized = Uncategorized
+category-playaural = PlayAural
+# Menu titles
+main-menu-title = Main Menu
+play-menu-title = Play
+categories-menu-title = Game Categories
+tables-menu-title = Available Tables
+view-active-tables = View active tables
+done = Done
+placeholder-feature = This feature is under consideration, thus is unavailable at this time.
+create-table = Create a new table
+join-as-player = Join as player
+join-as-spectator = Join as spectator
+check-game-options = Check Game Options
+no-game-options = No Game Options
+# Table messages
+table-created = { $host } created a new { $game } table.
+waiting-for-players = Waiting for players. Minimum { $min }, maximum { $max }.
+table-listing = { $host }'s table ({ $count } users)
+table-listing-one = { $host }'s table ({ $count } user)
+table-listing-with = { $host }'s table ({ $count } users) with { $members }
+table-listing-game = { $game }: { $host }'s table ({ $count } users)
+table-listing-game-one = { $game }: { $host }'s table ({ $count } user)
+table-listing-game-with = { $game }: { $host }'s table ({ $count } users) with { $members }
+table-not-exists = Table no longer exists.
+player-took-over = { $player } took over from the bot.
+spectator-joined = Joined { $host }'s table as a spectator.
+# Visibility control
+visibility-public = public
+visibility-private = private
+visibility-available = available
+visibility-unavailable = unavailable
+# User presence announcements
+user-online = { $player } came online.
+user-offline = { $player } went offline.
+user-is-admin = { $player } is an administrator of PlayPalace.
+user-is-server-owner = { $player } is the server owner of PlayPalace.
+online-users-none = No users online.
+online-users-one = 1 user: { $users }
+online-users-many = { $count } users: { $users }
+online-user-not-in-game = Not in game
+online-user-waiting-approval = Waiting for approval
+# Action states
+action-locked = This action is currently unavailable.
+option-locked = This option is currently locked by another setting.
+language-option = Language: { $language }
+language-changed = Language set to { $language }.
+fluent-languages-option = Fluent languages ({ $count })
+pref-set-music-volume = Music volume: { $choice } percent
+pref-desc-music-volume = How loud background music plays. Setting this here syncs across all your clients (iOS, desktop, web) and persists across sessions.
+pref-select-music-volume = Select music volume
+pref-changed-music-volume = Music volume set to { $choice } percent.
+pref-set-ambience-volume = Ambience volume: { $choice } percent
+pref-desc-ambience-volume = How loud ambient sound loops play. Setting this here syncs across all your clients.
+pref-select-ambience-volume = Select ambience volume
+pref-changed-ambience-volume = Ambience volume set to { $choice } percent.
+pref-volume-0 = 0
+pref-volume-10 = 10
+pref-volume-20 = 20
+pref-volume-30 = 30
+pref-volume-40 = 40
+pref-volume-50 = 50
+pref-volume-60 = 60
+pref-volume-70 = 70
+pref-volume-80 = 80
+pref-volume-90 = 90
+pref-volume-100 = 100
+pref-select-dice-keeping-style = Select dice keeping style:
+pref-dice-keeping-style-playpalace = Dice indexes
+pref-dice-keeping-style-quentin_c = Dice values
+# Preference system
+pref-back = Back
+pref-reset-all = Reset all preferences to defaults
+pref-reset-category = Reset { $category } to defaults
+pref-reset-done = Preferences reset to defaults.
+pref-per-game-for = { $game }: { $value }
+pref-default = Default
+# Legacy keys (kept for compatibility)
+turn-sound-option = Turn sound: { $status }
+clear-kept-option = Clear kept dice when rolling: { $status }
+dice-keeping-style-changed = Dice keeping style set to { $style }.
+dice-keeping-style-indexes = Dice indexes
+dice-keeping-style-values = Dice values
+no-bot-names-available = No bot names available.
+select-bot-name = Select a name for the bot
+# Duration estimation
+estimate-duration = Estimate duration
+estimate-computing = Computing estimated game duration...
+estimate-result = Bot average: { $bot_time } (± { $std_dev }). { $outlier_info }Estimated human time: { $human_time }.
+estimate-error = Could not estimate duration.
+estimate-already-running = Duration estimation already in progress.
+# Save/Restore
+saved-tables = Saved Tables
+no-saved-tables = You have no saved tables.
+no-active-tables = No active tables.
+restore-table = Restore
+delete-saved-table = Delete
+saved-table-deleted = Saved table deleted.
+missing-players = Cannot restore: these players are not available: { $players }
+table-restored = Table restored! All players have been transferred.
+saved-table-incompatible = This saved game was made by an older version of the game and can't be resumed. You can delete it from its menu.
+host-management-unavailable = Host management isn't available on this server yet.
+table-saved-destroying = Table saved! Returning to main menu.
+game-type-not-found = Game type no longer exists.
+# Action disabled reasons
+action-player-not-found = Player not found.
+action-wait = Please wait a moment.
+action-wait-for-hand = Wait until the cards have been dealt.
+action-wait-for-intro = Wait until the round has started.
+action-no-scores = No scores available yet.
+game-over-leave = Congratulations you did great!
+leaderboards-menu-title = Leaderboards
+leaderboards-select-game = Select a game to view its leaderboard
+leaderboard-no-data = No leaderboard data yet for this game.
+# Leaderboard types
+leaderboard-type-wins = Win Leaders
+leaderboard-type-rating = Skill Rating
+leaderboard-type-total-score = Total Score
+leaderboard-type-high-score = High Score
+leaderboard-type-games-played = Games Played
+# Leaderboard headers
+leaderboard-wins-header = { $game } - Win Leaders
+leaderboard-total-score-header = { $game } - Total Score
+leaderboard-high-score-header = { $game } - High Score
+leaderboard-games-played-header = { $game } - Games Played
+leaderboard-rating-header = { $game } - Skill Ratings
+leaderboard-avg-points-header = { $game } - Avg Points Per Turn
+leaderboard-best-turn-header = { $game } - Best Single Turn
+leaderboard-score-per-round-header = { $game } - Score Per Round
+# Leaderboard entries
+leaderboard-wins-entry =
+    { $rank }: { $player }, { $wins } { $wins ->
+        [one] win
+       *[other] wins
+    } { $losses } { $losses ->
+        [one] loss
+       *[other] losses
+    }, { $percentage }% winrate
+leaderboard-games-entry = { $rank }. { $player }: { $value } games
+# Player stats
+leaderboard-player-stats = Your stats: { $wins } wins, { $losses } losses ({ $percentage }% win rate)
+# Skill rating leaderboard
+leaderboard-no-ratings = No rating data yet for this game.
+leaderboard-rating-entry = { $rank }. { $player }: { $rating } rating ({ $mu } ± { $sigma })
+leaderboard-player-rating = Your rating: { $rating } ({ $mu } ± { $sigma })
+# My Stats menu
+my-stats = My Stats
+my-stats-no-data = You haven't played this game yet.
+my-stats-no-games = You haven't played any games yet.
+my-stats-wins = Wins: { $value }
+my-stats-losses = Losses: { $value }
+my-stats-winrate = Win rate: { $value }%
+my-stats-games-played = Games played: { $value }
+my-stats-total-score = Total score: { $value }
+my-stats-high-score = High score: { $value }
+my-stats-rating = Skill rating: { $value } ({ $mu } ± { $sigma })
+my-stats-no-rating = No skill rating yet
+# Prediction system
+predict-outcomes = Predict outcomes
+predict-header = Predicted Outcomes (by skill rating)
+predict-entry = { $rank }. { $player } (rating: { $rating })
+predict-entry-2p = { $rank }. { $player } (rating: { $rating }, { $probability }% win chance)
+predict-unavailable = Rating predictions are not available.
+predict-need-players = Need at least 2 human players for predictions.
+action-need-more-humans = Need more human players.
+confirm-logout = Are you sure you want to log out?
+admin-menu-title = Administration
+# Account approval
+account-approval = Account Approval
+account-approval-menu-title = Account Approval
+no-pending-accounts = No pending accounts.
+approve-account = Approve
+decline-account = Decline
+account-approved = { $player }'s account has been approved.
+account-declined = { $player }'s account has been declined and deleted.
+# Waiting for approval (shown to unapproved users)
+waiting-for-approval = Your account is waiting for approval by an administrator.
+account-approved-welcome = Your account has been approved! Welcome to PlayPalace!
+account-declined-goodbye =
+    Your account request has been declined.
+    Reason:
+account-banned = Your account is banned and cannot be accessed.
+# Login errors
+incorrect-username = The username you entered does not exist.
+incorrect-password = The password you entered is incorrect.
+already-logged-in = This account is already logged in.
+accounts-blocked = Sorry, registration is currently disabled. Only administrators or the server owner can create accounts at this time. Check back later!
+# Credential validation
+credential-username-length = Username must be between { $min } and { $max } characters.
+credential-password-length = Password must be between { $min } and { $max } characters.
+# Rate limiting
+rate-limit-login-ip = Too many login attempts from this address. Please wait and try again.
+rate-limit-login-user = Too many failed login attempts for this username. Please wait and try again.
+rate-limit-registration = Too many registration attempts from this address. Please wait and try again.
+rate-limit-refresh = Too many refresh attempts from this address. Please wait and try again.
+# Session/auth errors
+account-not-found = Account not found.
+session-expired = Session expired. Please log in again.
+session-token-mismatch = Session token does not match username.
+refresh-token-expired = Refresh token expired. Please log in again.
+refresh-token-mismatch = Refresh token does not match username.
+# Registration
+registration-success = Registration successful! Your account is waiting for approval.
+registration-username-taken = Username already taken. Please choose a different username.
+# Preference fallback
+pref-invalid-value = Invalid selection, using default.
+# Decline reason
+decline-reason-prompt = Enter a reason for declining (or press Escape to cancel):
+account-action-empty-reason = No reason given.
+# Admin notifications for account requests
+account-request = account request
+account-action = account action taken
+# Password recovery
+reset-user-password = Reset User Password
+no-users-to-reset-password = No users available for password reset.
+reset-user-password-prompt = Enter a new temporary password for { $player } (or press Escape to cancel):
+reset-user-password-done = { $player }'s password has been reset.
+reset-user-password-unavailable = { $player } is not available for password reset.
+your-password-was-reset = Your password was reset by an administrator. Please log in with the new password.
+# Admin promotion/demotion
+promote-admin = Promote Admin
+demote-admin = Demote Admin
+promote-admin-menu-title = Promote Admin
+demote-admin-menu-title = Demote Admin
+no-users-to-promote = No users available to promote.
+no-admins-to-demote = No admins available to demote.
+confirm-promote = Are you sure you want to promote { $player } to admin?
+confirm-demote = Are you sure you want to demote { $player } from admin?
+broadcast-to-all = Announce to all users
+broadcast-to-admins = Announce to admins only
+broadcast-to-nobody = Silent (no announcement)
+promote-announcement = { $player } has been promoted to admin!
+promote-announcement-you = You have been promoted to admin!
+demote-announcement = { $player } has been demoted from admin.
+demote-announcement-you = You have been demoted from admin.
+not-admin-anymore = You are no longer an admin and cannot perform this action.
+not-server-owner = Only the server owner can perform this action.
+# Server ownership transfer
+transfer-ownership = Transfer Ownership
+transfer-ownership-menu-title = Transfer Ownership
+no-admins-for-transfer = No admins available to transfer ownership to.
+confirm-transfer-ownership = Are you sure you want to transfer server ownership to { $player }? You will be demoted to admin.
+transfer-ownership-announcement = { $player } is now the Play Palace server owner!
+transfer-ownership-announcement-you = You are now the Play palace server owner!
+# User banning
+ban-user = Ban User
+unban-user = Unban User
+no-users-to-ban = No users available to ban.
+no-users-to-unban = No banned users to unban.
+confirm-ban = Are you sure you want to ban { $player }?
+confirm-unban = Are you sure you want to unban { $player }?
+ban-reason-prompt = Enter a reason for the ban (optional):
+unban-reason-prompt = Enter a reason for the unban (optional):
+user-banned = { $player } has been banned.
+user-unbanned = { $player } has been unbanned.
+you-have-been-banned =
+    You have been banned from this server.
+    Reason:
+you-have-been-unbanned =
+    You have been unbanned from this server.
+    Reason:
+ban-no-reason = No reason given.
+# Virtual bots (server owner only)
+virtual-bots = Virtual Bots
+virtual-bots-fill = Fill Server
+virtual-bots-clear = Clear All Bots
+virtual-bots-status = Status
+virtual-bots-clear-confirm = Are you sure you want to clear all virtual bots? This will also destroy any tables they are in.
+virtual-bots-not-available = Virtual bots are not available.
+virtual-bots-filled = Added { $added } virtual bots. { $online } are now online.
+virtual-bots-already-filled = All virtual bots from the configuration are already active.
+virtual-bots-cleared =
+    Cleared { $bots } virtual bots and destroyed { $tables } { $tables ->
+        [one] table
+       *[other] tables
+    }.
+virtual-bot-table-closed = Table closed by administrator.
+virtual-bots-none-to-clear = No virtual bots to clear.
+virtual-bots-status-report = Virtual Bots: { $total } total, { $online } online, { $offline } offline, { $in_game } in game.
+virtual-bots-guided-overview = Guided Tables
+virtual-bots-groups-overview = Bot Groups
+virtual-bots-profiles-overview = Profiles
+virtual-bots-guided-header = Guided tables: { $count } rule(s). Allocation: { $allocation }, fallback: { $fallback }, default profile: { $default_profile }.
+virtual-bots-guided-empty = No guided table rules are configured.
+virtual-bots-guided-status-active = active
+virtual-bots-guided-status-inactive = inactive
+virtual-bots-guided-table-linked = linked to table { $table_id } (host { $host }, players { $players }, humans { $humans })
+virtual-bots-guided-table-stale = table { $table_id } missing on server
+virtual-bots-guided-table-unassigned = no table is currently tracked
+virtual-bots-guided-next-change = next change in { $ticks } ticks
+virtual-bots-guided-no-schedule = no scheduling window
+virtual-bots-guided-warning = ⚠ underfilled
+virtual-bots-guided-line = { $table }: game { $game }, priority { $priority }, bots { $assigned } (min { $min_bots }, max { $max_bots }), waiting { $waiting }, unavailable { $unavailable }, status { $status }, profile { $profile }, groups { $groups }. { $table_state }. { $next_change } { $warning_text }
+virtual-bots-groups-header = Bot groups: { $count } tag(s), { $bots } configured bots.
+virtual-bots-groups-empty = No bot groups are defined.
+virtual-bots-groups-line = { $group }: profile { $profile }, bots { $total } (online { $online }, waiting { $waiting }, in-game { $in_game }, offline { $offline }), rules { $rules }.
+virtual-bots-groups-no-rules = none
+virtual-bots-no-profile = default
+virtual-bots-profile-inherit-default = inherits default profile
+virtual-bots-profiles-header = Profiles: { $count } defined (default: { $default_profile }).
+virtual-bots-profiles-empty = No profiles are defined.
+virtual-bots-profiles-line = { $profile } ({ $bot_count } bots) overrides: { $overrides }.
+virtual-bots-profiles-no-overrides = inherits base configuration
+# Documents
+documents = Documents
+documents-menu-title = Documents System
+documents-all = All documents
+documents-uncategorized = Uncategorized documents
+documents-no-documents = No documents found.
+documents-no-content = No content available for this document.
+# Document actions
+documents-view = View document content
+documents-update-contents = Edit document content
+documents-settings = Document settings
+documents-update-title = Change title
+documents-manage-visibility = Manage visibility
+documents-modify-categories = Modify category list
+documents-add-translation = Add translation
+documents-remove-translation = Remove translation
+documents-delete-document = Delete document
+documents-title-prompt = Enter the document title for the { $language } translation:
+documents-title-changed = Title updated for { $language }.
+documents-visibility-changed = Visibility updated for { $language }.
+documents-visibility-no-permission = You do not have permission to change visibility for { $language }.
+documents-categories-updated = Categories updated.
+documents-content-prompt = Enter the content for the { $language } translation:
+documents-translation-added = Translation added for { $language }.
+documents-no-languages-available = No languages available for translation.
+documents-remove-translation-confirm = Remove the { $language } translation? This cannot be undone.
+documents-remove-translation-source = The source translation cannot be removed.
+documents-remove-title-confirm = Also remove the { $language } title? Choose no to keep it for a future translation.
+documents-translation-removed = { $language } translation removed.
+documents-delete-confirm = Delete this document? It has { $count } translations. This cannot be undone.
+documents-deleted = Document deleted.
+documents-no-permission = You do not have any relevant assigned languages for this document.
+documents-visibility-count = Manage visibility ({ $public }/{ $total } languages public)
+documents-locked = This document is currently being edited by { $username }. You cannot edit it right now.
+documents-remove-translation-locked = The { $language } translation is currently being edited by { $username } and cannot be removed.
+documents-delete-locked = This document cannot be deleted because the { $language } translation is currently being edited by { $username }.
+documents-content-saved = Document content saved for { $language }.
+documents-content-unchanged = No changes to save.
+documents-editor-prompt = Edit: { $title } ({ $language })
+documents-source-label = { $language } (source)
+documents-content-label = { $language } Contents
+# Document & category creation
+documents-new-document = New document
+documents-new-category = New category
+documents-scope-prompt = Choose the scope for this document.
+documents-scope-shared = Shared (all servers)
+documents-scope-independent = Independent (this server only)
+documents-select-categories = Select categories for the new document.
+documents-new-document-slug-prompt = Enter the sluggified title in English. This is the internal identifier for the document, for example my_game_rules:
+documents-document-created = Document created.
+documents-slug-exists = A document with this identifier already exists.
+documents-slug-invalid = Invalid slug. Use only lowercase letters, numbers, and underscores.
+documents-new-category-slug-prompt = Enter the sluggified name in English. This is the internal identifier for the category, for example game_rules:
+documents-category-created = Category created.
+documents-slug-exists-category = A category with this slug already exists.
+# Category management
+documents-rename-category = Rename category
+documents-category-settings = Category settings
+documents-delete-category = Delete category
+documents-category-name-prompt = Enter the display name for this category for the { $language } translation:
+documents-category-renamed = Category renamed.
+documents-sort-method = Sort method
+documents-sort-alphabetical = Alphabetical
+documents-sort-date-created = Date created
+documents-sort-date-modified = Date modified
+documents-sort-changed = Sort method updated.
+documents-delete-category-confirm = Delete this category? Documents will not be deleted, but will lose this category association.
+documents-category-deleted = Category deleted.
+# Document infrastructure (sync, export, promote, contribution)
+documents-sync = Sync shared documents
+documents-sync-success = Shared documents synced successfully.
+documents-sync-failed = Sync failed: { $reason }
+documents-sync-pending-warning = Warning: { $count } uncommitted changes to shared documents exist. Export them before syncing to avoid losing local edits.
+documents-sync-local-changes = { $count } documents have local changes. Select which to discard before syncing.
+documents-sync-discard-label = { $title } (discard); ({ $description })
+documents-sync-keep-label = { $title } (keep); ({ $description })
+documents-sync-confirm = Sync now
+documents-sync-discard-all = Discard all
+documents-sync-keep-all = Keep all
+documents-sync-tag-absent = item is absent from local: keep = don't add from upstream, discard = add from upstream
+documents-sync-tag-present = item is only present on local: keep = don't delete from local, discard = delete from local
+documents-sync-tag-content = content changes
+documents-sync-tag-metadata = metadata changes
+documents-sync-tag-content-and-metadata = content and metadata changes
+documents-commit-message-prompt = Describe your changes (optional):
+documents-commit-success = Changes committed.
+documents-commit-failed = Commit failed: { $reason }
+documents-export-pending = Export pending changes ({ $count })
+documents-export-success = Exported { $count } changes to { $path }.
+documents-export-no-changes = No pending changes to export.
+documents-pending-commits-button = Pending commits ({ $count })
+documents-pending-commits-info = { $count } commits ahead of upstream. The server owner can push these changes to the repository.
+documents-pr-button = Create pull request ({ $count } commits)
+documents-pr-success = Pull request created: { $url }
+documents-pr-failed = Pull request failed: { $reason }
+documents-pr-no-commits = No commits to include in a pull request.
+documents-promote-to-shared = Promote to shared
+documents-promote-confirm = Are you sure you want to promote this document to shared scope? This makes it visible to all servers syncing from this repository.
+documents-promoted-to-shared = Document promoted to shared scope.
+documents-promote-failed = Failed to promote document. It may already be shared or a conflict exists.
+documents-based-on-stale = Upstream source changed: { $source }
+# Transcriber management
+transcribers-by-language = View transcribers by language
+transcribers-by-user = View transcribers by user
+transcribers-language-users = { $language } ({ $count } users)
+transcribers-language-users-one = { $language } ({ $count } user)
+transcribers-user-languages = { $user } ({ $count } languages)
+transcribers-user-languages-one = { $user } ({ $count } language)
+transcribers-no-users = No transcribers assigned to this language.
+transcribers-no-languages = No languages assigned to this user.
+transcribers-no-transcribers = No transcribers have been assigned yet.
+transcribers-add-user = Add user
+transcribers-add-users = Add users
+transcribers-add-languages = Add languages
+transcribers-remove-confirm = Remove { $user } as a transcriber for { $language }?
+transcribers-remove-lang-confirm = Remove { $language } from { $user }'s transcriber assignments?
+transcribers-removed = { $user } has been removed as a transcriber for { $language }.
+transcribers-added = { $user } has been added as a transcriber for { $language }.
+transcribers-users-added = Added { $users } as transcribers for { $language }.
+transcribers-languages-added = Added { $user } as a transcriber for { $languages }.
+transcribers-not-fluent = { $user } does not have { $language } in their fluent languages and cannot be assigned as a transcriber for it.
+transcribers-no-eligible-users = No eligible users found. Users must have this language in their fluent languages.
+transcribers-no-users-to-add = No users available to add. All users with fluent languages are already transcribers.
+transcribers-no-eligible-languages = No eligible languages found. This user has no unassigned fluent languages.
+transcribers-remove-transcriber = Remove transcriber
+transcribers-remove-all-confirm = Remove all transcriber assignments from { $user }?
+transcribers-removed-all = Removed all transcriber assignments from { $user }.
+localization-in-progress-try-again = Localization in progress. Please try again in a minute.
+# Errors
+internal-error = Something went wrong. Please try again.
+chat-rate-limited = You are sending messages too quickly. Please wait a moment.
+# Voice chat
+voice-room-table-label = { $game } table
+voice-not-at-table = Join a table before starting voice chat.
+voice-not-in-context = You are not at that table.
+voice-invalid-context = Voice chat is not available there.
+voice-unavailable = Voice chat is currently unavailable.
+voice-rate-limited = You are joining voice too quickly. Please wait a moment.
+voice-muted-permanent = You are muted and cannot use voice chat.
+voice-muted-minutes = You are muted for { $minutes } more minute(s).
+voice-muted-seconds = You are muted for { $seconds } more second(s).
+voice-status-connected = { $player } connected to voice.
+voice-status-disconnected = { $player } disconnected from voice.
+voice-status-left-table = { $player } left the table.
+# Mute (admin moderation)
+mute-user = Mute user
+unmute-user = Unmute user
+no-users-to-mute = There are no users to mute.
+no-users-to-unmute = No users are currently muted.
+confirm-unmute = Unmute { $player }?
+mute-duration-5m = 5 minutes
+mute-duration-30m = 30 minutes
+mute-duration-1h = 1 hour
+mute-duration-1d = 1 day
+mute-duration-permanent = Permanent
+user-muted = Muted { $player } from voice chat.
+user-unmuted = Unmuted { $player }.
+you-have-been-muted = You have been muted from voice chat.
+you-have-been-unmuted = Your mute has been lifted.
+# Pagination controls for large server menus
+menu-page-summary = Showing { $start }-{ $end } of { $total } entries. Page { $page } of { $pages }.
+menu-page-refresh = Refresh list
+menu-page-first = First page
+menu-page-previous = Previous page
+menu-page-next = Next page
+menu-page-last = Last page

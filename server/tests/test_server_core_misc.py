@@ -11,7 +11,6 @@ import pytest
 
 from server.core.server import (
     BOOTSTRAP_WARNING_ENV,
-    LOCALIZATION_GATE_ID,
     Server,
     ServerMode,
 )
@@ -39,7 +38,7 @@ class FakeLoop:
 
 @pytest.fixture
 def server(tmp_path):
-    return Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    return Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
 
 
 def test_validate_transport_conflict_raises(server):
@@ -150,7 +149,7 @@ default_locale = "es"
         port=0,
         db_path=tmp_path / "db.sqlite",
         config_path=cfg,
-        preload_locales=True,
+        
     )
 
     assert srv._username_min_length == 5
@@ -177,51 +176,3 @@ def test_check_refresh_rate_limit_blocked(monkeypatch, server):
     msg = server._check_refresh_rate_limit("1.2.3.4", locale="en")
     assert "refresh attempts" in msg
 
-
-@pytest.mark.asyncio
-async def test_preload_locales_if_requested_runs(monkeypatch, server):
-    called = {}
-
-    def fake_preload():
-        called["ran"] = True
-
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
-    monkeypatch.setattr("server.messages.localization.Localization.preload_bundles", fake_preload)
-    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
-    server._preload_locales = True
-
-    await server._preload_locales_if_requested()
-
-    assert called.get("ran")
-    assert LOCALIZATION_GATE_ID not in server._lifecycle._gates
-
-
-@pytest.mark.asyncio
-async def test_start_localization_warmup_schedules(monkeypatch, server):
-    server._preload_locales = False
-    server._localization_warmup_task = None
-
-    async def dummy():
-        return None
-
-    monkeypatch.setattr(server, "_warm_locales_async", dummy)
-    loop = FakeLoop()
-    monkeypatch.setattr(asyncio, "get_running_loop", lambda: loop)
-
-    server._start_localization_warmup()
-
-    assert server._localization_gate_registered is False
-    assert loop.tasks, "expected task scheduling"
-
-
-@pytest.mark.asyncio
-async def test_start_localization_warmup_skips_when_preload(monkeypatch, server):
-    server._preload_locales = True
-    loop = FakeLoop()
-    monkeypatch.setattr(asyncio, "get_running_loop", lambda: loop)
-
-    server._start_localization_warmup()
-
-    assert not loop.tasks

@@ -1,69 +1,184 @@
-# Mensagens compartilhadas de jogos para PlayPalace (Português)
-# Estas mensagens são comuns a vários jogos
+# games.ftl for locale pt. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Nomes de jogos
-game-name-ninetynine = Noventa e Nove
-
-# Fluxo de rodadas e turnos
 game-round-start = Rodada { $round }.
 game-round-end = Rodada { $round } concluída.
-game-turn-start = Vez de { $player }.
-game-your-turn = Sua vez.
-game-no-turn = Não é a vez de ninguém agora.
-
-# Exibição de pontuação
-game-scores-header = Pontuação Atual:
-game-score-line = { $player }: { $score } pontos
-game-final-scores-header = Pontuação Final:
-
-# Vitória/derrota
+game-turn-start = É a vez de { $player }.
+game-turn-start-you = É a sua vez.
+game-turn-start-player = É a vez de { $player }.
+game-no-turn = Não é a vez de ninguém no momento.
+game-score-line = { $player }: { $score } { $unit }
+game-score-line-target = { $player }: { $score }/{ $target } { $unit }
+game-score-unit-points =
+    { $count ->
+        [one] ponto
+       *[other] pontos
+    }
+game-score-unit-chips =
+    { $count ->
+        [one] ficha
+       *[other] fichas
+    }
+game-score-unit-coins =
+    { $count ->
+        [one] moeda
+       *[other] moedas
+    }
+game-score-unit-health = vida
+game-score-unit-ninetynine-tokens =
+    { $count ->
+        [one] ficha
+       *[other] fichas
+    }
+game-score-unit-tokens-home =
+    { $count ->
+        [one] ficha na base
+       *[other] fichas na base
+    }
+game-score-unit-pawns-home =
+    { $count ->
+        [one] peão em casa
+       *[other] peões em casa
+    }
+game-score-unit-hand-wins =
+    { $count ->
+        [one] vitória de mão
+       *[other] vitórias de mão
+    }
+game-score-unit-light = luz
+game-final-scores-header = Placar final:
 game-winner = { $player } venceu!
+game-winner-you = Você venceu!
 game-winner-score = { $player } venceu com { $score } pontos!
 game-tiebreaker = Empate! Rodada de desempate!
-game-tiebreaker-players = Empate entre { $players }! Rodada de desempate!
 game-eliminated = { $player } foi eliminado com { $score } pontos.
-
-# Opções comuns
 game-set-target-score = Pontuação alvo: { $score }
 game-enter-target-score = Digite a pontuação alvo:
 game-option-changed-target = Pontuação alvo definida para { $score }.
-
 game-set-team-mode = Modo de equipe: { $mode }
-game-select-team-mode = Selecione o modo de equipe
+game-select-team-mode = Selecionar modo de equipe
 game-option-changed-team = Modo de equipe definido para { $mode }.
 game-team-mode-individual = Individual
 game-team-mode-x-teams-of-y = { $num_teams } equipes de { $team_size }
-
-# Valores de opções booleanas
-option-on = ligado
-option-off = desligado
-
-# Caixa de status
-
-# Fim de jogo
+game-team-name = Equipe { $index }
+team-arrangement-started = Organização de equipes iniciada. Revise as equipes, troque membros se necessário e confirme para começar.
+team-arrangement-confirm = Confirmar equipes e iniciar
+team-arrangement-read = Ler equipes
+team-arrangement-select-member-action = Selecionar membro da equipe
+team-arrangement-select-member = Selecione um membro da equipe
+team-arrangement-select-swap-target = Selecione um jogador para trocar
+team-arrangement-swap-member = Escolher alvo para troca
+team-arrangement-swap-member-selected = Trocar { $player } com...
+team-arrangement-cancel = Cancelar organização de equipes
+team-arrangement-line = { $team }: { $members }
+team-arrangement-turn-order = Ordem dos turnos: { $players }
+team-arrangement-member-option = { $player }, { $team }, { $selected }
+team-arrangement-selected = selecionado
+team-arrangement-not-selected = não selecionado
+team-arrangement-member-selected = { $player } da { $team } selecionado. Escolha um jogador de outra equipe para trocar.
+team-arrangement-swapped-player = { $player } trocou { $first } e { $second } entre as equipes.
+team-arrangement-swapped-you = Você trocou { $first } e { $second } entre as equipes.
+team-arrangement-cancelled = Organização de equipes cancelada.
+team-arrangement-cancelled-roster = Organização de equipes cancelada porque a lista de jogadores foi alterada.
+team-arrangement-refreshed = A lista de jogadores mudou. A organização de equipes foi atualizada.
+team-arrangement-in-progress = Termine ou cancele a organização de equipes primeiro.
+team-arrangement-not-active = A organização de equipes não está ativa.
+team-arrangement-select-first = Selecione um membro da equipe primeiro.
+team-arrangement-player-missing = Esse jogador não está mais disponível para a organização de equipes.
+team-arrangement-same-team = Escolha alguém de uma equipe diferente.
+team-arrangement-swap-failed = Não foi possível trocar esses membros da equipe.
+status-box-closed = Informações de status fechadas.
 game-leave = Sair do jogo
-
-# Temporizador de rodada
 round-timer-paused = { $player } pausou o jogo (pressione p para iniciar a próxima rodada).
-round-timer-resumed = Temporizador retomado.
-round-timer-countdown = Próxima rodada em { $seconds }...
-
-# Jogos de dados - manter/soltar dados
+round-timer-paused-you = Você pausou o jogo (pressione p para iniciar a próxima rodada).
 dice-keeping = Mantendo { $value }.
-dice-rerolling = Relançando { $value }.
-dice-locked = Esse dado está bloqueado e não pode ser alterado.
-dice-status-locked = locked
-dice-status-kept = kept
-
-# Distribuição (jogos de cartas)
-game-deal-counter = Distribuição { $current }/{ $total }.
+dice-rerolling = Rolar novamente { $value }.
+dice-locked = Esse dado está travado e não pode ser alterado.
+dice-status-label-locked = { $value } (travado)
+dice-status-label-kept = { $value } (mantido)
+game-deal-counter = Distribuindo { $current }/{ $total }.
 game-you-deal = Você distribui as cartas.
 game-player-deals = { $player } distribui as cartas.
-
-# Nomes de cartas
 card-name = { $rank } de { $suit }
 no-cards = Sem cartas
-
+suit-diamonds = ouros
+suit-clubs = paus
+suit-hearts = copas
+suit-spades = espadas
+rank-ace = ás
+rank-two = 2
+rank-three = 3
+rank-four = 4
+rank-five = 5
+rank-six = 6
+rank-seven = 7
+rank-eight = 8
+rank-nine = 9
+rank-ten = 10
+rank-jack = valete
+rank-queen = dama
+rank-king = rei
+rank-ace-plural = áses
+rank-two-plural = 2s
+rank-three-plural = 3s
+rank-four-plural = 4s
+rank-five-plural = 5s
+rank-six-plural = 6s
+rank-seven-plural = 7s
+rank-eight-plural = 8s
+rank-nine-plural = 9s
+rank-ten-plural = 10s
+rank-jack-plural = valetes
+rank-queen-plural = damas
+rank-king-plural = reis
+poker-high-card-with = Carta alta: { $high }, com { $rest }
+poker-high-card = Carta alta: { $high }
+poker-pair-with = Um par de { $pair }, com { $rest }
+poker-pair = Um par de { $pair }
+poker-two-pair-with = Dois pares, { $high } e { $low }, com { $kicker }
+poker-two-pair = Dois pares, { $high } e { $low }
+poker-trips-with = Trinca de { $trips }, com { $rest }
+poker-trips = Trinca de { $trips }
+poker-straight-high = Sequência alta de { $high }
+poker-flush-high-with = Flush alto de { $high }, com { $rest }
+poker-full-house = Full House, { $trips } sobre { $pair }
+poker-quads-with = Quadra de { $quads }, com { $kicker }
+poker-quads = Quadra de { $quads }
+poker-royal-flush = Royal Flush
+poker-straight-flush-high = Straight Flush alto de { $high }
+poker-unknown-hand = Mão desconhecida
+game-error-invalid-team-mode = O modo de equipe selecionado não é válido para o número atual de jogadores.
+documentation-menu = Documentação
+introduction = Introdução
+community-rules = Regras da Comunidade
+global-keys = Controles Globais
+game-rules = Regras do Jogo
+changelog = Histórico de Alterações
+donation = Doação
+document-not-found = Documento não encontrado.
+help = Ajuda
+# Game Info (Ctrl+I)
+game-info = Informações do Jogo
+game-info-header = Informações do Jogo Atual
+game-info-name = Jogo: { $game }
+game-info-players = Jogadores: { $count }
+game-info-host = Anfitrião: { $host }
+game-info-status = Status: { $status }
+game-info-status-waiting = Aguardando no lobby
+game-info-status-playing = Em andamento
+game-info-options-header = Configurações:
+game-info-no-options = Este jogo não possui opções de configuração personalizadas.
+# How to Play (Ctrl+F1)
+how-to-play = Como Jogar
+game-rules-not-available = As regras para { $game } ainda não estão disponíveis.
+game-your-turn = Sua vez.
+# Exibição de pontuação
+game-scores-header = Pontuação Atual:
+game-tiebreaker-players = Empate entre { $players }! Rodada de desempate!
+round-timer-resumed = Temporizador retomado.
+round-timer-countdown = Próxima rodada em { $seconds }...
+dice-status-locked = locked
+dice-status-kept = kept
 # Colors (with gendered forms: m = masculine, f = feminine)
 color-black = preto
 color-black-m = preto
@@ -104,150 +219,5 @@ color-white-f = branca
 color-yellow = amarelo
 color-yellow-m = amarelo
 color-yellow-f = amarela
-
-# Nomes dos naipes
-suit-diamonds = ouros
-suit-clubs = paus
-suit-hearts = copas
-suit-spades = espadas
-
-# Nomes das cartas
-rank-ace = ás
-rank-ace-plural = áses
-rank-two = 2
-rank-two-plural = 2
-rank-three = 3
-rank-three-plural = 3
-rank-four = 4
-rank-four-plural = 4
-rank-five = 5
-rank-five-plural = 5
-rank-six = 6
-rank-six-plural = 6
-rank-seven = 7
-rank-seven-plural = 7
-rank-eight = 8
-rank-eight-plural = 8
-rank-nine = 9
-rank-nine-plural = 9
-rank-ten = 10
-rank-ten-plural = 10
-rank-jack = valete
-rank-jack-plural = valetes
-rank-queen = dama
-rank-queen-plural = damas
-rank-king = rei
-rank-king-plural = reis
-
-# Descrições de mãos de pôquer
-poker-high-card-with = Carta alta, { $high }, com { $rest }
-poker-high-card = Carta alta, { $high }
-poker-pair-with = Par de { $pair }, com { $rest }
-poker-pair = Par de { $pair }
-poker-two-pair-with = Dois pares, { $high } e { $low }, com { $kicker }
-poker-two-pair = Dois pares, { $high } e { $low }
-poker-trips-with = Trinca de { $trips }, com { $rest }
-poker-trips = Trinca de { $trips }
-poker-straight-high = Sequência, { $high } alta
-poker-flush-high-with = Flush, { $high } alto, com { $rest }
-poker-full-house = Full house, { $trips } sobre { $pair }
-poker-quads-with = Quadra de { $quads }, com { $kicker }
-poker-quads = Quadra de { $quads }
-poker-straight-flush-high = Straight flush, { $high } alto
-poker-unknown-hand = Mão desconhecida
-
-game-turn-start-you = It is your turn.
-game-turn-start-player = It is { $player }'s turn.
-game-score-line-target = { $player }: { $score }/{ $target } { $unit }
-game-score-unit-points = { $count ->
-    [one] point
-   *[other] points
-}
-game-score-unit-chips = { $count ->
-    [one] chip
-   *[other] chips
-}
-game-score-unit-coins = { $count ->
-    [one] coin
-   *[other] coins
-}
-game-score-unit-health = health
-game-score-unit-ninetynine-tokens = { $count ->
-    [one] token
-   *[other] tokens
-}
-game-score-unit-tokens-home = { $count ->
-    [one] token home
-   *[other] tokens home
-}
-game-score-unit-pawns-home = { $count ->
-    [one] pawn home
-   *[other] pawns home
-}
-game-score-unit-hand-wins = { $count ->
-    [one] hand win
-   *[other] hand wins
-}
-game-score-unit-light = light
-game-winner-you = You win!
-game-team-name = Team { $index }
-team-arrangement-started = Team arrangement started. Review the teams, swap members if needed, then confirm to start.
-team-arrangement-confirm = Confirm teams and start
-team-arrangement-read = Read teams
-team-arrangement-select-member-action = Select team member
-team-arrangement-select-member = Select a team member
-team-arrangement-select-swap-target = Select a player to swap with
-team-arrangement-swap-member = Choose swap target
-team-arrangement-swap-member-selected = Swap { $player } with...
-team-arrangement-cancel = Cancel team arrangement
-team-arrangement-line = { $team }: { $members }
-team-arrangement-turn-order = Turn order: { $players }
-team-arrangement-member-option = { $player }, { $team }, { $selected }
-team-arrangement-selected = selected
-team-arrangement-not-selected = not selected
-team-arrangement-member-selected = { $player } from { $team } selected. Choose a player from another team to swap with.
 team-arrangement-swapped = { $first } and { $second } have swapped teams.
-team-arrangement-cancelled = Team arrangement cancelled.
-team-arrangement-cancelled-roster = Team arrangement cancelled because the player list changed.
-team-arrangement-refreshed = The player list changed. Team arrangement has been refreshed.
-team-arrangement-in-progress = Finish or cancel team arrangement first.
-team-arrangement-not-active = Team arrangement is not active.
-team-arrangement-select-first = Select a team member first.
-team-arrangement-player-missing = That player is no longer available for team arrangement.
-team-arrangement-same-team = Choose someone from a different team.
-team-arrangement-swap-failed = Could not swap those team members.
-
-status-box-closed = Status information closed.
-
-dice-status-label-locked = { $value } (locked)
-dice-status-label-kept = { $value } (kept)
-
-poker-royal-flush = Royal Flush
-game-error-invalid-team-mode = The selected team mode is not valid for the current number of players.
-
-documentation-menu = Documentation
-introduction = Introduction
-community-rules = Community Rules
-global-keys = Global Controls
-game-rules = Game Rules
-changelog = Changelog
-donation = Donation
 contact = Contact
-document-not-found = Document not found.
-help = Help
-
-# Game Info (Ctrl+I)
-game-info = Game Info
-game-info-header = Current Game Information
-game-info-name = Game: {$game}
-game-info-players = Players: {$count}
-game-info-host = Host: {$host}
-game-info-status = Status: {$status}
-game-info-status-waiting = Waiting in lobby
-game-info-status-playing = In progress
-game-info-options-header = Settings:
-game-info-no-options = This game has no custom configuration options.
-
-# How to Play (Ctrl+F1)
-how-to-play = How to Play
-game-rules-not-available = Rules for {$game} are not available yet.

@@ -1,27 +1,25 @@
-game-name-tienlen = Tien Len
+# tienlen.ftl for locale ru. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-tienlen = Tien Len
 tienlen-set-variant = Variant: { $choice }
 tienlen-select-variant = Select Tien Len variant:
 tienlen-option-changed-variant = Variant set to { $choice }.
 tienlen-desc-variant = Chooses Southern or Northern Tiến Lên rules.
-
 tienlen-set-coin-target = Starting coins: { $choice }
 tienlen-select-coin-target = Select starting coins:
 tienlen-option-changed-coin-target = Starting coins set to { $choice }.
 tienlen-desc-match-length = Starting bankroll for each player. Settlements use 10-coin stake units; players at 0 coins are eliminated.
-
 tienlen-set-turn-timer = Turn Timer: { $choice }
 tienlen-select-turn-timer = Select turn timer duration:
 tienlen-option-changed-turn-timer = Turn timer set to { $choice }.
 tienlen-desc-turn-timer = Optional time limit for each Tiến Lên turn: Unlimited, 10, 15, 20, 30, 45, 60, or 90 seconds (default Unlimited).
-
 tienlen-variant-south = Southern Tien Len
 tienlen-variant-north = Northern Tien Len
 tienlen-target-20 = 20 coins
 tienlen-target-50 = 50 coins
 tienlen-target-100 = 100 coins
 tienlen-target-200 = 200 coins
-
 tienlen-timer-10 = 10 Seconds
 tienlen-timer-15 = 15 Seconds
 tienlen-timer-20 = 20 Seconds
@@ -30,19 +28,15 @@ tienlen-timer-45 = 45 Seconds
 tienlen-timer-60 = 60 Seconds
 tienlen-timer-90 = 90 Seconds
 tienlen-timer-unlimited = Unlimited
-
 tienlen-game-start = Starting Tien Len.
 tienlen-new-hand = Hand { $round }.
 tienlen-dealt = Dealt 13 cards: { $cards }.
 tienlen-variant-status = This table is playing { $variant }.
-
 tienlen-card-unselected = { $card }
 tienlen-card-selected = { $card } (selected)
-
 tienlen-play-none = Select cards to play.
 tienlen-play-invalid = Invalid combination.
 tienlen-play-combo = Play { $combo }
-
 tienlen-pass = Pass
 tienlen-confirm-pass = Passing locks you out of the current trick. Press Pass again within 10 seconds to confirm.
 tienlen-check-trick = Check trick
@@ -52,7 +46,6 @@ tienlen-check-variant = Check variant
 tienlen-check-turn-timer = Check turn timer
 tienlen-timer-disabled = The turn timer is disabled.
 tienlen-timer-remaining = { $seconds } seconds remaining.
-
 tienlen-error-no-cards = You have not selected any cards.
 tienlen-error-invalid-combo = The selected cards do not form a valid Tien Len combination for this variant.
 tienlen-error-pass-lock = You already passed on this trick and must wait until the table clears.
@@ -69,7 +62,6 @@ tienlen-error-opening-card-required = The opening play must include { $card }.
 tienlen-error-invalid-variant = Select a supported Tien Len variant.
 tienlen-error-invalid-starting-coins = Select a supported starting coin amount.
 tienlen-error-invalid-turn-timer = Select a supported turn timer.
-
 tienlen-you-play-single = You play { $card }.
 tienlen-player-plays-single = { $player } plays { $card }.
 tienlen-you-play-combo = You play { $combo }: { $cards }.
@@ -90,14 +82,12 @@ tienlen-trick-status = { $player } is leading with { $combo }: { $cards }.
 tienlen-your-hand = Your hand: { $cards }.
 tienlen-card-count-line = { $player } has { $count } cards
 tienlen-card-count-eliminated-line = { $player } is eliminated
-
 tienlen-combo-single = single
 tienlen-combo-pair = pair
 tienlen-combo-triple = triple
 tienlen-combo-four_of_a_kind = four of a kind
 tienlen-combo-straight = straight
 tienlen-combo-consecutive_pairs = consecutive pairs
-
 tienlen-instant-six-pairs = six pairs
 tienlen-instant-five-consecutive-pairs = five consecutive pairs
 tienlen-instant-three-consecutive-triples = three consecutive triples
@@ -120,17 +110,18 @@ tienlen-settlement-no-change = no change
 tienlen-hand-settlement-line = { $place }. { $player }: { $breakdown }; net { $net }; total { $total }.
 tienlen-you-eliminated = You are out of coins and eliminated.
 tienlen-player-eliminated = { $player } is out of coins and eliminated.
-tienlen-players-remaining = { $count ->
-    [one] 1 player remains.
-   *[other] { $count } players remain.
-}
+tienlen-players-remaining =
+    { $count ->
+        [one] 1 player remains.
+       *[other] { $count } players remain.
+    }
 tienlen-you-win-match = You win the Tien Len match with { $coins } coins left.
 tienlen-player-wins-match = { $player } wins the Tien Len match with { $coins } coins left.
-tienlen-line-format = { $rank }. { $player }: { $score ->
-    [one] 1 coin
-   *[other] { $score } coins
-}
-
+tienlen-line-format =
+    { $rank }. { $player }: { $score ->
+        [one] 1 coin
+       *[other] { $score } coins
+    }
 tienlen-south-card-name = { $rank } of { $suit }
 tienlen-south-rank-1 = Ace
 tienlen-south-rank-2 = 2

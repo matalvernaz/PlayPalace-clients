@@ -1,3 +1,6 @@
+# humanitycards.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 game-name-humanitycards = Cards Against Humanity
 hc-set-winning-score = Skor kemenangan: { $score }
 hc-enter-winning-score = Masukkan skor kemenangan:
@@ -37,24 +40,27 @@ hc-czar-winner = Pemenang terakhir
 hc-game-starting = Mengocok kartu.
 hc-dealing-cards = Membagikan { $count } kartu kepada setiap pemain.
 hc-round-start = Ronde { $round }.
-hc-judge-is = { $judges } { $count ->
-    [1] menjadi juri
-   *[other] menjadi juri
-}.
+hc-judge-is =
+    { $judges } { $count ->
+        [1] menjadi juri
+       *[other] menjadi juri
+    }.
 hc-you-are-judge = Anda menjadi juri ronde ini.
 hc-you-and-others-are-judges = Anda dan { $judges } menjadi juri ronde ini.
 hc-black-card = Pertanyaannya: { $text }
-hc-black-card-draw = Ambil { $count } { $count ->
-    [one] kartu tambahan
-   *[other] kartu tambahan
-} terlebih dahulu.
+hc-black-card-draw =
+    Ambil { $count } { $count ->
+        [one] kartu tambahan
+       *[other] kartu tambahan
+    } terlebih dahulu.
 hc-black-card-pick = Pilih { $count } kartu.
 hc-view-black-card = Periksa kartu pertanyaan
 hc-no-question-card = Belum ada kartu pertanyaan untuk dijawab.
-hc-select-cards = Pilih { $count } { $count ->
-    [one] kartu
-   *[other] kartu
-} dari tangan Anda.
+hc-select-cards =
+    Pilih { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    } dari tangan Anda.
 hc-card-selected = { $text }, dipilih
 hc-card-selected-position = { $text }, dipilih sebagai jawaban ke-{ $position }
 hc-card-not-selected = { $text }
@@ -68,14 +74,16 @@ hc-not-submission-phase = Anda hanya dapat memilih dan mengirim kartu putih saat
 hc-card-not-in-hand = Kartu pada posisi itu tidak ada di tangan Anda.
 hc-judge-has-no-submission = Juri tidak memiliki jawaban untuk ditinjau pada ronde ini.
 hc-no-submission-active = Belum ada jawaban yang dapat ditinjau.
-hc-wrong-card-count = Anda harus memilih tepat { $count } { $count ->
-    [one] kartu
-   *[other] kartu
-}.
-hc-selection-full = Anda sudah memilih { $count } { $count ->
-    [one] kartu
-   *[other] kartu
-}. Batalkan salah satu pilihan sebelum memilih kartu lain.
+hc-wrong-card-count =
+    Anda harus memilih tepat { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }.
+hc-selection-full =
+    Anda sudah memilih { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }. Batalkan salah satu pilihan sebelum memilih kartu lain.
 hc-judging-start = Semua jawaban sudah terkumpul! Saatnya menilai.
 hc-choose-best-card = Pilih kartu terbaik
 hc-choose-best-card-for = Pilih kartu terbaik untuk: { $prompt }
@@ -86,14 +94,16 @@ hc-not-judging-phase = Jawaban pemenang hanya dapat dipilih saat tahap penilaian
 hc-submission-not-available = Jawaban itu sudah tidak tersedia.
 hc-you-win-round = Anda memenangkan ronde! Skor Anda kini { $score }.
 hc-player-wins-round = { $player } memenangkan ronde! Skor: { $score }.
-hc-score-line = { $player }: { $score } { $score ->
-    [one] poin
-   *[other] poin
-}
-hc-final-score-line = { $rank }. { $player }: { $score } { $score ->
-    [one] poin
-   *[other] poin
-}
+hc-score-line =
+    { $player }: { $score } { $score ->
+        [one] poin
+       *[other] poin
+    }
+hc-final-score-line =
+    { $rank }. { $player }: { $score } { $score ->
+        [one] poin
+       *[other] poin
+    }
 hc-all-submissions = Jawaban lainnya:
 hc-your-winning-answer = Jawaban Anda yang menang: { $text }
 hc-winning-answer-player = Jawaban pemenang dari { $player }: { $text }

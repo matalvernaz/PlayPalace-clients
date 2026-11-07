@@ -1,216 +1,190 @@
+# uno.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 game-name-uno = UNO
-
-# Colors
-uno-color-red = Red
-uno-color-yellow = Yellow
-uno-color-green = Green
-uno-color-blue = Blue
+uno-color-red = Merah
+uno-color-yellow = Kuning
+uno-color-green = Hijau
+uno-color-blue = Biru
 uno-color-wild = Wild
-
-# Card names
 uno-card-number = { $color } { $value }
-uno-card-skip = { $color } Skip
-uno-card-reverse = { $color } Reverse
-uno-card-draw-two = { $color } Draw Two
+uno-card-skip = Lewati Giliran { $color }
+uno-card-reverse = Balik Arah { $color }
+uno-card-draw-two = Ambil Dua { $color }
 uno-card-wild = Wild
-uno-card-wild-four = Wild Draw Four
-
-# Options
-uno-set-winning-score = Score limit: { $score }
-uno-enter-winning-score = Enter score limit
-uno-option-changed-winning-score = Score limit set to { $score }.
-uno-desc-winning-score = Score limit used by the selected UNO scoring mode (default 300, range 10-2000).
-
-uno-set-scoring-mode = Scoring: { $mode }
-uno-select-scoring-mode = Select scoring mode
-uno-option-changed-scoring-mode = Scoring set to { $mode }.
-uno-desc-scoring-mode = Chooses whether the first player to reach the limit wins, or players at the limit are eliminated.
-uno-scoring-first = First to limit wins
-uno-scoring-elimination = Elimination
-
-uno-set-skip-after-draw = Draw penalties skip turn: { $enabled }
-uno-option-changed-skip-after-draw = Draw penalties skip turn { $enabled }.
-uno-desc-skip-after-draw = Controls whether Draw Two and Wild Draw Four penalties also skip the target's turn.
-
-uno-set-responses = Stacking responses: { $enabled }
-uno-option-changed-responses = Stacking responses { $enabled }.
-uno-desc-responses = Allows players to stack draw cards in response to Draw Two or Wild Draw Four penalties.
-
-uno-set-advanced-responses = Advanced responses: { $enabled }
-uno-option-changed-advanced-responses = Advanced responses { $enabled }.
-uno-desc-advanced-responses = Allows extra defensive responses to draw stacks, such as matching Skip, Reverse, or Wild cards. Requires Stacking responses.
-
-uno-set-wait-for-draw-responses = Wait for draw responses: { $enabled }
-uno-option-changed-wait-for-draw-responses = Wait for draw responses { $enabled }.
-uno-desc-wait-for-draw-responses = If the last card creates a draw stack, waits for the next player to respond or draw before scoring the round. Requires Stacking responses.
-
-uno-set-bluff = Wild Draw Four challenges: { $enabled }
-uno-option-changed-bluff = Wild Draw Four challenges { $enabled }.
-uno-desc-bluff = Enables Wild Draw Four challenge rules for illegal plays.
-
-uno-set-straights = Straights: { $enabled }
-uno-option-changed-straights = Straights { $enabled }.
-uno-desc-straights = Lets a player continue out of turn with the next or previous number of the same color after a number card.
-
-uno-set-interceptions = Interceptions: { $enabled }
-uno-option-changed-interceptions = Interceptions { $enabled }.
-uno-desc-interceptions = Lets players jump in out of turn with an exact matching card. Invalid attempts add 3 penalty points.
-
-uno-set-super-interceptions = Super interceptions: { $enabled }
-uno-option-changed-super-interceptions = Super interceptions { $enabled }.
-uno-desc-super-interceptions = Expands interceptions to match number or action symbol even when the color differs. Requires Interceptions.
-
-uno-set-zero-seven = Zero / seven rule: { $enabled }
-uno-option-changed-zero-seven = Zero / seven rule { $enabled }.
-uno-desc-zero-seven-rule = Enables the house rule where 0 rotates everyone's hands and 7 lets the player swap hands or decline.
-
-uno-set-free-draws = Free draws per turn: { $count }
-uno-enter-free-draws = Enter free draws per turn
-uno-option-changed-free-draws = Free draws per turn set to { $count }.
-uno-desc-free-draws = How many times a human player may draw despite holding a playable card (default 0, range 0-999).
-
-# Option validation
-uno-error-advanced-responses-require-responses = Advanced responses require Stacking responses to be enabled.
-uno-error-wait-responses-require-responses = Wait for draw responses requires Stacking responses to be enabled.
-uno-error-super-interceptions-require-interceptions = Super interceptions require Interceptions to be enabled.
-
-# Actions
-uno-draw = Draw
+uno-card-wild-four = Wild Ambil Empat
+uno-set-winning-score = Batas poin: { $score }
+uno-enter-winning-score = Masukkan batas poin
+uno-option-changed-winning-score = Batas poin diubah menjadi { $score }.
+uno-desc-winning-score = Batas poin untuk mode penilaian UNO yang dipilih. Nilai awal 300, dengan rentang 10 sampai 2000.
+uno-set-scoring-mode = Penilaian: { $mode }
+uno-select-scoring-mode = Pilih mode penilaian
+uno-option-changed-scoring-mode = Penilaian diubah menjadi { $mode }.
+uno-desc-scoring-mode = Tentukan apakah pemain pertama yang mencapai batas poin menang, atau pemain yang mencapai batas poin tersingkir.
+uno-scoring-first = Pertama mencapai batas menang
+uno-scoring-elimination = Eliminasi
+uno-set-skip-after-draw = Hukuman ambil kartu juga melewatkan giliran: { $enabled }
+uno-option-changed-skip-after-draw = Hukuman ambil kartu juga melewatkan giliran { $enabled }.
+uno-desc-skip-after-draw = Tentukan apakah hukuman Ambil Dua dan Wild Ambil Empat juga membuat penerimanya kehilangan giliran.
+uno-set-responses = Tumpuk hukuman ambil kartu: { $enabled }
+uno-option-changed-responses = Tumpuk hukuman ambil kartu { $enabled }.
+uno-desc-responses = Izinkan pemain membalas hukuman Ambil Dua atau Wild Ambil Empat dengan kartu ambil lainnya agar hukumannya bertambah.
+uno-set-advanced-responses = Balasan lanjutan: { $enabled }
+uno-option-changed-advanced-responses = Balasan lanjutan { $enabled }.
+uno-desc-advanced-responses = Izinkan balasan pertahanan tambahan terhadap tumpukan hukuman, seperti kartu Lewati Giliran, Balik Arah, atau Wild yang sesuai. Tumpuk hukuman ambil kartu harus diaktifkan.
+uno-set-wait-for-draw-responses = Tunggu balasan hukuman ambil kartu: { $enabled }
+uno-option-changed-wait-for-draw-responses = Tunggu balasan hukuman ambil kartu { $enabled }.
+uno-desc-wait-for-draw-responses = Jika kartu terakhir menimbulkan tumpukan hukuman, tunggu sampai pemain berikutnya membalas atau mengambil kartu sebelum menghitung poin ronde. Tumpuk hukuman ambil kartu harus diaktifkan.
+uno-set-bluff = Tantangan Wild Ambil Empat: { $enabled }
+uno-option-changed-bluff = Tantangan Wild Ambil Empat { $enabled }.
+uno-desc-bluff = Aktifkan aturan tantangan untuk memeriksa apakah Wild Ambil Empat dimainkan secara sah.
+uno-set-straights = Angka berurutan: { $enabled }
+uno-option-changed-straights = Angka berurutan { $enabled }.
+uno-desc-straights = Setelah memainkan kartu angka, pemain dapat melanjutkan di luar giliran dengan angka satu lebih tinggi atau lebih rendah yang berwarna sama.
+uno-set-interceptions = Sela giliran: { $enabled }
+uno-option-changed-interceptions = Sela giliran { $enabled }.
+uno-desc-interceptions = Izinkan pemain menyela di luar giliran dengan kartu yang persis sama. Percobaan yang tidak sah menambah 3 poin hukuman.
+uno-set-super-interceptions = Sela giliran bebas warna: { $enabled }
+uno-option-changed-super-interceptions = Sela giliran bebas warna { $enabled }.
+uno-desc-super-interceptions = Izinkan sela giliran dengan angka atau simbol aksi yang sama meskipun warnanya berbeda. Sela giliran harus diaktifkan.
+uno-set-zero-seven = Aturan nol dan tujuh: { $enabled }
+uno-option-changed-zero-seven = Aturan nol dan tujuh { $enabled }.
+uno-desc-zero-seven-rule = Aktifkan aturan tambahan: kartu 0 memutar kartu di tangan semua pemain, sedangkan kartu 7 memungkinkan pemain bertukar kartu di tangan atau menolak pertukaran.
+uno-set-free-draws = Pengambilan bebas per giliran: { $count }
+uno-enter-free-draws = Masukkan jumlah pengambilan bebas per giliran
+uno-option-changed-free-draws = Pengambilan bebas per giliran diubah menjadi { $count }.
+uno-desc-free-draws = Jumlah kesempatan pemain manusia mengambil kartu meskipun masih memiliki kartu yang bisa dimainkan. Nilai awal 0, dengan rentang 0 sampai 999.
+uno-error-advanced-responses-require-responses = Balasan lanjutan memerlukan Tumpuk hukuman ambil kartu.
+uno-error-wait-responses-require-responses = Tunggu balasan hukuman ambil kartu memerlukan Tumpuk hukuman ambil kartu.
+uno-error-super-interceptions-require-interceptions = Sela giliran bebas warna memerlukan Sela giliran.
+uno-draw = Ambil kartu
 uno-say-uno = UNO
-uno-read-top = Read top card
-uno-read-color = Read current color
-uno-read-counts = Read card counts
-uno-read-hand = Read your hand value
-uno-sort-color = Sort by color
-uno-sort-number = Sort by number
-
-# Gameplay announcements
-uno-new-hand = Round { $round }.
-uno-start-card = { $player } turns up { $card }.
-uno-you-start-card = You turn up { $card }.
-uno-current-color = Current color: { $color }.
-uno-dealt-cards = Everyone is dealt { $cards } cards.
-uno-choose-opening-color-you = Choose the opening color.
-uno-choose-opening-color-player = { $player } must choose the opening color.
-uno-direction-reversed = The direction is reversed.
-uno-player-plays = { $player } plays { $card }.
-uno-you-play = You play { $card }.
-uno-player-chooses-color = { $player } chooses { $color }.
-uno-you-choose-color = You choose { $color }.
-uno-player-draws-one = { $player } draws a card.
-uno-player-draws-many = { $player } draws { $count } cards.
-uno-you-draw-one = You draw a card.
-uno-you-draw-many = You draw { $count } cards.
-uno-cant-play = { $player } can't play.
-uno-you-cant-play = You can't play.
-uno-you-skipped = You are skipped.
-uno-says-uno = { $player } says UNO!
-uno-you-say-uno = You say UNO!
-uno-callout = { $caller } calls out { $player } for not saying UNO! { $player } draws { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-you-callout = You call out { $player } for not saying UNO! { $player } draws { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-callout-you = { $caller } calls you out for not saying UNO! You draw { $count } { $count ->
-    [one] card
-   *[other] cards
-}.
-uno-error-already-said-uno = You have already said UNO.
-uno-error-no-uno-call = No UNO call is available right now.
-uno-cannot-play-that = You cannot play { $card }. { $reason }
-uno-reshuffle = Reshuffling the discard pile.
-uno-hand-blocked = No one can play. The round ends.
-uno-error-choose-color-first = Choose a color for your Wild card before playing another card.
-uno-error-wait-color-choice = Wait for the Wild card's player to choose a color before playing.
-uno-error-wild-transition = Wait for the chosen color to take effect before playing another card.
-uno-error-choose-swap-first = Choose a hand-swap target or decline before taking another action.
-uno-error-wait-swap-choice = Wait for the seven hand-swap choice to finish before playing.
-uno-error-wait-next-hand = Wait for the next round to begin before playing a card.
-uno-error-wait-intro = Wait for the round setup to finish before playing a card.
-uno-reason-draw-stack-response = There is a draw stack of { $count } { $count ->
-    [one] card
-   *[other] cards
-} against you; play a valid response card or draw the penalty.
-uno-reason-draw-stack-no-response = There is a draw penalty of { $count } { $count ->
-    [one] card
-   *[other] cards
-} against you, and stacking responses are off; draw the penalty instead.
-uno-reason-match-required = The top card is { $top }, and the active color is { $color }; match the color, match the number or action symbol, or play a Wild card.
-uno-reason-card-not-available = That card is not available in the current state.
-
-# Bluff challenge
-uno-bluff-challenge = Challenge Wild Draw Four
-uno-bluff-caught = { $player } played an illegal Wild Draw Four and draws { $count } cards!
-uno-you-bluff-caught = You played an illegal Wild Draw Four and draw { $count } cards!
-uno-bluff-wrong = { $player } challenged the Wild Draw Four incorrectly and draws { $count } cards!
-uno-you-bluff-wrong = You challenged the Wild Draw Four incorrectly and draw { $count } cards!
-
-# Zero / seven rule
-uno-rotate-hands = Everyone passes their hand!
-uno-swap-hands = { $player } swaps hands with { $target }!
-uno-you-swap = You swap hands with { $target }!
-uno-swap-with-you = { $player } swaps hands with you!
-uno-swap-with = Swap hands with { $player }
-uno-choose-swap = Choose a player to swap hands with, or decline.
-uno-swap-none = Don't swap
-uno-you-swap-none = You keep your hand.
-uno-swap-none-other = { $player } keeps their hand.
-
-# Interceptions / straights
-uno-player-intercepts = { $player } intercepts with { $card }!
-uno-you-intercept = You intercept with { $card }!
-uno-bad-intercept = Invalid interception. { $points } penalty points.
-uno-not-your-turn = It's not your turn.
-
-# Info
-uno-no-top = There is no top card yet.
+uno-read-top = Baca kartu teratas
+uno-read-color = Baca warna yang berlaku
+uno-read-counts = Baca jumlah kartu
+uno-read-hand = Baca nilai kartu di tangan
+uno-sort-color = Urutkan menurut warna
+uno-sort-number = Urutkan menurut angka
+uno-new-hand = Ronde { $round }.
+uno-start-card = { $player } membuka { $card }.
+uno-you-start-card = Anda membuka { $card }.
+uno-current-color = Warna yang berlaku: { $color }.
+uno-dealt-cards = Setiap pemain mendapat { $cards } kartu.
+uno-choose-opening-color-you = Pilih warna pembuka.
+uno-choose-opening-color-player = { $player } harus memilih warna pembuka.
+uno-direction-reversed = Arah giliran dibalik.
+uno-player-plays = { $player } memainkan { $card }.
+uno-you-play = Anda memainkan { $card }.
+uno-player-chooses-color = { $player } memilih { $color }.
+uno-you-choose-color = Anda memilih { $color }.
+uno-player-draws-one = { $player } mengambil satu kartu.
+uno-player-draws-many = { $player } mengambil { $count } kartu.
+uno-you-draw-one = Anda mengambil satu kartu.
+uno-you-draw-many = Anda mengambil { $count } kartu.
+uno-cant-play = { $player } tidak bisa memainkan kartu.
+uno-you-cant-play = Anda tidak bisa memainkan kartu.
+uno-you-skipped = Giliran Anda dilewati.
+uno-says-uno = { $player } menyebut UNO!
+uno-you-say-uno = Anda menyebut UNO!
+uno-callout =
+    { $caller } menegur { $player } karena tidak menyebut UNO! { $player } mengambil { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }.
+uno-you-callout =
+    Anda menegur { $player } karena tidak menyebut UNO! { $player } mengambil { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }.
+uno-callout-you =
+    { $caller } menegur Anda karena tidak menyebut UNO! Anda mengambil { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }.
+uno-error-already-said-uno = Anda sudah menyebut UNO.
+uno-error-no-uno-call = Saat ini tidak ada yang perlu menyebut UNO atau bisa ditegur.
+uno-cannot-play-that = Anda tidak bisa memainkan { $card }. { $reason }
+uno-reshuffle = Mengocok ulang tumpukan buangan.
+uno-hand-blocked = Tidak ada yang bisa memainkan kartu. Ronde berakhir.
+uno-error-choose-color-first = Pilih warna kartu Wild Anda sebelum memainkan kartu lain.
+uno-error-wait-color-choice = Tunggu pemain yang memainkan Wild memilih warna sebelum memainkan kartu.
+uno-error-wild-transition = Tunggu sampai warna pilihan diterapkan sebelum memainkan kartu lain.
+uno-error-choose-swap-first = Pilih pemain untuk bertukar kartu di tangan atau tolak pertukaran sebelum melakukan tindakan lain.
+uno-error-wait-swap-choice = Tunggu pilihan pertukaran kartu akibat kartu tujuh selesai sebelum memainkan kartu.
+uno-error-wait-next-hand = Tunggu ronde berikutnya dimulai sebelum memainkan kartu.
+uno-error-wait-intro = Tunggu persiapan ronde selesai sebelum memainkan kartu.
+uno-reason-draw-stack-response =
+    Anda mendapat tumpukan hukuman sebanyak { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }. Mainkan kartu balasan yang sah atau ambil kartu hukumannya.
+uno-reason-draw-stack-no-response =
+    Anda mendapat hukuman mengambil { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    } dan tumpuk hukuman ambil kartu dinonaktifkan. Ambil kartu hukumannya.
+uno-reason-match-required = Kartu teratas adalah { $top } dan warna yang berlaku adalah { $color }. Samakan warna, angka, atau simbol aksi, atau mainkan kartu Wild.
+uno-reason-card-not-available = Kartu itu tidak tersedia dalam keadaan saat ini.
+uno-bluff-challenge = Tantang Wild Ambil Empat
+uno-bluff-caught = { $player } memainkan Wild Ambil Empat secara tidak sah dan harus mengambil { $count } kartu!
+uno-you-bluff-caught = Anda memainkan Wild Ambil Empat secara tidak sah dan harus mengambil { $count } kartu!
+uno-bluff-wrong = Tantangan { $player } terhadap Wild Ambil Empat gagal. { $player } harus mengambil { $count } kartu!
+uno-you-bluff-wrong = Tantangan Anda terhadap Wild Ambil Empat gagal. Anda harus mengambil { $count } kartu!
+uno-rotate-hands = Semua pemain menyerahkan kartu di tangannya mengikuti arah giliran!
+uno-swap-hands = { $player } bertukar kartu di tangan dengan { $target }!
+uno-you-swap = Anda bertukar kartu di tangan dengan { $target }!
+uno-swap-with-you = { $player } bertukar kartu di tangan dengan Anda!
+uno-swap-with = Tukar kartu di tangan dengan { $player }
+uno-choose-swap = Pilih pemain untuk bertukar kartu di tangan, atau tolak pertukaran.
+uno-swap-none = Jangan tukar
+uno-you-swap-none = Anda mempertahankan kartu di tangan.
+uno-swap-none-other = { $player } mempertahankan kartu di tangannya.
+uno-player-intercepts = { $player } menyela giliran dengan { $card }!
+uno-you-intercept = Anda menyela giliran dengan { $card }!
+uno-bad-intercept = Sela giliran tidak sah. Anda mendapat { $points } poin hukuman.
+uno-not-your-turn = Belum giliran Anda.
+uno-no-top = Belum ada kartu teratas.
 uno-top-card = { $card }.
 uno-color-is = { $color }.
-uno-count-you = You { $count }
+uno-count-you = Anda { $count }
 uno-count-player = { $player } { $count }
-uno-deck-count = deck { $count }
-uno-sorting-color = Sorting by color.
-uno-sorting-number = Sorting by number.
-
-# Round / game end
-uno-round-winner = { $player } wins the round!
-uno-you-win-round = You win the round!
-uno-round-points-from = { $points } from { $player }
-uno-round-points-from-you = { $points } from you
-uno-round-points-from-with-interception = { $points } from { $player } ({ $hand_points } hand + { $penalty } interception penalty)
-uno-round-points-from-you-with-interception = { $points } from you ({ $hand_points } hand + { $penalty } interception penalty)
-uno-round-details-none = No points were taken from opponents.
-uno-round-summary = { $details }. { $player } gains { $total }.
-uno-round-summary-you = { $details }. You gain { $total }.
-uno-you-add-penalty-points = You add { $points } penalty points to your total for this round.
-uno-player-adds-penalty-points = { $player } adds { $points } penalty points to their total for this round.
-uno-you-add-penalty-points-with-interception = You add { $points } penalty points to your total for this round ({ $hand_points } from your hand plus { $penalty } interception penalty).
-uno-player-adds-penalty-points-with-interception = { $player } adds { $points } penalty points to their total for this round ({ $hand_points } from their hand plus { $penalty } interception penalty).
-uno-you-are-eliminated = You have reached the { $limit }-point elimination limit and are out of the game.
-uno-player-is-eliminated = { $player } has reached the { $limit }-point elimination limit and is out of the game.
+uno-deck-count = tumpukan ambil { $count }
+uno-sorting-color = Mengurutkan menurut warna.
+uno-sorting-number = Mengurutkan menurut angka.
+uno-round-winner = { $player } memenangkan ronde!
+uno-you-win-round = Anda memenangkan ronde!
+uno-round-points-from = { $points } dari { $player }
+uno-round-points-from-you = { $points } dari Anda
+uno-round-points-from-with-interception = { $points } dari { $player }, yaitu { $hand_points } nilai kartu dan { $penalty } hukuman sela giliran
+uno-round-points-from-you-with-interception = { $points } dari Anda, yaitu { $hand_points } nilai kartu dan { $penalty } hukuman sela giliran
+uno-round-details-none = Tidak ada poin yang diperoleh dari lawan.
+uno-round-summary = { $details }. { $player } mendapat { $total }.
+uno-round-summary-you = { $details }. Anda mendapat { $total }.
+uno-you-add-penalty-points = Total Anda bertambah { $points } poin hukuman pada ronde ini.
+uno-player-adds-penalty-points = Total { $player } bertambah { $points } poin hukuman pada ronde ini.
+uno-you-add-penalty-points-with-interception = Total Anda bertambah { $points } poin hukuman pada ronde ini, yaitu { $hand_points } dari kartu di tangan dan { $penalty } hukuman sela giliran.
+uno-player-adds-penalty-points-with-interception = Total { $player } bertambah { $points } poin hukuman pada ronde ini, yaitu { $hand_points } dari kartu di tangan dan { $penalty } hukuman sela giliran.
+uno-you-are-eliminated = Anda mencapai batas eliminasi { $limit } poin dan tersingkir dari permainan.
+uno-player-is-eliminated = { $player } mencapai batas eliminasi { $limit } poin dan tersingkir dari permainan.
 uno-you-win-game =
     { $mode ->
-        [elimination] You are the last player remaining and win with { $score } penalty points.
-       *[first_to_limit] You win the game with { $score } points!
+        [elimination] Anda satu-satunya pemain yang tersisa dan menang dengan { $score } poin hukuman.
+       *[first_to_limit] Anda memenangkan permainan dengan { $score } poin!
     }
 uno-player-wins-game =
     { $mode ->
-        [elimination] { $player } is the last player remaining and wins with { $score } penalty points.
-       *[first_to_limit] { $player } wins the game with { $score } points!
+        [elimination] { $player } satu-satunya pemain yang tersisa dan menang dengan { $score } poin hukuman.
+       *[first_to_limit] { $player } memenangkan permainan dengan { $score } poin!
     }
-uno-game-tie = Everyone has been eliminated. The game is a tie!
+uno-game-tie = Semua pemain tersingkir. Permainan berakhir seri!
 uno-line-format = { $rank }. { $player }: { $score }
-uno-score-line-first = { $player }: { $score }/{ $target } points.
-uno-score-line-elimination = { $player }: { $score }/{ $target } penalty points.
-
-# Hand value (d key)
-uno-read-hand-value = { $count ->
-    [one] { $count } card
-   *[other] { $count } cards
- } worth { $points ->
-    [one] { $points } point
-   *[other] { $points } points
- }.
+uno-score-line-first = { $player }: { $score } dari { $target } poin.
+uno-score-line-elimination = { $player }: { $score } dari { $target } poin hukuman.
+uno-read-hand-value =
+    { $count ->
+        [one] { $count } kartu
+       *[other] { $count } kartu
+    } bernilai { $points ->
+        [one] { $points } poin
+       *[other] { $points } poin
+    }.

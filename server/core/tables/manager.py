@@ -7,7 +7,7 @@ import uuid
 from .table import Table
 
 if TYPE_CHECKING:
-    from server.core.users.base import User
+    from server.users.base import User
 
 LOG = logging.getLogger("playpalace.tables")
 

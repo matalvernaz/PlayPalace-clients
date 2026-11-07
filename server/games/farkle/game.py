@@ -1,5 +1,5 @@
 """
-Farkle Game Implementation for PlayPalace v11.
+Farkle Game Implementation.
 
 Classic dice game: score combinations and don't Farkle!
 Push your luck by rolling again or bank your points.
@@ -11,21 +11,41 @@ import random
 
 from ..base import Game, Player, GameOptions
 from ..registry import register_game
-from ...game_utils.action_guard_mixin import ActionGuardMixin
-from ...game_utils.round_based_game_mixin import RoundBasedGameMixin
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.bot_helper import BotHelper
-from ...game_utils.dice import (
-    count_dice,
-    count_exact_matches,
-    has_consecutive_run,
-    has_n_of_a_kind,
-)
+from ...game_utils.dice import DiceSet, random_dice_throw_sound
 from ...game_utils.game_result import GameResult, PlayerResult
-from ...game_utils.options import BoolOption, IntOption, option_field
+from ...game_utils.options import IntOption, option_field
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
-from .bot import bot_think
+from ...ui.keybinds import KeybindState
+
+
+RISK_CONFIRM_TICKS = 200
+RISK_CONFIRM_SECONDS = 10
+RISKY_ROLL_TARGET_FRACTION = 5
+BOT_FARKLE_PROBABILITY_BY_DICE = {
+    1: 2 / 3,
+    2: 4 / 9,
+    3: 5 / 18,
+    4: 17 / 108,
+    5: 25 / 324,
+    6: 5 / 216,
+}
+# Expected future value, scaled to PlayAural's compact Farkle scores. These
+# keep the bot aggressive with high-value six/five-dice rolls and cautious with
+# one/two-dice rolls where Farkle risk dominates.
+BOT_EXPECTED_GAIN_BY_DICE = {
+    1: 26,
+    2: 25,
+    3: 29,
+    4: 38,
+    5: 49,
+    6: 71,
+}
+BOT_BANK_MARGIN = 1.03
+BOT_CLOSE_GAP_FRACTION = 8
+BOT_FAR_GAP_FRACTION = 4
+BOT_MEANINGFUL_TURN_FRACTION = 10
 
 
 @dataclass
@@ -34,14 +54,13 @@ class FarklePlayer(Player):
 
     score: int = 0  # Permanent score (banked points)
     turn_score: int = 0  # Points accumulated this turn (lost on farkle)
-    current_roll: list[int] = field(default_factory=list)  # Dice available to take
+    dice: DiceSet = field(default_factory=lambda: DiceSet(num_dice=6))  # Dice state
     banked_dice: list[int] = field(default_factory=list)  # Dice taken this turn
     has_taken_combo: bool = False  # True after taking a combo (enables roll)
-    hot_dice_multiplier: int = 1  # Turn-only multiplier for combo scoring
-    hot_dice_chain: int = 0  # Number of hot-dice triggers in current turn
+    pending_risky_action: str = ""
+    risky_confirm_ticks: int = 0
     # Stats tracking
     turns_taken: int = 0  # Number of turns completed (for avg points per turn)
-    best_turn: int = 0  # Highest points banked in a single turn
 
 
 @dataclass
@@ -50,33 +69,35 @@ class FarkleOptions(GameOptions):
 
     target_score: int = option_field(
         IntOption(
-            default=500,
+            default=1000,
             min_val=500,
             max_val=5000,
             value_key="score",
             label="farkle-set-target-score",
             prompt="farkle-enter-target-score",
             change_msg="farkle-option-changed-target",
-            description="farkle-desc-target-score",
         )
     )
-    initial_bank_score: int = option_field(
+    min_entrance_score: int = option_field(
         IntOption(
-            default=0,
+            default=50,
             min_val=0,
-            max_val=1000,
+            max_val=5000,
             value_key="score",
-            label="farkle-set-initial-bank-score",
-            prompt="farkle-enter-initial-bank-score",
-            change_msg="farkle-option-changed-initial-bank-score",
+            label="farkle-set-entrance-score",
+            prompt="farkle-enter-entrance-score",
+            change_msg="farkle-option-changed-entrance",
         )
     )
-    hot_dice_multiplier: bool = option_field(
-        BoolOption(
-            default=False,
-            value_key="enabled",
-            label="farkle-toggle-hot-dice-multiplier",
-            change_msg="farkle-option-changed-hot-dice-multiplier",
+    min_bank_score: int = option_field(
+        IntOption(
+            default=30,
+            min_val=0,
+            max_val=5000,
+            value_key="score",
+            label="farkle-set-bank-score",
+            prompt="farkle-enter-bank-score",
+            change_msg="farkle-option-changed-bank",
         )
     )
 
@@ -110,6 +131,14 @@ COMBO_SOUNDS = {
 }
 
 
+def count_dice(dice: list[int]) -> dict[int, int]:
+    """Count occurrences of each die value (1-6)."""
+    counts = {i: 0 for i in range(1, 7)}
+    for die in dice:
+        counts[die] += 1
+    return counts
+
+
 def has_combination(dice: list[int], combo_type: str, number: int = 0) -> bool:
     """Check if dice contain a specific combination."""
     counts = count_dice(dice)
@@ -119,25 +148,35 @@ def has_combination(dice: list[int], combo_type: str, number: int = 0) -> bool:
     elif combo_type == COMBO_SINGLE_5:
         return counts[5] >= 1
     elif combo_type == COMBO_THREE_OF_KIND:
-        return has_n_of_a_kind(counts, 3, value=number)
+        return counts[number] >= 3
     elif combo_type == COMBO_FOUR_OF_KIND:
-        return has_n_of_a_kind(counts, 4, value=number)
+        return counts[number] >= 4
     elif combo_type == COMBO_FIVE_OF_KIND:
-        return has_n_of_a_kind(counts, 5, value=number)
+        return counts[number] >= 5
     elif combo_type == COMBO_SIX_OF_KIND:
-        return has_n_of_a_kind(counts, 6, value=number)
+        return counts[number] == 6
     elif combo_type == COMBO_LARGE_STRAIGHT:
-        return has_consecutive_run(counts, length=6, min_value=1, max_value=6, require_unique=True)
+        if len(dice) != 6:
+            return False
+        return all(counts[i] == 1 for i in range(1, 7))
     elif combo_type == COMBO_SMALL_STRAIGHT:
-        return has_consecutive_run(counts, length=5, min_value=1, max_value=6)
+        if len(dice) < 5:
+            return False
+        # Check for 1-2-3-4-5
+        has_1_5 = all(counts[i] >= 1 for i in range(1, 6))
+        # Check for 2-3-4-5-6
+        has_2_6 = all(counts[i] >= 1 for i in range(2, 7))
+        return has_1_5 or has_2_6
     elif combo_type == COMBO_THREE_PAIRS:
         if len(dice) != 6:
             return False
-        return count_exact_matches(counts, 2) == 3
+        pairs = sum(1 for i in range(1, 7) if counts[i] == 2)
+        return pairs == 3
     elif combo_type == COMBO_DOUBLE_TRIPLETS:
         if len(dice) != 6:
             return False
-        return count_exact_matches(counts, 3) == 2
+        triplets = sum(1 for i in range(1, 7) if counts[i] == 3)
+        return triplets == 2
     elif combo_type == COMBO_FULL_HOUSE:
         if len(dice) != 6:
             return False
@@ -183,30 +222,35 @@ def has_scoring_dice(dice: list[int]) -> bool:
     counts = count_dice(dice)
 
     # Single 1s or 5s
-    if counts.get(1, 0) > 0 or counts.get(5, 0) > 0:
+    if counts[1] > 0 or counts[5] > 0:
         return True
 
     # Three or more of a kind
-    if has_n_of_a_kind(counts, 3):
+    if any(counts[i] >= 3 for i in range(1, 7)):
         return True
 
     # Large straight (1-2-3-4-5-6)
-    if len(dice) == 6 and has_consecutive_run(
-        counts, length=6, min_value=1, max_value=6, require_unique=True
-    ):
+    if len(dice) == 6 and all(counts[i] == 1 for i in range(1, 7)):
         return True
 
     # Small straight
-    if len(dice) >= 5 and has_consecutive_run(counts, length=5, min_value=1, max_value=6):
-        return True
+    if len(dice) >= 5:
+        has_1_5 = all(counts[i] >= 1 for i in range(1, 6))
+        has_2_6 = all(counts[i] >= 1 for i in range(2, 7))
+        if has_1_5 or has_2_6:
+            return True
 
     # Three pairs
-    if len(dice) == 6 and count_exact_matches(counts, 2) == 3:
-        return True
+    if len(dice) == 6:
+        pairs = sum(1 for i in range(1, 7) if counts[i] == 2)
+        if pairs == 3:
+            return True
 
     # Double triplets
-    if len(dice) == 6 and count_exact_matches(counts, 3) == 2:
-        return True
+    if len(dice) == 6:
+        triplets = sum(1 for i in range(1, 7) if counts[i] == 3)
+        if triplets == 2:
+            return True
 
     return False
 
@@ -287,7 +331,7 @@ def get_available_combinations(dice: list[int]) -> list[tuple[str, int, int]]:
 
 @dataclass
 @register_game
-class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
+class FarkleGame(Game):
     """
     Farkle dice game.
 
@@ -297,10 +341,11 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     First player to reach the target score wins.
     """
 
-    round_start_sound = None
+    relevant_preferences = ["brief_announcements", "confirm_destructive_actions"]
 
     players: list[FarklePlayer] = field(default_factory=list)
     options: FarkleOptions = field(default_factory=FarkleOptions)
+    tiebreaker_player_names: list[str] = field(default_factory=list)
 
     @classmethod
     def get_name(cls) -> str:
@@ -312,7 +357,7 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-dice-games"
+        return "dice"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -321,6 +366,10 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     @classmethod
     def get_max_players(cls) -> int:
         return 20
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "total_score", "high_score", "rating", "games_played"]
 
     @classmethod
     def get_leaderboard_types(cls) -> list[dict]:
@@ -333,15 +382,11 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 "format": "avg",
                 "decimals": 1,
             },
-            {
-                "id": "best_single_turn",
-                "path": "player_stats.{player_name}.best_turn",
-                "aggregate": "max",
-                "format": "score",
-            },
         ]
 
-    def create_player(self, player_id: str, name: str, is_bot: bool = False) -> FarklePlayer:
+    def create_player(
+        self, player_id: str, name: str, is_bot: bool = False
+    ) -> FarklePlayer:
         """Create a new player with Farkle-specific state."""
         return FarklePlayer(
             id=player_id,
@@ -349,12 +394,151 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             is_bot=is_bot,
             score=0,
             turn_score=0,
-            current_roll=[],
             banked_dice=[],
             has_taken_combo=False,
-            hot_dice_multiplier=1,
-            hot_dice_chain=0,
         )
+
+    def _player_locale(self, player: Player) -> str:
+        user = self.get_user(player)
+        return user.locale if user else "en"
+
+    def _wants_brief(self, user) -> bool:
+        return bool(
+            user
+            and user.preferences.get_effective(
+                "brief_announcements", game_type=self.get_type()
+            )
+        )
+
+    def _broadcast_actor_l(
+        self,
+        actor: FarklePlayer,
+        personal_key: str,
+        others_key: str,
+        *,
+        brief_personal_key: str | None = None,
+        brief_others_key: str | None = None,
+        **kwargs,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+
+            is_actor = listener is actor
+            key = personal_key if is_actor else others_key
+            if self._wants_brief(user):
+                if is_actor and brief_personal_key:
+                    key = brief_personal_key
+                elif not is_actor and brief_others_key:
+                    key = brief_others_key
+
+            payload = dict(kwargs)
+            if not is_actor:
+                payload["player"] = actor.name
+            user.speak_l(key, buffer="game", **payload)
+
+    def _broadcast_global_l(
+        self,
+        full_key: str,
+        brief_key: str | None = None,
+        **kwargs,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            key = brief_key if brief_key and self._wants_brief(user) else full_key
+            user.speak_l(key, buffer="game", **kwargs)
+
+    def _format_dice(self, dice: list[int]) -> str:
+        return ", ".join(str(die) for die in dice)
+
+    def _clear_risky_confirmation(self, player: FarklePlayer) -> None:
+        player.pending_risky_action = ""
+        player.risky_confirm_ticks = 0
+
+    def _bank_minimum(self, player: FarklePlayer) -> int:
+        return (
+            self.options.min_entrance_score
+            if player.score == 0
+            else self.options.min_bank_score
+        )
+
+    def _can_bank_points(self, player: FarklePlayer) -> bool:
+        return player.turn_score > 0 and (
+            player.has_taken_combo or len(player.dice.values) == 0
+        )
+
+    def _risky_roll_threshold(self, player: FarklePlayer) -> int:
+        return max(
+            self._bank_minimum(player),
+            max(1, self.options.target_score // RISKY_ROLL_TARGET_FRACTION),
+        )
+
+    def _should_confirm_risky_roll(self, player: FarklePlayer) -> bool:
+        if player.is_bot:
+            self._clear_risky_confirmation(player)
+            return False
+        if self._is_bank_enabled(player) is not None:
+            self._clear_risky_confirmation(player)
+            return False
+        if player.turn_score < self._risky_roll_threshold(player):
+            self._clear_risky_confirmation(player)
+            return False
+
+        user = self.get_user(player)
+        if not user or not user.preferences.get_effective(
+            "confirm_destructive_actions", game_type=self.get_type()
+        ):
+            self._clear_risky_confirmation(player)
+            return False
+
+        signature = f"roll:{player.turn_score}:{self._format_dice(player.dice.values)}"
+        if (
+            player.pending_risky_action == signature
+            and player.risky_confirm_ticks > 0
+        ):
+            self._clear_risky_confirmation(player)
+            return False
+
+        player.pending_risky_action = signature
+        player.risky_confirm_ticks = RISK_CONFIRM_TICKS
+        user.speak_l(
+            "farkle-confirm-risky-roll",
+            buffer="game",
+            points=player.turn_score,
+            seconds=RISK_CONFIRM_SECONDS,
+        )
+        return True
+
+    def _round_players(self) -> list[FarklePlayer]:
+        active = [
+            player
+            for player in self.get_active_players()
+            if isinstance(player, FarklePlayer)
+        ]
+        if not self.tiebreaker_player_names:
+            return active
+        finalists = set(self.tiebreaker_player_names)
+        return [player for player in active if player.name in finalists]
+
+    def _finish_with_winner(self, winner: FarklePlayer) -> None:
+        self.play_sound("game_pig/win.ogg")
+        self._broadcast_actor_l(
+            winner,
+            "farkle-you-win",
+            "farkle-winner",
+            brief_personal_key="farkle-you-win-brief",
+            brief_others_key="farkle-winner-brief",
+            score=winner.score,
+        )
+        self.finish_game()
+
+    def before_menu_build(self, player: Player) -> None:
+        super().before_menu_build(player)
+        if isinstance(player, FarklePlayer):
+            self.update_scoring_actions(player)
 
     def create_turn_action_set(self, player: FarklePlayer) -> ActionSet:
         """Create the turn action set for a player."""
@@ -372,6 +556,7 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 is_enabled="_is_roll_enabled",
                 is_hidden="_is_roll_hidden",
                 get_label="_get_roll_label",
+                show_in_actions_menu=False,
             )
         )
 
@@ -384,83 +569,154 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 is_enabled="_is_bank_enabled",
                 is_hidden="_is_bank_hidden",
                 get_label="_get_bank_label",
+                show_in_actions_menu=False,
             )
         )
 
-        # Check turn score (actions menu only)
+        return action_set
+
+    def create_standard_action_set(self, player: Player) -> ActionSet:
+        action_set = super().create_standard_action_set(player)
+        user = self.get_user(player)
+        locale = user.locale if user else "en"
+
         action_set.add(
             Action(
                 id="check_turn_score",
-                label="Check turn score",
+                label=Localization.get(locale, "farkle-check-turn-score"),
                 handler="_action_check_turn_score",
                 is_enabled="_is_check_turn_score_enabled",
                 is_hidden="_is_check_turn_score_hidden",
             )
         )
 
+        if self.is_touch_client(user):
+            target_order = ["check_turn_score", "check_scores", "whose_turn", "whos_at_table"]
+            self._order_touch_standard_actions(action_set, target_order)
         return action_set
+
+    def _is_check_scores_hidden(self, player: "Player") -> Visibility:
+        """Keep score checks visible for touch clients while playing."""
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            if self.status == "playing":
+                return Visibility.VISIBLE
+            return Visibility.HIDDEN
+        return super()._is_check_scores_hidden(player)
+
+    def _is_whose_turn_hidden(self, player: "Player") -> Visibility:
+        """Keep turn checks visible for touch clients while playing."""
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            if self.status == "playing":
+                return Visibility.VISIBLE
+            return Visibility.HIDDEN
+        return super()._is_whose_turn_hidden(player)
+
+    def _is_whos_at_table_hidden(self, player: "Player") -> Visibility:
+        """Keep table presence visible for touch clients."""
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE
+        return super()._is_whos_at_table_hidden(player)
 
     def setup_keybinds(self) -> None:
         """Define all keybinds for the game."""
         super().setup_keybinds()
 
+        user = None
+        if hasattr(self, "host_username") and self.host_username:
+            player = self.get_player(self.host_username)
+            if player:
+                user = self.get_user(player)
+        locale = user.locale if user else "en"
+
         # Turn action keybinds
-        self.define_keybind("r", "Roll dice", ["roll"], state=KeybindState.ACTIVE)
-        self.define_keybind("b", "Bank points", ["bank"], state=KeybindState.ACTIVE)
         self.define_keybind(
-            "c", "Check turn score", ["check_turn_score"], state=KeybindState.ACTIVE
+            "r",
+            Localization.get(locale, "farkle-roll-label"),
+            ["roll"],
+            state=KeybindState.ACTIVE,
+        )
+        self.define_keybind(
+            "b",
+            Localization.get(locale, "farkle-bank-label"),
+            ["bank"],
+            state=KeybindState.ACTIVE,
+        )
+        self.define_keybind(
+            "c",
+            Localization.get(locale, "farkle-check-turn-score"),
+            ["check_turn_score"],
+            state=KeybindState.ACTIVE,
         )
 
-    def _get_combo_label(self, locale: str, combo_type: str, number: int, points: int) -> str:
+    def _get_combo_label(
+        self, locale: str, combo_type: str, number: int, points: int
+    ) -> str:
         """Get the localized label for a scoring combination."""
         if combo_type == COMBO_SINGLE_1:
             return Localization.get(locale, "farkle-take-single-one", points=points)
         elif combo_type == COMBO_SINGLE_5:
             return Localization.get(locale, "farkle-take-single-five", points=points)
         elif combo_type == COMBO_THREE_OF_KIND:
-            return Localization.get(locale, "farkle-take-three-kind", number=number, points=points)
+            return Localization.get(
+                locale, "farkle-take-three-kind", number=number, points=points
+            )
         elif combo_type == COMBO_FOUR_OF_KIND:
-            return Localization.get(locale, "farkle-take-four-kind", number=number, points=points)
+            return Localization.get(
+                locale, "farkle-take-four-kind", number=number, points=points
+            )
         elif combo_type == COMBO_FIVE_OF_KIND:
-            return Localization.get(locale, "farkle-take-five-kind", number=number, points=points)
+            return Localization.get(
+                locale, "farkle-take-five-kind", number=number, points=points
+            )
         elif combo_type == COMBO_SIX_OF_KIND:
-            return Localization.get(locale, "farkle-take-six-kind", number=number, points=points)
+            return Localization.get(
+                locale, "farkle-take-six-kind", number=number, points=points
+            )
         elif combo_type == COMBO_SMALL_STRAIGHT:
-            return Localization.get(locale, "farkle-take-small-straight", points=points)
+            return Localization.get(
+                locale, "farkle-take-small-straight", points=points
+            )
         elif combo_type == COMBO_LARGE_STRAIGHT:
-            return Localization.get(locale, "farkle-take-large-straight", points=points)
+            return Localization.get(
+                locale, "farkle-take-large-straight", points=points
+            )
         elif combo_type == COMBO_THREE_PAIRS:
             return Localization.get(locale, "farkle-take-three-pairs", points=points)
         elif combo_type == COMBO_DOUBLE_TRIPLETS:
-            return Localization.get(locale, "farkle-take-double-triplets", points=points)
+            return Localization.get(
+                locale, "farkle-take-double-triplets", points=points
+            )
         elif combo_type == COMBO_FULL_HOUSE:
             return Localization.get(locale, "farkle-take-full-house", points=points)
-        return f"{combo_type} for {points} points"
+        return Localization.get(locale, "farkle-combo-fallback", combo=combo_type, points=points)
 
-    def _get_combo_name(self, combo_type: str, number: int) -> str:
-        """Get the English name for a combo (for announcements). Matches v10 exactly."""
+    def _get_combo_name(self, combo_type: str, number: int, locale: str = "en") -> str:
+        """Get the localized name for a combo."""
         if combo_type == COMBO_SINGLE_1:
-            return "Single 1"
+            return Localization.get(locale, "farkle-combo-single-1")
         elif combo_type == COMBO_SINGLE_5:
-            return "Single 5"
+            return Localization.get(locale, "farkle-combo-single-5")
         elif combo_type == COMBO_THREE_OF_KIND:
-            return f"Three {number}s"
+            return Localization.get(locale, "farkle-combo-three-kind", number=number)
         elif combo_type == COMBO_FOUR_OF_KIND:
-            return f"Four {number}s"
+            return Localization.get(locale, "farkle-combo-four-kind", number=number)
         elif combo_type == COMBO_FIVE_OF_KIND:
-            return f"Five {number}s"
+            return Localization.get(locale, "farkle-combo-five-kind", number=number)
         elif combo_type == COMBO_SIX_OF_KIND:
-            return f"Six {number}s"
+            return Localization.get(locale, "farkle-combo-six-kind", number=number)
         elif combo_type == COMBO_SMALL_STRAIGHT:
-            return "Small Straight"
+            return Localization.get(locale, "farkle-combo-small-straight")
         elif combo_type == COMBO_LARGE_STRAIGHT:
-            return "Large Straight"
+            return Localization.get(locale, "farkle-combo-large-straight")
         elif combo_type == COMBO_THREE_PAIRS:
-            return "Three pairs"
+            return Localization.get(locale, "farkle-combo-three-pairs")
         elif combo_type == COMBO_DOUBLE_TRIPLETS:
-            return "Double triplets"
+            return Localization.get(locale, "farkle-combo-double-triplets")
         elif combo_type == COMBO_FULL_HOUSE:
-            return "Full house"
+            return Localization.get(locale, "farkle-combo-full-house")
         return combo_type
 
     def update_scoring_actions(self, player: FarklePlayer) -> None:
@@ -477,13 +733,15 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
         # Remove old scoring actions from _actions dict
         old_actions = [
-            action_id for action_id in turn_set._actions.keys() if action_id.startswith("score_")
+            action_id
+            for action_id in turn_set._actions.keys()
+            if action_id.startswith("score_")
         ]
         for action_id in old_actions:
             del turn_set._actions[action_id]
 
         # Get available combinations
-        combos = get_available_combinations(player.current_roll)
+        combos = get_available_combinations(player.dice.values)
 
         # Rebuild the order: scoring actions first, then roll, bank, check_turn_score
         turn_set._order.clear()
@@ -491,8 +749,7 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         # Add scoring actions first (sorted by points, highest first)
         for combo_type, number, points in combos:
             action_id = f"score_{combo_type}_{number}"
-            display_points = points * max(1, player.hot_dice_multiplier)
-            label = self._get_combo_label(locale, combo_type, number, display_points)
+            label = self._get_combo_label(locale, combo_type, number, points)
 
             turn_set._actions[action_id] = Action(
                 id=action_id,
@@ -509,26 +766,40 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             if action_id in turn_set._actions:
                 turn_set._order.append(action_id)
 
+    def _first_scoring_action_id(self, player: FarklePlayer) -> str | None:
+        turn_set = self.get_action_set(player, "turn")
+        if not turn_set:
+            return None
+        return next(
+            (action_id for action_id in turn_set._order if action_id.startswith("score_")),
+            None,
+        )
+
     # ==========================================================================
     # Declarative Action Callbacks
     # ==========================================================================
 
     def _is_roll_enabled(self, player: Player) -> str | None:
         """Check if roll action is enabled."""
-        error = self.guard_turn_action_enabled(player)
-        if error:
-            return error
+        if self.status != "playing":
+            return "action-not-playing"
+        if self.current_player != player:
+            return "action-not-your-turn"
+        if player.is_spectator:
+            return "action-spectator"
         farkle_player: FarklePlayer = player  # type: ignore
-        can_roll = len(farkle_player.current_roll) == 0 or farkle_player.has_taken_combo
+        can_roll = len(farkle_player.dice.values) == 0 or farkle_player.has_taken_combo
         if not can_roll:
             return "farkle-must-take-combo"
         return None
 
     def _is_roll_hidden(self, player: Player) -> Visibility:
         """Check if roll action is hidden."""
-        farkle_player: FarklePlayer = player  # type: ignore
-        can_roll = len(farkle_player.current_roll) == 0 or farkle_player.has_taken_combo
-        return self.turn_action_visibility(player, extra_condition=can_roll)
+        if self.status != "playing":
+            return Visibility.HIDDEN
+        if player.is_spectator:
+            return Visibility.HIDDEN
+        return Visibility.VISIBLE
 
     def _get_roll_label(self, player: Player, action_id: str) -> str:
         """Get dynamic label for roll action."""
@@ -540,24 +811,43 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     def _is_bank_enabled(self, player: Player) -> str | None:
         """Check if bank action is enabled."""
-        error = self.guard_turn_action_enabled(player)
-        if error:
-            return error
+        if self.status != "playing":
+            return "action-not-playing"
+        if self.current_player != player:
+            return "action-not-your-turn"
+        if player.is_spectator:
+            return "action-spectator"
         farkle_player: FarklePlayer = player  # type: ignore
-        can_bank = farkle_player.turn_score > 0 and (
-            len(farkle_player.current_roll) == 0 or not has_scoring_dice(farkle_player.current_roll)
-        )
-        if not can_bank:
+        if not self._can_bank_points(farkle_player):
             return "farkle-cannot-bank"
+
+        # Check minimal scores
+        minimum = self._bank_minimum(farkle_player)
+        if farkle_player.turn_score < minimum:
+            key = (
+                "farkle-must-reach-entrance-score"
+                if farkle_player.score == 0
+                else "farkle-must-reach-bank-score"
+            )
+            return (key, {"points": minimum})
+
         return None
 
     def _is_bank_hidden(self, player: Player) -> Visibility:
         """Check if bank action is hidden."""
+        if self.status != "playing":
+            return Visibility.HIDDEN
+        if self.current_player != player:
+            return Visibility.HIDDEN
         farkle_player: FarklePlayer = player  # type: ignore
-        can_bank = farkle_player.turn_score > 0 and (
-            len(farkle_player.current_roll) == 0 or not has_scoring_dice(farkle_player.current_roll)
-        )
-        return self.turn_action_visibility(player, extra_condition=can_bank)
+        if not self._can_bank_points(farkle_player):
+            return Visibility.HIDDEN
+
+        # Check minimal scores (hide if criteria not met, same as can_bank check)
+        if farkle_player.turn_score < self._bank_minimum(farkle_player):
+            return Visibility.HIDDEN
+
+        return Visibility.VISIBLE
 
     def _get_bank_label(self, player: Player, action_id: str) -> str:
         """Get dynamic label for bank action."""
@@ -568,72 +858,282 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     def _is_check_turn_score_enabled(self, player: Player) -> str | None:
         """Check if check turn score action is enabled."""
-        return self.guard_game_active()
+        if self.status != "playing":
+            return "action-not-playing"
+        return None
 
     def _is_check_turn_score_hidden(self, player: Player) -> Visibility:
-        """Check turn score is always hidden from menu (keybind only)."""
+        """Check turn score: visible for web clients during play, keybind-only for desktop."""
+        if self.status != "playing":
+            return Visibility.HIDDEN
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE
         return Visibility.HIDDEN
 
     def _is_scoring_action_enabled(self, player: Player) -> str | None:
         """Check if a scoring action is enabled (scoring actions are only created when available)."""
-        return self.guard_turn_action_enabled(player)
+        if self.status != "playing":
+            return "action-not-playing"
+        if self.current_player != player:
+            return "action-not-your-turn"
+        if player.is_spectator:
+            return "action-spectator"
+        return None
 
     def _is_scoring_action_hidden(self, player: Player) -> Visibility:
         """Check if a scoring action is hidden."""
-        return self.turn_action_visibility(player)
+        if self.status != "playing":
+            return Visibility.HIDDEN
+        if self.current_player != player:
+            return Visibility.HIDDEN
+        return Visibility.VISIBLE
 
     def _get_roll_dice_count(self, player: FarklePlayer) -> int:
         """Get the number of dice that will be rolled."""
-        if len(player.current_roll) > 0:
-            return len(player.current_roll)
+        if len(player.dice.values) > 0:
+            return len(player.dice.values)
         else:
             num_dice = 6 - len(player.banked_dice)
             if num_dice == 0:
                 num_dice = 6  # Hot dice
             return num_dice
 
+    def _combo_dice_to_keep(
+        self, dice: list[int], combo_type: str, number: int
+    ) -> list[int]:
+        """Return the exact dice consumed by a scoring combination."""
+        if combo_type == COMBO_SINGLE_1:
+            return [1]
+        if combo_type == COMBO_SINGLE_5:
+            return [5]
+        if combo_type == COMBO_THREE_OF_KIND:
+            return [number] * 3
+        if combo_type == COMBO_FOUR_OF_KIND:
+            return [number] * 4
+        if combo_type == COMBO_FIVE_OF_KIND:
+            return [number] * 5
+        if combo_type == COMBO_SIX_OF_KIND:
+            return [number] * 6
+        if combo_type == COMBO_LARGE_STRAIGHT:
+            return [1, 2, 3, 4, 5, 6]
+        if combo_type == COMBO_SMALL_STRAIGHT:
+            counts = count_dice(dice)
+            if all(counts[i] >= 1 for i in range(1, 6)):
+                return [1, 2, 3, 4, 5]
+            return [2, 3, 4, 5, 6]
+        if combo_type in (
+            COMBO_THREE_PAIRS,
+            COMBO_DOUBLE_TRIPLETS,
+            COMBO_FULL_HOUSE,
+        ):
+            return list(dice)
+        return []
+
+    def _dice_after_combo(
+        self, dice: list[int], combo_type: str, number: int
+    ) -> list[int]:
+        remaining = list(dice)
+        for die in self._combo_dice_to_keep(dice, combo_type, number):
+            remaining.remove(die)
+        return remaining
+
+    def _bot_combo_value(
+        self,
+        player: FarklePlayer,
+        combo_type: str,
+        number: int,
+        points: int,
+    ) -> tuple[float, int, int]:
+        remaining = self._dice_after_combo(player.dice.values, combo_type, number)
+        next_roll_count = len(remaining) if remaining else 6
+        future_gain = BOT_EXPECTED_GAIN_BY_DICE[next_roll_count]
+        # Prefer states that score now and leave richer future rolls. The third
+        # tuple item breaks near-ties toward using more dice, especially hot dice.
+        return (points + future_gain, points, -len(remaining))
+
+    def _bot_best_scoring_action(
+        self,
+        player: FarklePlayer,
+        resolved,
+    ) -> str | None:
+        enabled_score_ids = {
+            ra.action.id
+            for ra in resolved
+            if ra.enabled and ra.action.id.startswith("score_")
+        }
+        if not enabled_score_ids:
+            return None
+
+        best_action_id: str | None = None
+        best_value: tuple[float, int, int] | None = None
+        for combo_type, number, points in get_available_combinations(player.dice.values):
+            action_id = f"score_{combo_type}_{number}"
+            if action_id not in enabled_score_ids:
+                continue
+            value = self._bot_combo_value(player, combo_type, number, points)
+            if best_value is None or value > best_value:
+                best_value = value
+                best_action_id = action_id
+        return best_action_id
+
+    def _bot_should_bank(
+        self,
+        player: FarklePlayer,
+        *,
+        roll_enabled: bool,
+        bank_enabled: bool,
+    ) -> bool:
+        if not bank_enabled:
+            return False
+        if not roll_enabled:
+            return True
+
+        dice_to_roll = self._get_roll_dice_count(player)
+        potential_total = player.score + player.turn_score
+        score_to_beat = self._score_to_beat(player)
+
+        # If an opponent has already crossed the target, bank only when this
+        # turn is enough to take the lead. Otherwise the bot must keep pushing.
+        if score_to_beat is not None:
+            return potential_total > score_to_beat
+
+        if potential_total >= self.options.target_score:
+            return True
+
+        farkle_probability = BOT_FARKLE_PROBABILITY_BY_DICE[dice_to_roll]
+        expected_gain = BOT_EXPECTED_GAIN_BY_DICE[dice_to_roll]
+        roll_value = (1 - farkle_probability) * (player.turn_score + expected_gain)
+        bank_value = float(player.turn_score)
+        leader_score = self._bot_leader_score(player)
+        margin = self._bot_contextual_bank_margin(
+            player,
+            dice_to_roll=dice_to_roll,
+            potential_total=potential_total,
+            leader_score=leader_score,
+        )
+
+        return roll_value <= bank_value * margin
+
+    def _bot_leader_score(self, player: FarklePlayer) -> int:
+        return max(
+            (
+                other.score
+                for other in self._round_players()
+                if other is not player
+            ),
+            default=0,
+        )
+
+    def _bot_contextual_bank_margin(
+        self,
+        player: FarklePlayer,
+        *,
+        dice_to_roll: int,
+        potential_total: int,
+        leader_score: int,
+    ) -> float:
+        """Tune bot risk tolerance from score pressure and dice danger."""
+        target = max(1, self.options.target_score)
+        current_gap = max(0, leader_score - player.score)
+        bank_gap = max(0, leader_score - potential_total)
+        close_gap = max(50, target // BOT_CLOSE_GAP_FRACTION)
+        far_gap = max(150, target // BOT_FAR_GAP_FRACTION)
+        meaningful_turn = max(
+            self._bank_minimum(player),
+            target // BOT_MEANINGFUL_TURN_FRACTION,
+        )
+
+        margin = BOT_BANK_MARGIN
+        if potential_total >= leader_score:
+            margin += 0.12
+        elif bank_gap <= close_gap:
+            margin += 0.08
+        elif current_gap and player.turn_score >= max(
+            meaningful_turn,
+            int(current_gap * 0.6),
+        ):
+            margin += 0.04
+        elif bank_gap >= far_gap and player.turn_score < meaningful_turn:
+            margin -= 0.08
+
+        if dice_to_roll == 1:
+            margin += 0.20
+        elif dice_to_roll == 2:
+            margin += 0.10
+        elif dice_to_roll >= 5 and bank_gap > close_gap and potential_total < target:
+            margin -= 0.05
+
+        if player.turn_score >= max(meaningful_turn * 2, target // 4):
+            margin += 0.05
+
+        return max(0.75, margin)
+
     def _action_roll(self, player: Player, action_id: str) -> None:
         """Handle roll action."""
         farkle_player: FarklePlayer = player  # type: ignore
 
+        if self._should_confirm_risky_roll(farkle_player):
+            self.request_menu_focus(farkle_player, "roll")
+            return
+
+        self._clear_risky_confirmation(farkle_player)
+
         # Check for hot dice (all 6 banked) and reset
-        if len(farkle_player.current_roll) == 0:
+        if len(farkle_player.dice.values) == 0:
             num_dice = 6 - len(farkle_player.banked_dice)
             if num_dice == 0:
                 # Hot dice! Reset banked dice and roll all 6
                 farkle_player.banked_dice = []
                 num_dice = 6
         else:
-            num_dice = len(farkle_player.current_roll)
+            num_dice = len(farkle_player.dice.values)
 
-        self.broadcast_personal_l(player, "farkle-you-roll", "farkle-rolls", count=num_dice)
-        self.play_sound("game_pig/roll.ogg")
+        self._broadcast_actor_l(
+            farkle_player,
+            "farkle-you-roll",
+            "farkle-player-rolls",
+            brief_personal_key="farkle-you-roll-brief",
+            brief_others_key="farkle-player-rolls-brief",
+            count=num_dice,
+        )
+        self.play_sound(random_dice_throw_sound())
 
         # Jolt bot to pause before next action
-        BotHelper.jolt_bot(player, ticks=random.randint(10, 20))  # nosec B311
+        BotHelper.jolt_bot(player, ticks=random.randint(10, 20))
 
         # Roll the dice
-        farkle_player.current_roll = sorted(
-            [random.randint(1, 6) for _ in range(num_dice)]  # nosec B311
-        )
+        farkle_player.dice.num_dice = num_dice
+        farkle_player.dice.reset()
+        farkle_player.dice.roll()
+        farkle_player.dice.values.sort()
 
         # Announce the roll
-        dice_str = ", ".join(str(d) for d in farkle_player.current_roll)
-        self.broadcast_l("farkle-roll-result", dice=dice_str)
+        dice_str = self._format_dice(farkle_player.dice.values)
+        self._broadcast_global_l(
+            "farkle-roll-result",
+            "farkle-roll-result-brief",
+            dice=dice_str,
+        )
 
         # Check for farkle
-        if not has_scoring_dice(farkle_player.current_roll):
+        if not has_scoring_dice(farkle_player.dice.values):
             self.play_sound("game_farkle/farkle.ogg")
-            self.broadcast_personal_l(
-                player, "farkle-you-farkle", "farkle-farkle", points=farkle_player.turn_score
+            lost_points = farkle_player.turn_score
+            self._broadcast_actor_l(
+                farkle_player,
+                "farkle-you-farkle",
+                "farkle-player-farkles",
+                brief_personal_key="farkle-you-farkle-brief",
+                brief_others_key="farkle-player-farkles-brief",
+                points=lost_points,
             )
             # Track turn (farkle = 0 points banked)
             farkle_player.turns_taken += 1
             farkle_player.turn_score = 0
-            farkle_player.current_roll = []
+            farkle_player.dice.reset()
             farkle_player.banked_dice = []
-            farkle_player.hot_dice_multiplier = 1
-            farkle_player.hot_dice_chain = 0
+            farkle_player.has_taken_combo = False
             self.end_turn()
             return
 
@@ -642,22 +1142,17 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
         # Update scoring actions based on new roll
         self.update_scoring_actions(farkle_player)
-
-        # Focus on the first (highest-scoring) combination
-        combos = get_available_combinations(farkle_player.current_roll)
-        if combos:
-            combo_type, number, _ = combos[0]
-            selection_id = f"score_{combo_type}_{number}"
-            self.update_player_menu(farkle_player, selection_id=selection_id)
-        else:
-            self.rebuild_player_menu(farkle_player)
+        focus = self._first_scoring_action_id(farkle_player)
+        if focus:
+            self.request_menu_focus(farkle_player, focus)
+        self.refresh_menus(farkle_player)
 
     def _action_take_combo(self, player: Player, action_id: str) -> None:
         """Handle taking a scoring combination."""
         farkle_player: FarklePlayer = player  # type: ignore
 
         # Jolt bot to pause before next action
-        BotHelper.jolt_bot(player, ticks=random.randint(8, 12))  # nosec B311
+        BotHelper.jolt_bot(player, ticks=random.randint(8, 12))
 
         # Parse combo type and number from action_id (e.g., "score_three_of_kind_4")
         parts = action_id.split("_", 1)[1]  # Remove "score_" prefix
@@ -697,18 +1192,25 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             combo_type = COMBO_FULL_HOUSE
             number = 0
         else:
-            return  # Unknown combo
-
-        # Validate that the combo is actually available in the current roll
-        if not has_combination(farkle_player.current_roll, combo_type, number):
-            # Combo no longer available (stale menu state), refresh the menu
-            self.update_scoring_actions(farkle_player)
-            self.rebuild_player_menu(farkle_player)
+            user = self.get_user(player)
+            if user:
+                user.speak_l("farkle-invalid-combo-action", buffer="game")
             return
 
-        base_points = get_combination_points(combo_type, number)
-        points = base_points * max(1, farkle_player.hot_dice_multiplier)
-        combo_name = self._get_combo_name(combo_type, number)
+        # Validate that the combo is actually available in the current roll
+        if not has_combination(farkle_player.dice.values, combo_type, number):
+            # Combo no longer available (stale menu state), refresh the menu
+            self.update_scoring_actions(farkle_player)
+            focus = self._first_scoring_action_id(farkle_player)
+            if focus:
+                self.request_menu_focus(farkle_player, focus)
+            user = self.get_user(player)
+            if user:
+                user.speak_l("farkle-combo-no-longer-available", buffer="game")
+            self.refresh_menus(farkle_player)
+            return
+
+        points = get_combination_points(combo_type, number)
 
         # Remove dice from current_roll and add to banked_dice
         self._remove_combo_dice(farkle_player, combo_type, number)
@@ -721,200 +1223,251 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         if combo_type in COMBO_SOUNDS:
             self.schedule_sound(COMBO_SOUNDS[combo_type], delay_ticks=2)
 
-        # Announce what was taken
-        self.broadcast_personal_l(
-            player, "farkle-you-take-combo", "farkle-takes-combo", combo=combo_name, points=points
-        )
+        # Announce what was taken (localized for each player)
+        self._clear_risky_confirmation(farkle_player)
+        for p in self.players:
+            user = self.get_user(p)
+            if not user:
+                continue
+            
+            # Get combo name in this user's locale
+            combo_name = self._get_combo_name(combo_type, number, user.locale)
+            
+            if p == player:
+                key = (
+                    "farkle-you-take-combo-brief"
+                    if self._wants_brief(user)
+                    else "farkle-you-take-combo"
+                )
+                user.speak_l(key, buffer="game", combo=combo_name, points=points)
+            else:
+                key = (
+                    "farkle-player-takes-combo-brief"
+                    if self._wants_brief(user)
+                    else "farkle-player-takes-combo"
+                )
+                user.speak_l(
+                    key,
+                    buffer="game",
+                    player=player.name,
+                    combo=combo_name,
+                    points=points,
+                )
 
         # Check for hot dice
-        if len(farkle_player.banked_dice) == 6 and len(farkle_player.current_roll) == 0:
-            self.broadcast_l("farkle-hot-dice")
-            if self.options.hot_dice_multiplier:
-                farkle_player.hot_dice_chain += 1
-                pitch = self._get_hot_dice_pitch(farkle_player.hot_dice_chain)
-                self.play_sound("game_farkle/hotdice.ogg", pitch=pitch)
-                farkle_player.hot_dice_multiplier += 1
-                self.broadcast(
-                    f"Hot Dice Multiplier {farkle_player.hot_dice_multiplier}",
-                    buffer="table",
-                )
-            else:
-                self.play_sound("game_farkle/hotdice.ogg")
+        if len(farkle_player.banked_dice) == 6 and len(farkle_player.dice.values) == 0:
+            self._broadcast_actor_l(
+                farkle_player,
+                "farkle-you-hot-dice",
+                "farkle-player-hot-dice",
+                brief_personal_key="farkle-you-hot-dice-brief",
+                brief_others_key="farkle-player-hot-dice-brief",
+            )
+            self.play_sound("game_farkle/hotdice.ogg")
 
         # Mark that we've taken a combo
         farkle_player.has_taken_combo = True
 
         # Update actions
         self.update_scoring_actions(farkle_player)
-        self.rebuild_player_menu(farkle_player)
+        self.refresh_menus(farkle_player)
 
-    def _remove_combo_dice(self, player: FarklePlayer, combo_type: str, number: int) -> None:
-        """Remove dice from current_roll for the given combination."""
-        counts = count_dice(player.current_roll)
-
-        if combo_type == COMBO_SINGLE_1:
-            # Remove one 1
-            player.current_roll.remove(1)
-            player.banked_dice.append(1)
-
-        elif combo_type == COMBO_SINGLE_5:
-            # Remove one 5
-            player.current_roll.remove(5)
-            player.banked_dice.append(5)
-
-        elif combo_type == COMBO_THREE_OF_KIND:
-            # Remove three of the number
-            for _ in range(3):
-                player.current_roll.remove(number)
-                player.banked_dice.append(number)
-
-        elif combo_type == COMBO_FOUR_OF_KIND:
-            # Remove four of the number
-            for _ in range(4):
-                player.current_roll.remove(number)
-                player.banked_dice.append(number)
-
-        elif combo_type == COMBO_FIVE_OF_KIND:
-            # Remove five of the number
-            for _ in range(5):
-                player.current_roll.remove(number)
-                player.banked_dice.append(number)
-
-        elif combo_type == COMBO_SIX_OF_KIND:
-            # Remove all six of the number
-            for _ in range(6):
-                player.current_roll.remove(number)
-                player.banked_dice.append(number)
-
-        elif combo_type == COMBO_LARGE_STRAIGHT:
-            # Remove all dice (1-6)
-            player.banked_dice.extend(player.current_roll)
-            player.current_roll = []
-
-        elif combo_type == COMBO_SMALL_STRAIGHT:
-            # Remove 5 dice for small straight
-            counts = count_dice(player.current_roll)
-            # Determine which straight we have
-            has_1_5 = all(counts[i] >= 1 for i in range(1, 6))
-            if has_1_5:
-                needed = [1, 2, 3, 4, 5]
-            else:
-                needed = [2, 3, 4, 5, 6]
-
-            for num in needed:
-                player.current_roll.remove(num)
-                player.banked_dice.append(num)
-
-        elif combo_type in (
-            COMBO_THREE_PAIRS,
-            COMBO_DOUBLE_TRIPLETS,
-            COMBO_FULL_HOUSE,
-        ):
-            # Remove all 6 dice
-            player.banked_dice.extend(player.current_roll)
-            player.current_roll = []
-
-    def _get_hot_dice_pitch(self, hot_dice_chain: int) -> int:
-        """Get pitch for hot-dice sound, raising by semitones after the first."""
-        if hot_dice_chain <= 1:
-            return 100
-
-        # 1 semitone up per additional hot-dice trigger in the turn.
-        semitone_steps = hot_dice_chain - 1
-        pitch = round(100 * (2 ** (semitone_steps / 12)))
-        return min(200, max(50, pitch))
+    def _remove_combo_dice(
+        self, player: FarklePlayer, combo_type: str, number: int
+    ) -> None:
+        """Remove dice from dice.values for the given combination."""
+        for die in self._combo_dice_to_keep(player.dice.values, combo_type, number):
+            player.dice.values.remove(die)
+            player.banked_dice.append(die)
 
     def _action_bank(self, player: Player, action_id: str) -> None:
         """Handle bank action."""
         farkle_player: FarklePlayer = player  # type: ignore
-        user = self.get_user(player)
-
-        if (
-            farkle_player.score == 0
-            and self.options.initial_bank_score > 0
-            and farkle_player.turn_score < self.options.initial_bank_score
-        ):
-            if user:
-                user.speak_l(
-                    "farkle-minimum-initial-bank-score",
-                    score=self.options.initial_bank_score,
-                )
-            return
+        banked_points = farkle_player.turn_score
 
         # Track stats before resetting
         farkle_player.turns_taken += 1
-        if farkle_player.turn_score > farkle_player.best_turn:
-            farkle_player.best_turn = farkle_player.turn_score
 
         # Add turn score to permanent score
-        farkle_player.score += farkle_player.turn_score
+        farkle_player.score += banked_points
 
         # Sync to TeamManager for score actions
-        self._team_manager.add_to_team_score(player.name, farkle_player.turn_score)
+        self._team_manager.add_to_team_score(player.name, banked_points)
 
-        self.play_sound(f"game_farkle/bank{random.randint(1, 3)}.ogg")  # nosec B311
+        self.play_sound(f"game_farkle/bank{random.randint(1, 3)}.ogg")
+        self._clear_risky_confirmation(farkle_player)
 
-        self.broadcast_personal_l(
-            player,
+        self._broadcast_actor_l(
+            farkle_player,
             "farkle-you-bank",
-            "farkle-banks",
-            points=farkle_player.turn_score,
+            "farkle-player-banks",
+            brief_personal_key="farkle-you-bank-brief",
+            brief_others_key="farkle-player-banks-brief",
+            points=banked_points,
             total=farkle_player.score,
         )
 
         # Reset turn state
         farkle_player.turn_score = 0
-        farkle_player.current_roll = []
+        farkle_player.dice.reset()
         farkle_player.banked_dice = []
         farkle_player.has_taken_combo = False
-        farkle_player.hot_dice_multiplier = 1
-        farkle_player.hot_dice_chain = 0
+
+        user = self.get_user(farkle_player)
+        if self.is_touch_client(user):
+            self.request_menu_focus(farkle_player, "roll")
 
         self.end_turn()
 
     def _action_check_turn_score(self, player: Player, action_id: str) -> None:
         """Handle check turn score action."""
-        current = self.current_player
         user = self.get_user(player)
         if not user:
             return
+
+        # locale = user.locale if user else "en" # locale is accessed inside speak_l if needed, or we pass args
+        
+        current = self.current_player
         if current:
             farkle_current: FarklePlayer = current  # type: ignore
-            user.speak_l(
-                "farkle-turn-score",
-                player=current.name,
-                points=farkle_current.turn_score,
+            if current is player:
+                user.speak_l(
+                    "farkle-your-turn-score",
+                    buffer="game",
+                    points=farkle_current.turn_score,
+                )
+            else:
+                user.speak_l(
+                    "farkle-turn-score",
+                    buffer="game",
+                    player=current.name,
+                    points=farkle_current.turn_score,
+                )
+        else:
+            user.speak_l("farkle-no-turn", buffer="game")
+
+    def prestart_validate(self) -> list[str | tuple[str, dict]]:
+        """Validate Farkle setup options before the game starts."""
+        errors: list[str | tuple[str, dict]] = list(super().prestart_validate())
+        target = self.options.target_score
+        if self.options.min_entrance_score > target:
+            errors.append(
+                (
+                    "farkle-error-entrance-above-target",
+                    {"entrance": self.options.min_entrance_score, "target": target},
+                )
             )
+        if self.options.min_bank_score > target:
+            errors.append(
+                (
+                    "farkle-error-bank-above-target",
+                    {"bank": self.options.min_bank_score, "target": target},
+                )
+            )
+        return errors
+
+    def on_start(self) -> None:
+        """Called when the game starts."""
+        self.status = "playing"
+        self._sync_table_status()
+        self.game_active = True
+        self.round = 0
+        self.tiebreaker_player_names = []
+
+        # Initialize turn order
+        active_players = self.get_active_players()
+        self.set_turn_players(active_players)
+
+        # Set up TeamManager for score tracking (individual mode)
+        self._team_manager.team_mode = "individual"
+        self._team_manager.setup_teams([p.name for p in active_players])
+
+        # Reset all player state
+        for p in active_players:
+            farkle_p: FarklePlayer = p  # type: ignore
+            farkle_p.score = 0
+            farkle_p.turn_score = 0
+            farkle_p.dice.reset()
+            farkle_p.banked_dice = []
+            farkle_p.has_taken_combo = False
+            farkle_p.turns_taken = 0
+            self._clear_risky_confirmation(farkle_p)
+
+        # Play intro music (using pig music as placeholder)
+        self.play_music("game_pig/mus.ogg")
+
+        # Start first round
+        self._start_round()
+
+    def _start_round(self) -> None:
+        """Start a new round."""
+        round_players = self._round_players()
+        if not round_players:
             return
-        user.speak_l("farkle-no-turn")
+        if len(round_players) == 1 and self.tiebreaker_player_names:
+            self._finish_with_winner(round_players[0])
+            return
 
-    def _reset_player_for_game(self, player) -> None:
-        farkle_p: FarklePlayer = player  # type: ignore
-        farkle_p.score = 0
-        farkle_p.turn_score = 0
-        farkle_p.current_roll = []
-        farkle_p.banked_dice = []
-        farkle_p.has_taken_combo = False
-        farkle_p.hot_dice_multiplier = 1
-        farkle_p.hot_dice_chain = 0
+        self.round += 1
 
-    def _reset_player_for_turn(self, player) -> None:
+        # Refresh turn order
+        self.set_turn_players(round_players)
+
+        if self.tiebreaker_player_names:
+            for listener in self.players:
+                user = self.get_user(listener)
+                if user:
+                    names = Localization.format_list_and(
+                        user.locale, [player.name for player in round_players]
+                    )
+                    user.speak_l(
+                        "farkle-tiebreaker-round-start",
+                        buffer="game",
+                        round=self.round,
+                        players=names,
+                    )
+        else:
+            self.broadcast_l("game-round-start", buffer="game", round=self.round)
+
+        self._start_turn()
+
+    def _start_turn(self) -> None:
+        """Start a player's turn."""
+        player = self.current_player
+        if not player:
+            return
+
         farkle_player: FarklePlayer = player  # type: ignore
+
+        # Reset turn state
         farkle_player.turn_score = 0
-        farkle_player.current_roll = []
+        farkle_player.dice.reset()
         farkle_player.banked_dice = []
         farkle_player.has_taken_combo = False
-        farkle_player.hot_dice_multiplier = 1
-        farkle_player.hot_dice_chain = 0
+        self._clear_risky_confirmation(farkle_player)
+
+        # Clear stale scoring actions from previous turn (current_roll is empty now)
         self.update_scoring_actions(farkle_player)
 
-    def _setup_bot_for_turn(self, player) -> None:
+        # Announce turn
+        self.announce_turn()
+
+        # Set up bot if needed
         if player.is_bot:
-            BotHelper.set_target(player, 0)
+            BotHelper.set_target(player, 0)  # Bot will calculate during think
+
+        # Rebuild menus
+        self.refresh_menus()
 
     def on_tick(self) -> None:
         """Called every tick. Handle bot AI and scheduled sounds."""
         super().on_tick()
+        self.process_scheduled_sounds()
+        for player in self.players:
+            if isinstance(player, FarklePlayer) and player.risky_confirm_ticks > 0:
+                player.risky_confirm_ticks -= 1
+                if player.risky_confirm_ticks <= 0:
+                    self._clear_risky_confirmation(player)
 
         if not self.game_active:
             return
@@ -922,32 +1475,76 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         BotHelper.on_tick(self)
 
     def bot_think(self, player: FarklePlayer) -> str | None:
-        return bot_think(self, player)
+        """Bot AI decision making."""
+        turn_set = self.get_action_set(player, "turn")
+        if not turn_set:
+            return None
+
+        # Resolve actions to get enabled state
+        resolved = turn_set.resolve_actions(self, player)
+
+        # Check roll/bank enabled state
+        roll_enabled = self._is_roll_enabled(player) is None
+        bank_enabled = self._is_bank_enabled(player) is None
+
+        # Keeping scoring dice is risk-free and can only improve the eventual
+        # bank. Do it before considering whether to bank or roll.
+        scoring_action = self._bot_best_scoring_action(player, resolved)
+        if scoring_action:
+            return scoring_action
+
+        if self._bot_should_bank(
+            player,
+            roll_enabled=roll_enabled,
+            bank_enabled=bank_enabled,
+        ):
+            return "bank"
+
+        if roll_enabled:
+            return "roll"
+
+        if bank_enabled:
+            return "bank"
+
+        return None
+
+    def _score_to_beat(self, player: FarklePlayer) -> int | None:
+        score_to_beat = None
+        for other in self._round_players():
+            if other is player:
+                continue
+            if other.score >= self.options.target_score:
+                if score_to_beat is None or other.score > score_to_beat:
+                    score_to_beat = other.score
+        return score_to_beat
+
+    def _on_turn_end(self) -> None:
+        """Handle end of a player's turn."""
+        # Check if round is over
+        if self.turn_index >= len(self.turn_players) - 1:
+            self._on_round_end()
+        else:
+            self.advance_turn(announce=False)
+            self._start_turn()
 
     def _on_round_end(self) -> None:
         """Handle end of a round."""
         # Check for winners
-        active_players = self.get_active_players()
-        winners = []
+        round_players = self._round_players()
+        winners: list[FarklePlayer] = []
         high_score = 0
 
-        for p in active_players:
-            farkle_p: FarklePlayer = p  # type: ignore
-            if farkle_p.score >= self.options.target_score:
-                if farkle_p.score > high_score:
+        for p in round_players:
+            if p.score >= self.options.target_score:
+                if p.score > high_score:
                     winners = [p]
-                    high_score = farkle_p.score
-                elif farkle_p.score == high_score:
+                    high_score = p.score
+                elif p.score == high_score:
                     winners.append(p)
 
         if len(winners) == 1:
-            # Single winner
-            self.play_sound("game_pig/win.ogg")
-            winner_farkle: FarklePlayer = winners[0]  # type: ignore
-            self.broadcast_personal_l(
-                winners[0], "farkle-you-win", "farkle-winner", score=winner_farkle.score
-            )
-            self.finish_game()
+            self.tiebreaker_player_names = []
+            self._finish_with_winner(winners[0])
         elif len(winners) > 1:
             # Tie - announce winners
             names = [w.name for w in winners]
@@ -955,13 +1552,9 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 user = self.get_user(p)
                 if user:
                     names_str = Localization.format_list_and(user.locale, names)
-                    user.speak_l("farkle-winners-tie", players=names_str, buffer="table")
+                    user.speak_l("farkle-winners-tie", buffer="game", players=names_str)
 
-            # Mark non-winners as spectators for tiebreaker
-            winner_names = [w.name for w in winners]
-            for p in active_players:
-                if p.name not in winner_names:
-                    p.is_spectator = True
+            self.tiebreaker_player_names = names
             self._start_round()
         else:
             # No winner yet
@@ -983,28 +1576,28 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             final_scores[p.name] = farkle_p.score
             player_stats[p.name] = {
                 "turns_taken": farkle_p.turns_taken,
-                "best_turn": farkle_p.best_turn,
                 "total_score": farkle_p.score,
             }
 
         winner = sorted_players[0] if sorted_players else None
         winner_farkle: FarklePlayer = winner  # type: ignore
+        winner_ids = [
+            player.id
+            for player in sorted_players
+            if winner_farkle and player.score == winner_farkle.score  # type: ignore
+        ]
 
         return GameResult(
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot,
-                    is_virtual_bot=getattr(p, "is_virtual_bot", False),
-                )
+                PlayerResult.from_player(p)
                 for p in self.get_active_players()
             ],
             custom_data={
                 "winner_name": winner.name if winner else None,
+                "winner_ids": winner_ids,
                 "winner_score": winner_farkle.score if winner_farkle else 0,
                 "final_scores": final_scores,
                 "player_stats": player_stats,
@@ -1018,13 +1611,28 @@ class FarkleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         lines = [Localization.get(locale, "game-final-scores")]
 
         final_scores = result.custom_data.get("final_scores", {})
-        for i, (name, score) in enumerate(final_scores.items(), 1):
+        previous_score = None
+        rank = 0
+        displayed = 0
+        for name, score in final_scores.items():
+            displayed += 1
+            if score != previous_score:
+                rank = displayed
+                previous_score = score
             points_str = Localization.get(locale, "game-points", count=score)
-            lines.append(f"{i}. {name}: {points_str}")
+            lines.append(
+                Localization.get(
+                    locale,
+                    "farkle-line-format",
+                    rank=rank,
+                    player=name,
+                    points=points_str,
+                )
+            )
 
         return lines
 
     def end_turn(self, jolt_min: int = 20, jolt_max: int = 30) -> None:
         """End the current player's turn."""
-        BotHelper.jolt_bots(self, ticks=random.randint(jolt_min, jolt_max))  # nosec B311
+        BotHelper.jolt_bots(self, ticks=random.randint(jolt_min, jolt_max))
         self._on_turn_end()

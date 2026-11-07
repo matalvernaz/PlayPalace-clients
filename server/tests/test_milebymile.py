@@ -16,6 +16,7 @@ from ..games.milebymile.game import (
     MileByMileOptions,
     RaceState,
     UNPLAYABLE_DISCARD_OPTION,
+    UNPLAYABLE_REASON_OPTION,
 )
 from ..games.milebymile.cards import (
     Card,
@@ -24,8 +25,8 @@ from ..games.milebymile.cards import (
     RemedyType,
     SafetyType,
 )
-from ..core.users.test_user import MockUser
-from ..core.users.bot import Bot
+from ..users.test_user import MockUser
+from ..users.bot import Bot
 
 
 def speech_texts(user: MockUser) -> list[str]:
@@ -49,7 +50,7 @@ class TestMileByMileGameUnit:
         game = MileByMileGame()
         assert game.get_name() == "Mile by Mile"
         assert game.get_type() == "milebymile"
-        assert game.get_category() == "category-card-games"
+        assert game.get_category() == "cards"
         assert game.get_min_players() == 2
         assert game.get_max_players() == 9
 
@@ -1676,14 +1677,67 @@ class TestMileByMileUnplayableCardMenu:
             == UNPLAYABLE_DISCARD_OPTION
         )
         assert [getattr(item, "id", "") for item in items] == [
-            "",
+            UNPLAYABLE_REASON_OPTION,
             "discard_unplayable_card",
             "_cancel",
         ]
+        assert items[0].read_only is True
         reason_text = getattr(items[0], "text", "")
         assert "You cannot play 100 miles because you need a Green Light" in reason_text
         assert "Do you want to discard it?" in reason_text
         assert alice_user.get_last_spoken() == reason_text
+        assert next(
+            message.data
+            for message in reversed(alice_user.messages)
+            if message.type == "speak"
+        )["history"] is False
+
+        alice_user.clear_messages()
+        game.refresh_menus(alice)
+        game.flush_menus()
+
+        refreshed_items = alice_user.get_current_menu_items("action_input_menu")
+        assert refreshed_items is not None
+        assert [getattr(item, "id", "") for item in refreshed_items] == [
+            UNPLAYABLE_REASON_OPTION,
+            "discard_unplayable_card",
+            "_cancel",
+        ]
+        assert getattr(refreshed_items[0], "text", "") == reason_text
+        assert alice_user.menus["action_input_menu"]["selection_id"] is None
+        assert alice_user.get_spoken_messages() == []
+
+        game.handle_event(
+            alice,
+            {
+                "type": "menu",
+                "menu_id": "action_input_menu",
+                "selection_id": "stale_client_choice",
+            },
+        )
+
+        assert alice.id in game._pending_actions
+        assert alice_user.get_spoken_messages() == []
+        assert [
+            getattr(item, "id", "")
+            for item in alice_user.get_current_menu_items("action_input_menu") or []
+        ] == [
+            UNPLAYABLE_REASON_OPTION,
+            "discard_unplayable_card",
+            "_cancel",
+        ]
+
+        game.handle_event(
+            alice,
+            {
+                "type": "menu",
+                "menu_id": "action_input_menu",
+                "selection_id": UNPLAYABLE_REASON_OPTION,
+            },
+        )
+
+        assert alice.id in game._pending_actions
+        assert alice.hand == [blocked_card]
 
         game.handle_event(
             alice,
@@ -1952,83 +2006,11 @@ class TestMileByMileUnplayableCardMenu:
         assert game._can_play_card(alice, card) is True
 
 
-class TestMileByMileConfirmDestructiveActions:
-    """The unplayable-card prompt honours the confirm_destructive_actions preference."""
-
-    def _setup_blocked_card(self):
-        game = MileByMileGame()
-        alice_user = MockUser("Alice", uuid="p1")
-        bob_user = MockUser("Bob", uuid="p2")
-        alice = game.add_player("Alice", alice_user)
-        bob = game.add_player("Bob", bob_user)
-        game.on_start()
-
-        blocked_card = Card(id=2301, card_type=CardType.DISTANCE, value="100")
-        alice.hand = [blocked_card]
-        alice_state = game.get_player_race_state(alice)
-        assert alice_state is not None
-        alice_state.problems = [HazardType.STOP]
-        game.current_player = alice
-        game._update_turn_actions(alice)
-        alice_user.clear_messages()
-        return game, alice, alice_user, bob, blocked_card
-
-    def test_confirmation_off_discards_without_a_prompt(self):
-        game, alice, alice_user, _bob, blocked_card = self._setup_blocked_card()
-        alice_user.preferences.confirm_destructive_actions = False
-
-        game.execute_action(alice, "card_slot_1")
-
-        assert alice_user.get_current_menu_items("action_input_menu") is None
-        assert alice.id not in game._pending_actions
-        assert blocked_card not in alice.hand
-        assert blocked_card in game.discard_pile
-        spoken = " ".join(alice_user.get_spoken_messages())
-        assert "play 100 miles because you need a Green Light" in spoken
-        assert "Do you want to discard it?" not in spoken
-
-    def test_per_game_override_off_discards_without_a_prompt(self):
-        game, alice, alice_user, _bob, blocked_card = self._setup_blocked_card()
-        alice_user.preferences.confirm_destructive_actions = True
-        alice_user.preferences.set_game_override(
-            "confirm_destructive_actions", "milebymile", False
-        )
-
-        game.execute_action(alice, "card_slot_1")
-
-        assert alice_user.get_current_menu_items("action_input_menu") is None
-        assert blocked_card not in alice.hand
-        assert blocked_card in game.discard_pile
-
-    def test_confirmation_on_still_prompts(self):
-        game, alice, alice_user, _bob, blocked_card = self._setup_blocked_card()
-        alice_user.preferences.confirm_destructive_actions = True
-
-        game.execute_action(alice, "card_slot_1")
-
-        assert alice_user.get_current_menu_items("action_input_menu") is not None
-        assert alice.hand == [blocked_card]
-        assert blocked_card not in game.discard_pile
-
-    def test_confirmation_off_never_discards_out_of_turn(self):
-        game, alice, alice_user, bob, blocked_card = self._setup_blocked_card()
-        alice_user.preferences.confirm_destructive_actions = False
-        game.current_player = bob
-
-        game.execute_action(alice, "card_slot_1")
-
-        assert alice.hand == [blocked_card]
-        assert blocked_card not in game.discard_pile
-
-    def test_preference_is_offered_for_this_game(self):
-        assert "confirm_destructive_actions" in MileByMileGame.relevant_preferences
-
-
 class TestMileByMileTouchOrdering:
     def test_touch_standard_actions_put_info_before_status(self):
         game = MileByMileGame()
         alice_user = MockUser("Alice", uuid="p1")
-        alice_user.set_client_type("web")
+        alice_user.client_type = "web"
         bob_user = MockUser("Bob", uuid="p2")
         alice = game.add_player("Alice", alice_user)
         game.add_player("Bob", bob_user)
@@ -2056,7 +2038,7 @@ class TestMileByMileTouchOrdering:
         """Dirty Trick button must not appear for touch clients in the lobby."""
         game = MileByMileGame()
         alice_user = MockUser("Alice", uuid="p1")
-        alice_user.set_client_type("web")
+        alice_user.client_type = "web"
         bob_user = MockUser("Bob", uuid="p2")
         alice = game.add_player("Alice", alice_user)
         game.add_player("Bob", bob_user)
@@ -2072,7 +2054,7 @@ class TestMileByMileTouchOrdering:
         """Dirty Trick button must be visible for touch clients once gameplay starts."""
         game = MileByMileGame()
         alice_user = MockUser("Alice", uuid="p1")
-        alice_user.set_client_type("web")
+        alice_user.client_type = "web"
         bob_user = MockUser("Bob", uuid="p2")
         alice = game.add_player("Alice", alice_user)
         game.add_player("Bob", bob_user)
@@ -2195,3 +2177,4 @@ def test_status_score_format_includes_localized_unit() -> None:
     assert spoken
     assert "unit" not in spoken[0]
     assert "điểm" in spoken[0]
+

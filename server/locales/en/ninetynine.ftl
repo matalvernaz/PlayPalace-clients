@@ -1,102 +1,78 @@
-# Ninety Nine - English Localization
-# Messages match v10 exactly
+# ninetynine.ftl for locale en. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game info
-ninetynine-name = Ninety Nine
-ninetynine-description = A card game where players try to avoid pushing the running total over 99. Last player standing wins!
-
-# Round
+game-name-ninetynine = Ninety Nine
 ninetynine-round = Round { $round }.
-
-# Turn
-ninetynine-player-turn = { $player }'s turn.
-
-# Playing cards - match v10 exactly
 ninetynine-you-play = You play { $card }. The count is now { $count }.
 ninetynine-player-plays = { $player } plays { $card }. The count is now { $count }.
-
-# Direction reverse
 ninetynine-direction-reverses = The direction of play reverses!
-
-# Skip
+ninetynine-you-skipped = You are skipped.
 ninetynine-player-skipped = { $player } is skipped.
-
-# Token loss - match v10 exactly
-ninetynine-you-lose-tokens = You lose { $amount } { $amount ->
-    [one] token
-    *[other] tokens
-}.
-ninetynine-player-loses-tokens = { $player } loses { $amount } { $amount ->
-    [one] token
-    *[other] tokens
-}.
-
-# Elimination
+n99-card-plus-10 = +10
+n99-card-minus-10 = -10
+n99-card-pass = Pass
+n99-card-reverse = Reverse
+n99-card-skip = Skip
+n99-card-ninety-nine = Ninety Nine
+ninetynine-you-lose-tokens =
+    You lose { $amount } { $amount ->
+        [one] token
+       *[other] tokens
+    }.
+ninetynine-player-loses-tokens =
+    { $player } loses { $amount } { $amount ->
+        [one] token
+       *[other] tokens
+    }.
+ninetynine-you-eliminated = You have been eliminated!
 ninetynine-player-eliminated = { $player } has been eliminated!
-
-# Game end
+ninetynine-you-win = You win the game!
 ninetynine-player-wins = { $player } wins the game!
-
-# Dealing
-ninetynine-you-deal = You deal out the cards.
-ninetynine-player-deals = { $player } deals out the cards.
-
-# Drawing cards
+ninetynine-end-score =
+    { $rank }. { $player }: { $tokens } { $tokens ->
+        [one] token
+       *[other] tokens
+    }
 ninetynine-you-draw = You draw { $card }.
 ninetynine-player-draws = { $player } draws a card.
-
-# No valid cards
+ninetynine-you-no-valid-cards = You have no cards that won't go over 99!
+ninetynine-player-no-valid-cards = { $player } has no cards that won't go over 99!
 ninetynine-no-valid-cards = { $player } has no cards that won't go over 99!
-
-# Status - for C key
 ninetynine-current-count = The count is { $count }.
-
-# Hand check - for H key
-ninetynine-hand-cards = Your cards: { $cards }.
-ninetynine-hand-empty = You have no cards.
-
-# Ace choice
+ninetynine-next-round-wait = The next round will start in { $seconds } seconds.
 ninetynine-ace-choice = Play Ace as +1 or +11?
 ninetynine-ace-add-eleven = Add 11
 ninetynine-ace-add-one = Add 1
-
-# Ten choice
 ninetynine-ten-choice = Play 10 as +10 or -10?
 ninetynine-ten-add = Add 10
 ninetynine-ten-subtract = Subtract 10
-
-# Manual draw
+ninetynine-select-card-choice = Choose how to play this card.
+ninetynine-choice-1 = Choice 1
+ninetynine-choice-2 = Choice 2
 ninetynine-draw-card = Draw card
-ninetynine-draw-prompt = Press Space or D to draw a card.
-
-# Options
+ninetynine-draw-prompt = Please draw a card.
+ninetynine-no-card-to-draw = No card is available to draw. Continue with your current hand.
 ninetynine-set-tokens = Starting tokens: { $tokens }
-ninetynine-desc-tokens = Number of tokens each player starts with; lose all your tokens, pay another and you're out!
 ninetynine-enter-tokens = Enter number of starting tokens:
 ninetynine-option-changed-tokens = Starting tokens set to { $tokens }.
-
-ninetynine-set-hand-size = Hand size: { $size }
-ninetynine-desc-hand-size = Number of cards each player starts with
-ninetynine-enter-hand-size = Enter hand size:
-ninetynine-option-changed-hand-size = Hand size set to { $size }.
-
+ninetynine-desc-starting-tokens = How many survival tokens each Ninety Nine player begins with. A player is eliminated after losing all tokens (default 9, range 1-50).
 ninetynine-set-rules = Rules variant: { $rules }
-ninetynine-desc-rules = Choose between different rule sets for Ninety-Nine
 ninetynine-select-rules = Select rules variant
 ninetynine-option-changed-rules = Rules variant set to { $rules }.
-
+ninetynine-desc-rules-variant = Chooses the standard 52-card Ninety Nine deck or the special action-cards deck.
+ninetynine-set-hand-size = Hand size: { $size }
+ninetynine-enter-hand-size = Enter hand size:
+ninetynine-option-changed-hand-size = Hand size set to { $size }.
+ninetynine-desc-hand-size = How many cards each player is dealt at the start of each Ninety Nine round (default 3, range 1-13).
 ninetynine-set-autodraw = Automatic drawing: { $enabled }
-ninetynine-desc-autodraw = Your hand will refill itself without intervention (recommended for beginners)
 ninetynine-option-changed-autodraw = Automatic drawing set to { $enabled }.
-
-# Rules variant announcements (shown at game start)
-ninetynine-rules-quentin = Quentin C rules.
-ninetynine-rules-rsgames = RS Games rules.
-
-# Rules variant choices (for menu display)
-ninetynine-rules-variant-quentin_c = Quentin C
-ninetynine-rules-variant-rs_games = RS Games
-
-# Disabled action reasons
+ninetynine-desc-autodraw = When enabled, players automatically draw a replacement card after playing. When off, players must draw manually.
+ninetynine-rules-action-cards = Action cards rules.
+ninetynine-rules-variant-standard = Standard
+ninetynine-rules-variant-action-cards = Action Cards
 ninetynine-choose-first = You need to make a choice first.
-ninetynine-draw-first = You need to draw a card first.
+ninetynine-round-transition-waiting = Waiting for the next round to start.
+ninetynine-pause-timer = Pause timer
+ninetynine-timer-not-active = The round timer is not active.
+ninetynine-error-too-many-cards = Too many cards needed: { $players } players × { $hand_size } cards exceeds the { $deck_size }-card deck.
+ninetynine-check-count = Check count

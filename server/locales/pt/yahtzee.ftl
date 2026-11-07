@@ -1,94 +1,166 @@
-# Mensagens do jogo Yahtzee (Português)
+# yahtzee.ftl for locale pt. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Informações do jogo
 game-name-yahtzee = Yahtzee
-
-# Ações - Rolagem
-yahtzee-roll = Re-rolar ({ $count } restantes)
+yahtzee-roll = Rolar de novo ({ $count } restantes)
 yahtzee-roll-all = Rolar dados
-
-# Categorias de pontuação da seção superior
-yahtzee-score-ones = Uns por { $points } pontos
-yahtzee-score-twos = Dois por { $points } pontos
-yahtzee-score-threes = Três por { $points } pontos
-yahtzee-score-fours = Quatros por { $points } pontos
-yahtzee-score-fives = Cincos por { $points } pontos
-yahtzee-score-sixes = Seis por { $points } pontos
-
-# Categorias de pontuação da seção inferior
-yahtzee-score-three-kind = Trinca por { $points } pontos
-yahtzee-score-four-kind = Quadra por { $points } pontos
-yahtzee-score-full-house = Full House por { $points } pontos
-yahtzee-score-small-straight = Sequência Pequena por { $points } pontos
-yahtzee-score-large-straight = Sequência Grande por { $points } pontos
-yahtzee-score-yahtzee = Yahtzee por { $points } pontos
-yahtzee-score-chance = Chance por { $points } pontos
-
-# Eventos do jogo
-yahtzee-you-rolled = Você rolou: { $dice }. Rolagens restantes: { $remaining }
-yahtzee-player-rolled = { $player } rolou: { $dice }. Rolagens restantes: { $remaining }
-
-# Anúncios de pontuação
-yahtzee-you-scored = Você marcou { $points } pontos em { $category }.
-yahtzee-player-scored = { $player } marcou { $points } em { $category }.
-
-# Bônus Yahtzee
-yahtzee-you-bonus = Bônus Yahtzee! +100 pontos
-yahtzee-player-bonus = { $player } ganhou um bônus Yahtzee! +100 pontos
-
-# Bônus da seção superior
+yahtzee-score-ones =
+    1s para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-twos =
+    2s para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-threes =
+    3s para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-fours =
+    4s para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-fives =
+    5s para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-sixes =
+    6s para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-three-kind =
+    Trinca para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-four-kind =
+    Quadra para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-full-house =
+    Full House para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-small-straight =
+    Sequência menor para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-large-straight =
+    Sequência maior para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-yahtzee =
+    Yahtzee para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-score-chance =
+    Chance para { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    }
+yahtzee-you-rolled =
+    Você tirou: { $dice }. { $remaining ->
+        [0] Escolha uma categoria de pontuação.
+       *[other]
+            Restam { $remaining } { $remaining ->
+                [one] rolagem
+               *[other] rolagens
+            }.
+    }
+yahtzee-player-rolled =
+    { $player } tirou: { $dice }. { $remaining ->
+        [0] { GENDER_TERM($player_gender, "subject-capitalized") } deve escolher uma categoria de pontuação.
+       *[other]
+            Restam { $remaining } { $remaining ->
+                [one] rolagem
+               *[other] rolagens
+            }.
+    }
+yahtzee-you-rolled-brief = Você tirou: { $dice }.
+yahtzee-player-rolled-brief = { $player } tirou: { $dice }.
+yahtzee-you-scored =
+    Você marcou { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    } em { $category }.
+yahtzee-player-scored =
+    { $player } marcou { $points } { $points ->
+        [one] ponto
+       *[other] pontos
+    } em { $category }.
+yahtzee-you-scored-brief = { $points } em { $category }.
+yahtzee-player-scored-brief = { $player }: { $points } em { $category }.
+yahtzee-you-bonus = Bônus de Yahtzee! +100 pontos
+yahtzee-player-bonus = { $player } ganhou um bônus de Yahtzee! +100 pontos
+yahtzee-you-bonus-brief = Bônus de Yahtzee, +100.
+yahtzee-player-bonus-brief = { $player }: bônus de Yahtzee, +100.
 yahtzee-you-upper-bonus = Bônus da seção superior! +35 pontos ({ $total } na seção superior)
-yahtzee-player-upper-bonus = { $player } ganhou o bônus da seção superior! +35 pontos
-yahtzee-you-upper-bonus-missed = Você perdeu o bônus da seção superior ({ $total } na seção superior, precisava de 63).
-yahtzee-player-upper-bonus-missed = { $player } perdeu o bônus da seção superior.
-
-# Modo de pontuação
-yahtzee-choose-category = Escolha uma categoria para pontuar.
-yahtzee-continuing = Continuando turno.
-
-# Verificações de status
-yahtzee-check-scoresheet = Ver cartela de pontos
-yahtzee-view-dice = Check dice
+yahtzee-player-upper-bonus = { $player } conquistou o bônus da seção superior! +35 pontos ({ $total } na seção superior)
+yahtzee-you-upper-bonus-brief = Bônus superior, +35.
+yahtzee-player-upper-bonus-brief = { $player }: bônus superior, +35.
+yahtzee-you-upper-bonus-missed = Bônus da seção superior perdido. Você fez { $total }; faltaram { $needed }.
+yahtzee-player-upper-bonus-missed = { $player } perdeu o bônus da seção superior com { $total }, faltando { $needed }.
+yahtzee-you-upper-bonus-missed-brief = Bônus superior perdido; faltaram { $needed }.
+yahtzee-player-upper-bonus-missed-brief = { $player }: bônus superior perdido, faltaram { $needed }.
+yahtzee-check-scoresheet = Verificar cartela
+yahtzee-check-all-scorecards = Verificar a cartela de todos os jogadores
+yahtzee-select-scorecard-player = Escolha a cartela de um jogador.
+yahtzee-scorecard-no-players = Nenhum jogador ativo tem cartela neste jogo ainda.
+yahtzee-scorecard-player-unavailable = Esse jogador não está mais disponível para consulta. Abra a lista de cartelas novamente e escolha um jogador ativo.
+yahtzee-view-dice = Verificar dados
 yahtzee-your-dice = Seus dados: { $dice }.
-yahtzee-your-dice-kept = Seus dados: { $dice }. Guardando: { $kept }
-yahtzee-not-rolled = Você ainda não rolou.
-
-# Exibição da cartela de pontos
+yahtzee-your-dice-kept = Seus dados: { $dice }. Mantendo: { $kept }.
+yahtzee-current-dice = Dados de { $player }: { $dice }.
+yahtzee-current-dice-kept = Dados de { $player }: { $dice }. Mantendo: { $kept }.
+yahtzee-not-rolled = O jogador atual ainda não rolou.
 yahtzee-scoresheet-header = Cartela de { $player }
-yahtzee-scoresheet-upper = Seção Superior:
-yahtzee-scoresheet-lower = Seção Inferior:
-yahtzee-scoresheet-category-filled = { $category }: { $points }
-yahtzee-scoresheet-category-open = { $category }: -
-yahtzee-scoresheet-upper-total-bonus = Total Superior: { $total } (BÔNUS: +35)
-yahtzee-scoresheet-upper-total-needed = Total Superior: { $total } (faltam { $needed } para bônus)
-yahtzee-scoresheet-yahtzee-bonus = Bônus Yahtzee: { $count } x 100 = { $total }
-yahtzee-scoresheet-grand-total = PONTUAÇÃO TOTAL: { $total }
-
-# Nomes das categorias (para anúncios)
-yahtzee-category-ones = Uns
-yahtzee-category-twos = Dois
-yahtzee-category-threes = Três
-yahtzee-category-fours = Quatros
-yahtzee-category-fives = Cincos
-yahtzee-category-sixes = Seis
+yahtzee-scoresheet-upper = Seção superior:
+yahtzee-scoresheet-lower = Seção inferior:
+yahtzee-scoresheet-upper-total-bonus = Total da parte superior: { $total } (bônus: +35)
+yahtzee-scoresheet-upper-total-needed = Total da parte superior: { $total } (faltam { $needed } para o bônus)
+yahtzee-scoresheet-yahtzee-bonus = Bônus de Yahtzee: { $count } x 100 = { $total }
+yahtzee-scoresheet-grand-total = Pontuação total: { $total }
+yahtzee-category-ones = 1s
+yahtzee-category-twos = 2s
+yahtzee-category-threes = 3s
+yahtzee-category-fours = 4s
+yahtzee-category-fives = 5s
+yahtzee-category-sixes = 6s
 yahtzee-category-three-kind = Trinca
 yahtzee-category-four-kind = Quadra
 yahtzee-category-full-house = Full House
-yahtzee-category-small-straight = Sequência Pequena
-yahtzee-category-large-straight = Sequência Grande
+yahtzee-category-small-straight = Sequência menor
+yahtzee-category-large-straight = Sequência maior
 yahtzee-category-yahtzee = Yahtzee
 yahtzee-category-chance = Chance
-
-# Fim do jogo
-yahtzee-winner = { $player } vence com { $score } pontos!
-yahtzee-winners-tie = Empate! { $players } todos marcaram { $score } pontos!
-
-# Opções
-yahtzee-set-rounds = Número de jogos: { $rounds }
-yahtzee-enter-rounds = Digite o número de jogos (1-10):
-yahtzee-option-changed-rounds = Número de jogos definido para { $rounds }.
-
-# Razões para ações desabilitadas
-yahtzee-no-rolls-left = Você não tem mais rolagens.
-yahtzee-roll-first = Você precisa rolar primeiro.
-yahtzee-category-filled = Essa categoria já está preenchida.
+yahtzee-you-win =
+    Você vence com { $score } { $score ->
+        [one] ponto
+       *[other] pontos
+    }!
+yahtzee-player-wins =
+    { $player } vence com { $score } { $score ->
+        [one] ponto
+       *[other] pontos
+    }!
+yahtzee-winners-tie = Empate! { $players } marcaram { $score } pontos!
+yahtzee-set-rounds = Número de partidas: { $rounds }
+yahtzee-enter-rounds = Digite o número de partidas (1-10):
+yahtzee-option-changed-rounds = Número de partidas definido para { $rounds }.
+yahtzee-desc-num-games = Quantas cartelas completas de Yahtzee são jogadas antes da comparação dos totais finais (padrão 1, intervalo de 1 a 10).
+yahtzee-no-rolls-left = Você não tem mais rolagens; escolha uma categoria aberta para encerrar seu turno.
+yahtzee-roll-first = Role os dados antes de escolher uma categoria de pontuação.
+yahtzee-category-filled = Essa categoria já tem pontuação. Escolha uma categoria ainda aberta na sua cartela.
+yahtzee-joker-upper-required = Regra do curinga: como este Yahtzee mostra { $face }, você deve pontuar a casa da seção superior para { $face } antes de qualquer outra categoria.
+yahtzee-joker-lower-required = Regra do curinga: a casa da seção superior para { $face } já está preenchida, então você deve escolher uma categoria aberta da seção inferior antes de usar outra casa da seção superior.

@@ -1,14 +1,18 @@
 """Bot strategy for Yahtzee."""
 
-from __future__ import annotations
-
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from ...game_utils.dice import count_dice
-
 if TYPE_CHECKING:
     from .game import YahtzeeGame, YahtzeePlayer
+
+
+def _count_dice(dice: list[int]) -> dict[int, int]:
+    """Count occurrences of each die value (1-6)."""
+    counts = {i: 0 for i in range(1, 7)}
+    for die in dice:
+        counts[die] += 1
+    return counts
 
 
 def bot_think(
@@ -16,6 +20,7 @@ def bot_think(
     player: "YahtzeePlayer",
     *,
     calculate_score: Callable[[list[int], str], int],
+    scoreable_categories: Callable[["YahtzeePlayer"], list[str]] | None = None,
     all_categories: list[str],
     upper_categories: list[str],
 ) -> str | None:
@@ -26,7 +31,11 @@ def bot_think(
     if not player.dice.has_rolled:
         return "roll"
 
-    open_categories = player.get_open_categories()
+    open_categories = (
+        scoreable_categories(player)
+        if scoreable_categories is not None
+        else player.get_open_categories()
+    )
     if not open_categories:
         return None
 
@@ -43,7 +52,7 @@ def bot_think(
 
         # Yahtzee bonus override: if eligible and have 4+ of a kind,
         # keep those dice regardless of target category
-        counts = count_dice(player.dice.values)
+        counts = _count_dice(player.dice.values)
         best_val, best_cnt = max(counts.items(), key=lambda item: (item[1], item[0]))
         if yahtzee_bonus_eligible and best_cnt >= 4:
             desired_keeps = {i for i, v in enumerate(player.dice.values) if v == best_val}
@@ -65,6 +74,7 @@ def bot_think(
         calculate_score=calculate_score,
         all_categories=all_categories,
         upper_categories=upper_categories,
+        open_categories=open_categories,
     )
 
 
@@ -96,7 +106,7 @@ def _category_potential(
     yahtzee_bonus_eligible: bool = False,
 ) -> float:
     """Heuristic value for pursuing a category with remaining rolls."""
-    counts = count_dice(values)
+    counts = _count_dice(values)
     best_value, best_count = max(counts.items(), key=lambda item: (item[1], item[0]))
     unique_values = sorted(set(values))
     run_len = _longest_consecutive_run(unique_values)
@@ -109,11 +119,9 @@ def _category_potential(
 
     if category == "three_kind":
         if best_count >= 3:
-            # Already have it — estimate total sum (keep best, reroll rest for ~3.5 avg)
             reroll_count = 5 - best_count
             return float(dice_sum) + reroll_count * 1.0 * rolls_left
         need = max(0, 3 - best_count)
-        # Potential scales with how close we are and the value of matching dice
         return (best_count * best_value) + (need * best_value * 1.5 * rolls_left)
 
     if category == "four_kind":
@@ -127,7 +135,6 @@ def _category_potential(
         bonus = 100.0 if yahtzee_bonus_eligible else 0.0
         if best_count == 5:
             return 50.0 + bonus
-        # Harder to achieve with fewer matching dice
         if best_count >= 3:
             return best_count * 8.0 + (5 - best_count) * 3.0 * rolls_left + bonus * 0.1
         return best_count * 5.0 + rolls_left * 2.0
@@ -153,7 +160,6 @@ def _category_potential(
         return run_len * 6.0 + rolls_left * 3.0
 
     if category == "chance":
-        # Base: current dice sum. Bonus for rerolling low dice.
         low_dice = sum(1 for v in values if v < 4)
         return float(dice_sum) + low_dice * 1.5 * rolls_left
 
@@ -162,7 +168,7 @@ def _category_potential(
 
 def _desired_keep_indices(values: list[int], category: str) -> set[int]:
     """Select which dice to keep while pursuing a category."""
-    counts = count_dice(values)
+    counts = _count_dice(values)
 
     if category in ("ones", "twos", "threes", "fours", "fives", "sixes"):
         target = _upper_target_value(category)
@@ -206,29 +212,27 @@ def _pick_best_category_action(
     calculate_score: Callable[[list[int], str], int],
     all_categories: list[str],
     upper_categories: list[str],
+    open_categories: list[str] | None = None,
 ) -> str:
     """Choose the best category to score now."""
-    from ...game_utils.dice import has_n_of_a_kind
-
-    open_categories = player.get_open_categories()
+    if open_categories is None:
+        open_categories = player.get_open_categories()
     scores = {cat: calculate_score(player.dice.values, cat) for cat in open_categories}
 
     # Yahtzee bonus: if dice are 5-of-a-kind and yahtzee already scored as 50,
-    # we get +100 bonus no matter which category we pick. Factor this into utility
-    # by preferring categories where the base score is also good.
-    counts = count_dice(player.dice.values)
-    is_five_kind = has_n_of_a_kind(counts, 5)
+    # we get +100 bonus no matter which category we pick.
+    counts = _count_dice(player.dice.values)
+    is_five_kind = any(c >= 5 for c in counts.values())
     yahtzee_bonus_active = is_five_kind and player.scores.get("yahtzee") == 50
 
     best_cat = None
     best_utility = -1.0
     upper_total_before = player.get_upper_total()
+
     for cat in open_categories:
         score = scores[cat]
         utility = float(score)
 
-        # Yahtzee bonus: when we have 5-of-a-kind with bonus eligible,
-        # add the 100-point bonus to utility so we pick the best base score
         if yahtzee_bonus_active:
             utility += 100.0
 
@@ -239,6 +243,7 @@ def _pick_best_category_action(
                 utility += (before_gap - after_gap) * 0.2
             if before_gap > 0 and after_gap == 0:
                 utility += 35.0
+
         if utility > best_utility:
             best_utility = utility
             best_cat = cat
@@ -246,10 +251,8 @@ def _pick_best_category_action(
     if best_cat is not None and scores[best_cat] > 0:
         return f"score_{best_cat}"
 
-    # When forced to zero-out a category, waste the one with the highest
-    # expected value loss (hardest to score / least likely to score well later).
-    # Yahtzee is almost always worth wasting first, then straights, etc.
-    # But don't waste upper categories that could still help reach the 63 bonus.
+    # Forced to zero-out: waste the least valuable category.
+    # Preserve upper categories if the 63-pt bonus is still reachable.
     upper_bonus_lost = not player.upper_bonus_awarded and upper_total_before < 63
     waste_order: list[str] = [
         "yahtzee",
@@ -259,8 +262,6 @@ def _pick_best_category_action(
         "four_kind",
         "three_kind",
     ]
-    # If upper bonus is still reachable, waste ones first (low cost to lose),
-    # otherwise waste upper categories freely
     if upper_bonus_lost:
         waste_order.extend(["ones", "twos", "threes", "chance", "fours", "fives", "sixes"])
     else:
@@ -285,7 +286,7 @@ def _upper_target_value(category: str) -> int:
 
 
 def _longest_consecutive_run(values: list[int]) -> int:
-    """Return longest consecutive run length."""
+    """Return longest consecutive run length in a sorted unique list."""
     if not values:
         return 0
     best = 1
@@ -300,7 +301,7 @@ def _longest_consecutive_run(values: list[int]) -> int:
 
 
 def _best_straight_run(unique_values: list[int]) -> set[int]:
-    """Return the longest consecutive run values."""
+    """Return the set of values forming the longest consecutive run."""
     if not unique_values:
         return set()
     best_start = unique_values[0]

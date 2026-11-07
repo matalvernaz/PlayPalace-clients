@@ -4,7 +4,7 @@ from __future__ import annotations
 import random
 from typing import TYPE_CHECKING
 
-from .cards import Card, CardType, ResourceType, EventType
+from .cards import Card, CardType, EventType
 from .state import (
     GamePhase,
     PlaySubPhase,
@@ -14,25 +14,13 @@ from .state import (
     BUILDING_COSTS,
     TRIBE_SPECIAL_RESOURCE,
 )
-from .construction import (
-    can_build,
-    get_affordable_buildings,
-    get_road_targets,
-    execute_single_build,
-)
-from .combat import (
-    can_declare_war,
-    get_valid_war_targets,
-    get_valid_war_goals,
-    check_olympics_defense,
-    declare_war,
-    prepare_forces,
-    execute_war_battle,
-)
+from .construction import get_affordable_buildings, get_road_targets, execute_single_build
+from .combat import can_declare_war, get_valid_war_targets, get_valid_war_goals, declare_war, prepare_forces
 from .trading import create_offer, announce_offer, check_and_execute_trades
 
 if TYPE_CHECKING:
     from .game import AgeOfHeroesGame, AgeOfHeroesPlayer
+    from .state import TribeState
 
 
 def bot_think(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -> str | None:
@@ -81,12 +69,12 @@ def bot_think_play_phase(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -> st
     if player in active_players:
         player_index = active_players.index(player)
         if game.road_request_to == player_index and game.road_request_from >= 0:
-            # Bot is being asked for road permission - approve most of the time
-            # Could add more sophisticated logic here (e.g., deny if at war with requester)
-            if random.random() < 0.9:  # 90% approval rate  # nosec B311
+            if game.road_request_from >= len(active_players):
+                return None
+            requester = active_players[game.road_request_from]
+            if bot_should_approve_road(game, player, requester):
                 return "approve_road"
-            else:
-                return "deny_road"
+            return "deny_road"
 
     if game.current_player != player:
         return None
@@ -253,50 +241,104 @@ def bot_select_construction(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) ->
     if not affordable:
         return None
 
-    cities = player.tribe_state.cities
-    armies = player.tribe_state.get_available_armies()
-    fortresses = player.tribe_state.fortresses
+    scored = [
+        (_score_building_choice(game, player, building), building)
+        for building in affordable
+    ]
+    scored.sort(key=lambda item: item[0], reverse=True)
+    best_score, best_building = scored[0]
 
-    # Priority order:
-    # 1. City (if close to victory)
-    # 2. Army (if vulnerable)
-    # 3. Fortress (if no fortress)
-    # 4. General (if armies > generals)
-    # 5. Road (for fair cards)
-    # 6. City (general case)
-    # 7. Army (general case)
+    # Stop before spending resources on a low-impact build just because it is possible.
+    if best_score < 15 and random.random() < 0.35:  # nosec B311
+        return None
+    return best_building
 
-    # Close to victory - build city
-    if cities >= 3 and BuildingType.CITY in affordable:
-        return BuildingType.CITY
 
-    # Vulnerable - build army
-    if armies < 2 and BuildingType.ARMY in affordable:
-        return BuildingType.ARMY
+def _score_building_choice(
+    game: AgeOfHeroesGame,
+    player: AgeOfHeroesPlayer,
+    building: str,
+) -> int:
+    """Score a possible build from the bot's current strategic position."""
+    if not player.tribe_state:
+        return 0
 
-    # No fortress - build one
-    if fortresses == 0 and BuildingType.FORTRESS in affordable:
-        return BuildingType.FORTRESS
+    state = player.tribe_state
+    opponents = [
+        p for p in game.get_active_players()
+        if p is not player and hasattr(p, "tribe_state") and p.tribe_state
+    ]
+    biggest_enemy_army = max(
+        (p.tribe_state.get_available_armies() for p in opponents),
+        default=0,
+    )
+    enemy_near_city_win = any(
+        p.tribe_state.cities >= game.options.victory_cities - 1 for p in opponents
+    )
+    enemy_near_monument_win = any(p.tribe_state.monument_progress >= 4 for p in opponents)
 
-    # Need generals
-    generals = player.tribe_state.generals
-    if armies > generals + 1 and BuildingType.GENERAL in affordable:
-        return BuildingType.GENERAL
+    if building == BuildingType.CITY:
+        score = 65 + state.cities * 8
+        if state.cities >= game.options.victory_cities - 1:
+            score += 100
+        if enemy_near_city_win:
+            score += 10
+        return score
 
-    # Build road for fair cards
-    if BuildingType.ROAD in affordable:
+    if building == BuildingType.ARMY:
+        score = 35
+        if state.get_available_armies() <= 1:
+            score += 45
+        if state.get_available_armies() < biggest_enemy_army:
+            score += 25
+        if can_declare_war(game, player) is not None:
+            score += 10
+        return score
+
+    if building == BuildingType.GENERAL:
+        armies = state.get_available_armies()
+        score = 28 + max(0, armies - state.generals) * 8
+        if armies >= 3:
+            score += 18
+        return score
+
+    if building == BuildingType.FORTRESS:
+        score = 24
+        if state.fortresses == 0:
+            score += 28
+        if enemy_near_city_win or biggest_enemy_army > state.get_available_armies():
+            score += 18
+        return score
+
+    if building == BuildingType.ROAD:
         targets = get_road_targets(game, player)
-        if targets and random.random() < 0.3:  # nosec B311
-            return BuildingType.ROAD
+        if not targets:
+            return -100
+        score = 20 + len(targets) * 5
+        if state.monument_progress >= 3:
+            score += 16
+        if enemy_near_monument_win:
+            score += 8
+        return score
 
-    # Default priorities
-    if BuildingType.CITY in affordable:
-        return BuildingType.CITY
-    if BuildingType.ARMY in affordable:
-        return BuildingType.ARMY
+    return 10
 
-    # Build anything available
-    return random.choice(affordable) if affordable else None  # nosec B311
+
+def bot_should_approve_road(
+    game: AgeOfHeroesGame,
+    player: AgeOfHeroesPlayer,
+    requester,
+) -> bool:
+    """Approve roads when mutual trade value beats the requester's threat."""
+    if not player.tribe_state or not hasattr(requester, "tribe_state") or not requester.tribe_state:
+        return False
+    if requester.tribe_state.cities >= game.options.victory_cities - 1:
+        return random.random() < 0.2  # nosec B311
+    if requester.tribe_state.monument_progress >= 4:
+        return random.random() < 0.35  # nosec B311
+    if player.tribe_state.monument_progress >= 3:
+        return random.random() < 0.9  # nosec B311
+    return random.random() < 0.72  # nosec B311
 
 
 def _select_war_goal(
@@ -305,36 +347,35 @@ def _select_war_goal(
     our_state: "TribeState",
 ) -> str:
     """Select the best war goal based on strategic considerations."""
-    from .state import TribeState
+    goal_scores: dict[str, int] = {}
 
-    # Priority 1: Destruction if target is close to monument victory
-    if WarGoal.DESTRUCTION in available_goals and target_state.monument_progress >= 2:
-        # Higher chance to destroy if they're closer to winning
-        if target_state.monument_progress >= 4:
-            return WarGoal.DESTRUCTION
-        elif target_state.monument_progress >= 3 and random.random() < 0.8:  # nosec B311
-            return WarGoal.DESTRUCTION
-        elif random.random() < 0.5:  # nosec B311
-            return WarGoal.DESTRUCTION
-
-    # Priority 2: Conquest if target has cities and we want to expand
     if WarGoal.CONQUEST in available_goals:
-        # Strong preference if target has many cities or we're close to city victory
-        if target_state.cities >= 3 or our_state.cities >= 3:
-            if random.random() < 0.7:  # nosec B311
-                return WarGoal.CONQUEST
-        # Otherwise still consider it
-        elif random.random() < 0.4:  # nosec B311
-            return WarGoal.CONQUEST
+        goal_scores[WarGoal.CONQUEST] = 35 + target_state.cities * 10
+        if our_state.cities >= 3:
+            goal_scores[WarGoal.CONQUEST] += 25
+        if target_state.cities >= 4:
+            goal_scores[WarGoal.CONQUEST] += 40
 
-    # Priority 3: Plunder for resources
     if WarGoal.PLUNDER in available_goals:
-        # Good if we need cards for building
-        if random.random() < 0.6:  # nosec B311
-            return WarGoal.PLUNDER
+        goal_scores[WarGoal.PLUNDER] = 20
+        if our_state.cities >= 2:
+            goal_scores[WarGoal.PLUNDER] += 10
+        if target_state.cities <= 1:
+            goal_scores[WarGoal.PLUNDER] += 10
 
-    # Default: pick first available
-    return available_goals[0] if available_goals else WarGoal.CONQUEST
+    if WarGoal.DESTRUCTION in available_goals:
+        goal_scores[WarGoal.DESTRUCTION] = 15 + target_state.monument_progress * 18
+        if target_state.monument_progress >= 4:
+            goal_scores[WarGoal.DESTRUCTION] += 60
+        if our_state.monument_progress >= 3:
+            goal_scores[WarGoal.DESTRUCTION] += 10
+
+    if not goal_scores:
+        return available_goals[0] if available_goals else WarGoal.CONQUEST
+
+    best_score = max(goal_scores.values())
+    best_goals = [goal for goal, score in goal_scores.items() if score == best_score]
+    return random.choice(best_goals)  # nosec B311
 
 
 def bot_select_war_target(
@@ -349,10 +390,17 @@ def bot_select_war_target(
         return None
 
     our_armies = player.tribe_state.get_available_armies()
+    our_generals = player.tribe_state.get_available_generals()
+    hero_cards = sum(
+        1
+        for card in player.hand
+        if card.card_type == CardType.EVENT and card.subtype == EventType.HERO
+    )
+    our_threat = our_armies + hero_cards + (2 if our_generals > 0 else 0)
 
     # Score each target
     best_target = None
-    best_score = -999  # Can be negative now (fighting with disadvantage)
+    best_score = -999
     best_goal = WarGoal.CONQUEST
 
     for target_idx, target in targets:
@@ -361,11 +409,10 @@ def bot_select_war_target(
 
         target_armies = target.tribe_state.get_available_armies()
         target_fortresses = target.tribe_state.fortresses
+        target_generals = target.tribe_state.get_available_generals()
 
-        # Be willing to attack even if slightly disadvantaged
-        effective_defense = target_armies + target_fortresses
-        # Allow attacking if not more than 2 armies disadvantaged
-        if our_armies < effective_defense - 2:
+        effective_defense = target_armies + target_fortresses + (2 if target_generals > 0 else 0)
+        if our_threat < effective_defense - 1:
             continue
 
         # Get valid goals for this target
@@ -373,24 +420,33 @@ def bot_select_war_target(
         if not goals:
             continue
 
-        # Score the target (can be negative now)
-        score = our_armies - effective_defense
-
         # Select goal based on strategic value
         selected_goal = _select_war_goal(goals, target.tribe_state, player.tribe_state)
 
-        # Bonus score for high-value targets
+        score = (our_threat - effective_defense) * 8
+        score += target.tribe_state.cities * 4
+        score += target.tribe_state.monument_progress * 5
+
         if selected_goal == WarGoal.CONQUEST and target.tribe_state.cities >= 4:
-            score += 10  # Target close to city victory
+            score += 45
         elif selected_goal == WarGoal.DESTRUCTION and target.tribe_state.monument_progress >= 3:
-            score += 8  # Target close to monument victory
+            score += 35
+        elif selected_goal == WarGoal.PLUNDER and len(target.hand) >= 4:
+            score += 20
+
+        if target.tribe_state.cities >= game.options.victory_cities - 1:
+            score += 35
+        if target.tribe_state.get_available_armies() == 0:
+            score += 15
+
+        score += random.randint(0, 6)  # nosec B311
 
         if score > best_score:
             best_score = score
             best_target = target_idx
             best_goal = selected_goal
 
-    if best_target is not None:
+    if best_target is not None and best_score >= -4:
         return (best_target, best_goal)
 
     return None
@@ -417,21 +473,28 @@ def bot_select_armies(
     )
 
     if is_attacking:
-        # Commit all or most forces when attacking
-        # Only keep 1 back if we have 3+ armies, otherwise commit everything
-        if available_armies >= 3:
-            armies = available_armies - 1
-        else:
+        war = game.war_state
+        active_players = game.get_active_players()
+        defender_strength = 0
+        if 0 <= war.defender_index < len(active_players):
+            defender = active_players[war.defender_index]
+            if hasattr(defender, "tribe_state") and defender.tribe_state:
+                defender_strength = (
+                    defender.tribe_state.get_available_armies()
+                    + defender.tribe_state.fortresses
+                    + (2 if defender.tribe_state.get_available_generals() else 0)
+                )
+
+        needed = max(1, min(available_armies, defender_strength + 1))
+        armies = available_armies if available_armies <= 2 else max(needed, available_armies - 1)
+        if war.goal in (WarGoal.CONQUEST, WarGoal.DESTRUCTION):
             armies = available_armies
-        generals = available_generals
-        # Use hero cards as armies for extra strength
-        heroes_as_armies = hero_cards
+        generals = available_generals if armies + hero_cards <= defender_strength + 2 else min(1, available_generals)
+        heroes_as_armies = hero_cards if armies + generals <= defender_strength + 2 else max(0, hero_cards - 1)
         heroes_as_generals = 0
     else:
-        # Defending - commit all available forces
         armies = available_armies
         generals = available_generals
-        # Use heroes as generals for defense bonus
         heroes_as_armies = 0
         heroes_as_generals = hero_cards
 
@@ -470,35 +533,6 @@ def bot_should_use_olympics(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) ->
     defender_strength = our_armies + player.tribe_state.fortresses
     if attacker_strength > defender_strength * 2:
         return True
-
-    return False
-
-
-def bot_should_use_fortune(
-    game: AgeOfHeroesGame, player: AgeOfHeroesPlayer, lost_roll: bool
-) -> bool:
-    """Bot decides whether to use Fortune to reroll."""
-    if not lost_roll:
-        return False
-
-    if not player.tribe_state:
-        return False
-
-    war = game.war_state
-    active_players = game.get_active_players()
-    player_index = active_players.index(player)
-
-    # Use if we're the attacker and close to winning
-    if player_index == war.attacker_index:
-        if war.get_attacker_total_armies() > 0:
-            # Use Fortune to try to win
-            return True
-
-    # Use if we're the defender and about to lose badly
-    if player_index == war.defender_index:
-        if war.get_defender_total_armies() <= 1:
-            # Last chance - use Fortune
-            return True
 
     return False
 
@@ -685,9 +719,6 @@ def bot_perform_construction(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -
 
 def bot_perform_war(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -> None:
     """Bot performs war declaration and combat."""
-    # Import here to avoid circular import at module level
-    from .game import AgeOfHeroesPlayer as AOHPlayer
-
     if not player.tribe_state:
         game._end_action(player)
         return
@@ -708,34 +739,30 @@ def bot_perform_war(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -> None:
     # Get defender
     active_players = game.get_active_players()
     defender = active_players[target_index]
-    if not isinstance(defender, AOHPlayer):
+    if not hasattr(defender, "tribe_state") or not defender.tribe_state:
         game.war_state.reset()
         game._end_action(player)
+        return
+
+    maybe_prompt_olympics = getattr(game, "_maybe_prompt_olympics", None)
+    if callable(maybe_prompt_olympics) and maybe_prompt_olympics(player, defender):
         return
 
     # Prepare attacker forces using bot AI
     att_armies, att_generals, att_heroes, att_hero_generals = bot_select_armies(
         game, player, is_attacking=True
     )
-    prepare_forces(game, player, att_armies, att_generals, att_heroes, att_hero_generals)
+    if not prepare_forces(game, player, att_armies, att_generals, att_heroes, att_hero_generals):
+        game.war_state.reset()
+        game._end_action(player)
+        return
 
-    # Prepare defender forces (if bot) or auto-prepare
-    if defender.is_bot:
-        def_armies, def_generals, def_heroes, def_hero_generals = bot_select_armies(
-            game, defender, is_attacking=False
-        )
-        prepare_forces(game, defender, def_armies, def_generals, def_heroes, def_hero_generals)
+    continue_war = getattr(game, "_continue_war_after_attacker_prepared", None)
+    if callable(continue_war):
+        continue_war(player)
     else:
-        # Auto-prepare defender with all available forces
-        if defender.tribe_state:
-            def_armies = defender.tribe_state.get_available_armies()
-            def_generals = defender.tribe_state.get_available_generals()
-            prepare_forces(game, defender, def_armies, def_generals, 0, 0)
-
-    # Execute battle using shared logic
-    # Note: execute_war_battle() enters interactive mode, battle will complete when both sides roll
-    # finish_war_battle() will call _end_action() when battle is done
-    execute_war_battle(game)
+        game.war_state.reset()
+        game._end_action(player)
 
 
 def bot_execute_discard_excess(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -> None:
@@ -743,9 +770,9 @@ def bot_execute_discard_excess(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer)
     from .game import MAX_HAND_SIZE
 
     while len(player.hand) > MAX_HAND_SIZE:
-        # Discard least valuable card (simple heuristic)
-        worst_index = 0
-        player.hand.pop(worst_index)
+        discard_index = bot_select_card_to_discard(game, player)
+        removed = player.hand.pop(discard_index)
+        game.discard_pile.append(removed)
     player.pending_discard = 0
     game._end_turn()
 
@@ -798,9 +825,9 @@ def bot_should_play_disaster(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -
                 best_score = score
                 best_action = f"play_eruption_{card_index}"
 
-    # Play if score is positive (beneficial) or even neutral if no better options
-    # Slight bias: play disaster cards opportunistically (threshold of -5)
-    if best_score > -5:
+    # Play only when the target score is actually beneficial; otherwise keep
+    # the card for trade, bluff value, or a more decisive later strike.
+    if best_score > 0:
         return best_action
 
     return None
@@ -905,7 +932,7 @@ def bot_play_disaster_on_target(
 
     # Return to action selection so bot can continue its turn
     game.sub_phase = PlaySubPhase.SELECT_ACTION
-    game.rebuild_all_menus()
+    game.refresh_menus()
 
 
 def _find_disaster_card_index(hand: list[Card], disaster_type: str) -> int | None:
@@ -951,8 +978,3 @@ def _select_best_disaster_target(
             best_target = target
 
     return best_target, best_score
-
-
-def bot_do_select_action(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer) -> str:
-    """Bot selects a main action. Wrapper for bot_select_action."""
-    return bot_select_action(game, player)

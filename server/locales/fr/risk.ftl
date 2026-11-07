@@ -1,17 +1,14 @@
-# Risk game messages
-# Note: Common messages like round-start, turn-start are in games.ftl
+# risk.ftl for locale fr. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-risk = Risk
-
 # Phase announcements
 risk-reinforce-start = { $player } reçoit { $armies } armées à placer.
 risk-attack-phase = { $player } peut maintenant attaquer.
 risk-fortify-phase = { $player } peut maintenant fortifier.
-
 # Reinforce
 risk-placed-army = { $player } renforce { $territory } ({ $troops } troupes). { $remaining } restantes.
-
 # Attack
 risk-attack-from = { $player } attaque depuis { $territory }.
 risk-combat-result =
@@ -22,31 +19,26 @@ risk-conquered = { $player } conquiert { $territory } ! { $moved } troupes entre
 risk-eliminated = { $player } a été éliminé !
 risk-skip-attack = Passer l'attaque
 risk-cancel-attack = Annuler l'attaque
-
 # Fortify
 risk-fortify-from = { $player } fortifie depuis { $territory }.
 risk-fortified = { $player } déplace { $moved } troupes de { $source } vers { $dest }.
 risk-skip-fortify = Passer la fortification
 risk-cancel-fortify = Annuler la fortification
-
+risk-check-status = Check status
 # Cards
 risk-cards-traded = { $player } échange des cartes contre { $armies } armées bonus.
-
 # Territory labels by phase
 risk-territory-reinforce = { $name } : { $troops } troupes ({ $remaining } à placer)
 risk-territory-attack-from = { $name } : { $troops } troupes (attaquer d'ici)
 risk-territory-attack-target = { $name } : { $troops } troupes ({ $owner })
 risk-territory-fortify-from = { $name } : { $troops } troupes (déplacer d'ici)
 risk-territory-fortify-to = { $name } : { $troops } troupes (déplacer ici)
-
 # Status
 risk-status-header = Vous contrôlez { $territories } territoires avec { $troops } troupes au total.
 risk-status-continent = { $name } : { $owned }/{ $total } territoires. Bonus : { $bonus }.
-
 # Winner
 risk-winner = { $player } a conquis le monde !
 risk-final-score = { $player } : { $territories } territoires
-
 # Disabled reasons
 risk-not-your-territory = Ce n'est pas votre territoire.
 risk-need-more-troops = Il faut au moins 2 troupes pour attaquer ou fortifier d'ici.
@@ -54,13 +46,11 @@ risk-no-adjacent-enemy = Aucun territoire ennemi adjacent.
 risk-cannot-attack-own = Vous ne pouvez pas attaquer votre propre territoire.
 risk-not-adjacent = Ce territoire n'est pas adjacent.
 risk-same-territory = Impossible de fortifier vers le même territoire.
-
 # Options
 risk-set-starting-armies = Armées de départ : { $armies }
 risk-desc-starting-armies = Armées supplémentaires par joueur au début (0 = auto)
 risk-enter-starting-armies = Entrez les armées de départ par joueur (0 pour auto) :
 risk-option-changed-armies = Armées de départ changées à { $armies }
-
 # Rules
 risk-rules =
     Risk est un jeu de conquête mondiale pour 2 à 6 joueurs.
@@ -74,4 +64,3 @@ risk-rules =
     Conquérez au moins un territoire par tour pour gagner une carte. Échangez des ensembles de 3 cartes pour des armées bonus.
     Éliminez tous les adversaires pour gagner.
     Appuyez sur E pour voir votre statut.
-risk-check-status = Check status

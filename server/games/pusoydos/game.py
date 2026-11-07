@@ -1,5 +1,5 @@
 """
-Pusoy Dos Game Implementation for PlayPalace v11.
+Pusoy Dos Game Implementation.
 
 Filipino card game where players race to empty their hand by playing
 increasingly powerful card combinations.  Supports elimination and
@@ -23,8 +23,7 @@ from ...game_utils.cards import Card, Deck, DeckFactory, card_name, read_cards
 from ...game_utils.turn_timer_mixin import TurnTimerMixin
 from ...game_utils.poker_timer import PokerTurnTimer
 from ...messages.localization import Localization
-from ...game_utils.game_status import GameStatus
-from server.core.ui.keybinds import KeybindState
+from ...ui.keybinds import KeybindState
 
 from .evaluator import Combo, evaluate_combo, detect_instant_win, sort_cards, card_value
 from .bot import bot_think, bot_choose_give_cards
@@ -293,7 +292,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-playaural"
+        return "cards"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -315,6 +314,8 @@ class PusoyDosGame(Game, TurnTimerMixin):
         active_count = len([p for p in self.players if not p.is_spectator])
         if self.options.card_passing == "full" and active_count not in (2, 4):
             errors.append("pusoydos-error-full-passing-players")
+        if self.options.instant_wins and self.options.card_passing != "off":
+            errors.append("pusoydos-error-instant-wins-card-passing")
         return errors
 
     # ==========================================================================
@@ -322,7 +323,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
     # ==========================================================================
 
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self._sync_table_status()
         self.game_active = True
         self.round = 0
@@ -362,7 +363,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
         self.finishing_order = []
 
         active = self._playing_players()
-        self.broadcast_l("pusoydos-new-hand", round=self.round)
+        self.broadcast_l("pusoydos-new-hand", buffer="game", round=self.round)
 
         # --- Deal cards based on player count ---
         n = len(active)
@@ -403,7 +404,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
             if user:
                 user.speak_l(
                     "pusoydos-dealt",
-                    buffer="table",
+                    buffer="game",
                     count=len(p.hand),
                     cards=read_cards(p.hand, user.locale),
                 )
@@ -433,24 +434,15 @@ class PusoyDosGame(Game, TurnTimerMixin):
                     "four_twos": "pusoydos-instant-win-four-twos",
                     "six_pairs": "pusoydos-instant-win-six-pairs",
                 }.get(win_type, "pusoydos-instant-win-dragon")
+                personal_key = {
+                    "dragon": "pusoydos-you-instant-win-dragon",
+                    "four_twos": "pusoydos-you-instant-win-four-twos",
+                    "six_pairs": "pusoydos-you-instant-win-six-pairs",
+                }.get(win_type, "pusoydos-you-instant-win-dragon")
 
                 self.play_sound(SOUND_INSTANT_WIN)
-                self.broadcast_l(msg_key, player=p.name)
-                # Record a full finishing order so every scoring mode sees
-                # the winner. _begin_play never ran here, so turn_player_ids
-                # is not usable — rank the rest from `active` with the same
-                # key _player_finishes uses.
-                self.finishing_order.append(p.id)
-                remaining = [q for q in active if q.id != p.id]
-                remaining.sort(
-                    key=lambda q: (
-                        len(q.hand),
-                        max((card_value(c) for c in q.hand), default=0),
-                    )
-                )
-                for q in remaining:
-                    self.finishing_order.append(q.id)
-                self._player_wins_round(p)
+                self.broadcast_personal_l(p, personal_key, msg_key, buffer="game")
+                self._player_wins_round(p, announce=False)
                 self._end_round()
                 return True
         return False
@@ -458,7 +450,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
     def _start_card_passing(self, active: list[PusoyDosPlayer]) -> None:
         """Initiate the card passing phase based on previous round finishing order."""
         self.phase = "card_passing"
-        self.broadcast_l("pusoydos-passing-phase")
+        self.broadcast_l("pusoydos-passing-phase", buffer="game")
 
         # Map finishing positions to current active players
         active_ids = {p.id for p in active}
@@ -501,14 +493,16 @@ class PusoyDosGame(Game, TurnTimerMixin):
             winner.hand.append(card)
 
         # Announce the automatic transfer
-        self.broadcast_l("pusoydos-loser-gives", loser=loser.name, winner=winner.name, count=count)
+        self.broadcast_l(
+            "pusoydos-loser-gives", buffer="game", loser=loser.name, winner=winner.name, count=count
+        )
 
         # Tell the winner what they received
         winner_user = self.get_user(winner)
         if winner_user:
             cards_str = read_cards(loser_highest, winner_user.locale)
             winner_user.speak_l(
-                "pusoydos-received-cards", buffer="table", cards=cards_str, sender=loser.name
+                "pusoydos-received-cards", buffer="game", cards=cards_str, sender=loser.name
             )
 
         # Winner must give N cards back — set up the choice
@@ -530,7 +524,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
                     self._complete_give(p, give_ids)
                 else:
                     # Human needs to select — rebuild menus so they see the selection UI
-                    self.rebuild_all_menus()
+                    self.refresh_menus()
                     return
 
         # All done
@@ -538,7 +532,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
         for p in active:
             p.hand = sort_cards(p.hand)
 
-        self.broadcast_l("pusoydos-cards-exchanged")
+        self.broadcast_l("pusoydos-cards-exchanged", buffer="game")
         self._begin_play(active)
 
     def _complete_give(self, giver: PusoyDosPlayer, card_ids: list[int]) -> None:
@@ -555,6 +549,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
         # Broadcast the return
         self.broadcast_l(
             "pusoydos-winner-gives-back",
+            buffer="game",
             winner=giver.name,
             loser=recipient.name,
             count=len(given_cards),
@@ -567,14 +562,14 @@ class PusoyDosGame(Game, TurnTimerMixin):
         if giver_user:
             giver_user.speak_l(
                 "pusoydos-passed-cards",
-                buffer="table",
+                buffer="game",
                 cards=read_cards(given_cards, giver_user.locale),
                 recipient=recipient.name,
             )
         if recipient_user:
             recipient_user.speak_l(
                 "pusoydos-received-cards",
-                buffer="table",
+                buffer="game",
                 cards=read_cards(given_cards, recipient_user.locale),
                 sender=giver.name,
             )
@@ -609,9 +604,19 @@ class PusoyDosGame(Game, TurnTimerMixin):
             idx = self.turn_player_ids.index(start_player.id)
             self.turn_index = idx
             if any(c.rank == 3 and c.suit == 2 for c in start_player.hand):
-                self.broadcast_l("pusoydos-first-player", player=start_player.name)
+                self.broadcast_personal_l(
+                    start_player,
+                    "pusoydos-you-first-player",
+                    "pusoydos-first-player",
+                    buffer="game",
+                )
             else:
-                self.broadcast_l("pusoydos-first-player-lowest", player=start_player.name)
+                self.broadcast_personal_l(
+                    start_player,
+                    "pusoydos-you-first-player-lowest",
+                    "pusoydos-first-player-lowest",
+                    buffer="game",
+                )
 
         self._start_turn()
 
@@ -640,7 +645,12 @@ class PusoyDosGame(Game, TurnTimerMixin):
         if self.trick_winner_id == player.id:
             # I won the trick — start a new one
             if self.current_combo is not None:
-                self.broadcast_l("pusoydos-trick-won", player=player.name)
+                self.broadcast_personal_l(
+                    player,
+                    "pusoydos-you-win-trick",
+                    "pusoydos-trick-won",
+                    buffer="game",
+                )
             self.current_combo = None
             self.trick_cards = []
             self.trick_winner_id = None
@@ -674,7 +684,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
             BotHelper.jolt_bot(player, ticks=random.randint(30, 50))
 
         self.start_turn_timer()
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def on_tick(self) -> None:
         super().on_tick()
@@ -730,7 +740,9 @@ class PusoyDosGame(Game, TurnTimerMixin):
                 self._action_play_selected(player, "play_selected")
                 return
 
-        self._action_pass(player, "pass", force=True)
+        if self.current_combo:
+            player.pass_confirm_ticks = 1
+            self._action_pass(player, "pass")
 
     # ==========================================================================
     # Action sets
@@ -837,6 +849,20 @@ class PusoyDosGame(Game, TurnTimerMixin):
             )
         )
 
+        if self.is_touch_client(user):
+            self._order_touch_standard_actions(
+                action_set,
+                [
+                    "check_trick",
+                    "read_hand",
+                    "read_card_counts",
+                    "check_turn_timer",
+                    "check_scores",
+                    "whose_turn",
+                    "whos_at_table",
+                ],
+            )
+
         return action_set
 
     def setup_keybinds(self) -> None:
@@ -845,27 +871,37 @@ class PusoyDosGame(Game, TurnTimerMixin):
             "space", "pusoydos-key-play", ["play_selected"], state=KeybindState.ACTIVE
         )
         self.define_keybind("p", "pusoydos-key-pass", ["pass"], state=KeybindState.ACTIVE)
-        self.define_keybind("c", "pusoydos-key-trick", ["check_trick"], include_spectators=True)
-        self.define_keybind("h", "pusoydos-key-hand", ["read_hand"], include_spectators=False)
         self.define_keybind(
-            "e", "pusoydos-key-counts", ["read_card_counts"], include_spectators=True
+            "c",
+            "pusoydos-key-trick",
+            ["check_trick"],
+            state=KeybindState.ACTIVE,
+            include_spectators=True,
         )
         self.define_keybind(
-            "shift+t", "pusoydos-key-timer", ["check_turn_timer"], include_spectators=True
+            "h",
+            "pusoydos-key-hand",
+            ["read_hand"],
+            state=KeybindState.ACTIVE,
+            include_spectators=False,
+        )
+        self.define_keybind(
+            "e",
+            "pusoydos-key-counts",
+            ["read_card_counts"],
+            state=KeybindState.ACTIVE,
+            include_spectators=True,
+        )
+        self.define_keybind(
+            "shift+t",
+            "pusoydos-key-timer",
+            ["check_turn_timer"],
+            state=KeybindState.ACTIVE,
+            include_spectators=True,
         )
 
-    def rebuild_player_menu(self, player: Player) -> None:
+    def before_menu_build(self, player: Player) -> None:
         self._sync_turn_actions(player)
-        super().rebuild_player_menu(player)
-
-    def update_player_menu(self, player: Player, selection_id: str | None = None) -> None:
-        self._sync_turn_actions(player)
-        super().update_player_menu(player, selection_id=selection_id)
-
-    def rebuild_all_menus(self) -> None:
-        for player in self.players:
-            self._sync_turn_actions(player)
-        super().rebuild_all_menus()
 
     def _sync_turn_actions(self, player: Player) -> None:
         if not isinstance(player, PusoyDosPlayer):
@@ -970,7 +1006,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
         else:
             p.selected_cards.add(card_id)
 
-        self.update_player_menu(p)
+        self.refresh_menus(p)
 
     def _action_play_selected(self, player: Player, action_id: str) -> None:
         p = self._require_active_turn_player(player)
@@ -1026,7 +1062,12 @@ class PusoyDosGame(Game, TurnTimerMixin):
         self._broadcast_play(p, combo)
 
         if len(p.hand) == 1:
-            self.broadcast_l("pusoydos-one-card", player=p.name)
+            self.broadcast_personal_l(
+                p,
+                "pusoydos-you-one-card",
+                "pusoydos-one-card",
+                buffer="game",
+            )
 
         if len(p.hand) == 0:
             self._player_finishes(p)
@@ -1035,7 +1076,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
         self.advance_turn(announce=False)
         self._start_turn()
 
-    def _action_pass(self, player: Player, action_id: str, *, force: bool = False) -> None:
+    def _action_pass(self, player: Player, action_id: str) -> None:
         p = self._require_active_turn_player(player)
         if not p:
             return
@@ -1044,10 +1085,8 @@ class PusoyDosGame(Game, TurnTimerMixin):
             self._send_error(p, "pusoydos-error-must-play")
             return
 
-        # Confirm-to-pass: if the preference is enabled and not yet confirmed.
-        # Timer-driven passes bypass the prompt — the turn timer only re-arms
-        # in _start_turn, so swallowing a timeout here would hang the table.
-        if not force and not p.is_bot and p.pass_confirm_ticks == 0:
+        # Confirm-to-pass: if the preference is enabled and not yet confirmed
+        if not p.is_bot and p.pass_confirm_ticks == 0:
             user = self.get_user(p)
             if user:
                 wants_confirm = user.preferences.get_effective(
@@ -1055,7 +1094,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
                 )
                 if wants_confirm:
                     p.pass_confirm_ticks = 200  # 10 seconds at 50ms/tick
-                    user.speak_l("pusoydos-confirm-pass", buffer="table")
+                    user.speak_l("pusoydos-confirm-pass", buffer="game")
                     return
 
         p.pass_confirm_ticks = 0
@@ -1077,7 +1116,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
             recipient = self._get_pusoy_player(p.give_to_id)
             rname = recipient.name if recipient else "?"
             self._send_error(
-                p, "pusoydos-select-cards-to-give", count=p.cards_to_give, recipient=rname
+                p, "pusoydos-error-select-cards-to-give", count=p.cards_to_give, recipient=rname
             )
             return
 
@@ -1091,7 +1130,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
             return
 
         if not self.current_combo:
-            user.speak_l("pusoydos-trick-empty", buffer="table")
+            user.speak_l("pusoydos-trick-empty", buffer="game")
             return
 
         trick_winner = self.get_player_by_id(self.trick_winner_id)
@@ -1102,7 +1141,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
         cards_str = read_cards(self.trick_cards, user.locale)
         user.speak_l(
             "pusoydos-trick-status",
-            buffer="table",
+            buffer="game",
             player=winner_name,
             combo=combo_name,
             cards=cards_str,
@@ -1114,7 +1153,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
         user = self.get_user(player)
         if user:
             user.speak_l(
-                "pusoydos-your-hand", buffer="table", cards=read_cards(player.hand, user.locale)
+                "pusoydos-your-hand", buffer="game", cards=read_cards(player.hand, user.locale)
             )
 
     def _action_read_card_counts(self, player: Player, action_id: str) -> None:
@@ -1125,10 +1164,19 @@ class PusoyDosGame(Game, TurnTimerMixin):
         parts = []
         for p in self._playing_players():
             if p.id in self.turn_player_ids:
-                parts.append(f"{p.name} {len(p.hand)}")
+                parts.append(
+                    Localization.get(
+                        user.locale,
+                        "pusoydos-card-count-line",
+                        player=p.name,
+                        count=len(p.hand),
+                    )
+                )
 
         if parts:
-            user.speak(", ".join(parts))
+            user.speak(Localization.format_list_and(user.locale, parts), buffer="game")
+        else:
+            user.speak_l("pusoydos-card-counts-empty", buffer="game")
 
     def _action_check_turn_timer(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
@@ -1136,9 +1184,9 @@ class PusoyDosGame(Game, TurnTimerMixin):
             return
         remaining = self.timer.seconds_remaining()
         if remaining <= 0:
-            user.speak_l("pusoydos-timer-disabled", buffer="table")
+            user.speak_l("pusoydos-timer-disabled", buffer="game")
         else:
-            user.speak_l("pusoydos-timer-remaining", buffer="table", seconds=remaining)
+            user.speak_l("pusoydos-timer-remaining", buffer="game", seconds=remaining)
 
     # ==========================================================================
     # Round end logic
@@ -1161,14 +1209,26 @@ class PusoyDosGame(Game, TurnTimerMixin):
 
         self._end_round()
 
-    def _player_wins_round(self, player: PusoyDosPlayer) -> None:
+    def _player_wins_round(self, player: PusoyDosPlayer, *, announce: bool = True) -> None:
         """Record a round win for the player."""
         player.round_wins += 1
         self.play_sound(SOUND_WIN_ROUND)
+        if not announce:
+            return
         if self.options.game_mode in ("elimination", "points_elimination"):
-            self.broadcast_l("pusoydos-round-winner", player=player.name)
+            self.broadcast_personal_l(
+                player,
+                "pusoydos-you-win-round",
+                "pusoydos-round-winner",
+                buffer="game",
+            )
         else:
-            self.broadcast_l("pusoydos-player-goes-out", player=player.name)
+            self.broadcast_personal_l(
+                player,
+                "pusoydos-you-go-out",
+                "pusoydos-player-goes-out",
+                buffer="game",
+            )
 
     def _end_round(self) -> None:
         """Process end of round for either game mode."""
@@ -1201,32 +1261,31 @@ class PusoyDosGame(Game, TurnTimerMixin):
 
         if winner and entries:
             gained = sum(pts for _, pts in entries)
-            breakdown = ", ".join(f"{pts} from {name}" for name, pts in entries)
-            self.broadcast_l(
-                "pusoydos-penalty-summary",
-                player=winner.name,
-                breakdown=breakdown,
-                gained=gained,
-                total=winner.score,
-            )
+            self._broadcast_penalty_summary(winner, entries, gained)
 
         self._sync_team_scores()
 
         # Check for winner
         if winner and winner.score >= self.options.target_score:
             self.play_sound(SOUND_WIN_GAME)
-            self.broadcast_l("pusoydos-points-winner", player=winner.name, score=winner.score)
+            self.broadcast_personal_l(
+                winner,
+                "pusoydos-you-points-winner",
+                "pusoydos-points-winner",
+                buffer="game",
+                score=winner.score,
+            )
             self.finish_game()
             return
 
         self.hand_wait_ticks = 5 * 20
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _end_round_losses(self) -> None:
         """Losses mode: last-place player takes a loss. First to target losses loses the game."""
         if not self.finishing_order:
             self.hand_wait_ticks = 5 * 20
-            self.rebuild_all_menus()
+            self.refresh_menus()
             return
 
         loser_id = self.finishing_order[-1]
@@ -1234,18 +1293,28 @@ class PusoyDosGame(Game, TurnTimerMixin):
         if loser:
             loser.round_losses += 1
             self.play_sound(SOUND_LOSE_ROUND)
-            self.broadcast_l("pusoydos-round-loser", player=loser.name, count=loser.round_losses)
+            self.broadcast_personal_l(
+                loser,
+                "pusoydos-you-round-loser",
+                "pusoydos-round-loser",
+                buffer="game",
+                count=loser.round_losses,
+            )
 
             if loser.round_losses >= self.options.losses_to_lose:
-                self.broadcast_l(
-                    "pusoydos-losses-game-over", player=loser.name, count=loser.round_losses
+                self.broadcast_personal_l(
+                    loser,
+                    "pusoydos-you-losses-game-over",
+                    "pusoydos-losses-game-over",
+                    buffer="game",
+                    count=loser.round_losses,
                 )
                 self.finish_game()
                 return
 
         self._sync_team_scores()
         self.hand_wait_ticks = 5 * 20
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _end_round_points_elimination(self) -> None:
         """Points elimination: losers get points, reaching target eliminates you, last standing wins."""
@@ -1256,8 +1325,13 @@ class PusoyDosGame(Game, TurnTimerMixin):
                 continue
             penalty = self._calculate_penalty(p)
             p.score += penalty
-            self.broadcast_l(
-                "pusoydos-points-elim-penalty", player=p.name, points=penalty, total=p.score
+            self.broadcast_personal_l(
+                p,
+                "pusoydos-you-points-elim-penalty",
+                "pusoydos-points-elim-penalty",
+                buffer="game",
+                points=penalty,
+                total=p.score,
             )
 
         # Check for newly eliminated players
@@ -1269,23 +1343,34 @@ class PusoyDosGame(Game, TurnTimerMixin):
 
         for p in newly_eliminated:
             self.play_sound(SOUND_ELIMINATED)
-            self.broadcast_l("pusoydos-points-elim-eliminated", player=p.name, score=p.score)
+            self.broadcast_personal_l(
+                p,
+                "pusoydos-you-points-elim-eliminated",
+                "pusoydos-points-elim-eliminated",
+                buffer="game",
+                score=p.score,
+            )
 
         remaining = self._playing_players()
         if newly_eliminated:
-            self.broadcast_l("pusoydos-players-remaining", count=len(remaining))
+            self.broadcast_l("pusoydos-players-remaining", buffer="game", count=len(remaining))
 
         if len(remaining) <= 1:
             winner = remaining[0] if remaining else None
             if winner:
                 self.play_sound(SOUND_WIN_GAME)
-                self.broadcast_l("pusoydos-points-elim-winner", player=winner.name)
+                self.broadcast_personal_l(
+                    winner,
+                    "pusoydos-you-points-elim-winner",
+                    "pusoydos-points-elim-winner",
+                    buffer="game",
+                )
             self.finish_game()
             return
 
         self._sync_team_scores()
         self.hand_wait_ticks = 5 * 20
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _end_round_elimination(self) -> None:
         """Elimination mode: check if any player reached required wins."""
@@ -1297,24 +1382,35 @@ class PusoyDosGame(Game, TurnTimerMixin):
 
         for p in newly_eliminated:
             self.play_sound(SOUND_ELIMINATED)
-            self.broadcast_l("pusoydos-player-eliminated", player=p.name, count=p.round_wins)
+            self.broadcast_personal_l(
+                p,
+                "pusoydos-you-eliminated",
+                "pusoydos-player-eliminated",
+                buffer="game",
+                count=p.round_wins,
+            )
 
         remaining = self._playing_players()
         if newly_eliminated:
-            self.broadcast_l("pusoydos-players-remaining", count=len(remaining))
+            self.broadcast_l("pusoydos-players-remaining", buffer="game", count=len(remaining))
 
         if len(remaining) <= 1:
             # Game over — last player is the loser
             loser = remaining[0] if remaining else None
             if loser:
                 self.play_sound(SOUND_LOSE_ROUND)
-                self.broadcast_l("pusoydos-last-player", player=loser.name)
+                self.broadcast_personal_l(
+                    loser,
+                    "pusoydos-you-last-player",
+                    "pusoydos-last-player",
+                    buffer="game",
+                )
             self.finish_game()
             return
 
         self._sync_team_scores()
         self.hand_wait_ticks = 5 * 20
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _calculate_penalty(self, player: PusoyDosPlayer) -> int:
         """Calculate point penalty for a player based on remaining cards."""
@@ -1384,7 +1480,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
     def _send_error(self, player: PusoyDosPlayer, msg_key: str, **kwargs) -> None:
         user = self.get_user(player)
         if user:
-            user.speak_l(msg_key, buffer="table", **kwargs)
+            user.speak_l(msg_key, buffer="game", **kwargs)
 
     def _player_locale(self, player: Player) -> str:
         user = self.get_user(player)
@@ -1444,7 +1540,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
             return "action-not-playing"
         selected = len(player.selected_cards)
         if selected != player.cards_to_give:
-            return "pusoydos-select-cards-to-give"
+            return "pusoydos-error-select-required-give-cards"
         return None
 
     def _is_give_hidden(self, player: Player) -> Visibility:
@@ -1459,6 +1555,8 @@ class PusoyDosGame(Game, TurnTimerMixin):
             return "action-not-playing"
         if player.is_spectator:
             return "action-spectator"
+        if isinstance(player, PusoyDosPlayer) and player.eliminated:
+            return "pusoydos-error-eliminated"
         if self.current_player != player:
             return "action-not-your-turn"
         if self.hand_wait_ticks > 0:
@@ -1481,6 +1579,8 @@ class PusoyDosGame(Game, TurnTimerMixin):
             return "action-not-playing"
         if player.is_spectator:
             return "action-spectator"
+        if isinstance(player, PusoyDosPlayer) and player.eliminated:
+            return "pusoydos-error-eliminated"
         if self.hand_wait_ticks > 0:
             return "action-wait"
         return None
@@ -1491,6 +1591,8 @@ class PusoyDosGame(Game, TurnTimerMixin):
         if self.hand_wait_ticks > 0:
             return Visibility.HIDDEN
         if not isinstance(player, PusoyDosPlayer):
+            return Visibility.HIDDEN
+        if player.eliminated:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -1514,7 +1616,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
 
     def _is_check_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE if self.status == "playing" else Visibility.HIDDEN
         return Visibility.HIDDEN
 
@@ -1530,25 +1632,79 @@ class PusoyDosGame(Game, TurnTimerMixin):
 
     def _is_whos_at_table_hidden(self, player: "Player") -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE
         return super()._is_whos_at_table_hidden(player)
 
     def _is_whose_turn_hidden(self, player: "Player") -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE if self.status == "playing" else Visibility.HIDDEN
         return super()._is_whose_turn_hidden(player)
 
     def _is_check_scores_hidden(self, player: "Player") -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE if self.status == "playing" else Visibility.HIDDEN
         return super()._is_check_scores_hidden(player)
 
     # ==========================================================================
     # Broadcasts
     # ==========================================================================
+
+    def _speak_actor_message(
+        self,
+        actor: PusoyDosPlayer,
+        listener: Player,
+        self_key: str,
+        other_key: str,
+        **kwargs,
+    ) -> None:
+        user = self.get_user(listener)
+        if not user:
+            return
+        if listener.id == actor.id:
+            user.speak_l(self_key, buffer="game", **kwargs)
+        else:
+            user.speak_l(other_key, buffer="game", player=actor.name, **kwargs)
+
+    def _broadcast_penalty_summary(
+        self,
+        winner: PusoyDosPlayer,
+        entries: list[tuple[str, int]],
+        gained: int,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            breakdown_parts = [
+                Localization.get(
+                    user.locale,
+                    "pusoydos-penalty-entry",
+                    player=name,
+                    points=points,
+                )
+                for name, points in entries
+            ]
+            breakdown = Localization.format_list_and(user.locale, breakdown_parts)
+            if listener.id == winner.id:
+                user.speak_l(
+                    "pusoydos-you-penalty-summary",
+                    buffer="game",
+                    breakdown=breakdown,
+                    gained=gained,
+                    total=winner.score,
+                )
+            else:
+                user.speak_l(
+                    "pusoydos-penalty-summary",
+                    buffer="game",
+                    player=winner.name,
+                    breakdown=breakdown,
+                    gained=gained,
+                    total=winner.score,
+                )
 
     def _broadcast_play(self, player: PusoyDosPlayer, combo: Combo) -> None:
         for p in self.players:
@@ -1559,27 +1715,31 @@ class PusoyDosGame(Game, TurnTimerMixin):
             cards_str = read_cards(combo.cards, user.locale)
 
             if combo.type_name == "single":
-                user.speak_l(
+                self._speak_actor_message(
+                    player,
+                    p,
+                    "pusoydos-you-play-single",
                     "pusoydos-player-plays-single",
-                    buffer="table",
-                    player=player.name,
                     card=cards_str,
                 )
             else:
-                user.speak_l(
+                self._speak_actor_message(
+                    player,
+                    p,
+                    "pusoydos-you-play-combo",
                     "pusoydos-player-plays-combo",
-                    buffer="table",
-                    player=player.name,
                     combo=combo_name,
                     cards=cards_str,
                 )
 
     def _broadcast_pass(self, player: PusoyDosPlayer) -> None:
         for p in self.players:
-            user = self.get_user(p)
-            if not user:
-                continue
-            user.speak_l("pusoydos-player-passes", buffer="table", player=player.name)
+            self._speak_actor_message(
+                player,
+                p,
+                "pusoydos-you-pass",
+                "pusoydos-player-passes",
+            )
 
     # ==========================================================================
     # Score tracking
@@ -1597,48 +1757,90 @@ class PusoyDosGame(Game, TurnTimerMixin):
         user = self.get_user(player)
         if not user:
             return
-        parts = []
+        players = self._playing_players()
         if self.options.game_mode == "elimination":
-            for p in self._playing_players():
-                parts.append(f"{p.name}: {p.round_wins} wins")
-            user.speak("; ".join(parts) if parts else "No scores yet.", buffer="table")
+            for p in players:
+                user.speak_l(
+                    "pusoydos-score-wins",
+                    buffer="game",
+                    player=p.name,
+                    count=p.round_wins,
+                )
         elif self.options.game_mode == "losses":
-            for p in self._playing_players():
-                parts.append(f"{p.name}: {p.round_losses} losses")
-            user.speak("; ".join(parts) if parts else "No scores yet.", buffer="table")
+            for p in players:
+                user.speak_l(
+                    "pusoydos-score-losses",
+                    buffer="game",
+                    player=p.name,
+                    count=p.round_losses,
+                )
         elif self.options.game_mode == "points_elimination":
-            players = sorted(self._playing_players(), key=lambda p: p.score)
-            for p in players:
-                parts.append(f"{p.name}: {p.score}")
-            user.speak(". ".join(parts) + "." if parts else "No scores yet.", buffer="table")
+            for p in sorted(players, key=lambda p: p.score):
+                user.speak_l(
+                    "pusoydos-score-points",
+                    buffer="game",
+                    player=p.name,
+                    score=p.score,
+                )
         else:
-            players = sorted(self._playing_players(), key=lambda p: -p.score)
-            for p in players:
-                parts.append(f"{p.name}: {p.score}")
-            user.speak(". ".join(parts) + "." if parts else "No scores yet.", buffer="table")
+            for p in sorted(players, key=lambda p: -p.score):
+                user.speak_l(
+                    "pusoydos-score-points",
+                    buffer="game",
+                    player=p.name,
+                    score=p.score,
+                )
+
+        if not players:
+            user.speak_l("pusoydos-score-no-scores", buffer="game")
 
     def _action_check_scores_detailed(self, player: "Player", action_id: str) -> None:
         user = self.get_user(player)
         if not user:
             return
+        self.live_status_box(
+            player,
+            "pusoydos_scores",
+            lambda _player, live_user: self._detailed_score_lines(live_user.locale),
+        )
+
+    def _detailed_score_lines(self, locale: str) -> list[str]:
         lines = []
         if self.options.game_mode == "elimination":
             for p in self._playing_players():
-                wins = p.round_wins
-                label = "win" if wins == 1 else "wins"
-                lines.append(f"{p.name}: {wins} {label}")
+                lines.append(
+                    Localization.get(
+                        locale,
+                        "pusoydos-score-wins",
+                        player=p.name,
+                        count=p.round_wins,
+                    )
+                )
         elif self.options.game_mode == "losses":
             for p in self._playing_players():
-                losses = p.round_losses
-                label = "loss" if losses == 1 else "losses"
-                lines.append(f"{p.name}: {losses} {label}")
+                lines.append(
+                    Localization.get(
+                        locale,
+                        "pusoydos-score-losses",
+                        player=p.name,
+                        count=p.round_losses,
+                    )
+                )
         elif self.options.game_mode == "points_elimination":
             for p in sorted(self._playing_players(), key=lambda p: p.score):
-                lines.append(f"{p.name}: {p.score} points")
+                lines.append(
+                    Localization.get(
+                        locale, "pusoydos-score-points", player=p.name, score=p.score
+                    )
+                )
         else:
             for p in sorted(self._playing_players(), key=lambda p: -p.score):
-                lines.append(f"{p.name}: {p.score} points")
-        self.status_box(player, lines if lines else ["No scores yet."])
+                lines.append(
+                    Localization.get(
+                        locale, "pusoydos-score-points", player=p.name, score=p.score
+                    )
+                )
+        return lines if lines else [Localization.get(locale, "pusoydos-score-no-scores")]
 
     def _sync_team_scores(self) -> None:
         for team in self._team_manager.teams:
@@ -1683,11 +1885,7 @@ class PusoyDosGame(Game, TurnTimerMixin):
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot and not p.replaced_human,
-                )
+                PlayerResult.from_player(p)
                 for p in active
             ],
             custom_data={

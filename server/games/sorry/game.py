@@ -1,95 +1,94 @@
-"""Sorry game for PlayPalace."""
-
 from dataclasses import dataclass, field
-
+from datetime import datetime
 import random
+from typing import TYPE_CHECKING
 
-from ..base import Game, Player
-from ..registry import register_game
+from ...messages.localization import Localization
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.bot_helper import BotHelper
+from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.options import BoolOption, GameOptions, MenuOption, option_field
-from ...messages.localization import Localization
-from ...game_utils.game_status import GameStatus
-from server.core.ui.keybinds import KeybindState
+from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
+from ..base import Game, Player
+from ..registry import register_game
 from .bot import choose_move
-from .moves import (
-    CaptureEvent,
-    SorryMove,
-    apply_move,
-    generate_legal_moves,
-    generate_split_options_for_pair,
-)
-from .rules import (
-    Classic00390Rules,
-    SorryRulesProfile,
-    get_rules_profile_by_id,
-    get_supported_profile_ids,
-)
+from .moves import CaptureEvent, SorryMove, apply_move, generate_legal_moves, generate_split_options_for_pair
+from .rules import RULES_PROFILES, get_rules_profile_by_id, get_supported_profile_ids
 from .state import (
     SorryGameState,
     SorryPlayerState,
+    TRACK_LENGTH,
     build_initial_game_state,
     discard_current_card,
     draw_next_card,
+    normalize_track_position,
 )
+from ...ui.keybinds import KeybindState
+
+if TYPE_CHECKING:
+    from ...users.base import User
+
+
+PLAYER_COLORS = ("red", "blue", "yellow", "green")
+RULES_PROFILE_CHOICES = list(get_supported_profile_ids())
+RULES_PROFILE_LABELS = {
+    "classic_00390": "sorry-rules-profile-classic-00390",
+    "a5065_core": "sorry-rules-profile-a5065-core",
+}
 
 
 @dataclass
 class SorryPlayer(Player):
-    """Player state for Sorry."""
-
-    pawns_in_start: int = 4
+    color: str = ""
+    pawns_in_start: int = 0
     pawns_in_home: int = 0
 
 
 @dataclass
 class SorryOptions(GameOptions):
-    """Configurable options for Sorry."""
-
     rules_profile: str = option_field(
         MenuOption(
             default="classic_00390",
-            value_key="rules_profile",
-            choices=list(get_supported_profile_ids()),
-            choice_labels={
-                "classic_00390": "sorry-rules-profile-classic-00390",
-                "a5065_core": "sorry-rules-profile-a5065-core",
-            },
-            label="sorry-option-rules-profile",
-            prompt="sorry-option-select-rules-profile",
+            choices=RULES_PROFILE_CHOICES,
+            value_key="profile",
+            label="sorry-set-rules-profile",
+            prompt="sorry-select-rules-profile",
             change_msg="sorry-option-changed-rules-profile",
+            choice_labels=RULES_PROFILE_LABELS,
         )
     )
     auto_apply_single_move: bool = option_field(
         BoolOption(
             default=True,
-            value_key="auto_apply_single_move",
-            label="sorry-option-auto-apply-single-move",
+            value_key="enabled",
+            label="sorry-toggle-auto-apply-single-move",
             change_msg="sorry-option-changed-auto-apply-single-move",
         )
     )
     faster_setup_one_pawn_out: bool = option_field(
         BoolOption(
             default=False,
-            value_key="faster_setup_one_pawn_out",
-            label="sorry-option-faster-setup-one-pawn-out",
+            value_key="enabled",
+            label="sorry-toggle-faster-setup-one-pawn-out",
             change_msg="sorry-option-changed-faster-setup-one-pawn-out",
         )
     )
 
-
-@dataclass
 @register_game
+@dataclass
 class SorryGame(Game):
-    """Classic Sorry with rules-profile extension point."""
+    relevant_preferences = ["brief_announcements"]
 
     players: list[SorryPlayer] = field(default_factory=list)
     options: SorryOptions = field(default_factory=SorryOptions)
+    score_unit_key = "game-score-unit-pawns-home"
 
-    rules_profile_id: str = "classic_00390"
     game_state: SorryGameState = field(default_factory=SorryGameState)
-    max_move_slots: int = 64
+    winner_name: str = ""
+    ended_due_to_empty_deck: bool = False
+
+    def __post_init__(self) -> None:
+        super().__post_init__()
 
     @classmethod
     def get_name(cls) -> str:
@@ -101,7 +100,7 @@ class SorryGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-board-games"
+        return "board"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -111,379 +110,66 @@ class SorryGame(Game):
     def get_max_players(cls) -> int:
         return 4
 
-    def create_player(self, player_id: str, name: str, is_bot: bool = False) -> SorryPlayer:
-        """Create a new Sorry player."""
-        return SorryPlayer(
-            id=player_id,
-            name=name,
-            is_bot=is_bot,
-            pawns_in_start=self.get_rules_profile().pawns_per_player,
-        )
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
-    def _resolve_rules_profile_id(self) -> str:
-        requested = self.options.rules_profile or self.rules_profile_id
-        if get_rules_profile_by_id(requested) is None:
-            requested = Classic00390Rules().profile_id
-        self.rules_profile_id = requested
-        self.options.rules_profile = requested
-        return requested
+    def create_player(self, id: str, name: str, is_bot: bool) -> SorryPlayer:
+        return SorryPlayer(id=id, name=name, is_bot=is_bot)
 
-    def get_rules_profile(self) -> SorryRulesProfile:
-        """Return active rules profile object."""
-        profile_id = self._resolve_rules_profile_id()
-        profile = get_rules_profile_by_id(profile_id)
-        if profile is not None:
-            return profile
-        return Classic00390Rules()
-
-    def _parse_move_slot(self, action_id: str) -> int | None:
-        if not action_id.startswith("move_slot_"):
-            return None
-        try:
-            slot = int(action_id.split("_")[-1])
-        except ValueError:
-            return None
-        if slot < 1:
-            return None
-        return slot
+    def prestart_validate(self) -> list[str | tuple[str, dict]]:
+        errors: list[str | tuple[str, dict]] = list(super().prestart_validate())
+        if self.options.rules_profile not in RULES_PROFILES:
+            errors.append(
+                (
+                    "sorry-error-unsupported-rules-profile",
+                    {"profile": self.options.rules_profile},
+                )
+            )
+        return errors
 
     def _player_locale(self, player: Player) -> str:
         user = self.get_user(player)
-        if user:
-            return user.locale
-        return "en"
+        return user.locale if user else "en"
 
-    def _card_display_text(self, locale: str, card_face: str) -> str:
+    def _get_rules_profile(self):
+        return get_rules_profile_by_id(self.options.rules_profile) or RULES_PROFILES["classic_00390"]
+
+    def _brief_announcement_mode(self, user: "User | None") -> str:
+        if user and user.preferences.get_effective(
+            "brief_announcements", game_type=self.get_type()
+        ):
+            return "yes"
+        return "no"
+
+    def _get_player_state(self, player: Player) -> SorryPlayerState | None:
+        return self.game_state.player_states.get(player.id)
+
+    def _parse_move_slot(self, action_id: str) -> int | None:
+        prefix = "move_slot_"
+        if not action_id.startswith(prefix):
+            return None
+        try:
+            return int(action_id[len(prefix):])
+        except ValueError:
+            return None
+
+    def _card_display_text(self, locale: str, card_face: str | None) -> str:
+        if not card_face:
+            return Localization.get(locale, "sorry-card-none")
         if card_face == "sorry":
             return Localization.get(locale, "sorry-card-sorry")
         return card_face
 
-    def _target_player_name(self, player_id: str | None) -> str:
-        if not player_id:
-            return "Unknown"
-        target = self.get_player_by_id(player_id)
-        if target:
-            return target.name
-        return player_id
-
-    def _move_label(self, locale: str, move: SorryMove) -> str:
-        if move.move_type == "start":
-            return Localization.get(
-                locale,
-                "sorry-move-start",
-                pawn=move.pawn_index or 0,
-            )
-        if move.move_type in {"forward", "sorry_fallback_forward"}:
-            return Localization.get(
-                locale,
-                "sorry-move-forward",
-                pawn=move.pawn_index or 0,
-                steps=move.steps or 0,
-            )
-        if move.move_type == "backward":
-            return Localization.get(
-                locale,
-                "sorry-move-backward",
-                pawn=move.pawn_index or 0,
-                steps=move.steps or 0,
-            )
-        if move.move_type == "swap":
-            return Localization.get(
-                locale,
-                "sorry-move-swap",
-                pawn=move.pawn_index or 0,
-                target_player=self._target_player_name(move.target_player_id),
-                target_pawn=move.target_pawn_index or 0,
-            )
-        if move.move_type == "sorry":
-            return Localization.get(
-                locale,
-                "sorry-move-sorry",
-                pawn=move.pawn_index or 0,
-                target_player=self._target_player_name(move.target_player_id),
-                target_pawn=move.target_pawn_index or 0,
-            )
-        if move.move_type == "split7_pick":
-            return Localization.get(
-                locale,
-                "sorry-move-split7-pick",
-                pawn_a=move.pawn_index or 0,
-                pawn_b=move.secondary_pawn_index or 0,
-            )
-        if move.move_type == "split7":
-            return Localization.get(
-                locale,
-                "sorry-move-split7-option",
-                pawn_a=move.pawn_index or 0,
-                steps_a=move.steps or 0,
-                pawn_b=move.secondary_pawn_index or 0,
-                steps_b=move.secondary_steps or 0,
-            )
-        return move.description
-
-    def _pawn_location_kwargs(
-        self,
-        player: Player,
-        pawn_index: int | None,
-        prefix: str = "",
-    ) -> dict[str, object]:
-        """Return zone/position/home_steps kwargs for a pawn, for localized announcements."""
-        ps = self.get_player_state(player)
-        if ps is not None and pawn_index is not None:
-            for pawn in ps.pawns:
-                if pawn.pawn_index == pawn_index:
-                    return {
-                        f"{prefix}zone": pawn.zone,
-                        f"{prefix}position": (pawn.track_position or 0) + 1,
-                        f"{prefix}home_steps": pawn.home_steps + 1,
-                    }
-        return {f"{prefix}zone": "start", f"{prefix}position": 0, f"{prefix}home_steps": 0}
-
-    def _announce_move(self, player: Player, move: SorryMove) -> None:
-        if move.move_type == "start":
-            self.broadcast_personal_l(
-                player,
-                "sorry-you-play-start",
-                "sorry-play-start",
-                pawn=move.pawn_index or 0,
-                **self._pawn_location_kwargs(player, move.pawn_index),
-            )
-            return
-        if move.move_type in {"forward", "sorry_fallback_forward"}:
-            self.broadcast_personal_l(
-                player,
-                "sorry-you-play-forward",
-                "sorry-play-forward",
-                pawn=move.pawn_index or 0,
-                steps=move.steps or 0,
-                **self._pawn_location_kwargs(player, move.pawn_index),
-            )
-            return
-        if move.move_type == "backward":
-            self.broadcast_personal_l(
-                player,
-                "sorry-you-play-backward",
-                "sorry-play-backward",
-                pawn=move.pawn_index or 0,
-                steps=move.steps or 0,
-                **self._pawn_location_kwargs(player, move.pawn_index),
-            )
-            return
-        if move.move_type == "swap":
-            target_player = (
-                self.get_player_by_id(move.target_player_id) if move.target_player_id else None
-            )
-            target_kw = (
-                self._pawn_location_kwargs(target_player, move.target_pawn_index, prefix="target_")
-                if target_player
-                else {
-                    "target_zone": "track",
-                    "target_position": 0,
-                    "target_home_steps": 0,
-                }
-            )
-            self.broadcast_personal_l(
-                player,
-                "sorry-you-play-swap",
-                "sorry-play-swap",
-                pawn=move.pawn_index or 0,
-                target_player=self._target_player_name(move.target_player_id),
-                target_pawn=move.target_pawn_index or 0,
-                **self._pawn_location_kwargs(player, move.pawn_index),
-                **target_kw,
-            )
-            return
-        if move.move_type == "sorry":
-            self.broadcast_personal_l(
-                player,
-                "sorry-you-play-sorry",
-                "sorry-play-sorry",
-                pawn=move.pawn_index or 0,
-                target_player=self._target_player_name(move.target_player_id),
-                target_pawn=move.target_pawn_index or 0,
-                **self._pawn_location_kwargs(player, move.pawn_index),
-            )
-            return
-        if move.move_type == "split7":
-            self.broadcast_personal_l(
-                player,
-                "sorry-you-play-split7",
-                "sorry-play-split7",
-                pawn_a=move.pawn_index or 0,
-                steps_a=move.steps or 0,
-                pawn_b=move.secondary_pawn_index or 0,
-                steps_b=move.secondary_steps or 0,
-                **self._pawn_location_kwargs(player, move.pawn_index, prefix="a_"),
-                **self._pawn_location_kwargs(player, move.secondary_pawn_index, prefix="b_"),
-            )
-            return
-
-    def _announce_captures(self, actor: Player, captures: list[CaptureEvent]) -> None:
-        """Announce each pawn sent back to start."""
-        for event in captures:
-            target_player = self.get_player_by_id(event.captured_player_id)
-            target_name = target_player.name if target_player else event.captured_player_id
-            actor_name = actor.name
-            # Tell the captured player directly
-            if target_player:
-                target_user = self.get_user(target_player)
-                if target_user:
-                    target_user.speak_l(
-                        "sorry-your-pawn-captured",
-                        pawn=event.captured_pawn_index,
-                        by_player=actor_name,
-                    )
-            # Tell the actor
-            actor_user = self.get_user(actor)
-            if actor_user:
-                actor_user.speak_l(
-                    "sorry-you-captured-pawn",
-                    target_player=target_name,
-                    pawn=event.captured_pawn_index,
-                )
-            # Tell everyone else
-            for player in self.players:
-                if player.id == actor.id or player.id == event.captured_player_id:
-                    continue
-                user = self.get_user(player)
-                if user:
-                    user.speak_l(
-                        "sorry-pawn-captured",
-                        player=actor_name,
-                        target_player=target_name,
-                        pawn=event.captured_pawn_index,
-                    )
-
-    def _play_home_arrival_sound(self, player: Player, move: SorryMove) -> None:
-        """Play a sound when a pawn arrives home."""
-        ps = self.get_player_state(player)
-        if ps is None:
-            return
-        pawn_indexes = set()
-        if move.pawn_index is not None:
-            pawn_indexes.add(move.pawn_index)
-        if move.secondary_pawn_index is not None:
-            pawn_indexes.add(move.secondary_pawn_index)
-        for pawn in ps.pawns:
-            if pawn.pawn_index in pawn_indexes and pawn.zone == "home":
-                self.play_sound("mention.ogg", volume=50)
-
-    def get_player_state(self, player: Player) -> SorryPlayerState | None:
-        """Return serializable board state for a player."""
-        return self.game_state.player_states.get(player.id)
-
-    def get_legal_moves_for_card(
-        self,
-        player: Player,
-        card_face: str,
-    ) -> list[SorryMove]:
-        """Get legal moves for the player's current board state."""
-        player_state = self.get_player_state(player)
-        if player_state is None:
-            return []
-        return generate_legal_moves(
-            state=self.game_state,
-            player_state=player_state,
-            card_face=card_face,
-            rules=self.get_rules_profile(),
-        )
-
-    def _get_current_legal_moves(self, player: Player) -> list[SorryMove]:
-        if self.game_state.turn_phase != "choose_move":
-            return []
-        if self.game_state.current_card is None:
-            return []
-        return self.get_legal_moves_for_card(player, self.game_state.current_card)
-
-    def apply_legal_move(self, player: Player, move: SorryMove) -> list[CaptureEvent]:
-        """Apply a move chosen from legal move generation."""
-        player_state = self.get_player_state(player)
-        if player_state is None:
-            raise ValueError("Player state missing for move application")
-        return apply_move(
-            state=self.game_state,
-            player_state=player_state,
-            move=move,
-            rules=self.get_rules_profile(),
-        )
-
-    def _sync_player_counts(self) -> None:
-        """Recompute start/home pawn counts from serializable board state."""
-        for player in self.players:
-            state = self.get_player_state(player)
-            if state is None:
-                continue
-            player.pawns_in_start = sum(1 for pawn in state.pawns if pawn.zone == "start")
-            player.pawns_in_home = sum(1 for pawn in state.pawns if pawn.zone == "home")
-
-    def _has_player_won(self, player: Player) -> bool:
-        state = self.get_player_state(player)
-        if state is None:
-            return False
-        return all(pawn.zone == "home" for pawn in state.pawns)
-
-    def _play_move_sound(self, move: SorryMove) -> None:
-        """Play the appropriate sound for a move."""
-        if move.move_type in {"forward", "sorry_fallback_forward"}:
-            steps = move.steps or 1
-            self.schedule_standard_token_movement_sounds(
-                steps,
-                sound_template="game_squares/token{variant}.ogg",
-                variant_count=10,
-                step_interval_ticks=2,
-            )
-        elif move.move_type == "backward":
-            steps = move.steps or 1
-            self.schedule_standard_token_movement_sounds(
-                steps,
-                sound_template="game_squares/token{variant}.ogg",
-                variant_count=10,
-                step_interval_ticks=2,
-            )
-        elif move.move_type == "start":
-            self.play_sound("game_squares/token1.ogg")
-        elif move.move_type in {"swap", "split7"}:
-            self.play_sound("game_squares/token1.ogg")
-        elif move.move_type == "sorry":
-            self.play_sound("game_chess/capture1.ogg")
-
-    def _play_capture_sound(self) -> None:
-        """Play a capture sound when a pawn is bumped."""
-        variant = random.randint(1, 2)
-        self.play_sound(f"game_chess/capture{variant}.ogg")
-
-    def _finish_game(self, winner: Player) -> None:
-        self.game_active = False
-        self.status = GameStatus.FINISHED
-        self.play_sound("game_pig/wingame.ogg")
-        self.broadcast_l("game-winner", player=winner.name)
-        self.rebuild_all_menus()
-
-    def _start_turn(self, *, announce: bool = True) -> None:
-        self._resolve_rules_profile_id()
-        self.game_state.turn_phase = "draw"
-        self.game_state.current_card = None
-        self.game_state.split_pawn_a = None
-        self.game_state.split_pawn_b = None
-        if announce:
-            self.announce_turn()
-        self.rebuild_all_menus()
-
-    def _end_turn_after_card(self, card_face: str) -> None:
-        self.game_state.turn_number += 1
-        self.game_state.turn_phase = "draw"
-        self.game_state.current_card = None
-        if card_face == "2" and self.get_rules_profile().card_two_grants_extra_turn():
-            # Classic Sorry gives another turn on 2.
-            self.announce_turn()
-            self.rebuild_all_menus()
-            BotHelper.jolt_bots(self, ticks=random.randint(12, 20))
-            return
-        self.advance_turn(announce=True)
-        BotHelper.jolt_bots(self, ticks=random.randint(12, 20))
+    def _phase_message_key(self) -> str:
+        return {
+            "draw": "sorry-phase-draw",
+            "choose_move": "sorry-phase-choose-move",
+            "choose_split": "sorry-phase-choose-split",
+            "resolving": "sorry-phase-resolving",
+        }.get(self.game_state.turn_phase, "sorry-phase-resolving")
 
     def create_turn_action_set(self, player: SorryPlayer) -> ActionSet:
-        """Create turn actions: draw + move slots + board view (dynamic by phase)."""
         locale = self._player_locale(player)
         action_set = ActionSet(name="turn")
         action_set.add(
@@ -496,55 +182,86 @@ class SorryGame(Game):
                 show_in_actions_menu=False,
             )
         )
-        action_set.add(
+        self._sync_turn_actions(player, action_set)
+        return action_set
+
+    def create_standard_action_set(self, player: SorryPlayer) -> ActionSet:
+        action_set = super().create_standard_action_set(player)
+        locale = self._player_locale(player)
+        for action in [
             Action(
-                id="view_board",
-                label=Localization.get(locale, "sorry-view-board"),
-                handler="_action_view_board",
-                is_enabled="_is_view_board_enabled",
-                is_hidden="_is_view_board_hidden",
-            )
-        )
-        action_set.add(
+                id="check_board",
+                label=Localization.get(locale, "sorry-check-board"),
+                handler="_action_check_board",
+                is_enabled="_is_info_enabled",
+                is_hidden="_is_check_board_hidden",
+                include_spectators=True,
+            ),
             Action(
-                id="view_pawns",
-                label=Localization.get(locale, "sorry-view-pawns"),
-                handler="_action_view_pawns",
-                is_enabled="_is_view_board_enabled",
-                is_hidden="_is_view_board_hidden",
-            )
-        )
-        for slot in range(1, self.max_move_slots + 1):
-            action_set.add(
-                Action(
-                    id=f"move_slot_{slot}",
-                    label=Localization.get(locale, "sorry-move-slot", slot=slot),
-                    handler="_action_choose_move",
-                    is_enabled="_is_move_slot_enabled",
-                    is_hidden="_is_move_slot_hidden",
-                    get_label="_get_move_slot_label",
-                    show_in_actions_menu=False,
-                )
-            )
+                id="check_pawns",
+                label=Localization.get(locale, "sorry-check-pawns"),
+                handler="_action_check_pawns",
+                is_enabled="_is_player_info_enabled",
+                is_hidden="_is_check_pawns_hidden",
+            ),
+            Action(
+                id="check_card",
+                label=Localization.get(locale, "sorry-check-card"),
+                handler="_action_check_card",
+                is_enabled="_is_info_enabled",
+                is_hidden="_is_check_card_hidden",
+                include_spectators=True,
+            ),
+            Action(
+                id="check_status",
+                label=Localization.get(locale, "sorry-check-status"),
+                handler="_action_check_status",
+                is_enabled="_is_info_enabled",
+                is_hidden="_is_check_status_hidden",
+                include_spectators=True,
+            ),
+        ]:
+            action_set.add(action)
+
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            target_order = [
+                "check_board",
+                "check_pawns",
+                "check_card",
+                "check_status",
+                "check_scores",
+                "whose_turn",
+                "whos_at_table",
+            ]
+            self._order_touch_standard_actions(action_set, target_order)
         return action_set
 
     def setup_keybinds(self) -> None:
-        """Define keybinds for draw, move slots, and board view."""
         super().setup_keybinds()
         self.define_keybind("d", "Draw card", ["draw_card"], state=KeybindState.ACTIVE)
         self.define_keybind("space", "Draw card", ["draw_card"], state=KeybindState.ACTIVE)
         self.define_keybind(
-            "b",
-            "View board",
-            ["view_board"],
+            "v",
+            "Read board",
+            ["check_board"],
+            state=KeybindState.ACTIVE,
+            include_spectators=True,
+        )
+        self.define_keybind("p", "Check your pawns", ["check_pawns"], state=KeybindState.ACTIVE)
+        self.define_keybind(
+            "c",
+            "Check current card",
+            ["check_card"],
             state=KeybindState.ACTIVE,
             include_spectators=True,
         )
         self.define_keybind(
-            "v",
-            "View your pawns",
-            ["view_pawns"],
+            "e",
+            "Check status",
+            ["check_status"],
             state=KeybindState.ACTIVE,
+            include_spectators=True,
         )
         for slot in range(1, 10):
             self.define_keybind(
@@ -554,95 +271,125 @@ class SorryGame(Game):
                 state=KeybindState.ACTIVE,
             )
 
+    def before_menu_build(self, player: Player) -> None:
+        self._sync_turn_actions(player)
+        self._sync_standard_actions(player)
+
+    def _sync_turn_actions(
+        self,
+        player: Player,
+        action_set: ActionSet | None = None,
+    ) -> None:
+        turn_set = action_set or self.get_action_set(player, "turn")
+        if turn_set is None:
+            return
+
+        locale = self._player_locale(player)
+        turn_set.remove_by_prefix("move_slot_")
+        active_moves = self._active_move_list(player)
+        for index in range(1, len(active_moves) + 1):
+            turn_set.add(
+                Action(
+                    id=f"move_slot_{index}",
+                    label=Localization.get(locale, "sorry-move-slot", slot=index),
+                    handler="_action_choose_move",
+                    is_enabled="_is_move_slot_enabled",
+                    is_hidden="_is_move_slot_hidden",
+                    get_label="_get_move_slot_label",
+                    show_in_actions_menu=False,
+                )
+            )
+
+        order = ["draw_card"]
+        order.extend(aid for aid in turn_set._order if aid.startswith("move_slot_"))
+        turn_set._order = [aid for aid in order if turn_set.get_action(aid)]
+
+    def _sync_standard_actions(self, player: Player) -> None:
+        action_set = self.get_action_set(player, "standard")
+        if action_set is None:
+            return
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            target_order = [
+                "check_board",
+                "check_pawns",
+                "check_card",
+                "check_status",
+                "check_scores",
+                "whose_turn",
+                "whos_at_table",
+            ]
+            self._order_touch_standard_actions(action_set, target_order)
+
+    def _is_info_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        return None
+
+    def _is_player_info_enabled(self, player: Player) -> str | None:
+        if self.status != "playing":
+            return "action-not-playing"
+        if player.is_spectator:
+            return "action-not-available"
+        return None
+
+    def _web_visibility(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.status == "playing" and self.is_touch_client(user):
+            return Visibility.VISIBLE
+        return Visibility.HIDDEN
+
+    def _is_check_board_hidden(self, player: Player) -> Visibility:
+        return self._web_visibility(player)
+
+    def _is_check_pawns_hidden(self, player: Player) -> Visibility:
+        if player.is_spectator:
+            return Visibility.HIDDEN
+        return self._web_visibility(player)
+
+    def _is_check_card_hidden(self, player: Player) -> Visibility:
+        return self._web_visibility(player)
+
+    def _is_check_status_hidden(self, player: Player) -> Visibility:
+        return self._web_visibility(player)
+
+    def _is_whose_turn_hidden(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE if self.status == "playing" else Visibility.HIDDEN
+        return super()._is_whose_turn_hidden(player)
+
+    def _is_whos_at_table_hidden(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE
+        return super()._is_whos_at_table_hidden(player)
+
+    def _is_check_scores_hidden(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE if self.status == "playing" else Visibility.HIDDEN
+        return super()._is_check_scores_hidden(player)
+
     def _is_draw_enabled(self, player: Player) -> str | None:
         if self.status != "playing":
             return "action-not-playing"
         if self.current_player != player:
             return "action-not-your-turn"
+        if self.is_sequence_gameplay_locked():
+            return "action-not-available"
         if self.game_state.turn_phase != "draw":
+            if self.game_state.turn_phase in {"choose_move", "choose_split"}:
+                return "sorry-error-draw-pending-move"
             return "action-not-available"
         return None
 
     def _is_draw_hidden(self, player: Player) -> Visibility:
-        if self.status != "playing":
-            return Visibility.HIDDEN
-        if self.current_player != player:
-            return Visibility.HIDDEN
-        if self.game_state.turn_phase != "draw":
+        if self.status != "playing" or player.is_spectator:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
-    def _is_view_board_enabled(self, player: Player) -> str | None:
-        if self.status != "playing":
-            return "action-not-playing"
-        return None
-
-    def _is_view_board_hidden(self, player: Player) -> Visibility:
-        return Visibility.HIDDEN
-
-    def _describe_pawn(self, pawn: "SorryPawnState", locale: str) -> str:
-        """Return a localized short description of a pawn's position."""
-        if pawn.zone == "start":
-            return Localization.get(locale, "sorry-zone-start")
-        if pawn.zone == "track":
-            return Localization.get(
-                locale, "sorry-zone-track", position=(pawn.track_position or 0) + 1
-            )
-        if pawn.zone == "home_path":
-            return Localization.get(locale, "sorry-zone-home-path", steps=pawn.home_steps + 1)
-        if pawn.zone == "home":
-            return Localization.get(locale, "sorry-zone-home")
-        return pawn.zone
-
-    def _action_view_board(self, player: Player, action_id: str) -> None:
-        """Show all players' pawn positions in a status box."""
-        _ = action_id
-        user = self.get_user(player)
-        if not user:
-            return
-        locale = user.locale
-        lines: list[str] = []
-        for ps in self.game_state.player_states.values():
-            target_player = self.get_player_by_id(ps.player_id)
-            owner_name = target_player.name if target_player else ps.player_id
-            pawn_parts = [
-                Localization.get(
-                    locale,
-                    "sorry-board-pawn-brief",
-                    pawn=pawn.pawn_index,
-                    zone=self._describe_pawn(pawn, locale),
-                )
-                for pawn in ps.pawns
-            ]
-            lines.append(
-                Localization.get(
-                    locale,
-                    "sorry-board-player-line",
-                    player=owner_name,
-                    pawns=", ".join(pawn_parts),
-                )
-            )
-        self.status_box(player, lines)
-
-    def _action_view_pawns(self, player: Player, action_id: str) -> None:
-        """Speak the requesting player's own pawn positions."""
-        _ = action_id
-        user = self.get_user(player)
-        if not user:
-            return
-        locale = user.locale
-        ps = self.game_state.player_states.get(player.id)
-        if ps is None:
-            return
-        for pawn in ps.pawns:
-            user.speak_l(
-                "sorry-view-your-pawn",
-                pawn=pawn.pawn_index,
-                zone=self._describe_pawn(pawn, locale),
-            )
-
     def _active_move_list(self, player: Player) -> list[SorryMove]:
-        """Return the move list for the current phase."""
         if self.game_state.turn_phase == "choose_split":
             return self._get_current_split_options(player)
         return self._get_current_legal_moves(player)
@@ -652,101 +399,222 @@ class SorryGame(Game):
             return "action-not-playing"
         if self.current_player != player:
             return "action-not-your-turn"
+        if self.is_sequence_gameplay_locked():
+            return "action-not-available"
         if self.game_state.turn_phase not in {"choose_move", "choose_split"}:
             return "action-not-available"
         slot = self._parse_move_slot(action_id)
-        if slot is None:
-            return "action-not-available"
-        moves = self._active_move_list(player)
-        if slot > len(moves):
+        if slot is None or slot > len(self._active_move_list(player)):
             return "action-not-available"
         return None
 
     def _is_move_slot_hidden(self, player: Player, action_id: str) -> Visibility:
-        if self.status != "playing":
+        if self.status != "playing" or self.current_player != player:
             return Visibility.HIDDEN
-        if self.current_player != player:
+        if self.is_sequence_gameplay_locked():
             return Visibility.HIDDEN
         if self.game_state.turn_phase not in {"choose_move", "choose_split"}:
             return Visibility.HIDDEN
         slot = self._parse_move_slot(action_id)
-        if slot is None:
-            return Visibility.HIDDEN
-        moves = self._active_move_list(player)
-        if slot > len(moves):
+        if slot is None or slot > len(self._active_move_list(player)):
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
     def _get_move_slot_label(self, player: Player, action_id: str) -> str:
-        locale = self._player_locale(player)
         slot = self._parse_move_slot(action_id)
+        locale = self._player_locale(player)
         if slot is None:
             return Localization.get(locale, "sorry-move-slot-fallback")
-        moves = self._active_move_list(player)
-        if 1 <= slot <= len(moves):
-            return self._move_label(locale, moves[slot - 1])
+        active_moves = self._active_move_list(player)
+        if 1 <= slot <= len(active_moves):
+            return self._move_label(locale, player, active_moves[slot - 1])
         return Localization.get(locale, "sorry-move-slot", slot=slot)
 
-    def _action_draw_card(self, player: Player, action_id: str) -> None:
-        """Draw a card and transition into move selection/application."""
-        _ = action_id
-        if self._is_draw_enabled(player) is not None:
-            return
+    def on_start(self) -> None:
+        self.status = "playing"
+        self.game_active = True
+        self.round = 1
+        self.winner_name = ""
+        self.ended_due_to_empty_deck = False
+        self.cancel_all_sequences()
+        self._sync_table_status()
 
-        card_face = draw_next_card(self.game_state)
-        if card_face is None:
-            self._end_turn_after_card(card_face="0")
-            return
-        self.play_standard_dice_roll_sound(
-            sound_template="game_squares/draw{variant}.ogg", variant_count=3
+        active_players = self.get_active_players()
+        self.set_turn_players(active_players)
+
+        self._team_manager.team_mode = "individual"
+        self._team_manager.setup_teams([player.name for player in active_players])
+        self._team_manager.reset_all_scores()
+
+        rules = self._get_rules_profile()
+        self.game_state = build_initial_game_state(
+            [player.id for player in active_players],
+            pawns_per_player=rules.pawns_per_player,
+            faster_setup_one_pawn_out=self.options.faster_setup_one_pawn_out,
         )
-        card_display = self._card_display_text("en", card_face)
-        self.broadcast_personal_l(
-            player,
-            "sorry-you-draw-announcement",
-            "sorry-draw-announcement",
-            card=card_display,
+
+        for index, player in enumerate(active_players):
+            player.color = PLAYER_COLORS[index]
+            player_state = self._get_player_state(player)
+            if player_state:
+                player.pawns_in_start = sum(1 for pawn in player_state.pawns if pawn.zone == "start")
+                player.pawns_in_home = sum(1 for pawn in player_state.pawns if pawn.zone == "home")
+
+        self._sync_player_counts()
+        self.play_music("game_pig/mus.ogg")
+        player_names = [p.name for p in active_players]
+        for player in self.players:
+            user = self.get_user(player)
+            if user:
+                user.speak_l(
+                    "sorry-game-started",
+                    buffer="game",
+                    players=Localization.format_list_and(user.locale, player_names),
+                )
+        self._start_turn(announce=True)
+
+    def on_tick(self) -> None:
+        super().on_tick()
+        self.process_scheduled_sounds()
+        if not self.game_active:
+            return
+        self.process_sequences()
+        if not self.is_sequence_bot_paused():
+            BotHelper.on_tick(self)
+
+    def bot_think(self, player: Player) -> str | None:
+        if self.game_state.turn_phase == "draw":
+            return "draw_card"
+
+        if self.game_state.turn_phase == "choose_split":
+            return self._choose_bot_move_slot(player, self._get_current_split_options(player))
+
+        if self.game_state.turn_phase == "choose_move":
+            return self._choose_bot_move_slot(player, self._get_current_legal_moves(player))
+
+        return None
+
+    def _choose_bot_move_slot(
+        self,
+        player: Player,
+        options: list[SorryMove],
+    ) -> str | None:
+        self._sync_turn_actions(player)
+        player_state = self._get_player_state(player)
+        if not options or player_state is None:
+            return None
+        selected = choose_move(self.game_state, player_state, options, self._get_rules_profile())
+        if selected is None:
+            return None
+        slot_index = next(
+            (idx for idx, move in enumerate(options, start=1) if move.action_id == selected.action_id),
+            None,
         )
+        return f"move_slot_{slot_index}" if slot_index is not None else None
 
-        legal_moves = self.get_legal_moves_for_card(player, card_face)
+    def _start_turn(self, announce: bool = True) -> None:
+        self.cancel_sequences_by_tag("turn_flow")
+        self.game_state.turn_phase = "draw"
+        self.game_state.current_card = None
+        self.game_state.split_pawn_a = None
+        self.game_state.split_pawn_b = None
+        if announce:
+            self.announce_turn()
+        self.refresh_menus()
+        self._queue_current_bot()
 
-        if not legal_moves:
-            self.broadcast_personal_l(
-                player,
-                "sorry-you-no-legal-moves",
-                "sorry-no-legal-moves",
-                card=card_display,
-            )
-            discard_current_card(self.game_state)
-            self._end_turn_after_card(card_face=card_face)
+    def _end_turn_after_card(self, card_face: str) -> None:
+        self.cancel_sequences_by_tag("turn_flow")
+        self.game_state.turn_number += 1
+        self.game_state.turn_phase = "draw"
+        self.game_state.current_card = None
+        self.game_state.split_pawn_a = None
+        self.game_state.split_pawn_b = None
+        if card_face == "2" and self._get_rules_profile().card_two_grants_extra_turn():
+            current = self.current_player
+            if current:
+                self.broadcast_personal_l(
+                    current,
+                    "sorry-you-extra-turn",
+                    "sorry-player-extra-turn",
+                    buffer="game",
+                )
+            self.announce_turn()
+            self.refresh_menus()
+            self._queue_current_bot()
+            return
+        self.advance_turn(announce=True)
+        self._queue_current_bot()
+
+    def _queue_current_bot(self) -> None:
+        current = self.current_player
+        if current and current.is_bot:
+            BotHelper.jolt_bot(current, ticks=random.randint(12, 20))
+
+    def on_sequence_callback(
+        self,
+        sequence_id: str,
+        callback_id: str,
+        payload: dict,
+    ) -> None:
+        _ = sequence_id
+        if callback_id == "after_draw":
+            player = self.get_player_by_id(payload["player_id"])
+            if player is not None:
+                self._handle_after_draw(player, payload["card_face"])
             return
 
-        if self.options.auto_apply_single_move and len(legal_moves) == 1:
-            captures = self.apply_legal_move(player, legal_moves[0])
-            self._play_move_sound(legal_moves[0])
-            if captures:
-                self._play_capture_sound()
-            self._announce_move(player, legal_moves[0])
-            self._announce_captures(player, captures)
-            self._play_home_arrival_sound(player, legal_moves[0])
-            self._sync_player_counts()
-            if self._has_player_won(player):
-                self._finish_game(player)
+        if callback_id == "resolve_move":
+            player = self.get_player_by_id(payload["player_id"])
+            if player is None:
                 return
-            discard_current_card(self.game_state)
-            self._end_turn_after_card(card_face=card_face)
-            return
+            move = SorryMove.from_dict(payload["move"])
+            captures = [CaptureEvent.from_dict(item) for item in payload["captures"]]
+            self._resolve_selected_move(player, move, payload["card_face"], captures)
 
-        self.game_state.turn_phase = "choose_move"
-        self.rebuild_all_menus()
-        BotHelper.jolt_bots(self, ticks=random.randint(8, 15))
+    def _broadcast_personal_card_message(
+        self,
+        player: Player,
+        personal_message_id: str,
+        others_message_id: str,
+        card_face: str,
+    ) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            card_text = self._card_display_text(user.locale, card_face)
+            if listener.id == player.id:
+                user.speak_l(personal_message_id, buffer="game", card=card_text)
+            else:
+                user.speak_l(
+                    others_message_id,
+                    buffer="game",
+                    player=player.name,
+                    card=card_text,
+                )
+
+    def _handle_deck_exhaustion(self) -> None:
+        self.ended_due_to_empty_deck = True
+        self.game_state.turn_phase = "resolving"
+        self.broadcast_l("sorry-deck-exhausted", buffer="game")
+        self.finish_game()
+
+    def _get_current_legal_moves(self, player: Player) -> list[SorryMove]:
+        if self.game_state.turn_phase != "choose_move":
+            return []
+        player_state = self._get_player_state(player)
+        card_face = self.game_state.current_card
+        if player_state is None or card_face is None:
+            return []
+        return generate_legal_moves(self.game_state, player_state, card_face, self._get_rules_profile())
 
     def _get_current_split_options(self, player: Player) -> list[SorryMove]:
         if self.game_state.turn_phase != "choose_split":
             return []
         if self.game_state.split_pawn_a is None or self.game_state.split_pawn_b is None:
             return []
-        player_state = self.get_player_state(player)
+        player_state = self._get_player_state(player)
         if player_state is None:
             return []
         return generate_split_options_for_pair(
@@ -755,153 +623,852 @@ class SorryGame(Game):
             self.game_state.split_pawn_b,
         )
 
+    def _sync_player_counts(self) -> None:
+        for player in self.get_active_players():
+            player_state = self._get_player_state(player)
+            if player_state is None:
+                continue
+            player.pawns_in_start = sum(1 for pawn in player_state.pawns if pawn.zone == "start")
+            player.pawns_in_home = sum(1 for pawn in player_state.pawns if pawn.zone == "home")
+            team = self._team_manager.get_team(player.name)
+            if team is not None:
+                team.total_score = player.pawns_in_home
+
+    def _has_player_won(self, player: Player) -> bool:
+        player_state = self._get_player_state(player)
+        return bool(player_state and all(pawn.zone == "home" for pawn in player_state.pawns))
+
+    def _build_draw_sequence(self, player: Player, card_face: str) -> list[SequenceBeat]:
+        draw_sound = f"game_squares/draw{random.randint(1, 3)}.ogg"
+        return [
+            SequenceBeat(
+                ops=[SequenceOperation.sound_op(draw_sound)],
+                delay_after_ticks=6,
+            ),
+            SequenceBeat(
+                ops=[
+                    SequenceOperation.callback_op(
+                        "after_draw",
+                        {"player_id": player.id, "card_face": card_face},
+                    )
+                ]
+            ),
+        ]
+
+    def _build_move_sequence(
+        self,
+        player: Player,
+        move: SorryMove,
+        card_face: str,
+        captures: list[CaptureEvent],
+    ) -> list[SequenceBeat]:
+        beats: list[SequenceBeat] = []
+
+        if move.move_type in {"forward", "backward", "split7", "sorry_fallback_forward"}:
+            step_count = 1
+            if move.move_type == "split7":
+                step_count = (move.steps or 0) + (move.secondary_steps or 0)
+            else:
+                step_count = max(1, move.steps or 0)
+            for _ in range(step_count):
+                beats.append(
+                    SequenceBeat(
+                        ops=[
+                            SequenceOperation.sound_op(
+                                f"game_squares/token{random.randint(1, 10)}.ogg"
+                            )
+                        ],
+                        delay_after_ticks=2,
+                    )
+                )
+        elif move.move_type in {"start", "swap"}:
+            beats.append(
+                SequenceBeat(
+                    ops=[SequenceOperation.sound_op("game_squares/token1.ogg")],
+                    delay_after_ticks=2,
+                )
+            )
+        elif move.move_type == "sorry":
+            beats.append(
+                SequenceBeat(
+                    ops=[SequenceOperation.sound_op("game_chess/capture1.ogg")],
+                    delay_after_ticks=2,
+                )
+            )
+
+        if captures:
+            beats.append(
+                SequenceBeat(
+                    ops=[
+                        SequenceOperation.sound_op(
+                            f"game_chess/capture{random.randint(1, 2)}.ogg"
+                        )
+                    ],
+                    delay_after_ticks=2,
+                )
+            )
+
+        beats.append(
+            SequenceBeat(
+                ops=[
+                    SequenceOperation.callback_op(
+                        "resolve_move",
+                        {
+                            "player_id": player.id,
+                            "move": move.to_dict(),
+                            "card_face": card_face,
+                            "captures": [capture.to_dict() for capture in captures],
+                        },
+                    )
+                ]
+            )
+        )
+        return beats
+
+    def _move_label(self, locale: str, player: Player, move: SorryMove) -> str:
+        own_position = self._pawn_location(locale, player.id, move.pawn_index)
+        if move.move_type == "start":
+            return Localization.get(
+                locale,
+                "sorry-move-start",
+                pawn=move.pawn_index,
+                position=own_position,
+            )
+        if move.move_type in {"forward", "sorry_fallback_forward"}:
+            return Localization.get(
+                locale,
+                "sorry-move-forward",
+                pawn=move.pawn_index,
+                position=own_position,
+                steps=move.steps or 0,
+            )
+        if move.move_type == "backward":
+            return Localization.get(
+                locale,
+                "sorry-move-backward",
+                pawn=move.pawn_index,
+                position=own_position,
+                steps=move.steps or 0,
+            )
+        if move.move_type == "swap":
+            target_name = self._target_player_name(locale, move.target_player_id)
+            target_position = self._pawn_location(
+                locale,
+                move.target_player_id,
+                move.target_pawn_index,
+            )
+            return Localization.get(
+                locale,
+                "sorry-move-swap",
+                pawn=move.pawn_index,
+                position=own_position,
+                target_player=target_name,
+                target_pawn=move.target_pawn_index,
+                target_position=target_position,
+            )
+        if move.move_type == "sorry":
+            target_name = self._target_player_name(locale, move.target_player_id)
+            target_position = self._pawn_location(
+                locale,
+                move.target_player_id,
+                move.target_pawn_index,
+            )
+            return Localization.get(
+                locale,
+                "sorry-move-sorry",
+                pawn=move.pawn_index,
+                position=own_position,
+                target_player=target_name,
+                target_pawn=move.target_pawn_index,
+                target_position=target_position,
+            )
+        if move.move_type == "split7_pick":
+            return Localization.get(
+                locale,
+                "sorry-move-split7-pick",
+                pawn_a=move.pawn_index,
+                position_a=own_position,
+                pawn_b=move.secondary_pawn_index,
+                position_b=self._pawn_location(locale, player.id, move.secondary_pawn_index),
+            )
+        if move.move_type == "split7":
+            return Localization.get(
+                locale,
+                "sorry-move-split7-option",
+                pawn_a=move.pawn_index,
+                position_a=own_position,
+                steps_a=move.steps or 0,
+                pawn_b=move.secondary_pawn_index,
+                position_b=self._pawn_location(locale, player.id, move.secondary_pawn_index),
+                steps_b=move.secondary_steps or 0,
+            )
+        return Localization.get(locale, "sorry-move-slot-fallback")
+
+    def _target_player_name(self, locale: str, player_id: str | None) -> str:
+        target = self.get_player_by_id(player_id) if player_id else None
+        return target.name if target else Localization.get(locale, "unknown-player")
+
+    def _pawn_location(self, locale: str, player_id: str | None, pawn_index: int | None) -> str:
+        player_state = self.game_state.player_states.get(player_id or "")
+        if player_state is None or pawn_index is None:
+            return Localization.get(locale, "sorry-location-start")
+        if pawn_index < 1 or pawn_index > len(player_state.pawns):
+            return Localization.get(locale, "sorry-location-start")
+        pawn = player_state.pawns[pawn_index - 1]
+        if pawn.zone == "start":
+            return Localization.get(locale, "sorry-location-start")
+        if pawn.zone == "track":
+            return Localization.get(
+                locale,
+                "sorry-location-track",
+                position=(pawn.track_position or 0) + 1,
+            )
+        if pawn.zone == "home_path":
+            return Localization.get(
+                locale,
+                "sorry-location-home-path",
+                steps=pawn.home_steps,
+            )
+        return Localization.get(locale, "sorry-location-home")
+
+    def _describe_pawn(self, locale: str, player_state: SorryPlayerState, pawn_index: int) -> str:
+        pawn = player_state.pawns[pawn_index - 1]
+        if pawn.zone == "start":
+            return Localization.get(locale, "sorry-zone-start")
+        if pawn.zone == "track":
+            return Localization.get(locale, "sorry-zone-track", position=(pawn.track_position or 0) + 1)
+        if pawn.zone == "home_path":
+            return Localization.get(locale, "sorry-zone-home-path", steps=pawn.home_steps)
+        return Localization.get(locale, "sorry-zone-home")
+
+    def _move_destination(self, locale: str, player: Player, pawn_index: int | None) -> str:
+        player_state = self._get_player_state(player)
+        if player_state is None or pawn_index is None:
+            return Localization.get(locale, "sorry-location-start")
+        pawn = player_state.pawns[pawn_index - 1]
+        if pawn.zone == "start":
+            return Localization.get(locale, "sorry-location-start")
+        if pawn.zone == "track":
+            return Localization.get(
+                locale,
+                "sorry-location-track",
+                position=(pawn.track_position or 0) + 1,
+            )
+        if pawn.zone == "home_path":
+            return Localization.get(
+                locale,
+                "sorry-location-home-path",
+                steps=pawn.home_steps,
+            )
+        return Localization.get(locale, "sorry-location-home")
+
+    def _color_name(self, locale: str, color: str) -> str:
+        return Localization.get(locale, f"sorry-color-{color}")
+
+    def _player_color_label(self, locale: str, player: SorryPlayer) -> str:
+        return Localization.get(
+            locale,
+            "sorry-board-player-color",
+            player=player.name,
+            color=self._color_name(locale, player.color),
+        )
+
+    def _describe_pawn_compact(
+        self,
+        locale: str,
+        player: SorryPlayer,
+        pawn_index: int,
+    ) -> str:
+        return Localization.get(
+            locale,
+            "sorry-board-summary-item",
+            pawn=pawn_index,
+            location=self._move_destination(locale, player, pawn_index),
+        )
+
+    def _slide_owner_color(self, square: int) -> str | None:
+        normalized_square = normalize_track_position(square)
+        for seat_index, color in enumerate(PLAYER_COLORS):
+            base = seat_index * 15
+            for offset, length in ((1, 3), (9, 4)):
+                start = normalize_track_position(base + offset)
+                slide_positions = {
+                    normalize_track_position(start + step) for step in range(length + 1)
+                }
+                if normalized_square in slide_positions:
+                    return color
+        return None
+
+    def _area_pawn_labels(self, locale: str, pawns: list[int]) -> str:
+        if not pawns:
+            return Localization.get(locale, "sorry-board-area-empty")
+        return Localization.format_list_and(
+            locale,
+            [
+                Localization.get(locale, "sorry-board-area-pawn", pawn=pawn_index)
+                for pawn_index in pawns
+            ],
+        )
+
+    def _announce_move(self, player: Player, move: SorryMove) -> None:
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            locale = user.locale
+            kwargs = {"brief": self._brief_announcement_mode(user)}
+            personal_message_id = ""
+            others_message_id = ""
+            if move.move_type == "start":
+                personal_message_id = "sorry-you-play-start"
+                others_message_id = "sorry-play-start"
+                kwargs.update({
+                    "pawn": move.pawn_index,
+                    "destination": self._move_destination(locale, player, move.pawn_index),
+                })
+            elif move.move_type in {"forward", "sorry_fallback_forward"}:
+                personal_message_id = "sorry-you-play-forward"
+                others_message_id = "sorry-play-forward"
+                kwargs.update({
+                    "pawn": move.pawn_index,
+                    "steps": move.steps or 0,
+                    "destination": self._move_destination(locale, player, move.pawn_index),
+                })
+            elif move.move_type == "backward":
+                personal_message_id = "sorry-you-play-backward"
+                others_message_id = "sorry-play-backward"
+                kwargs.update({
+                    "pawn": move.pawn_index,
+                    "steps": move.steps or 0,
+                    "destination": self._move_destination(locale, player, move.pawn_index),
+                })
+            elif move.move_type == "swap":
+                personal_message_id = "sorry-you-play-swap"
+                others_message_id = "sorry-play-swap"
+                kwargs.update({
+                    "pawn": move.pawn_index,
+                    "target_player": self._target_player_name(locale, move.target_player_id),
+                    "target_pawn": move.target_pawn_index,
+                    "destination": self._move_destination(locale, player, move.pawn_index),
+                })
+            elif move.move_type == "sorry":
+                personal_message_id = "sorry-you-play-sorry"
+                others_message_id = "sorry-play-sorry"
+                kwargs.update({
+                    "pawn": move.pawn_index,
+                    "target_player": self._target_player_name(locale, move.target_player_id),
+                    "target_pawn": move.target_pawn_index,
+                    "destination": self._move_destination(locale, player, move.pawn_index),
+                })
+            elif move.move_type == "split7":
+                personal_message_id = "sorry-you-play-split7"
+                others_message_id = "sorry-play-split7"
+                kwargs.update({
+                    "pawn_a": move.pawn_index,
+                    "steps_a": move.steps or 0,
+                    "destination_a": self._move_destination(locale, player, move.pawn_index),
+                    "pawn_b": move.secondary_pawn_index,
+                    "steps_b": move.secondary_steps or 0,
+                    "destination_b": self._move_destination(locale, player, move.secondary_pawn_index),
+                })
+            else:
+                continue
+
+            if listener.id == player.id:
+                user.speak_l(personal_message_id, buffer="game", **kwargs)
+            else:
+                user.speak_l(others_message_id, buffer="game", player=player.name, **kwargs)
+        return
+
+    def _announce_captures(self, mover: Player, captures: list[CaptureEvent]) -> None:
+        for capture in captures:
+            target = self.get_player_by_id(capture.captured_player_id)
+            if target is None:
+                continue
+            if target.id == mover.id:
+                mover_user = self.get_user(mover)
+                if mover_user:
+                    mover_user.speak_l(
+                        "sorry-you-bumped-own-pawn",
+                        buffer="game",
+                        pawn=capture.captured_pawn_index,
+                        brief=self._brief_announcement_mode(mover_user),
+                    )
+                for player in self.players:
+                    if player.id == mover.id:
+                        continue
+                    user = self.get_user(player)
+                    if user:
+                        user.speak_l(
+                            "sorry-player-bumped-own-pawn",
+                            buffer="game",
+                            player=mover.name,
+                            pawn=capture.captured_pawn_index,
+                            brief=self._brief_announcement_mode(user),
+                        )
+                continue
+            target_user = self.get_user(target)
+            if target_user:
+                target_user.speak_l(
+                    "sorry-your-pawn-captured",
+                    buffer="game",
+                    pawn=capture.captured_pawn_index,
+                    by_player=mover.name,
+                    brief=self._brief_announcement_mode(target_user),
+                )
+            mover_user = self.get_user(mover)
+            if mover_user:
+                mover_user.speak_l(
+                    "sorry-you-captured-pawn",
+                    buffer="game",
+                    target_player=target.name,
+                    pawn=capture.captured_pawn_index,
+                    brief=self._brief_announcement_mode(mover_user),
+                )
+            for player in self.players:
+                if player.id in {mover.id, capture.captured_player_id}:
+                    continue
+                user = self.get_user(player)
+                if user:
+                    user.speak_l(
+                        "sorry-pawn-captured",
+                        buffer="game",
+                        player=mover.name,
+                        target_player=target.name,
+                        pawn=capture.captured_pawn_index,
+                        brief=self._brief_announcement_mode(user),
+                    )
+
+    def _announce_home_arrivals(self, player: Player, move: SorryMove) -> None:
+        player_state = self._get_player_state(player)
+        if player_state is None:
+            return
+        for pawn_index in [move.pawn_index, move.secondary_pawn_index]:
+            if pawn_index is None or pawn_index < 1 or pawn_index > len(player_state.pawns):
+                continue
+            pawn = player_state.pawns[pawn_index - 1]
+            if pawn.zone != "home":
+                continue
+            self.play_sound("mention.ogg")
+            self.broadcast_personal_l(
+                player,
+                "sorry-you-pawn-home",
+                "sorry-pawn-home",
+                buffer="game",
+                pawn=pawn_index,
+            )
+
+    def _apply_selected_move(
+        self,
+        player: Player,
+        move: SorryMove,
+        card_face: str,
+        *,
+        focus_after_move: bool = False,
+    ) -> None:
+        player_state = self._get_player_state(player)
+        if player_state is None:
+            return
+        captures = apply_move(self.game_state, player_state, move, self._get_rules_profile())
+        self._sync_player_counts()
+        self.game_state.turn_phase = "resolving"
+        if focus_after_move:
+            self.request_menu_focus(player, "draw_card")
+        self.refresh_menus()
+        self.start_sequence(
+            "turn_flow",
+            self._build_move_sequence(player, move, card_face, captures),
+            tag="turn_flow",
+            lock_scope=self.SEQUENCE_LOCK_GAMEPLAY,
+            pause_bots=True,
+        )
+
+    def _resolve_selected_move(
+        self,
+        player: Player,
+        move: SorryMove,
+        card_face: str,
+        captures: list[CaptureEvent],
+    ) -> None:
+        self._announce_move(player, move)
+        self._announce_captures(player, captures)
+        self._announce_home_arrivals(player, move)
+        if self._has_player_won(player):
+            self.winner_name = player.name
+            self.play_sound("game_pig/wingame.ogg")
+            self.broadcast_personal_l(
+                player,
+                "game-winner-you",
+                "game-winner",
+                buffer="game",
+            )
+            self.finish_game()
+            return
+        discard_current_card(self.game_state)
+        self._end_turn_after_card(card_face)
+
+    def _enter_choose_split(
+        self,
+        player: Player,
+        move: SorryMove,
+        *,
+        focus_after_auto_apply: bool = False,
+    ) -> None:
+        self.game_state.turn_phase = "choose_split"
+        self.game_state.split_pawn_a = move.pawn_index
+        self.game_state.split_pawn_b = move.secondary_pawn_index
+        options = self._get_current_split_options(player)
+        if len(options) == 1 and self.options.auto_apply_single_move:
+            card_face = self.game_state.current_card or "0"
+            self._apply_selected_move(
+                player,
+                options[0],
+                card_face,
+                focus_after_move=focus_after_auto_apply,
+            )
+            return
+        user = self.get_user(player)
+        if user:
+            user.speak_l("sorry-choose-split", buffer="game", history=False)
+        self.request_menu_focus(player, "move_slot_1")
+        self.refresh_menus()
+        self._queue_current_bot()
+
+    def _enter_choose_move(
+        self,
+        player: Player,
+        legal_moves: list[SorryMove],
+        *,
+        defer_menu_rebuild: bool = False,
+    ) -> None:
+        if len(legal_moves) == 1 and self.options.auto_apply_single_move:
+            only_move = legal_moves[0]
+            if only_move.move_type == "split7_pick":
+                self._enter_choose_split(player, only_move)
+                return
+            self._apply_selected_move(player, only_move, self.game_state.current_card or "0")
+            return
+        self.game_state.turn_phase = "choose_move"
+        user = self.get_user(player)
+        if user:
+            user.speak_l("sorry-choose-move", buffer="game", history=False)
+        if defer_menu_rebuild:
+            self.request_menu_focus(player, "move_slot_1")
+        else:
+            self.request_menu_focus(player, "move_slot_1")
+            self.refresh_menus()
+        self._queue_current_bot()
+
+    def _action_draw_card(self, player: Player, action_id: str) -> None:
+        _ = action_id
+        if self._is_draw_enabled(player) is not None:
+            return
+
+        card_face = draw_next_card(self.game_state)
+        if card_face is None:
+            self._handle_deck_exhaustion()
+            return
+
+        self.game_state.turn_phase = "resolving"
+        self.refresh_menus()
+        self.start_sequence(
+            "turn_flow",
+            self._build_draw_sequence(player, card_face),
+            tag="turn_flow",
+            lock_scope=self.SEQUENCE_LOCK_GAMEPLAY,
+            pause_bots=True,
+        )
+
+    def _handle_after_draw(self, player: Player, card_face: str) -> None:
+        self._broadcast_personal_card_message(
+            player,
+            "sorry-you-draw-announcement",
+            "sorry-draw-announcement",
+            card_face,
+        )
+
+        player_state = self._get_player_state(player)
+        legal_moves = (
+            generate_legal_moves(
+                self.game_state,
+                player_state,
+                card_face,
+                self._get_rules_profile(),
+            )
+            if player_state is not None
+            else []
+        )
+
+        if not legal_moves:
+            self._broadcast_personal_card_message(
+                player,
+                "sorry-you-no-legal-moves",
+                "sorry-no-legal-moves",
+                card_face,
+            )
+            discard_current_card(self.game_state)
+            self._end_turn_after_card(card_face)
+            return
+
+        defer_menu_rebuild = any(
+            sequence.tag == "turn_flow" for sequence in self.active_sequences
+        )
+        self._enter_choose_move(
+            player,
+            legal_moves,
+            defer_menu_rebuild=defer_menu_rebuild,
+        )
+
     def _action_choose_move(self, player: Player, action_id: str) -> None:
-        """Apply the selected move slot."""
         if self._is_move_slot_enabled(player, action_id=action_id) is not None:
             return
+
         slot = self._parse_move_slot(action_id)
         if slot is None:
             return
 
-        if self.game_state.turn_phase == "choose_split":
-            options = self._get_current_split_options(player)
-            if slot < 1 or slot > len(options):
-                return
-            move = options[slot - 1]
-            card_face = self.game_state.current_card
-            if card_face is None:
-                return
-            self.game_state.split_pawn_a = None
-            self.game_state.split_pawn_b = None
-            captures = self.apply_legal_move(player, move)
-            self._play_move_sound(move)
-            if captures:
-                self._play_capture_sound()
-            self._announce_move(player, move)
-            self._announce_captures(player, captures)
-            self._play_home_arrival_sound(player, move)
-            self._sync_player_counts()
-            if self._has_player_won(player):
-                self._finish_game(player)
-                return
-            discard_current_card(self.game_state)
-            self._end_turn_after_card(card_face=card_face)
+        active_moves = self._active_move_list(player)
+        if slot < 1 or slot > len(active_moves):
             return
-
-        legal = self._get_current_legal_moves(player)
-        if slot < 1 or slot > len(legal):
-            return
-        move = legal[slot - 1]
-        card_face = self.game_state.current_card
-        if card_face is None:
-            return
+        move = active_moves[slot - 1]
 
         if move.move_type == "split7_pick":
-            self.game_state.turn_phase = "choose_split"
-            self.game_state.split_pawn_a = move.pawn_index
-            self.game_state.split_pawn_b = move.secondary_pawn_index
-            self.rebuild_all_menus()
-            BotHelper.jolt_bots(self, ticks=random.randint(8, 15))
+            self._enter_choose_split(player, move, focus_after_auto_apply=True)
             return
 
-        captures = self.apply_legal_move(player, move)
-        self._play_move_sound(move)
-        if captures:
-            self._play_capture_sound()
-        self._announce_move(player, move)
-        self._announce_captures(player, captures)
-        self._play_home_arrival_sound(player, move)
-        self._sync_player_counts()
-        if self._has_player_won(player):
-            self._finish_game(player)
+        self._apply_selected_move(
+            player,
+            move,
+            self.game_state.current_card or "0",
+            focus_after_move=True,
+        )
+
+    def _action_check_board(self, player: Player, action_id: str) -> None:
+        _ = action_id
+        self.live_status_box(
+            player,
+            "sorry_board",
+            lambda viewer, live_user: self._board_status_lines(viewer, live_user.locale),
+        )
+
+    def _board_status_lines(self, player: Player, locale: str) -> list[str]:
+        lines: list[str] = []
+        if isinstance(player, SorryPlayer) and not player.is_spectator and player.color:
+            lines.append(
+                Localization.get(
+                    locale,
+                    "sorry-board-your-color",
+                    color=self._color_name(locale, player.color),
+                )
+            )
+        lines.append(Localization.get(locale, "sorry-board-summary-heading"))
+        for ordered_id in self.game_state.player_order:
+            player_state = self.game_state.player_states.get(ordered_id)
+            target_player = self.get_player_by_id(ordered_id)
+            if player_state is None or target_player is None or not isinstance(target_player, SorryPlayer):
+                continue
+            pawn_summaries = [
+                self._describe_pawn_compact(locale, target_player, pawn.pawn_index)
+                for pawn in player_state.pawns
+            ]
+            lines.append(
+                Localization.get(
+                    locale,
+                    "sorry-board-summary-line",
+                    player=target_player.name,
+                    color=self._color_name(locale, target_player.color),
+                    pawns=Localization.format_list_and(locale, pawn_summaries),
+                )
+            )
+
+        lines.append(Localization.get(locale, "sorry-board-track-heading"))
+        for square in range(TRACK_LENGTH):
+            status_parts: list[str] = []
+            slide_owner = self._slide_owner_color(square)
+            if slide_owner:
+                status_parts.append(
+                    Localization.get(
+                        locale,
+                        "sorry-board-square-slide",
+                        color=self._color_name(locale, slide_owner),
+                    )
+                )
+            status_parts.extend(self._board_square_tokens(locale, square))
+            if not status_parts:
+                status = Localization.get(locale, "sorry-board-square-empty")
+            else:
+                status = ", ".join(status_parts)
+            lines.append(
+                Localization.get(
+                    locale,
+                    "sorry-board-square-line",
+                    square=square + 1,
+                    status=status,
+                )
+            )
+
+        lines.append(Localization.get(locale, "sorry-board-private-areas-heading"))
+        for ordered_id in self.game_state.player_order:
+            player_state = self.game_state.player_states.get(ordered_id)
+            target_player = self.get_player_by_id(ordered_id)
+            if player_state is None or target_player is None or not isinstance(target_player, SorryPlayer):
+                continue
+            lines.append(
+                Localization.get(
+                    locale,
+                    "sorry-board-start-line",
+                    player=target_player.name,
+                    color=self._color_name(locale, target_player.color),
+                    pawns=self._area_pawn_labels(
+                        locale,
+                        [pawn.pawn_index for pawn in player_state.pawns if pawn.zone == "start"],
+                    ),
+                )
+            )
+            for safety_space in range(1, 6):
+                lines.append(
+                    Localization.get(
+                        locale,
+                        "sorry-board-safety-line",
+                        player=target_player.name,
+                        color=self._color_name(locale, target_player.color),
+                        space=safety_space,
+                        pawns=self._area_pawn_labels(
+                            locale,
+                            [
+                                pawn.pawn_index
+                                for pawn in player_state.pawns
+                                if pawn.zone == "home_path" and pawn.home_steps == safety_space
+                            ],
+                        ),
+                    )
+                )
+            lines.append(
+                Localization.get(
+                    locale,
+                    "sorry-board-home-line",
+                    player=target_player.name,
+                    color=self._color_name(locale, target_player.color),
+                    pawns=self._area_pawn_labels(
+                        locale,
+                        [pawn.pawn_index for pawn in player_state.pawns if pawn.zone == "home"],
+                    ),
+                )
+            )
+        return lines
+
+    def _board_square_tokens(self, locale: str, square: int) -> list[str]:
+        tokens: list[str] = []
+        normalized_square = normalize_track_position(square)
+        for ordered_id in self.game_state.player_order:
+            player_state = self.game_state.player_states.get(ordered_id)
+            target_player = self.get_player_by_id(ordered_id)
+            if player_state is None or target_player is None:
+                continue
+            for pawn in player_state.pawns:
+                if pawn.zone != "track" or pawn.track_position is None:
+                    continue
+                if normalize_track_position(pawn.track_position) != normalized_square:
+                    continue
+                tokens.append(
+                    Localization.get(
+                        locale,
+                        "sorry-board-square-token",
+                        pawn=pawn.pawn_index,
+                        player=target_player.name,
+                    )
+                )
+        return tokens
+
+    def _action_check_pawns(self, player: Player, action_id: str) -> None:
+        _ = action_id
+        player_state = self._get_player_state(player)
+        if player_state is None:
             return
+        user = self.get_user(player)
+        if not user:
+            return
+        for pawn in player_state.pawns:
+            user.speak_l(
+                "sorry-view-your-pawn",
+                buffer="game",
+                pawn=pawn.pawn_index,
+                zone=self._describe_pawn(user.locale, player_state, pawn.pawn_index),
+            )
 
-        discard_current_card(self.game_state)
-        self._end_turn_after_card(card_face=card_face)
-
-    def on_start(self) -> None:
-        """Start the game."""
-        self._resolve_rules_profile_id()
-        rules = self.get_rules_profile()
-        self.status = GameStatus.PLAYING
-        self.game_active = True
-        self.round = 0
-
-        active_players = self.get_active_players()
-        self.set_turn_players(active_players)
-        self.reset_turn_order(announce=False)
-
-        self.game_state = build_initial_game_state(
-            [player.id for player in active_players],
-            pawns_per_player=rules.pawns_per_player,
-            faster_setup_one_pawn_out=self.options.faster_setup_one_pawn_out,
+    def _action_check_card(self, player: Player, action_id: str) -> None:
+        _ = action_id
+        user = self.get_user(player)
+        if not user:
+            return
+        user.speak_l(
+            "sorry-current-card",
+            buffer="game",
+            card=self._card_display_text(user.locale, self.game_state.current_card),
         )
 
-        pawns_in_start = (
-            rules.pawns_per_player - 1
-            if self.options.faster_setup_one_pawn_out
-            else rules.pawns_per_player
+    def _action_check_status(self, player: Player, action_id: str) -> None:
+        _ = action_id
+        user = self.get_user(player)
+        if not user:
+            return
+        locale = self._player_locale(player)
+        current = self.current_player
+        lines = [
+            Localization.get(locale, "sorry-status-turn-number", count=self.game_state.turn_number),
+            Localization.get(
+                locale,
+                "sorry-status-phase",
+                phase=Localization.get(locale, self._phase_message_key()),
+            ),
+            Localization.get(
+                locale,
+                "sorry-status-current-card",
+                card=self._card_display_text(locale, self.game_state.current_card),
+            ),
+        ]
+        if current:
+            lines.append(Localization.get(locale, "sorry-status-current-player", player=current.name))
+        for line in lines:
+            user.speak(line, buffer="game")
+
+    def format_end_screen(self, result: GameResult, locale: str) -> list[str]:
+        lines = [Localization.get(locale, "game-final-scores")]
+        final_scores = result.custom_data.get("final_scores", {})
+        sorted_scores = sorted(final_scores.items(), key=lambda item: item[1], reverse=True)
+        for index, (name, score) in enumerate(sorted_scores, 1):
+            lines.append(
+                Localization.get(
+                    locale,
+                    "sorry-end-score-line",
+                    index=index,
+                    player=name,
+                    count=score,
+                )
+            )
+        return lines
+
+    def build_game_result(self) -> GameResult:
+        final_scores = {player.name: player.pawns_in_home for player in self.get_active_players()}
+        winner = max(self.get_active_players(), key=lambda player: player.pawns_in_home, default=None)
+        winner_name = None if self.ended_due_to_empty_deck else (self.winner_name or (winner.name if winner else None))
+        winner_ids = [
+            player.id
+            for player in self.get_active_players()
+            if winner_name and player.name == winner_name
+        ]
+        return GameResult(
+            game_type=self.get_type(),
+            timestamp=datetime.now().isoformat(),
+            duration_ticks=self.sound_scheduler_tick,
+            player_results=[
+                PlayerResult.from_player(player)
+                for player in self.get_active_players()
+            ],
+            custom_data={
+                "winner_name": winner_name,
+                "winner_ids": winner_ids,
+                "final_scores": final_scores,
+                "ended_due_to_empty_deck": self.ended_due_to_empty_deck,
+            },
         )
-        for player in active_players:
-            player.pawns_in_start = pawns_in_start
-            player.pawns_in_home = 0
-
-        self.play_music("game_pig/mus.ogg")
-        self._start_turn(announce=True)
-        BotHelper.jolt_bots(self, ticks=random.randint(12, 20))
-
-    def on_tick(self) -> None:
-        """Drive bot turns in draw/choose phases."""
-        super().on_tick()
-        BotHelper.on_tick(self)
-
-    def bot_think(self, player: Player) -> str | None:
-        """Return the action ID a bot should take this tick."""
-        if self.game_state.turn_phase == "draw":
-            return "draw_card"
-        if self.game_state.turn_phase == "choose_split":
-            options = self._get_current_split_options(player)
-            if not options:
-                return None
-            player_state = self.get_player_state(player)
-            if player_state is None:
-                return None
-            selected = choose_move(self.game_state, player_state, options, self.get_rules_profile())
-            if selected is None:
-                return "move_slot_1"
-            slot_index = next(
-                (
-                    idx
-                    for idx, m in enumerate(options, start=1)
-                    if m.action_id == selected.action_id
-                ),
-                1,
-            )
-            return f"move_slot_{slot_index}"
-        if self.game_state.turn_phase == "choose_move":
-            legal = self._get_current_legal_moves(player)
-            if not legal:
-                return None
-            player_state = self.get_player_state(player)
-            if player_state is None:
-                return None
-            selected = choose_move(
-                self.game_state,
-                player_state,
-                legal,
-                self.get_rules_profile(),
-            )
-            if selected is None:
-                return None
-            slot_index = next(
-                (
-                    idx
-                    for idx, move in enumerate(legal, start=1)
-                    if move.action_id == selected.action_id
-                ),
-                None,
-            )
-            if slot_index is None:
-                return None
-            return f"move_slot_{slot_index}"
-        return None

@@ -13,7 +13,6 @@ class CoupPlayer(Player):
     coins: int = 0
     influences: list[Card] = field(default_factory=list)
     is_dead: bool = False
-    action_history: list[str] = field(default_factory=list)
 
     @property
     def live_influences(self) -> list[Card]:
@@ -57,7 +56,6 @@ class CoupOptions(GameOptions):
             label="coup-set-timer-duration",
             prompt="coup-enter-timer-duration",
             change_msg="coup-option-changed-timer",
-            description="coup-desc-timer-duration",
         )
     )
     # The minimum required to Coup is 7. You *must* Coup at 10+.
@@ -70,6 +68,5 @@ class CoupOptions(GameOptions):
             label="coup-set-mandatory-coup",
             prompt="coup-enter-mandatory-coup",
             change_msg="coup-option-changed-mandatory-coup",
-            description="coup-desc-mandatory-coup",
         )
     )

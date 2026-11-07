@@ -1,354 +1,576 @@
-"""Mixin providing menu management functionality for games."""
+"""Mixin providing menu management functionality for games.
+
+Game code never paints turn menus directly. It RECORDS turn-menu intent through
+two calls:
+
+- ``refresh_menus(player=None)`` — mark one player (or everyone) as needing
+  a repaint.
+- ``request_menu_focus(player, action_id)`` — queue a one-shot focus jump
+  for a player (and mark them for repaint).
+
+One sealed flush point — ``flush_menus()``, called by the framework at the
+end of every ``handle_event()`` and once per server tick — builds and sends
+the menus for dirty players. A plain refresh therefore can never move a
+cursor, double-paint, or clobber an overlay: the flush owns the focus-steal
+guards (status boxes, actions menus, global system menus, pending inputs),
+bot skipping, finished-state end screens, action-menu refreshes, and focus delivery. Per-game
+copies of that logic were the root cause of a long line of focus-stealing
+bugs, so the orchestrators are **sealed**: a game class that overrides one
+fails at import time.
+
+Status overlays are the sanctioned exception: ``status_box(...)`` shows static
+snapshots, while ``live_status_box(...)`` opens dynamic state panels that
+refresh through the same sealed flush path.
+
+Games customize what gets painted through these hooks:
+
+- ``before_menu_build(player)`` — sync dynamic action sets (e.g. per-card
+  play actions) before any menu paint. Runs for bots too, so action sets
+  stay valid for bot decision logic. Must be idempotent.
+- ``build_menu_items(player, user)`` — supply custom ``MenuItem`` lists and
+  grid layout kwargs (e.g. the backgammon/senet board grids).
+
+Clients preserve the user's cursor by item identity across a same-menu
+repaint. If the focused item disappeared, clients fall to the next surviving
+logical neighbor from the old menu, then the previous one, before using a
+numeric fallback. A flush without a queued focus intent never resets focus just
+because a repaint happened, and each explicit focus intent fires at most once.
+"""
 
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..games.base import Player, TransientDisplayState
-    from server.core.users.base import User
-    from .actions import ResolvedAction
+    from ..users.base import User
+    from .player import Player
 
-from server.core.users.base import MenuItem, EscapeBehavior
 from ..messages.localization import Localization
+from ..users.base import EscapeBehavior, MenuItem
+from .actions import EditboxInput, MenuInput
+from .client_types import is_touch_client
 
-TRANSIENT_DISPLAY_MENU_ID = "transient_display"
+#: Menu orchestrator methods that games must not override. Enforced at class
+#: creation time by ``MenuManagementMixin.__init_subclass__``.
+SEALED_MENU_ORCHESTRATORS = (
+    "refresh_menus",
+    "flush_menus",
+    "restore_session_ui",
+    "_paint_player_menu",
+    "_is_menu_refresh_blocked",
+    "_request_action_input",
+    "_paint_action_menu_input",
+    "_restore_pending_action_input",
+    "_discard_pending_action_input",
+)
 
 
 @dataclass
 class MenuBuild:
-    """Turn-menu items for one player, returned by ``build_menu_items``.
+    """Result of the ``build_menu_items`` hook.
 
-    ``grid_kwargs`` carries grid layout for ``show_menu``; only the keys our
-    clients understand (``grid_enabled``, ``grid_width``) are forwarded.
+    ``items`` is the full turn-menu item list in display order. ``grid_kwargs``
+    holds the grid layout kwargs forwarded to ``show_menu``
+    (``grid_enabled``, ``grid_width``, ``grid_height``), or ``{}`` for a flat
+    list menu.
     """
 
     items: list[MenuItem]
     grid_kwargs: dict = field(default_factory=dict)
 
 
-# Grid layout keys our show_menu accepts. PlayAural games may also send
-# grid_height, which our clients have no use for.
-_SUPPORTED_GRID_KWARGS = ("grid_enabled", "grid_width")
-
-
 @dataclass
 class StatusBoxBuild:
-    """Status-box content with optional grid layout metadata."""
+    """Result of a static or live status-box builder.
+
+    ``items`` may contain strings or ``MenuItem`` instances. Strings and items
+    without ids are assigned stable fallback ids from the status-box id prefix.
+    Builders for live boxes should prefer semantic item ids whenever rows can
+    reorder, appear, or disappear.
+    """
 
     items: Sequence[str | MenuItem]
     grid_kwargs: dict = field(default_factory=dict)
 
 
-StatusBoxBuilder = Callable[
-    ["Player", "User"], StatusBoxBuild | Sequence[str | MenuItem]
-]
+StatusBoxBuilder = Callable[["Player", "User"], StatusBoxBuild | Sequence[str | MenuItem]]
 
 
 @dataclass
 class LiveStatusBoxState:
-    """Runtime-only builder for an open live status box."""
+    """Runtime-only state for a player's open live status box."""
 
     box_id: str
     builder: StatusBoxBuilder
 
 
 class MenuManagementMixin:
-    """Build and update turn menus and status boxes.
+    """Mixin providing menu refresh recording, flushing, and status boxes.
 
-    Expected Game attributes:
-        _destroyed: bool.
-        status: str.
-        players: list[Player].
-        _transient_display_state: dict[str, TransientDisplayState].
-        get_user(player) -> User | None.
-        get_all_visible_actions(player) -> list[ResolvedAction].
+    Expects on the Game class:
+        - self._destroyed: bool
+        - self.status: str
+        - self.players: list[Player]
+        - self._status_box_open: set[str]
+        - self._actions_menu_open: set[str]
+        - self._pending_actions: dict[str, str]
+        - self._pending_menu_focus: dict[str, str]
+        - self._menu_dirty: set[str]
+        - self._menu_dirty_all: bool
+        - self._live_status_boxes: dict[str, LiveStatusBoxState]
+        - self.get_user(player) -> User | None
+        - self.get_all_visible_actions(player) -> list[ResolvedAction]
     """
 
-    def _build_action_menu_items(self, player: "Player", user: "User") -> list[MenuItem]:
-        """Build menu items from visible actions for a player."""
-        items: list[MenuItem] = []
-        for resolved in self.get_all_visible_actions(player):
-            label = resolved.label
-            if not resolved.enabled and resolved.action.show_disabled_label:
-                unavailable = Localization.get(user.locale, "visibility-unavailable")
-                label = f"{label}; {unavailable}"
-            items.append(MenuItem(text=label, id=resolved.action.id, sound=resolved.sound))
-        return items
+    def __init_subclass__(cls, **kwargs) -> None:
+        super().__init_subclass__(**kwargs)
+        for name in SEALED_MENU_ORCHESTRATORS:
+            if name in cls.__dict__:
+                raise TypeError(
+                    f"{cls.__module__}.{cls.__qualname__} overrides {name}(), "
+                    "which is a sealed menu orchestrator.\n"
+                    "The flush owns the focus-steal guards (status boxes, "
+                    "actions menus, global system menus, pending inputs), "
+                    "bot/finished/destroyed handling, and focus delivery. "
+                    "Per-game overrides of that logic repeatedly reintroduced "
+                    "focus-stealing and menu-clobbering bugs (see CLAUDE.md, "
+                    "'Menu Refresh and Focus').\n"
+                    "Customize through a sanctioned hook instead:\n"
+                    "  - before_menu_build(player): sync dynamic action sets "
+                    "before any menu paint\n"
+                    "  - build_menu_items(player, user): supply custom "
+                    "MenuItem lists / grid layouts\n"
+                    "  - _build_action_menu_input_items(...): supply a "
+                    "specialized declarative selector surface\n"
+                    "  - _on_action_menu_input_opened(...): emit one-time "
+                    "selector TTS or sound\n"
+                    "  - request_menu_focus(player, action_id): queue a "
+                    "one-shot focus jump for the next flush\n"
+                    "See server/game_utils/menu_management_mixin.py for the "
+                    "hook contracts."
+                )
 
-    def build_menu_items(self, player: "Player", user: "User") -> MenuBuild:
-        """Hook: build the turn-menu items for ``player``.
-
-        Both the full repaint and the in-place update ask this hook, so an
-        override (such as a read-only header row) survives either path. The
-        default is one item per visible action, exactly as before the hook.
-        """
-        return MenuBuild(items=self._build_action_menu_items(player, user))
-
-    def _turn_menu_build(self, player: "Player", user: "User") -> tuple[list[MenuItem], dict]:
-        """Return the hook's items and the grid kwargs our clients support."""
-        build = self.build_menu_items(player, user)
-        grid_kwargs = {
-            key: value for key, value in build.grid_kwargs.items() if key in _SUPPORTED_GRID_KWARGS
-        }
-        return build.items, grid_kwargs
-
-    def _get_transient_display_state(self, player: "Player") -> "TransientDisplayState | None":
-        """Return the open transient display state for a player, if any."""
-        return self._transient_display_state.get(player.id)
-
-    def _is_transient_display_open(self, player: "Player") -> bool:
-        """Return True when a transient display is open for a player."""
-        return player.id in self._transient_display_state
-
-    def _show_transient_display(
-        self,
-        player: "Player",
-        *,
-        kind: str,
-        items: list[MenuItem],
-        multiletter: bool,
-        path: list[str] | None = None,
-        position: int | None = None,
-        selection_id: str | None = None,
-        grid_kwargs: dict | None = None,
-    ) -> None:
-        """Show a transient display menu and store its runtime state."""
-        user = self.get_user(player)
-        if not user:
-            return
-
-        from ..games.base import TransientDisplayState
-
-        existing_state = self._transient_display_state.get(player.id)
-        positions = existing_state.positions if existing_state else {}
-        self._transient_display_state[player.id] = TransientDisplayState(
-            kind=kind,
-            path=list(path or []),
-            positions=positions,
-        )
-        user.show_menu(
-            TRANSIENT_DISPLAY_MENU_ID,
-            items,
-            multiletter=multiletter,
-            escape_behavior=EscapeBehavior.SELECT_LAST,
-            position=position,
-            selection_id=selection_id,
-            **(grid_kwargs or {}),
-        )
-
-    def _close_transient_display(
-        self,
-        player: "Player",
-        *,
-        speak_key: str | None = None,
-        rebuild_menu: bool = True,
-    ) -> None:
-        """Close a transient display and optionally rebuild the turn menu."""
-        user = self.get_user(player)
-        if user:
-            user.remove_menu(TRANSIENT_DISPLAY_MENU_ID)
-            if speak_key:
-                user.speak_l(speak_key)
-        self._transient_display_state.pop(player.id, None)
-        self._live_status_boxes.pop(player.id, None)
-        if rebuild_menu:
-            self.rebuild_player_menu(player)
-
-    def _handle_transient_display_selection(self, player: "Player", selection_id: str) -> None:
-        """Handle a selection from the shared transient display menu."""
-        state = self._get_transient_display_state(player)
-        if not state:
-            return
-
-        if state.kind in ("status_box", "live_status_box"):
-            self._close_transient_display(player)
-            return
-
-        if state.kind == "game_options":
-            handler = getattr(self, "_handle_game_options_display_selection", None)
-            if handler:
-                handler(player, selection_id)
-
-    def _remember_transient_display_position(self, player: "Player", event: dict) -> None:
-        """Remember the user's current position within an open transient display."""
-        state = self._get_transient_display_state(player)
-        if not state:
-            return
-
-        current_path_key = tuple(state.path)
-        selection = event.get("selection")
-        if isinstance(selection, int) and selection > 0:
-            state.positions[current_path_key] = selection
-            return
-
-        selection_id = event.get("selection_id")
-        if not selection_id:
-            return
-
-        user = self.get_user(player)
-        if not user:
-            return
-
-        current_menus = getattr(user, "_current_menus", None)
-        if isinstance(current_menus, dict):
-            current_menu = current_menus.get(TRANSIENT_DISPLAY_MENU_ID)
-        else:
-            menus = getattr(user, "menus", None)
-            current_menu = menus.get(TRANSIENT_DISPLAY_MENU_ID) if isinstance(menus, dict) else None
-        if not isinstance(current_menu, dict):
-            return
-
-        items = current_menu.get("items", [])
-        for index, item in enumerate(items, start=1):
-            if isinstance(item, dict) and item.get("id") == selection_id:
-                state.positions[current_path_key] = index
-                return
-            if hasattr(item, "id") and getattr(item, "id", None) == selection_id:
-                state.positions[current_path_key] = index
-                return
+    # ------------------------------------------------------------------
+    # Hooks (override these in games; never the orchestrators below)
+    # ------------------------------------------------------------------
 
     def before_menu_build(self, player: "Player") -> None:
         """Hook: sync dynamic action sets before any menu paint.
 
         Called at the top of every per-player menu paint, before the
-        destroyed/finished early-outs — so action sets are also refreshed
-        for bots (whose menus are never rendered but whose action sets
-        drive bot decisions). Must be idempotent. Default is a no-op.
+        destroyed/bot/finished early-outs — so action sets are also refreshed
+        for bots (whose menus are never rendered but whose action sets drive
+        bot decisions). Must be idempotent. Default is a no-op.
         """
 
-    def rebuild_player_menu(self, player: "Player", *, position: int | None = None) -> None:
-        """Rebuild the turn menu for a player.
+    def build_menu_items(self, player: "Player", user: "User") -> MenuBuild:
+        """Hook: build the turn-menu items and grid layout for ``player``.
 
-        Args:
-            player: The player whose menu to rebuild.
-            position: Optional 1-based position to focus on. Use position=1
-                to reset focus to the first item. When None, the client
-                preserves focus on the previously selected item by ID. This
-                causes a stuck-cursor bug when an always-visible action (like
-                "view pipe") shifts position as turn actions appear/disappear.
-                Pass position=1 in _start_turn for the current player to avoid
-                this.
+        The default builds one item per visible action, appends the static
+        touch-client table controls, and pulls grid kwargs from
+        ``_build_grid_menu_kwargs()`` when the game uses ``GridGameMixin``.
+        Board games with bespoke grids (backgammon, senet) override this to
+        arrange items and grid dimensions themselves.
         """
-        self.before_menu_build(player)
-        if self._destroyed:
-            return
-        if self.status == "finished":
-            return
-        if player.id in self._live_status_boxes:
-            self._paint_live_status_box(player, focus_id=None)
-            return
-        if self._is_transient_display_open(player):
-            return
-        user = self.get_user(player)
-        if not user:
-            return
+        items: list[MenuItem] = []
+        for resolved in self.get_all_visible_actions(player):
+            items.append(resolved.to_menu_item())
 
-        items, grid_kwargs = self._turn_menu_build(player, user)
+        # Touch clients get static table controls in the turn menu.
+        if is_touch_client(user):
+            items.append(MenuItem(
+                text=Localization.get(user.locale, "actions-menu"),
+                id="web_actions_menu"
+            ))
+            items.append(MenuItem(
+                text=Localization.get(user.locale, "game-leave"),
+                id="web_leave_table"
+            ))
 
-        help_text = None
-        if hasattr(self, "get_help_text"):
-            help_text = self.get_help_text(user.locale)
-        primary_action_id = None
-        if hasattr(self, "get_primary_action_id"):
-            primary_action_id = self.get_primary_action_id(player)
+        grid_kwargs = {}
+        if hasattr(self, "_build_grid_menu_kwargs"):
+            grid_kwargs = self._build_grid_menu_kwargs()
+        return MenuBuild(items=items, grid_kwargs=grid_kwargs)
 
-        # A queued one-shot focus intent is consumed by this paint.
-        selection_id = None
-        if position is None:
-            selection_id = self._pending_menu_focus.pop(player.id, None)
-
-        user.show_menu(
-            "turn_menu",
-            items,
-            multiletter=False,
-            escape_behavior=EscapeBehavior.KEYBIND,
-            position=position,
-            selection_id=selection_id,
-            help_text=help_text,
-            primary_action_id=primary_action_id,
-            **grid_kwargs,
-        )
-
-    def rebuild_all_menus(self) -> None:
-        """Rebuild menus for all players."""
-        if self._destroyed:
-            return
-        for player in self.players:
-            self.rebuild_player_menu(player)
+    # ------------------------------------------------------------------
+    # Recording API (what game code calls)
+    # ------------------------------------------------------------------
 
     def refresh_menus(self, player: "Player | None" = None) -> None:
         """Mark ``player`` (or every player) as needing a menu repaint.
 
-        Recording only — painting happens in :meth:`flush_menus`, which the
-        framework calls at the end of ``handle_event`` and once per tick.
-        Over-marking is cheap: a repaint costs at most one packet per menu
-        that actually changed, and identical repaints are skipped against
-        the last-sent state.
+        Recording only — nothing is built or sent here. The framework flushes
+        at the end of the current ``handle_event()`` and once per server
+        tick, so over-marking costs one set insert, never a packet or a
+        Fluent render. A repaint without a queued focus intent preserves
+        every player's cursor by stable menu identity when possible, so the
+        safe habit - refresh after any state change - is also the cheap habit.
         """
         if player is None:
             self._menu_dirty_all = True
         else:
             self._menu_dirty.add(player.id)
 
-    def flush_menus(self) -> None:
-        """Paint menus for players marked dirty since the last flush."""
-        if self._destroyed:
-            return
-        if self._menu_dirty_all:
-            self._menu_dirty_all = False
-            self._menu_dirty.clear()
-            self.rebuild_all_menus()
-            return
-        if not self._menu_dirty:
-            return
-        dirty = list(self._menu_dirty)
-        self._menu_dirty.clear()
-        for player_id in dirty:
-            player = self.get_player_by_id(player_id)
-            if player:
-                self.rebuild_player_menu(player)
-
     def request_menu_focus(self, player: "Player", action_id: str) -> None:
         """Queue a one-shot focus jump to ``action_id`` for ``player``.
 
-        Adapter for the PlayAural menu API. The intent is a single
-        per-player slot (last writer wins) consumed by the next turn-menu
-        repaint. Requesting focus also marks the player for repaint; no
-        separate ``refresh_menus`` call is needed unless other players'
-        menus changed too.
+        The intent is a single per-player slot (the last writer wins) and is
+        consumed by the next flush that paints this player, so a delayed
+        repaint can never produce a second screen-reader jump. Requesting
+        focus marks the player for repaint; no separate ``refresh_menus``
+        call is needed unless other players' menus changed too.
         """
         self._pending_menu_focus[player.id] = action_id
         self._menu_dirty.add(player.id)
 
-    def update_player_menu(
+    def _consume_refresh_for_direct_menu_overlay(self, player: "Player") -> None:
+        """Mark an immediately painted selector as satisfying queued UI intent."""
+
+        self._pending_menu_focus.pop(player.id, None)
+        if self._menu_dirty_all:
+            self._menu_dirty_all = False
+            self._menu_dirty.discard(player.id)
+            self._menu_dirty.update(
+                candidate.id
+                for candidate in self.players
+                if candidate.id != player.id
+            )
+        else:
+            self._menu_dirty.discard(player.id)
+
+    # ------------------------------------------------------------------
+    # Sealed orchestrators — do not override in games
+    # ------------------------------------------------------------------
+
+    def flush_menus(self) -> None:
+        """Build and send menus for players marked dirty (sealed).
+
+        Called by the framework only: at the end of every
+        ``Game.handle_event()`` and once per server tick (after game ticks,
+        before the per-user packet flush). Game code records intent with
+        ``refresh_menus()`` / ``request_menu_focus()`` and never flushes.
+        """
+        if self._destroyed:
+            self._menu_dirty.clear()
+            self._menu_dirty_all = False
+            return
+
+        if self._menu_dirty_all:
+            targets = list(self.players)
+        elif self._menu_dirty:
+            targets = [p for p in self.players if p.id in self._menu_dirty]
+        else:
+            return
+        self._menu_dirty.clear()
+        self._menu_dirty_all = False
+
+        for player in targets:
+            # The focus intent is used-or-discarded at this flush: it never
+            # survives to a later flush where it could fire stale.
+            focus = self._pending_menu_focus.pop(player.id, None)
+            self._paint_player_menu(player, focus)
+
+    def _is_menu_refresh_blocked(self, player: "Player", user: "User") -> bool:
+        """True when painting a turn menu would clobber an open overlay.
+
+        FOCUS-STEAL PREVENTION — three guards, in order:
+
+        1. Status Box (from MenuManagementMixin). Actions menus are not
+           blocked here because the sealed paint path can refresh them in
+           place without rebuilding the turn menu.
+        2. Server-level system overlay (online_users, friends_hub, options,
+           etc.). If _user_states says the user is viewing ANY global system
+           menu, never overwrite it with a game turn_menu. Also guard
+           transient editbox states (_transient=True) for any game-specific
+           editbox not registered in GLOBAL_SYSTEM_MENUS.
+        3. Pending action input (action_input_menu, action_input_editbox,
+           leave_game_confirm): any pending action implies an open input UI.
+        """
+        if self._is_non_action_menu_refresh_blocked(player, user):
+            return True
+
+        pending_action_id = self._pending_actions.get(player.id)
+        if pending_action_id and not self._is_pending_action_current(player):
+            self._discard_pending_action_input(player, user)
+            return False
+        return bool(pending_action_id)
+
+    def _is_non_action_menu_refresh_blocked(
         self,
         player: "Player",
-        selection_id: str | None = None,
-        play_selection_sound: bool = False,
+        user: "User",
+    ) -> bool:
+        """Whether a status or server overlay owns the client's surface."""
+
+        if player.id in self._status_box_open:
+            return True
+
+        server = getattr(getattr(self, "_table", None), "_server", None)
+        if server is None:
+            return False
+        state = server._user_states.get(user.username, {})
+        return bool(
+            state.get("menu") in server.GLOBAL_SYSTEM_MENUS
+            or state.get("_transient")
+        )
+
+    def _is_pending_action_current(self, player: "Player") -> bool:
+        """Whether a pending input still belongs to an enabled action.
+
+        Action inputs are runtime UI intent. A public state transition can make
+        that intent obsolete before the player submits it; retaining the old
+        modal would then block every later turn-menu repaint for that player.
+        """
+        action_id = self._pending_actions.get(player.id)
+        if not action_id:
+            return False
+        if action_id == "leave_game_confirm":
+            return True
+        action = self.find_action(player, action_id)
+        if not action or action.input_request is None:
+            return False
+        resolved = self.resolve_action(player, action)
+        # Inputs can originate from the actions menu or a keybind, where a
+        # deliberately turn-menu-hidden action is still valid.
+        if not resolved.enabled:
+            return False
+        request = action.input_request
+        if isinstance(request, MenuInput):
+            if request.pre_input_check:
+                pre_input_check = getattr(self, request.pre_input_check, None)
+                if pre_input_check and pre_input_check(player, action.id):
+                    return False
+            return bool(self._get_menu_options_for_action(action, player))
+        if isinstance(request, EditboxInput):
+            return self._should_prompt_for_action_input(action, player)
+        return True
+
+    def _discard_pending_action_input(
+        self,
+        player: "Player",
+        user: "User | None" = None,
     ) -> None:
-        """Update the turn menu for a player, preserving focus position."""
+        """Dismiss an obsolete action-input overlay and its runtime intent."""
+        action_id = self._pending_actions.pop(player.id, None)
+        self._pending_action_return_focus.pop(player.id, None)
+        if not action_id:
+            return
+
+        action = self.find_action(player, action_id)
+        request = action.input_request if action else None
+        if action_id != "leave_game_confirm":
+            # Stale authoritative state closes the same game-owned draft data
+            # as an explicit Cancel. This keeps auxiliary selection state from
+            # surviving after its input surface has ceased to be valid.
+            self._on_action_input_cancelled(player, action_id)
+        if isinstance(request, MenuInput) and request.locks_gameplay:
+            self.refresh_menus()
+
+        if user is None:
+            user = self.get_user(player)
+        if not user:
+            return
+
+        if action_id == "leave_game_confirm":
+            user.remove_menu("leave_game_confirm", send_packet=False)
+        elif isinstance(request, MenuInput):
+            # A fresh authoritative menu always follows this discard. Avoid an
+            # empty intermediary menu, which can drop touch/screen-reader focus.
+            user.remove_menu("action_input_menu", send_packet=False)
+        elif isinstance(request, EditboxInput):
+            user.remove_editbox("action_input_editbox")
+        else:
+            # If the action itself disappeared, its input type is unknowable.
+            # Clear both possible framework overlays before repainting. Menus
+            # replace each other directly; editboxes require an explicit packet.
+            user.remove_menu("action_input_menu", send_packet=False)
+            user.remove_editbox("action_input_editbox")
+
+    def _restore_pending_action_input(self, player: "Player") -> None:
+        """Repaint the authoritative input after a stale client event."""
+        action_id = self._pending_actions.get(player.id)
+        if not action_id:
+            return
+        if action_id == "leave_game_confirm":
+            self._action_leave_game(player, action_id)
+            return
+
+        action = self.find_action(player, action_id)
+        if not action or action.input_request is None:
+            return
+        if isinstance(action.input_request, MenuInput):
+            user = self.get_user(player)
+            if user:
+                # This path repairs a client which submitted from a stale
+                # surface or chose an option that has since disappeared.
+                # Invalidate the server-side content snapshot first: an
+                # identical authoritative prompt must still be sent because
+                # the client's visible state can no longer be trusted.
+                user.remove_menu("action_input_menu", send_packet=False)
+            if self._paint_action_menu_input(
+                action,
+                player,
+                apply_initial_selection=False,
+            ):
+                self._consume_refresh_for_direct_menu_overlay(player)
+            else:
+                self._discard_pending_action_input(player)
+                self.refresh_menus(player)
+            return
+        return_focus = self._pending_action_return_focus.get(player.id)
+        self._request_action_input(action, player)
+        if return_focus and player.id in self._pending_actions:
+            self._pending_action_return_focus[player.id] = return_focus
+
+    def _force_turn_menu_resync(self, player: "Player") -> None:
+        """Force a full authoritative repaint after a stale menu selection."""
+        user = self.get_user(player)
+        if user:
+            user.remove_menu("turn_menu", send_packet=False)
+        self.refresh_menus(player)
+
+    def _paint_player_menu(self, player: "Player", focus: str | None) -> None:
+        """Build and send one player's turn menu (sealed; flush-internal).
+
+        Always sends the full show form; clients treat a same-id menu packet
+        as an in-place diff that preserves focus by item identity or nearest
+        surviving logical neighbor, so this never resets a cursor merely
+        because a repaint happened. ``focus`` (an item id) is the player's
+        consumed focus intent, delivered as an explicit selection.
+        """
+        self.before_menu_build(player)
+
         if self._destroyed:
             return
-        if self.status == "finished":
+
+        if player.is_bot:
+            # Bots discard all UI (show_menu is a no-op), so skip building the
+            # menu entirely. Otherwise every flush resolves the full action set
+            # and renders each label through Fluent for a player that never sees
+            # it — a large per-tick cost in bot-heavy games and on the live server.
             return
-        if self._is_transient_display_open(player):
-            return
+
         user = self.get_user(player)
         if not user:
             return
 
-        items, _grid_kwargs = self._turn_menu_build(player, user)
-        user.update_menu(
-            "turn_menu", items, selection_id=selection_id, play_selection_sound=play_selection_sound
+        end_screen_restorer = getattr(self, "_restore_end_screen_if_open", None)
+        if end_screen_restorer and end_screen_restorer(player):
+            return
+
+        if self.status == "finished":
+            # A dirty flush on a finished game restores the end screen instead
+            # of doing nothing (which would leave the user with no menu).
+
+            # Robustness: If _last_game_result is missing (e.g. after server
+            # restart), try to rebuild it from current state.
+            if self._last_game_result is None and hasattr(self, "build_game_result"):
+                self._last_game_result = self.build_game_result()
+
+            if self._last_game_result and hasattr(self, "_show_end_screen_to_player"):
+                is_open = True
+                checker = getattr(self, "_is_end_screen_open_for_player", None)
+                if checker:
+                    is_open = checker(player)
+                if is_open:
+                    self._show_end_screen_to_player(
+                        player,
+                        self._last_game_result,
+                        mark_open=False,
+                    )
+            return
+
+        if player.id in self._status_box_open and player.id in self._live_status_boxes:
+            # Passive refreshes arrive with no focus intent. When an action has
+            # explicitly requested focus while opening or replacing a live
+            # panel, carry that one-shot semantic id into the panel repaint.
+            self._paint_live_status_box(player, focus_id=focus)
+            return
+
+        if self._is_non_action_menu_refresh_blocked(player, user):
+            return
+
+        pending_action_id = self._pending_actions.get(player.id)
+        if pending_action_id:
+            if not self._is_pending_action_current(player):
+                self._discard_pending_action_input(player, user)
+            else:
+                action = self.find_action(player, pending_action_id)
+                if action and isinstance(action.input_request, MenuInput):
+                    if self._paint_action_menu_input(
+                        action,
+                        player,
+                        apply_initial_selection=False,
+                    ):
+                        return
+                    self._discard_pending_action_input(player, user)
+                else:
+                    # Editboxes and confirmation overlays are not safe to
+                    # repaint: doing so would erase typed text or reset focus.
+                    return
+
+        if player.id in self._actions_menu_open:
+            painter = getattr(self, "_paint_actions_menu", None)
+            if painter:
+                painter(player, focus_id=focus)
+            return
+
+        build = self.build_menu_items(player, user)
+        user.show_menu(
+            "turn_menu",
+            build.items,
+            multiletter=False,
+            escape_behavior=EscapeBehavior.KEYBIND,
+            selection_id=focus,
+            **build.grid_kwargs,
         )
 
-    def update_all_menus(self) -> None:
-        """Update menus for all players, preserving focus position."""
+    def restore_session_ui(self, player: "Player") -> None:
+        """Rebuild the current gameplay UI for a replacement client session.
+
+        Runtime intent is authoritative; rendered client state is not copied
+        between devices. Reconstructable overlays are painted again against the
+        new user's capabilities. A static status box has no retained builder, so
+        it is dismissed and gameplay resumes at its recorded opener.
+        """
         if self._destroyed:
             return
-        for player in self.players:
-            self.update_player_menu(player)
+
+        if player.id in self._status_box_open:
+            if player.id in self._live_status_boxes:
+                self._paint_live_status_box(player, focus_id=None)
+                return
+            self._status_box_open.discard(player.id)
+            focus = self._status_box_return_focus.pop(player.id, None)
+            if focus:
+                self.request_menu_focus(player, focus)
+
+        pending_action_id = self._pending_actions.get(player.id)
+        if pending_action_id == "leave_game_confirm":
+            self._action_leave_game(player, pending_action_id)
+            return
+        if pending_action_id:
+            if not self._is_pending_action_current(player):
+                self._discard_pending_action_input(player)
+                pending_action_id = None
+        if pending_action_id:
+            action = self.find_action(player, pending_action_id)
+            if action and action.input_request is not None:
+                self._request_action_input(action, player)
+                if player.id in self._pending_actions:
+                    return
+            self._pending_actions.pop(player.id, None)
+            self._pending_action_return_focus.pop(player.id, None)
+
+        if player.id in self._actions_menu_open:
+            self._paint_actions_menu(player)
+            return
+
+        self.refresh_menus(player)
+
+    # ------------------------------------------------------------------
+    # Status boxes
+    # ------------------------------------------------------------------
 
     def _normalize_status_box_content(
         self,
@@ -356,7 +578,7 @@ class MenuManagementMixin:
         *,
         fallback_id_prefix: str,
     ) -> tuple[list[MenuItem], dict]:
-        """Normalize status-box rows and assign stable, unique item ids."""
+        """Normalize status-box content into uniquely identified menu items."""
         if isinstance(content, StatusBoxBuild):
             raw_items = content.items
             grid_kwargs = dict(content.grid_kwargs)
@@ -372,6 +594,10 @@ class MenuManagementMixin:
                     text=raw_item.text,
                     id=raw_item.id or f"{fallback_id_prefix}:line:{index}",
                     sound=raw_item.sound,
+                    description=raw_item.description,
+                    description_key=raw_item.description_key,
+                    description_kwargs=raw_item.description_kwargs,
+                    label=raw_item.label,
                 )
             else:
                 item = MenuItem(
@@ -379,10 +605,11 @@ class MenuManagementMixin:
                     id=f"{fallback_id_prefix}:line:{index}",
                 )
 
-            seen_count = seen_ids.get(item.id, 0)
-            seen_ids[item.id] = seen_count + 1
-            if seen_count:
-                item.id = f"{item.id}:duplicate:{seen_count}"
+            if item.id is not None:
+                seen_count = seen_ids.get(item.id, 0)
+                seen_ids[item.id] = seen_count + 1
+                if seen_count:
+                    item.id = f"{item.id}:duplicate:{seen_count}"
             items.append(item)
 
         return items, grid_kwargs
@@ -393,18 +620,23 @@ class MenuManagementMixin:
         Press Enter on any item to close. No header or close button needed
         since screen readers speak list items and Enter always closes.
         """
-        self._live_status_boxes.pop(player.id, None)
-        items, grid_kwargs = self._normalize_status_box_content(
-            lines,
-            fallback_id_prefix="status_box",
-        )
-        self._show_transient_display(
-            player,
-            kind="status_box",
-            items=items,
-            multiletter=False,
-            grid_kwargs=grid_kwargs,
-        )
+        user = self.get_user(player)
+        if user:
+            self._actions_menu_open.discard(player.id)
+            self._live_status_boxes.pop(player.id, None)
+            self._remember_status_box_return_focus(player)
+            items, grid_kwargs = self._normalize_status_box_content(
+                lines,
+                fallback_id_prefix="status_box",
+            )
+            user.show_menu(
+                "status_box",
+                items,
+                multiletter=False,
+                escape_behavior=EscapeBehavior.SELECT_LAST,
+                **grid_kwargs,
+            )
+            self._status_box_open.add(player.id)
 
     def live_status_box(
         self,
@@ -414,15 +646,25 @@ class MenuManagementMixin:
         *,
         focus_id: str | None = None,
     ) -> None:
-        """Open a status box whose rows repaint when the game marks menus dirty."""
+        """Open a live status box that refreshes through the sealed menu flush.
+
+        Live boxes are opt-in overlays for dynamic state views such as boards,
+        standings, and round status. They use the same ``status_box`` menu id
+        so all clients apply the normal same-menu content diff. Passive
+        refreshes never send a focus directive; ``focus_id`` is only for the
+        initial, action-driven opening.
+        """
         user = self.get_user(player)
         if not user:
             return
 
+        self._actions_menu_open.discard(player.id)
+        self._remember_status_box_return_focus(player)
         self._live_status_boxes[player.id] = LiveStatusBoxState(
             box_id=box_id,
             builder=builder,
         )
+        self._status_box_open.add(player.id)
         self._paint_live_status_box(player, focus_id=focus_id)
 
     def _paint_live_status_box(
@@ -431,7 +673,7 @@ class MenuManagementMixin:
         *,
         focus_id: str | None,
     ) -> None:
-        """Paint an open live status box without moving focus on passive updates."""
+        """Repaint one open live status box without changing focus by default."""
         state = self._live_status_boxes.get(player.id)
         user = self.get_user(player)
         if not state or not user:
@@ -442,11 +684,20 @@ class MenuManagementMixin:
             content,
             fallback_id_prefix=f"live_status:{state.box_id}",
         )
-        self._show_transient_display(
-            player,
-            kind="live_status_box",
-            items=items,
+        user.show_menu(
+            "status_box",
+            items,
             multiletter=False,
+            escape_behavior=EscapeBehavior.SELECT_LAST,
             selection_id=focus_id,
-            grid_kwargs=grid_kwargs,
+            **grid_kwargs,
         )
+
+    def _remember_status_box_return_focus(self, player: "Player") -> None:
+        """Remember the action item that opened a status box, if any."""
+        focus_getter = getattr(self, "_get_action_return_focus_id", None)
+        focus = focus_getter(player, None) if focus_getter else None
+        if focus:
+            self._status_box_return_focus[player.id] = focus
+        else:
+            self._status_box_return_focus.pop(player.id, None)

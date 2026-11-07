@@ -1,4 +1,4 @@
-"""Classic Draw / Block Dominos for PlayPalace v11."""
+"""Classic Draw / Block Dominos for PlayAural."""
 
 from __future__ import annotations
 
@@ -13,11 +13,14 @@ from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility, MenuInput
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
+from ...game_utils.stats_helpers import (
+    RATING_COMPETITORS_KEY,
+    rating_competitors_from_scores,
+)
 from ...game_utils.options import IntOption, MenuOption, BoolOption, TeamModeOption, option_field
 from ...game_utils.teams import TeamManager
 from ...messages.localization import Localization
-from ...game_utils.game_status import GameStatus
-from server.core.ui.keybinds import KeybindState
+from ...ui.keybinds import KeybindState
 
 
 DRAW_MODE_CHOICES = ["draw", "block"]
@@ -26,19 +29,19 @@ DRAW_MODE_LABELS = {
     "block": "dominos-mode-block",
 }
 
-SET_CHOICES = ["double6", "double9"]
+DOMINO_SET_MAX_PIPS = {
+    "double6": 6,
+    "double9": 9,
+    "double12": 12,
+}
+SET_CHOICES = list(DOMINO_SET_MAX_PIPS)
 SET_LABELS = {
     "double6": "dominos-set-double6",
     "double9": "dominos-set-double9",
+    "double12": "dominos-set-double12",
 }
 
-OPENING_RULE_CHOICES = [
-    "highest_double",
-    "highest_tile",
-    "set_max_double",
-    "random",
-    "round_winner",
-]
+OPENING_RULE_CHOICES = ["highest_double", "highest_tile", "set_max_double", "random", "round_winner"]
 OPENING_RULE_LABELS = {
     "highest_double": "dominos-opening-highest-double",
     "highest_tile": "dominos-opening-highest-tile",
@@ -132,7 +135,6 @@ class DominosOptions(GameOptions):
             label="dominos-set-target-score",
             prompt="dominos-enter-target-score",
             change_msg="dominos-option-changed-target-score",
-            description="dominos-desc-target-score",
         )
     )
     draw_mode: str = option_field(
@@ -143,7 +145,6 @@ class DominosOptions(GameOptions):
             prompt="dominos-select-draw-mode",
             change_msg="dominos-option-changed-draw-mode",
             choice_labels=DRAW_MODE_LABELS,
-            description="dominos-desc-draw-mode",
         )
     )
     domino_set: str = option_field(
@@ -155,7 +156,6 @@ class DominosOptions(GameOptions):
             prompt="dominos-select-domino-set",
             change_msg="dominos-option-changed-domino-set",
             choice_labels=SET_LABELS,
-            description="dominos-desc-domino-set",
         )
     )
     spinner_enabled: bool = option_field(
@@ -164,7 +164,6 @@ class DominosOptions(GameOptions):
             value_key="enabled",
             label="dominos-set-spinner",
             change_msg="dominos-option-changed-spinner",
-            description="dominos-desc-spinner",
         )
     )
     opening_rule: str = option_field(
@@ -176,14 +175,13 @@ class DominosOptions(GameOptions):
             prompt="dominos-select-opening-rule",
             change_msg="dominos-option-changed-opening-rule",
             choice_labels=OPENING_RULE_LABELS,
-            description="dominos-desc-opening-rule",
         )
     )
     team_mode: str = option_field(
         TeamModeOption(
             default="individual",
             value_key="mode",
-            choices=lambda g, p: TeamManager.get_all_team_modes(2, 4),
+            choices=lambda g, p: TeamManager.get_all_team_modes(2, 12),
             label="game-set-team-mode",
             prompt="game-select-team-mode",
             change_msg="game-option-changed-team",
@@ -230,7 +228,7 @@ class DominosGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-playaural"
+        return "cards"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -238,7 +236,7 @@ class DominosGame(Game):
 
     @classmethod
     def get_max_players(cls) -> int:
-        return 4
+        return 12
 
     @classmethod
     def get_supported_leaderboards(cls) -> list[str]:
@@ -247,11 +245,14 @@ class DominosGame(Game):
     def create_player(self, player_id: str, name: str, is_bot: bool = False) -> DominosPlayer:
         return DominosPlayer(id=player_id, name=name, is_bot=is_bot)
 
-    def prestart_validate(self) -> list[str] | list[tuple[str, dict]]:
-        errors: list[str] = []
+    def prestart_validate(self) -> list[str | tuple[str, dict]]:
+        errors: list[str | tuple[str, dict]] = list(super().prestart_validate())
         team_error = self._validate_team_mode(self.options.team_mode)
         if team_error:
             errors.append(team_error)
+        capacity_error = self._validate_domino_set_capacity()
+        if capacity_error:
+            errors.append(capacity_error)
         return errors
 
     def create_turn_action_set(self, player: DominosPlayer) -> ActionSet:
@@ -330,32 +331,14 @@ class DominosGame(Game):
         super().setup_keybinds()
         self.define_keybind("space", "Draw", ["draw"], state=KeybindState.ACTIVE)
         self.define_keybind("p", "Knock", ["knock"], state=KeybindState.ACTIVE)
-        self.define_keybind(
-            "v", "View chain", ["view_chain"], state=KeybindState.ACTIVE, include_spectators=True
-        )
-        self.define_keybind(
-            "c", "Read ends", ["read_ends"], state=KeybindState.ACTIVE, include_spectators=True
-        )
-        self.define_keybind(
-            "e", "Read counts", ["read_counts"], state=KeybindState.ACTIVE, include_spectators=True
-        )
+        self.define_keybind("v", "View chain", ["view_chain"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind("c", "Read ends", ["read_ends"], state=KeybindState.ACTIVE, include_spectators=True)
+        self.define_keybind("e", "Read counts", ["read_counts"], state=KeybindState.ACTIVE, include_spectators=True)
         self.define_keybind("w", "Read hand", ["read_hand"], state=KeybindState.ACTIVE)
 
-    def rebuild_player_menu(self, player: Player) -> None:
+    def before_menu_build(self, player: Player) -> None:
         self._sync_turn_actions(player)
         self._sync_standard_actions(player)
-        super().rebuild_player_menu(player)
-
-    def update_player_menu(self, player: Player, selection_id: str | None = None) -> None:
-        self._sync_turn_actions(player)
-        self._sync_standard_actions(player)
-        super().update_player_menu(player, selection_id=selection_id)
-
-    def rebuild_all_menus(self) -> None:
-        for player in self.players:
-            self._sync_turn_actions(player)
-            self._sync_standard_actions(player)
-        super().rebuild_all_menus()
 
     def _sync_standard_actions(self, player: Player) -> None:
         standard_set = self.get_action_set(player, "standard")
@@ -368,7 +351,7 @@ class DominosGame(Game):
         action_set._order = [aid for aid in action_set._order if aid not in custom_ids] + [
             aid for aid in custom_ids if action_set.get_action(aid)
         ]
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             target_order = [
                 "read_ends",
                 "read_hand",
@@ -378,27 +361,23 @@ class DominosGame(Game):
                 "whose_turn",
                 "whos_at_table",
             ]
-            new_order = [aid for aid in action_set._order if aid not in target_order]
-            for aid in target_order:
-                if action_set.get_action(aid):
-                    new_order.append(aid)
-            action_set._order = new_order
+            self._order_touch_standard_actions(action_set, target_order)
 
     def _is_whos_at_table_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE
         return super()._is_whos_at_table_hidden(player)
 
     def _is_whose_turn_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web" and self.status == "playing":
+        if self.is_touch_client(user) and self.status == "playing":
             return Visibility.VISIBLE
         return super()._is_whose_turn_hidden(player)
 
     def _is_check_scores_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web" and self.status == "playing":
+        if self.is_touch_client(user) and self.status == "playing":
             return Visibility.VISIBLE
         return super()._is_check_scores_hidden(player)
 
@@ -409,6 +388,8 @@ class DominosGame(Game):
             return "action-spectator"
         if self.current_player != player:
             return "action-not-your-turn"
+        if self._is_opening_phase():
+            return "dominos-opening-must-play"
         if self.options.draw_mode != "draw":
             return "dominos-draw-only-mode"
         dom_player = self._as_dominos_player(player)
@@ -423,6 +404,8 @@ class DominosGame(Game):
     def _is_draw_hidden(self, player: Player) -> Visibility:
         if self.status != "playing" or player.is_spectator or self.current_player != player:
             return Visibility.HIDDEN
+        if self._is_opening_phase():
+            return Visibility.HIDDEN
         if self.options.draw_mode != "draw":
             return Visibility.HIDDEN
         if self._has_playable_move(self._as_dominos_player(player)):
@@ -436,6 +419,8 @@ class DominosGame(Game):
             return "action-spectator"
         if self.current_player != player:
             return "action-not-your-turn"
+        if self._is_opening_phase():
+            return "dominos-opening-must-play"
         dom_player = self._as_dominos_player(player)
         if not dom_player:
             return "action-not-available"
@@ -447,6 +432,8 @@ class DominosGame(Game):
 
     def _is_knock_hidden(self, player: Player) -> Visibility:
         if self.status != "playing" or player.is_spectator or self.current_player != player:
+            return Visibility.HIDDEN
+        if self._is_opening_phase():
             return Visibility.HIDDEN
         dom_player = self._as_dominos_player(player)
         if dom_player is None or self._has_playable_move(dom_player):
@@ -462,7 +449,7 @@ class DominosGame(Game):
 
     def _is_view_chain_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web" and self.status == "playing":
+        if self.is_touch_client(user) and self.status == "playing":
             return Visibility.VISIBLE
         return Visibility.HIDDEN
 
@@ -475,12 +462,7 @@ class DominosGame(Game):
 
     def _is_read_hand_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if (
-            user
-            and getattr(user, "client_type", "") == "web"
-            and self.status == "playing"
-            and not player.is_spectator
-        ):
+        if self.is_touch_client(user) and self.status == "playing" and not player.is_spectator:
             return Visibility.VISIBLE
         return Visibility.HIDDEN
 
@@ -491,7 +473,7 @@ class DominosGame(Game):
 
     def _is_read_counts_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web" and self.status == "playing":
+        if self.is_touch_client(user) and self.status == "playing":
             return Visibility.VISIBLE
         return Visibility.HIDDEN
 
@@ -505,6 +487,11 @@ class DominosGame(Game):
             return "action-not-available"
         tile = self._parse_tile_action(dom_player, action_id)
         return None if tile else "action-not-available"
+
+    def _pre_input_check_play_tile(self, player: Player, action_id: str) -> str | None:
+        if self.current_player != player:
+            return "action-not-your-turn"
+        return None
 
     def _is_play_tile_hidden(self, player: Player, *, action_id: str | None = None) -> Visibility:
         if self.status != "playing" or player.is_spectator:
@@ -524,6 +511,12 @@ class DominosGame(Game):
         tile = self._parse_tile_action(dom_player, action_id)
         if tile is None:
             return action_id
+        if self._is_opening_phase() and self.current_player == dom_player:
+            return Localization.get(
+                locale,
+                "dominos-open-with-tile",
+                tile=self._format_tile(tile),
+            )
         legal = self._legal_destinations(tile)
         if len(legal) == 1:
             return Localization.get(
@@ -546,19 +539,18 @@ class DominosGame(Game):
         )
 
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self._sync_table_status()
         self.game_active = True
         self.round = 0
         self._setup_teams()
-        self.set_turn_players(self.get_active_players())
+        self.set_turn_players(self._get_team_turn_players())
         self.play_music(SOUND_MUSIC)
         self._start_round()
 
     def _setup_teams(self) -> None:
         active_players = self.get_active_players()
-        self._team_manager.team_mode = self.options.team_mode
-        self._team_manager.setup_teams([player.name for player in active_players])
+        self._setup_team_manager_for_start(self.options.team_mode, active_players)
         self.team_manager.reset_all_scores()
 
     def _start_round(self) -> None:
@@ -570,14 +562,15 @@ class DominosGame(Game):
         self.spinner_active = False
         self.consecutive_passes = 0
         self.opening_player_id = None
-        self.broadcast_l("game-round-start", buffer="table", round=self.round)
+        self.broadcast_l("game-round-start", buffer="game", round=self.round)
         self.play_sound(random.choice(SOUND_SHUFFLE))
 
-        max_pip = 6 if self.options.domino_set == "double6" else 9
+        max_pip = self._max_pip_for_set()
         self.boneyard = build_domino_set(max_pip)
 
         active_players = self.get_active_players()
-        self.set_turn_players(active_players)
+        turn_players = self._get_team_turn_players(active_players)
+        self.set_turn_players(turn_players)
         for player in active_players:
             player.hand.clear()
 
@@ -588,39 +581,100 @@ class DominosGame(Game):
                 if tile:
                     player.hand.append(tile)
 
-        opener, opening_tile = self._select_opening_play(active_players, max_pip)
-        opener.hand.remove(opening_tile)
+        opener, opening_tile = self._select_opening_assignment(active_players, max_pip)
         self.opening_player_id = opener.id
-        self._place_opening_tile(opening_tile)
-        self._broadcast_opening_play(opener, opening_tile)
+        opener_index = turn_players.index(opener)
 
-        opener_index = active_players.index(opener)
-        self.turn_index = (opener_index + 1) % len(active_players)
+        if opening_tile is None:
+            self.turn_index = opener_index
+            self._broadcast_opening_choice(opener)
+        else:
+            opener.hand.remove(opening_tile)
+            self._place_opening_tile(opening_tile)
+            self.play_sound(random.choice(SOUND_PLAY))
+            self._broadcast_opening_play(opener, opening_tile)
+            self.turn_index = (opener_index + 1) % len(turn_players)
+
         self._update_all_turn_actions()
         self.announce_turn()
-        self.rebuild_all_menus()
+        self.refresh_menus()
         self._queue_bot_turn()
 
     def _get_hand_size(self) -> int:
-        player_count = len(self.get_active_players())
-        if self.options.domino_set == "double6":
-            return 7 if player_count == 2 else 5
-        return 10 if player_count == 2 else 7
+        return self._hand_size_for_player_count(self._max_pip_for_set(), len(self.get_active_players()))
 
-    def _select_opening_play(
+    @staticmethod
+    def _hand_size_for_player_count(max_pip: int, player_count: int) -> int:
+        if max_pip <= 6:
+            return 7 if player_count == 2 else 5
+        if max_pip <= 9:
+            return 10 if player_count == 2 else 7
+        if player_count == 2:
+            return 12
+        if player_count <= 4:
+            return 10
+        return 7
+
+    def _max_pip_for_set(self) -> int:
+        return DOMINO_SET_MAX_PIPS.get(self.options.domino_set, 6)
+
+    @staticmethod
+    def _tile_count_for_max_pip(max_pip: int) -> int:
+        return (max_pip + 1) * (max_pip + 2) // 2
+
+    @classmethod
+    def _minimum_set_for_player_count(cls, player_count: int) -> int:
+        for max_pip in sorted(set(DOMINO_SET_MAX_PIPS.values())):
+            hand_size = cls._hand_size_for_player_count(max_pip, player_count)
+            if hand_size * player_count <= cls._tile_count_for_max_pip(max_pip):
+                return max_pip
+        return max(DOMINO_SET_MAX_PIPS.values())
+
+    def _validate_domino_set_capacity(self) -> tuple[str, dict] | None:
+        player_count = len(self.get_active_players())
+        if player_count < self.get_min_players():
+            return None
+
+        selected_pip = self._max_pip_for_set()
+        hand_size = self._hand_size_for_player_count(selected_pip, player_count)
+        required_tiles = hand_size * player_count
+        available_tiles = self._tile_count_for_max_pip(selected_pip)
+        if required_tiles <= available_tiles:
+            return None
+
+        return (
+            "dominos-error-set-too-small",
+            {
+                "players": player_count,
+                "selected_pip": selected_pip,
+                "required_pip": self._minimum_set_for_player_count(player_count),
+            },
+        )
+
+    def _select_opening_assignment(
         self, active_players: list[DominosPlayer], max_pip: int
-    ) -> tuple[DominosPlayer, DominoTile]:
+    ) -> tuple[DominosPlayer, DominoTile | None]:
         rule = self.options.opening_rule
         if rule == "round_winner":
             opener = self.get_player_by_id(self.previous_round_winner_id or "")
             if isinstance(opener, DominosPlayer) and opener in active_players and opener.hand:
-                return opener, self._best_tile(opener.hand)
+                return opener, None
             rule = "highest_double"
 
         if rule == "random":
-            opener = random.choice(active_players)
-            return opener, self._best_tile(opener.hand)
+            return random.choice(active_players), None
 
+        return self._select_forced_opening_play(active_players, max_pip, rule)
+
+    def _select_opening_play(
+        self, active_players: list[DominosPlayer], max_pip: int
+    ) -> tuple[DominosPlayer, DominoTile]:
+        opener, tile = self._select_opening_assignment(active_players, max_pip)
+        return opener, tile or self._best_tile(opener.hand)
+
+    def _select_forced_opening_play(
+        self, active_players: list[DominosPlayer], max_pip: int, rule: str
+    ) -> tuple[DominosPlayer, DominoTile]:
         if rule == "set_max_double":
             exact_double = next(
                 (
@@ -649,7 +703,11 @@ class DominosGame(Game):
             rule = "highest_tile"
 
         best = max(
-            ((player, tile) for player in active_players for tile in player.hand),
+            (
+                (player, tile)
+                for player in active_players
+                for tile in player.hand
+            ),
             key=lambda item: self._opening_tile_key(item[1]),
         )
         return best
@@ -668,23 +726,76 @@ class DominosGame(Game):
         else:
             self.spinner_active = False
             self.open_ends = {"left": tile.left, "right": tile.right}
+        self._ensure_spinner_integrity()
+
+    def _is_opening_phase(self) -> bool:
+        return (
+            self.status == "playing"
+            and self.round_wait_ticks == 0
+            and self.center_tile is None
+            and self.opening_player_id is not None
+        )
+
+    def _ensure_spinner_integrity(self) -> None:
+        if self.center_tile is None:
+            return
+
+        for branch in BRANCH_ORDER:
+            self.branches.setdefault(branch, [])
+
+        if self.center_tile.is_double and self.options.spinner_enabled:
+            self.spinner_active = True
+            for branch in BRANCH_ORDER:
+                self.open_ends.setdefault(branch, self.center_tile.left)
+            return
+
+        self.spinner_active = False
+        self.open_ends = {
+            branch: value
+            for branch, value in self.open_ends.items()
+            if branch in ("left", "right")
+        }
+
+    def _visible_branches(self) -> list[str]:
+        self._ensure_spinner_integrity()
+        return BRANCH_ORDER if self.spinner_active else ["left", "right"]
+
+    def _broadcast_opening_choice(self, opener: DominosPlayer) -> None:
+        self.broadcast_personal_l(
+            opener,
+            "dominos-you-open-round",
+            "dominos-player-opens-round",
+            buffer="game",
+        )
 
     def _broadcast_opening_play(self, opener: DominosPlayer, tile: DominoTile) -> None:
         for player in self.players:
             user = self.get_user(player)
             if not user:
                 continue
-            if self.spinner_active:
+            if player is opener and self.spinner_active:
                 user.speak_l(
-                    "dominos-opening-spinner",
-                    buffer="table",
+                    "dominos-you-opened-spinner",
+                    buffer="game",
+                    tile=self._format_tile(tile),
+                )
+            elif player is opener:
+                user.speak_l(
+                    "dominos-you-opened",
+                    buffer="game",
+                    tile=self._format_tile(tile),
+                )
+            elif self.spinner_active:
+                user.speak_l(
+                    "dominos-player-opened-spinner",
+                    buffer="game",
                     player=opener.name,
                     tile=self._format_tile(tile),
                 )
             else:
                 user.speak_l(
-                    "dominos-opening-play",
-                    buffer="table",
+                    "dominos-player-opened",
+                    buffer="game",
                     player=opener.name,
                     tile=self._format_tile(tile),
                 )
@@ -730,14 +841,17 @@ class DominosGame(Game):
         if not user:
             return
         user.play_sound(SOUND_VIEW_CHAIN)
-        self.status_box(player, self._build_chain_lines(user.locale))
+        self.live_status_box(
+            player,
+            "dominos_chain",
+            lambda _player, live_user: self._build_chain_lines(live_user.locale),
+        )
 
     def _action_read_ends(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
         if not user:
             return
         locale = user.locale
-        visible_branches = BRANCH_ORDER if self.spinner_active else ["left", "right"]
         parts = [
             Localization.get(
                 locale,
@@ -745,13 +859,13 @@ class DominosGame(Game):
                 side=self._branch_name(branch, locale),
                 value=self.open_ends.get(branch, 0),
             )
-            for branch in visible_branches
+            for branch in self._visible_branches()
             if branch in self.open_ends
         ]
         if not parts:
-            user.speak_l("dominos-chain-empty", buffer="table")
+            user.speak_l("dominos-chain-empty", buffer="game")
             return
-        user.speak(", ".join(parts), buffer="table")
+        user.speak(", ".join(parts), buffer="game")
 
     def _action_read_hand(self, player: Player, action_id: str) -> None:
         dom_player = self._as_dominos_player(player)
@@ -780,7 +894,7 @@ class DominosGame(Game):
                     )
                 )
         text = ", ".join(parts) if parts else Localization.get(locale, "dominos-no-other-players")
-        user.speak(text, buffer="table")
+        user.speak(text, buffer="game")
 
     def _action_play_tile(self, player: Player, *args) -> None:
         dom_player = self._as_dominos_player(player)
@@ -789,7 +903,7 @@ class DominosGame(Game):
         if self.current_player != player:
             user = self.get_user(player)
             if user:
-                user.speak_l("action-not-your-turn", buffer="table")
+                user.speak_l("action-not-your-turn", buffer="game")
             return
         input_value: str | None = None
         action_id = ""
@@ -800,13 +914,14 @@ class DominosGame(Game):
         tile = self._parse_tile_action(dom_player, action_id)
         if tile is None:
             return
+        if self._is_opening_phase():
+            self._execute_opening_play(dom_player, tile)
+            return
         legal = self._legal_destinations(tile)
         if not legal:
             user = self.get_user(player)
             if user:
-                user.speak_l(
-                    "dominos-no-play-for-tile", buffer="table", tile=self._format_tile(tile)
-                )
+                user.speak_l("dominos-no-play-for-tile", buffer="game", tile=self._format_tile(tile))
             return
         if input_value is not None:
             branch = self._branch_from_input(input_value, self._player_locale(player), legal)
@@ -824,9 +939,32 @@ class DominosGame(Game):
         if user:
             user.speak_l(
                 "dominos-choose-side-keybind",
-                buffer="table",
+                buffer="game",
                 sides=self._join_branch_names(legal, user.locale),
             )
+
+    def _execute_opening_play(self, player: DominosPlayer, tile: DominoTile) -> None:
+        if player.id != self.opening_player_id:
+            user = self.get_user(player)
+            if user:
+                user.speak_l("action-not-your-turn", buffer="game")
+            return
+        if tile not in player.hand:
+            user = self.get_user(player)
+            if user:
+                user.speak_l("action-not-available", buffer="game")
+            return
+
+        player.hand.remove(tile)
+        self._place_opening_tile(tile)
+        self.play_sound(random.choice(SOUND_PLAY))
+        self._broadcast_opening_play(player, tile)
+
+        if not player.hand:
+            self._finish_round_from_empty_hand(player)
+            return
+
+        self._advance_to_next_turn()
 
     def _execute_play(
         self,
@@ -836,10 +974,11 @@ class DominosGame(Game):
         *,
         auto_played: bool = False,
     ) -> None:
-        if branch not in self._legal_destinations(tile):
+        legal = self._legal_destinations(tile)
+        if branch not in legal:
             user = self.get_user(player)
             if user:
-                user.speak_l("dominos-illegal-side", buffer="table")
+                user.speak_l("dominos-illegal-side", buffer="game")
             return
 
         open_value = self.open_ends[branch]
@@ -849,6 +988,7 @@ class DominosGame(Game):
             PlacedDomino(tile=tile, branch=branch, inward=inward, outward=outward)
         )
         self.open_ends[branch] = outward
+        self._ensure_spinner_integrity()
         self.consecutive_passes = 0
         self.play_sound(random.choice(SOUND_PLAY))
         self._broadcast_play(player, tile, branch, auto_played=auto_played)
@@ -862,7 +1002,12 @@ class DominosGame(Game):
     def _handle_knock(self, player: DominosPlayer) -> None:
         self.consecutive_passes += 1
         self.play_sound(SOUND_KNOCK)
-        self.broadcast_l("dominos-player-knocks", buffer="table", player=player.name)
+        self.broadcast_personal_l(
+            player,
+            "dominos-you-knock",
+            "dominos-player-knocks",
+            buffer="game",
+        )
         if self._is_round_blocked():
             self._finish_blocked_round()
             return
@@ -872,14 +1017,20 @@ class DominosGame(Game):
         self.advance_turn(announce=False)
         self._update_all_turn_actions()
         self.announce_turn()
-        self.rebuild_all_menus()
+        self.refresh_menus()
         self._queue_bot_turn()
 
     def _finish_round_from_empty_hand(self, winner: DominosPlayer) -> None:
         points = self._opponent_pip_total(winner)
         self.team_manager.add_to_team_score(winner.name, points)
         self.previous_round_winner_id = winner.id
-        self.broadcast_l("dominos-round-won", buffer="table", player=winner.name, points=points)
+        self.broadcast_personal_l(
+            winner,
+            "dominos-you-won-round",
+            "dominos-player-won-round",
+            buffer="game",
+            points=points,
+        )
         self.play_sound(SOUND_WIN_ROUND)
         if self._check_match_winner():
             return
@@ -895,7 +1046,7 @@ class DominosGame(Game):
 
         if len(winning_team_indexes) != 1:
             self.previous_round_winner_id = None
-            self.broadcast_l("dominos-round-blocked-tie", buffer="table", pips=lowest_total)
+            self.broadcast_l("dominos-round-blocked-tie", buffer="game", pips=lowest_total)
             self._schedule_next_round()
             return
 
@@ -908,7 +1059,11 @@ class DominosGame(Game):
             self.team_manager.add_to_team_score(winning_team.members[0], points)
 
         opening_player = next(
-            (player for player in self.get_active_players() if player.name in winning_team.members),
+            (
+                player
+                for player in self.get_active_players()
+                if player.name in winning_team.members
+            ),
             None,
         )
         self.previous_round_winner_id = opening_player.id if opening_player else None
@@ -926,7 +1081,7 @@ class DominosGame(Game):
         top_score = max(team.total_score for team in leaders)
         top_teams = [team for team in leaders if team.total_score == top_score]
         if len(top_teams) != 1:
-            self.broadcast_l("dominos-match-tied-continue", buffer="table", score=top_score)
+            self.broadcast_l("dominos-match-tied-continue", buffer="game", score=top_score)
             return False
 
         winner = top_teams[0]
@@ -939,7 +1094,7 @@ class DominosGame(Game):
         self.round_wait_ticks = 5 * 20
         for player in self.get_active_players():
             player.hand = []
-        self.rebuild_all_menus()
+        self.refresh_menus()
 
     def _team_pip_totals(self) -> dict[int, int]:
         totals: dict[int, int] = {team.index: 0 for team in self.team_manager.teams}
@@ -960,6 +1115,7 @@ class DominosGame(Game):
         return total
 
     def _legal_destinations(self, tile: DominoTile) -> list[str]:
+        self._ensure_spinner_integrity()
         legal: list[str] = []
         for branch in BRANCH_ORDER:
             open_value = self.open_ends.get(branch)
@@ -970,6 +1126,8 @@ class DominosGame(Game):
         return legal
 
     def _is_round_blocked(self) -> bool:
+        if self._is_opening_phase():
+            return False
         active_players = self.get_active_players()
         if not active_players:
             return False
@@ -980,6 +1138,8 @@ class DominosGame(Game):
     def _has_playable_move(self, player: DominosPlayer | None) -> bool:
         if player is None:
             return False
+        if self._is_opening_phase():
+            return player.id == self.opening_player_id and bool(player.hand)
         return any(self._legal_destinations(tile) for tile in player.hand)
 
     def _parse_tile_action(self, player: DominosPlayer, action_id: str) -> DominoTile | None:
@@ -1002,9 +1162,7 @@ class DominosGame(Game):
         if dom_player is None:
             return
         action_sets = self.player_action_sets.get(player.id, [])
-        turn_set = next(
-            (action_set for action_set in action_sets if action_set.name == "turn"), None
-        )
+        turn_set = next((action_set for action_set in action_sets if action_set.name == "turn"), None)
         if turn_set is None:
             return
 
@@ -1024,6 +1182,7 @@ class DominosGame(Game):
                     prompt="dominos-select-side",
                     options="_placement_options_for_tile",
                     bot_select="_bot_select_side_for_tile",
+                    pre_input_check="_pre_input_check_play_tile",
                 )
             action_id = self._tile_action_id(tile)
             turn_set.add(
@@ -1064,9 +1223,7 @@ class DominosGame(Game):
             )
 
         utility_ids = ["draw", "knock"]
-        turn_set._order = tile_ids + [
-            action_id for action_id in utility_ids if turn_set.get_action(action_id)
-        ]
+        turn_set._order = tile_ids + [action_id for action_id in utility_ids if turn_set.get_action(action_id)]
 
     def _update_all_turn_actions(self) -> None:
         for player in self.get_active_players():
@@ -1081,13 +1238,8 @@ class DominosGame(Game):
             lines.append(Localization.get(locale, "dominos-chain-empty"))
             return lines
 
-        lines.append(
-            Localization.get(
-                locale, "dominos-chain-center", tile=self._format_tile(self.center_tile)
-            )
-        )
-        visible_branches = BRANCH_ORDER if self.spinner_active else ["left", "right"]
-        for branch in visible_branches:
+        lines.append(Localization.get(locale, "dominos-chain-center", tile=self._format_tile(self.center_tile)))
+        for branch in self._visible_branches():
             placements = self.branches.get(branch, [])
             branch_tiles = ", ".join(placed.display() for placed in placements)
             if not branch_tiles:
@@ -1107,6 +1259,16 @@ class DominosGame(Game):
     def _build_hand_lines(self, player: DominosPlayer, locale: str) -> list[str]:
         lines = [Localization.get(locale, "dominos-hand-header")]
         for tile in self._sorted_tiles(player.hand):
+            if self._is_opening_phase() and player.id == self.opening_player_id:
+                lines.append(
+                    Localization.get(
+                        locale,
+                        "dominos-hand-line-opening-playable",
+                        tile=self._format_tile(tile),
+                        points=tile.pip_total,
+                    )
+                )
+                continue
             legal = self._legal_destinations(tile)
             if legal:
                 sides = self._join_branch_names(legal, locale)
@@ -1157,24 +1319,33 @@ class DominosGame(Game):
     def _broadcast_draw(self, player: DominosPlayer, drawn_tiles: list[DominoTile]) -> None:
         if not drawn_tiles:
             return
-        self.broadcast_l(
-            "dominos-player-draws",
-            buffer="table",
-            player=player.name,
-            count=len(drawn_tiles),
-        )
-        user = self.get_user(player)
-        if user:
-            if len(drawn_tiles) == 1:
+        for other in self.players:
+            user = self.get_user(other)
+            if not user:
+                continue
+            if other is player and len(drawn_tiles) == 1:
                 user.speak_l(
                     "dominos-you-drew-single",
-                    buffer="table",
+                    buffer="game",
                     tile=self._format_tile(drawn_tiles[0]),
+                )
+            elif other is player:
+                user.speak_l(
+                    "dominos-you-drew-many",
+                    buffer="game",
+                    count=len(drawn_tiles),
+                )
+            elif len(drawn_tiles) == 1:
+                user.speak_l(
+                    "dominos-player-drew-single",
+                    buffer="game",
+                    player=player.name,
                 )
             else:
                 user.speak_l(
-                    "dominos-you-drew-many",
-                    buffer="table",
+                    "dominos-player-drew-many",
+                    buffer="game",
+                    player=player.name,
                     count=len(drawn_tiles),
                 )
 
@@ -1193,14 +1364,14 @@ class DominosGame(Game):
             if other is player:
                 user.speak_l(
                     "dominos-you-played-drawn" if auto_played else "dominos-you-played",
-                    buffer="table",
+                    buffer="game",
                     tile=self._format_tile(tile),
                     side=self._branch_name(branch, user.locale),
                 )
             else:
                 user.speak_l(
                     "dominos-player-played",
-                    buffer="table",
+                    buffer="game",
                     player=player.name,
                     tile=self._format_tile(tile),
                     side=self._branch_name(branch, user.locale),
@@ -1214,7 +1385,7 @@ class DominosGame(Game):
             team_name = self.team_manager.get_team_name(winning_team, user.locale)
             user.speak_l(
                 "dominos-round-blocked-winner",
-                buffer="table",
+                buffer="game",
                 team=team_name,
                 pips=lowest_total,
                 points=points,
@@ -1228,7 +1399,7 @@ class DominosGame(Game):
             team_name = self.team_manager.get_team_name(winning_team, user.locale)
             user.speak_l(
                 "dominos-match-winner",
-                buffer="table",
+                buffer="game",
                 team=team_name,
                 score=winning_team.total_score,
             )
@@ -1240,9 +1411,7 @@ class DominosGame(Game):
         return Localization.get(locale, f"dominos-side-{branch}")
 
     def _join_branch_names(self, branches: list[str], locale: str) -> str:
-        return Localization.format_list_and(
-            locale, [self._branch_name(branch, locale) for branch in branches]
-        )
+        return Localization.format_list_and(locale, [self._branch_name(branch, locale) for branch in branches])
 
     def _as_dominos_player(self, player: Player | None) -> DominosPlayer | None:
         return player if isinstance(player, DominosPlayer) else None
@@ -1271,6 +1440,8 @@ class DominosGame(Game):
         dom_player = self._as_dominos_player(player)
         if not dom_player or self.current_player != dom_player or self.status != "playing":
             return
+        if self._is_opening_phase() and dom_player.hand:
+            return self._tile_action_id(self._best_tile(dom_player.hand))
         for tile in self._sorted_tiles(dom_player.hand):
             legal = self._legal_destinations(tile)
             if legal:
@@ -1301,17 +1472,25 @@ class DominosGame(Game):
             active_players = self.get_active_players()
             name_to_id = {player.name: player.id for player in active_players}
             winner_ids = [name_to_id[name] for name in winner.members if name in name_to_id]
+        else:
+            active_players = self.get_active_players()
+            name_to_id = {player.name: player.id for player in active_players}
+        rating_competitors = rating_competitors_from_scores(
+            (
+                (
+                    [name_to_id[name] for name in team.members if name in name_to_id],
+                    team.total_score,
+                )
+                for team in sorted_teams
+            )
+        )
 
         return GameResult(
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=player.id,
-                    player_name=player.name,
-                    is_bot=player.is_bot and not player.replaced_human,
-                )
+                PlayerResult.from_player(player)
                 for player in self.get_active_players()
             ],
             custom_data={
@@ -1320,6 +1499,7 @@ class DominosGame(Game):
                 "winner_score": winner.total_score if winner else 0,
                 "final_scores": final_scores,
                 "team_rankings": team_rankings,
+                RATING_COMPETITORS_KEY: rating_competitors,
                 "rounds_played": self.round,
                 "target_score": self.options.target_score,
                 "team_mode": self.options.team_mode,

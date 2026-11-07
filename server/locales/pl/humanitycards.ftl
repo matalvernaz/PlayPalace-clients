@@ -1,5 +1,7 @@
-# Humanity Cards - English localization
+# humanitycards.ftl for locale pl. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-humanitycards = Karty przeciwko ludzkości
 # Options
 hc-set-winning-score = Winning score: { $score }
 hc-enter-winning-score = Enter winning score:

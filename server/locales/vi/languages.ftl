@@ -1,4 +1,6 @@
-# Tên các ngôn ngữ được dịch sang ngôn ngữ này
+# languages.ftl for locale vi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 language-ar = Tiếng Ả Rập
 language-cs = Tiếng Séc
 language-de = Tiếng Đức
@@ -11,16 +13,16 @@ language-hr = Tiếng Croatia
 language-hu = Tiếng Hungary
 language-id = Tiếng Indonesia
 language-it = Tiếng Ý
-language-ja = Tiếng Nhật
+language-jp = Tiếng Nhật
 language-ko = Tiếng Hàn
 language-mk = Tiếng Macedonia
 language-mn = Tiếng Mông Cổ
 language-nl = Tiếng Hà Lan
 language-pl = Tiếng Ba Lan
 language-pt = Tiếng Bồ Đào Nha
-language-ro = Tiếng Romania
+language-ro = Tiếng Rumani
 language-ru = Tiếng Nga
-language-sk = Tiếng Slovak
+language-sk = Tiếng Slovakia
 language-sl = Tiếng Slovenia
 language-sr = Tiếng Serbia
 language-sv = Tiếng Thụy Điển
@@ -30,3 +32,4 @@ language-uk = Tiếng Ukraina
 language-vi = Tiếng Việt
 language-zh = Tiếng Trung
 language-zu = Tiếng Zulu
+language-ja = Tiếng Nhật

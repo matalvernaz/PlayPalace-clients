@@ -1,95 +1,91 @@
-game-name-deadmansdeck = Dead Man's Deck
+# deadmansdeck.ftl for locale fa. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-deadmansdeck-call-liar = Call liar
-deadmansdeck-play-selected = Play selected cards
-deadmansdeck-clear-selection = Clear selection
-deadmansdeck-read-hand = Read hand
-deadmansdeck-read-table = Read table
-deadmansdeck-read-revolvers = Read revolvers
-deadmansdeck-read-card-counts = Read card counts
-
-deadmansdeck-rank-ace = Ace
-deadmansdeck-rank-ace-plural = Aces
-deadmansdeck-rank-king = King
-deadmansdeck-rank-king-plural = Kings
-deadmansdeck-rank-queen = Queen
-deadmansdeck-rank-queen-plural = Queens
-deadmansdeck-rank-joker = Joker
-deadmansdeck-rank-joker-plural = Jokers
+game-name-deadmansdeck = عرشه‌ی مرد مرده
+deadmansdeck-call-liar = دروغ‌گو صدا کن
+deadmansdeck-play-selected = بازی با کارت‌های انتخاب‌شده
+deadmansdeck-clear-selection = پاک کردن انتخاب
+deadmansdeck-read-hand = مشاهده‌ی دست
+deadmansdeck-read-table = مشاهده‌ی میز
+deadmansdeck-read-revolvers = مشاهده‌ی هفت‌تیرها
+deadmansdeck-read-card-counts = مشاهده‌ی تعداد کارت‌ها
+deadmansdeck-rank-ace = آس
+deadmansdeck-rank-ace-plural = آس‌ها
+deadmansdeck-rank-king = شاه
+deadmansdeck-rank-king-plural = شاه‌ها
+deadmansdeck-rank-queen = بی‌بی
+deadmansdeck-rank-queen-plural = بی‌بی‌ها
+deadmansdeck-rank-joker = جوکر
+deadmansdeck-rank-joker-plural = جوکرها
 deadmansdeck-claim-text = { $count } { $rank }
-
 deadmansdeck-card-label = { $card }
-deadmansdeck-selected-card-label = Selected: { $card }
-deadmansdeck-card-selected = Selected { $card }.
-deadmansdeck-card-unselected = Unselected { $card }.
-deadmansdeck-selection-cleared = Selection cleared.
-deadmansdeck-card-not-found = That card is no longer available.
-deadmansdeck-too-many-selected = You can claim at most three cards.
-deadmansdeck-select-card-first = Select one to three cards first.
-deadmansdeck-no-claim-to-challenge = There is no claim to challenge.
-deadmansdeck-cannot-challenge-self = You cannot challenge your own claim.
-deadmansdeck-action-sequence-running = Wait for the current sequence to finish.
-deadmansdeck-action-eliminated = You have been eliminated.
-
-deadmansdeck-prepare-revolver = The revolvers are being prepared.
-deadmansdeck-round-start = Round { $round }. The table card is { $target }.
-deadmansdeck-turn-order = Turn order this round: { $order }.
-deadmansdeck-your-hand = Your hand: { $cards }.
-deadmansdeck-hand-empty = Your hand is empty.
-deadmansdeck-no-cards = no cards
-deadmansdeck-you-skipped-no-cards = You have no cards and are skipped.
-deadmansdeck-player-skipped-no-cards = { $player } has no cards and is skipped.
-deadmansdeck-you-out-of-cards = You have no cards left.
-deadmansdeck-player-out-of-cards = { $player } has no cards left.
-deadmansdeck-you-forced-challenge = You must challenge because the round cannot continue.
-deadmansdeck-forced-challenge = { $player } must challenge because the round cannot continue.
-deadmansdeck-you-claim = You claim { $claim }.
-deadmansdeck-player-claims = { $player } claims { $claim }.
-deadmansdeck-you-call-liar = You call { $accused } a liar.
-deadmansdeck-player-calls-liar = { $challenger } calls { $accused } a liar.
-deadmansdeck-player-calls-you-liar = { $challenger } calls you a liar.
-deadmansdeck-you-forced-liar-call = You are forced to call { $accused } a liar.
-deadmansdeck-forced-liar-call = { $challenger } is forced to call { $accused } a liar.
-deadmansdeck-forced-liar-call-you = { $challenger } is forced to call you a liar.
-deadmansdeck-your-revealed-cards = Your revealed cards: { $cards }.
-deadmansdeck-revealed-cards = { $player } revealed: { $cards }.
-deadmansdeck-you-caught-bluff = You caught { $accused } bluffing. { $accused } must pull.
-deadmansdeck-your-bluff-caught = { $challenger } caught your bluff. You must pull.
-deadmansdeck-bluff-caught = { $challenger } caught { $accused } bluffing. { $accused } must pull.
-deadmansdeck-you-wrong-challenge = { $accused } was truthful. You must pull.
-deadmansdeck-your-truthful-claim = Your claim was truthful. { $challenger } must pull.
-deadmansdeck-truthful-claim = { $accused } was truthful. { $challenger } must pull.
-deadmansdeck-you-face-revolver = You face the revolver.
-deadmansdeck-roulette-start = { $player } faces the revolver.
-deadmansdeck-you-roulette-survived = Empty chamber. You survive. Your next pull has 1 in { $remaining } risk.
-deadmansdeck-roulette-survived = Empty chamber. { $player } survives. Their next pull has 1 in { $remaining } risk.
-deadmansdeck-you-eliminated-by-gun = The gun fires. You have been eliminated.
-deadmansdeck-player-eliminated = The gun fires. { $player } has been eliminated.
-deadmansdeck-you-win-game = You are the last player standing and win Dead Man's Deck.
-deadmansdeck-player-wins = { $player } is the last player standing and wins Dead Man's Deck.
-deadmansdeck-no-winner = No winner could be determined.
-deadmansdeck-you-are-eliminated = You have been eliminated from this game.
-
-deadmansdeck-table-round = Round { $round }. Target: { $target }.
-deadmansdeck-table-target-pending = not set yet
-deadmansdeck-table-current-turn = Current turn: { $player }.
-deadmansdeck-table-last-claim = Last claim: { $player } claimed { $claim }.
-deadmansdeck-table-no-claim = There is no active claim.
-deadmansdeck-table-alive = Still alive: { $players }.
-deadmansdeck-table-eliminated = Eliminated: { $players }.
-
-deadmansdeck-card-count-line = { $player }: { $count ->
-    [one] 1 card
-   *[other] { $count } cards
-} left.
-deadmansdeck-card-count-eliminated = { $player }: eliminated.
-
-deadmansdeck-revolvers-header = Revolver status
-deadmansdeck-revolver-status = { $player }: { $survived } empty chambers used; next pull is 1 in { $remaining }.
-deadmansdeck-revolver-eliminated = { $player }: eliminated.
-
-deadmansdeck-results-header = Dead Man's Deck results
-deadmansdeck-results-winner = Winner: { $player }.
-deadmansdeck-results-survived = survived
-deadmansdeck-results-eliminated = eliminated
-deadmansdeck-results-line = { $player }: { $status }, correct calls { $correct }, successful bluffs { $bluffs }, roulette survivals { $survivals }.
+deadmansdeck-selected-card-label = انتخاب شد: { $card }
+deadmansdeck-card-selected = { $card } انتخاب شد.
+deadmansdeck-card-unselected = { $card } انتخاب نشد.
+deadmansdeck-selection-cleared = انتخاب پاک شد.
+deadmansdeck-card-not-found = آن کارت دیگر در دسترس نیست.
+deadmansdeck-too-many-selected = حداکثر می‌توانید سه کارت ادعا کنید.
+deadmansdeck-select-card-first = ابتدا یک تا سه کارت انتخاب کنید.
+deadmansdeck-no-claim-to-challenge = هیچ ادعایی برای اعتراض وجود ندارد.
+deadmansdeck-cannot-challenge-self = نمی‌توانید به ادعای خودتان اعتراض کنید.
+deadmansdeck-action-sequence-running = منتظر پایان دنباله‌ی فعلی باشید.
+deadmansdeck-action-eliminated = شما حذف شده‌اید.
+deadmansdeck-prepare-revolver = هفت‌تیرها در حال آماده‌سازی هستند.
+deadmansdeck-round-start = دور { $round }. کارت میز { $target } است.
+deadmansdeck-turn-order = ترتیب نوبت در این دور: { $order }.
+deadmansdeck-your-hand = دست شما: { $cards }.
+deadmansdeck-hand-empty = دست شما خالی است.
+deadmansdeck-no-cards = بدون کارت
+deadmansdeck-you-skipped-no-cards = شما کارتی ندارید و نوبت شما رد می‌شود.
+deadmansdeck-player-skipped-no-cards = { $player } کارتی ندارد و نوبت او رد می‌شود.
+deadmansdeck-you-out-of-cards = شما دیگر کارتی ندارید.
+deadmansdeck-player-out-of-cards = { $player } دیگر کارتی ندارد.
+deadmansdeck-you-forced-challenge = باید اعتراض کنید زیرا دور نمی‌تواند ادامه یابد.
+deadmansdeck-forced-challenge = { $player } باید اعتراض کند زیرا دور نمی‌تواند ادامه یابد.
+deadmansdeck-you-claim = شما { $claim } را ادعا می‌کنید.
+deadmansdeck-player-claims = { $player } { $claim } را ادعا می‌کند.
+deadmansdeck-you-call-liar = شما { $accused } را دروغ‌گو صدا می‌کنید.
+deadmansdeck-player-calls-liar = { $challenger } { $accused } را دروغ‌گو صدا می‌کند.
+deadmansdeck-player-calls-you-liar = { $challenger } شما را دروغ‌گو صدا می‌کند.
+deadmansdeck-you-forced-liar-call = شما مجبور هستید { $accused } را دروغ‌گو صدا کنید.
+deadmansdeck-forced-liar-call = { $challenger } مجبور است { $accused } را دروغ‌گو صدا کند.
+deadmansdeck-forced-liar-call-you = { $challenger } مجبور است شما را دروغ‌گو صدا کند.
+deadmansdeck-your-revealed-cards = کارت‌های آشکارشده‌ی شما: { $cards }.
+deadmansdeck-revealed-cards = { $player } آشکار کرد: { $cards }.
+deadmansdeck-you-caught-bluff = شما { $accused } را در حال بلوف زدن گرفتید. { $accused } باید شلیک کند.
+deadmansdeck-your-bluff-caught = { $challenger } بلوف شما را گرفت. شما باید شلیک کنید.
+deadmansdeck-bluff-caught = { $challenger } بلوف { $accused } را گرفت. { $accused } باید شلیک کند.
+deadmansdeck-you-wrong-challenge = { $accused } راست می‌گفت. شما باید شلیک کنید.
+deadmansdeck-your-truthful-claim = ادعای شما راست بود. { $challenger } باید شلیک کند.
+deadmansdeck-truthful-claim = { $accused } راست می‌گفت. { $challenger } باید شلیک کند.
+deadmansdeck-you-face-revolver = شما در مقابل هفت‌تیر قرار می‌گیرید.
+deadmansdeck-roulette-start = { $player } در مقابل هفت‌تیر قرار می‌گیرد.
+deadmansdeck-you-roulette-survived = خشاب خالی. شما زنده می‌مانید. شلیک بعدی شما ۱ در { $remaining } ریسک دارد.
+deadmansdeck-roulette-survived = خشاب خالی. { $player } زنده می‌ماند. شلیک بعدی او ۱ در { $remaining } ریسک دارد.
+deadmansdeck-you-eliminated-by-gun = هفت‌تیر شلیک کرد. شما حذف شده‌اید.
+deadmansdeck-player-eliminated = هفت‌تیر شلیک کرد. { $player } حذف شد.
+deadmansdeck-you-win-game = شما آخرین بازیکن باقی‌مانده هستید و عرشه‌ی مرد مرده را برنده می‌شوید.
+deadmansdeck-player-wins = { $player } آخرین بازیکن باقی‌مانده است و عرشه‌ی مرد مرده را برنده می‌شود.
+deadmansdeck-no-winner = هیچ برنده‌ای قابل تعیین نبود.
+deadmansdeck-you-are-eliminated = شما از این بازی حذف شده‌اید.
+deadmansdeck-table-round = دور { $round }. هدف: { $target }.
+deadmansdeck-table-target-pending = هنوز تنظیم نشده
+deadmansdeck-table-current-turn = نوبت فعلی: { $player }.
+deadmansdeck-table-last-claim = آخرین ادعا: { $player } { $claim } را ادعا کرد.
+deadmansdeck-table-no-claim = هیچ ادعای فعالی وجود ندارد.
+deadmansdeck-table-alive = هنوز زنده: { $players }.
+deadmansdeck-table-eliminated = حذف‌شده‌ها: { $players }.
+deadmansdeck-card-count-line =
+    { $player }: { $count ->
+        [one] ۱ کارت
+       *[other] { $count } کارت
+    } باقی‌مانده.
+deadmansdeck-card-count-eliminated = { $player }: حذف شد.
+deadmansdeck-revolvers-header = وضعیت هفت‌تیر
+deadmansdeck-revolver-status = { $player }: { $survived } خشاب خالی استفاده شد؛ شلیک بعدی ۱ در { $remaining } است.
+deadmansdeck-revolver-eliminated = { $player }: حذف شد.
+deadmansdeck-results-header = نتایج عرشه‌ی مرد مرده
+deadmansdeck-results-winner = برنده: { $player }.
+deadmansdeck-results-survived = زنده ماند
+deadmansdeck-results-eliminated = حذف شد
+deadmansdeck-results-line = { $player }: { $status }، اعتراضات صحیح { $correct }، بلوف‌های موفق { $bluffs }، زنده‌ماندن‌های رولت { $survivals }.

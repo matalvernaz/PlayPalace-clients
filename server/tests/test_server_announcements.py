@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from server.core.server import Server
-from server.core.users.preferences import UserPreferences
+from server.users.preferences import UserPreferences
 
 
 class DummyUser:
@@ -38,7 +38,7 @@ class FakeDBPending:
 
 @pytest.fixture
 def server(tmp_path):
-    return Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    return Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
 
 
 def test_broadcast_admin_announcement_only_hits_approved(server):

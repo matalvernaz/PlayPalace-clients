@@ -1,26 +1,25 @@
 """Localization system using Mozilla Fluent."""
 
-import hashlib
 import json
-import logging
-import os
 import re
-import sys
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from functools import lru_cache
 from pathlib import Path
 
+from babel import Locale
+from babel.core import UnknownLocaleError
+from babel.dates import format_datetime
+from fluent.runtime import FluentBundle, FluentResource
 from babel.lists import format_list
-from fluent_compiler.bundle import FluentBundle
-from fluent_compiler.compiler import compile_messages
-from fluent_compiler.resource import FtlResource
 
 from ..gender import normalize_gender
 
 
-LOG = logging.getLogger("playpalace.localization")
-
-# Grammatical forms GENDER_TERM can render, ported with PlayAural's
-# gender-aware localization. Each form is a gender-term-<form> message that
-# selects on $gender (male, female, non-binary, unspecified).
+DEFAULT_LOCALE = "en"
+PINNED_LOCALES = (DEFAULT_LOCALE, "vi")
+LOCALE_METADATA_FILENAME = "metadata.json"
+LOCALE_RESOLUTION_CACHE_SIZE = 128
 GENDER_TERM_FORMS = frozenset(
     {
         "subject",
@@ -42,304 +41,347 @@ GENDER_TERM_CONTEXT_PATTERN = re.compile(
 )
 
 
+@dataclass(frozen=True)
+class LocaleMetadata:
+    """Translator and display metadata for one installed locale."""
+
+    code: str
+    name: str = ""
+    native_name: str = ""
+    translators: tuple[str, ...] = ()
+    official: bool = False
+    available: bool = False
+
+
 class Localization:
     """
-    Localization system using Mozilla Fluent via fluent-compiler.
+    Localization system using Mozilla Fluent via fluent.runtime.
 
     Loads .ftl files from the locales directory and provides message
     rendering with variable substitution.
+
+    We use the interpreting ``fluent.runtime`` rather than the codegen-based
+    ``fluent_compiler``: the latter compiles every message to a Python function
+    at load time, an O(n²) name-reservation pass that took ~16 s *per locale*
+    for our ~4 000-message bundles. The interpreter merely parses the FTL
+    (~0.2 s per locale) and walks the AST at format time (a few µs per call),
+    which is comfortably fast for a server formatting a handful of strings per
+    event. See the migration discussion for the full benchmark.
     """
 
     _bundles: dict[str, FluentBundle] = {}
+    _bundle_cache_by_dir: dict[Path, dict[str, FluentBundle]] = {}
     _locales_dir: Path | None = None
-    _cache_dir: Path | None = None
-    _cache_enabled: bool = True
-    _warmup_active: bool = False
-    _CACHE_VERSION = "1"
-    _CACHE_DISABLE_ENV = "PLAYPALACE_DISABLE_LOCALE_CACHE"
-    _CACHE_DIR_ENV = "PLAYPALACE_LOCALE_CACHE_DIR"
-    _enabled_locales: set[str] | None = None  # None = all locales
-    _missing_key_fallback_warnings: set[tuple[str, str]] = set()
+    _available_locale_codes_cache: tuple[str, ...] | None = None
 
     @classmethod
-    def set_warmup_active(cls, active: bool) -> None:
-        cls._warmup_active = active
+    def init(cls, locales_dir: Path | str) -> None:
+        """Initialize the localization system with a locales directory."""
+        cls._locales_dir = Path(locales_dir).resolve()
+        cls._bundles = cls._bundle_cache_by_dir.setdefault(cls._locales_dir, {})
+        cls.refresh_locale_catalog()
 
     @classmethod
-    def is_warmup_active(cls) -> bool:
-        return cls._warmup_active
+    def refresh_locale_catalog(cls) -> None:
+        """Invalidate dynamically discovered locale and fallback results.
 
-    @classmethod
-    def init(cls, locales_dir: Path | str, *, enabled_locales: list[str] | None = None) -> None:
-        """Initialize the localization system with a locales directory.
-
-        Args:
-            locales_dir: Path to the locales directory.
-            enabled_locales: If set, only load these locales (plus ``en`` as
-                fallback).  ``None`` loads all locales.
+        Installed locale directories are deployment configuration, not mutable
+        request data.  Keep their discovery dynamic, but scan the filesystem
+        once per initialization (or explicit refresh) instead of once for every
+        localized string.  Menu rendering can format hundreds of labels in one
+        event, so repeated directory enumeration otherwise blocks the asyncio
+        server loop.
         """
-        cls._locales_dir = Path(locales_dir)
-        cls._bundles = {}
-        cls._missing_key_fallback_warnings = set()
-        disable_cache = os.environ.get(cls._CACHE_DISABLE_ENV, "").strip().lower()
-        cls._cache_enabled = disable_cache not in {"1", "true", "yes", "on"}
-        cls._cache_dir = None
-        if enabled_locales is not None:
-            cls._enabled_locales = {*enabled_locales, "en"}
-        else:
-            cls._enabled_locales = None
+        cls._available_locale_codes_cache = None
+        cls._resolve_locale_from_catalog.cache_clear()
 
     @classmethod
     def preload_bundles(cls) -> None:
         """Pre-load all locale bundles at startup."""
         if cls._locales_dir is None:
-            print("ERROR: Localization directory is not configured.", file=sys.stderr)
-            raise SystemExit(1)
+            return
 
-        if not cls._locales_dir.exists() or not cls._locales_dir.is_dir():
-            print(
-                f"ERROR: Localization directory '{cls._locales_dir}' is missing or not a directory.",
-                file=sys.stderr,
-            )
-            raise SystemExit(1)
+        for locale_code in cls.available_locale_codes():
+            cls._get_bundle(locale_code)
 
-        found_locale = False
-        for locale_dir in cls._locales_dir.iterdir():
-            if not locale_dir.is_dir():
-                continue
-            if cls._enabled_locales is not None and locale_dir.name not in cls._enabled_locales:
-                continue
-            found_locale = True
-            try:
-                cls._get_bundle(locale_dir.name)
-            except RuntimeError as exc:
-                print(
-                    f"ERROR: Failed to load localization bundle for '{locale_dir.name}': {exc}",
-                    file=sys.stderr,
-                )
-                raise SystemExit(1) from exc
+    @staticmethod
+    def _normalize_locale_candidate(locale: str | None) -> str:
+        """Return a normalized locale code, or an empty string if malformed."""
+        if not isinstance(locale, str):
+            return ""
+        normalized = locale.strip().replace("_", "-").lower()
+        if not normalized or "\x00" in normalized:
+            return ""
+        if any(ch in normalized for ch in ("/", "\\", ".")):
+            return ""
+        if not all(ch.isalnum() or ch == "-" for ch in normalized):
+            return ""
+        return normalized
 
-        if not found_locale:
-            print(
-                f"ERROR: Localization directory '{cls._locales_dir}' does not contain any locale bundles.",
-                file=sys.stderr,
-            )
-            raise SystemExit(1)
+    @classmethod
+    def _sanitize_locale(cls, locale: str | None) -> str:
+        """Return a safe normalized locale code suitable for lookup only."""
+        return cls._normalize_locale_candidate(locale) or DEFAULT_LOCALE
+
+    @classmethod
+    def normalize_locale_code(cls, locale: str | None) -> str:
+        """Return a safe locale code, or an empty string when malformed."""
+        return cls._normalize_locale_candidate(locale)
+
+    @classmethod
+    def available_locale_codes(cls) -> list[str]:
+        """Return available locale directory names in stable display order."""
+        if cls._available_locale_codes_cache is not None:
+            return list(cls._available_locale_codes_cache)
+        if cls._locales_dir is None or not cls._locales_dir.exists():
+            return []
+        codes = sorted(
+            locale_dir.name
+            for locale_dir in cls._locales_dir.iterdir()
+            if locale_dir.is_dir()
+        )
+        pinned = [code for code in PINNED_LOCALES if code in codes]
+        community = [code for code in codes if code not in PINNED_LOCALES]
+        cls._available_locale_codes_cache = tuple(pinned + community)
+        return list(cls._available_locale_codes_cache)
+
+    @classmethod
+    def official_locale_codes(cls) -> list[str]:
+        """Return installed locales marked official in their metadata."""
+        return [
+            code
+            for code in cls.available_locale_codes()
+            if cls.get_locale_metadata(code).official
+        ]
+
+    @classmethod
+    def _coerce_string_tuple(cls, value) -> tuple[str, ...]:
+        """Normalize string/list metadata fields into a clean tuple."""
+        if isinstance(value, str):
+            cleaned = value.strip()
+            return (cleaned,) if cleaned else ()
+        if not isinstance(value, list):
+            return ()
+        result = []
+        for item in value:
+            if isinstance(item, str):
+                cleaned = item.strip()
+                if cleaned:
+                    result.append(cleaned)
+        return tuple(result)
+
+    @classmethod
+    def get_locale_metadata(cls, locale_code: str) -> LocaleMetadata:
+        """Return translator metadata for one locale directory."""
+        code = cls._sanitize_locale(locale_code)
+        if cls._locales_dir is None:
+            return LocaleMetadata(code=code)
+        locale_dir = cls._locales_dir / code
+        metadata_path = locale_dir / LOCALE_METADATA_FILENAME
+        if not locale_dir.is_dir() or not metadata_path.is_file():
+            return LocaleMetadata(code=code)
+        try:
+            data = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return LocaleMetadata(code=code)
+        if not isinstance(data, dict):
+            return LocaleMetadata(code=code)
+        name = data.get("name", "")
+        native_name = data.get("native_name", data.get("nativeName", ""))
+        translators = cls._coerce_string_tuple(
+            data.get("translators", data.get("contributors", []))
+        )
+        return LocaleMetadata(
+            code=code,
+            name=name.strip() if isinstance(name, str) else "",
+            native_name=native_name.strip() if isinstance(native_name, str) else "",
+            translators=translators,
+            official=bool(data.get("official", False)),
+            available=True,
+        )
+
+    @classmethod
+    def resolve_locale(
+        cls, locale: str | None, *, fallback: str = DEFAULT_LOCALE
+    ) -> str:
+        """Resolve a requested locale to an installed locale code."""
+        requested = cls._sanitize_locale(locale)
+        fallback_code = cls._sanitize_locale(fallback)
+        return cls._resolve_locale_from_catalog(
+            requested,
+            fallback_code,
+            tuple(cls.available_locale_codes()),
+        )
+
+    @staticmethod
+    @lru_cache(maxsize=LOCALE_RESOLUTION_CACHE_SIZE)
+    def _resolve_locale_from_catalog(
+        requested: str,
+        fallback_code: str,
+        available_codes: tuple[str, ...],
+    ) -> str:
+        """Resolve against an immutable catalog with a bounded shared cache."""
+
+        available = set(available_codes)
+        if not available:
+            return DEFAULT_LOCALE
+
+        if requested in available:
+            return requested
+
+        language = requested.split("-", 1)[0]
+        if language in available:
+            return language
+
+        if fallback_code in available:
+            return fallback_code
+        fallback_language = fallback_code.split("-", 1)[0]
+        if fallback_language in available:
+            return fallback_language
+        if DEFAULT_LOCALE in available:
+            return DEFAULT_LOCALE
+        return min(available)
 
     @classmethod
     def _get_bundle(cls, locale: str) -> FluentBundle:
         """Get or create a bundle for a locale."""
-        if locale in cls._bundles:
-            return cls._bundles[locale]
-
         if cls._locales_dir is None:
-            print("ERROR: Localization directory is not configured.", file=sys.stderr)
-            raise SystemExit(1)
+            raise RuntimeError(
+                "Localization not initialized. Call Localization.init() first."
+            )
 
-        locale_dir = cls._locales_dir / locale
-        actual_locale = locale
-        base_language = locale.replace("_", "-").split("-")[0]
-        if not locale_dir.exists() and base_language != locale and (cls._locales_dir / base_language).exists():
-            # A regional tag such as pt-BR uses its language's bundle, compiled once.
-            bundle = cls._get_bundle(base_language)
-            cls._bundles[locale] = bundle
-            return bundle
+        actual_locale = cls.resolve_locale(locale)
+        if actual_locale in cls._bundles:
+            return cls._bundles[actual_locale]
+
+        locale_dir = cls._locales_dir / actual_locale
         if not locale_dir.exists():
-            # Fall back to English
-            locale_dir = cls._locales_dir / "en"
-            actual_locale = "en"
-            if not locale_dir.exists():
-                print(
-                    f"ERROR: No localization files found for '{locale}' or fallback 'en'.",
-                    file=sys.stderr,
+            default_dir = cls._locales_dir / DEFAULT_LOCALE
+            if default_dir.exists():
+                locale_dir = default_dir
+                actual_locale = DEFAULT_LOCALE
+            else:
+                raise RuntimeError(
+                    f"No locale files found for {locale} or {DEFAULT_LOCALE}"
                 )
-                raise SystemExit(1)
 
-        payloads, fingerprint = cls._load_locale_payloads(locale_dir, actual_locale)
-        bundle = cls._load_bundle_from_cache(actual_locale, fingerprint)
-        if bundle is None:
-            bundle = cls._compile_bundle(actual_locale, payloads, fingerprint)
-        cls._bundles[locale] = bundle
-        return bundle
-
-    @classmethod
-    def _load_locale_payloads(cls, locale_dir: Path, actual_locale: str) -> tuple[list[str], str]:
-        """Read locale files and compute a content fingerprint."""
+        # Load all .ftl files in the locale directory. Each file is added as a
+        # separate resource so a parse error is attributed to one file rather
+        # than poisoning the whole bundle.
         ftl_files = sorted(locale_dir.glob("*.ftl"))
         if not ftl_files:
-            print(
-                f"ERROR: No .ftl localization files found in {locale_dir}.",
-                file=sys.stderr,
-            )
-            raise SystemExit(1)
+            raise RuntimeError(f"No .ftl files found in {locale_dir}")
 
-        digest = hashlib.sha256()
-        digest.update(cls._CACHE_VERSION.encode("utf-8"))
-        digest.update(actual_locale.encode("utf-8"))
-
-        payloads: list[str] = []
-        for ftl_file in ftl_files:
-            text = ftl_file.read_text(encoding="utf-8")
-            payloads.append(text)
-            encoded = text.encode("utf-8")
-            digest.update(ftl_file.name.encode("utf-8"))
-            digest.update(len(encoded).to_bytes(8, "big", signed=False))
-            digest.update(hashlib.sha256(encoded).digest())
-
-        return payloads, digest.hexdigest()
-
-    @classmethod
-    def _load_bundle_from_cache(cls, actual_locale: str, fingerprint: str) -> FluentBundle | None:
-        """Load a cached bundle when available."""
-        cache_root = cls._resolve_cache_dir()
-        if cache_root is None:
-            return None
-
-        cache_path = cache_root / actual_locale / f"{fingerprint}.json"
-        if not cache_path.exists():
-            return None
-
-        try:
-            payload = json.loads(cache_path.read_text(encoding="utf-8"))
-            if payload.get("version") != cls._CACHE_VERSION:
-                raise ValueError("Cache version mismatch")
-            if payload.get("fingerprint") != fingerprint:
-                raise ValueError("Cache fingerprint mismatch")
-            if payload.get("locale") != actual_locale:
-                raise ValueError("Cache locale mismatch")
-            payloads = payload["payloads"]
-            if not isinstance(payloads, list):
-                raise ValueError("Cache payloads missing")
-        except Exception:
-            LOG.debug("Discarding corrupt locale cache for '%s'", actual_locale, exc_info=True)
-            try:
-                cache_path.unlink()
-            except FileNotFoundError:
-                pass
-            return None
-
-        return cls._compile_bundle(actual_locale, payloads, fingerprint, write_cache=False)
-
-    @classmethod
-    def _compile_bundle(
-        cls,
-        actual_locale: str,
-        payloads: list[str],
-        fingerprint: str,
-        *,
-        write_cache: bool = True,
-    ) -> FluentBundle:
-        """Compile locale files and persist cache entry."""
-        resources = [FtlResource.from_string(text) for text in payloads]
-        compiled = compile_messages(
-            actual_locale,
-            resources,
+        # use_isolating=True matches the previous fluent_compiler default; the
+        # bidi isolation characters it inserts are stripped in get().
+        bundle = FluentBundle(
+            [actual_locale],
+            use_isolating=True,
             functions={
-                "GENDER_TERM": lambda gender, form, context="": cls._format_gender_term(
-                    actual_locale, gender, form, context
+                "GENDER_TERM": lambda gender, form, context="": (
+                    cls._format_gender_term(
+                        actual_locale,
+                        gender,
+                        form,
+                        context,
+                    )
                 )
             },
         )
-        bundle = object.__new__(FluentBundle)
-        bundle.locale = actual_locale
-        bundle._compiled_messages = compiled.message_functions
-        bundle._compilation_errors = compiled.errors
-        if write_cache:
-            cls._write_cache_entry(actual_locale, fingerprint, payloads)
+        for ftl_file in ftl_files:
+            bundle.add_resource(
+                FluentResource(ftl_file.read_text(encoding="utf-8"))
+            )
+        cls._bundles[actual_locale] = bundle
         return bundle
 
     @classmethod
-    def _resolve_cache_dir(cls) -> Path | None:
-        """Resolve (or create) the cache directory."""
-        if not cls._cache_enabled:
-            return None
-        if cls._cache_dir is not None:
-            return cls._cache_dir
-        base = os.environ.get(cls._CACHE_DIR_ENV)
-        if base:
-            path = Path(base)
-        elif cls._locales_dir is not None:
-            path = cls._locales_dir.parent / ".cache" / "locales"
-        else:
-            return None
-        path.mkdir(parents=True, exist_ok=True)
-        cls._cache_dir = path
-        return cls._cache_dir
+    def _format_gender_term(
+        cls,
+        locale: str,
+        gender: object,
+        form: object,
+        context: object = "",
+    ) -> str:
+        """Render a validated grammatical form with an optional game override.
 
-    @classmethod
-    def _write_cache_entry(cls, actual_locale: str, fingerprint: str, payloads: list[str]) -> None:
-        """Persist compiled bundle artifacts for reuse."""
-        cache_root = cls._resolve_cache_dir()
-        if cache_root is None:
-            return
-        entry_dir = cache_root / actual_locale
-        entry_dir.mkdir(parents=True, exist_ok=True)
-        payload = {
-            "version": cls._CACHE_VERSION,
-            "fingerprint": fingerprint,
-            "locale": actual_locale,
-            "payloads": payloads,
-        }
-        tmp_path = entry_dir / f"{fingerprint}.tmp"
-        final_path = entry_dir / f"{fingerprint}.json"
-        tmp_path.write_text(json.dumps(payload), encoding="utf-8")
-        os.replace(tmp_path, final_path)
-        for cached in entry_dir.glob("*.json"):
-            if cached == final_path:
-                continue
-            try:
-                cached.unlink()
-            except OSError:
-                pass
-
-    @classmethod
-    def _format_gender_term(cls, locale: str, gender: object, form: object, context: object = "") -> str:
-        """Render one grammatical form of a gender for GENDER_TERM.
-
-        A game may define <context>-gender-term-<form> and pass that context;
-        a missing contextual form falls back to the shared gender-term-<form>.
-        The listener's locale is tried first, then English, so a sentence stays
-        in one language whenever the shared form is translated.
+        Locale authors own the actual words. A game may define, for example,
+        ``breachpoint-gender-term-subject`` and request context
+        ``"breachpoint"``; missing contextual forms fall back to the shared
+        form and missing translations fall back to English.
         """
         normalized_form = str(form).strip().lower()
         if normalized_form not in GENDER_TERM_FORMS:
             normalized_form = "subject"
+
         normalized_context = str(context).strip().lower()
         if not GENDER_TERM_CONTEXT_PATTERN.fullmatch(normalized_context):
             normalized_context = ""
+
         message_ids = []
         if normalized_context:
-            message_ids.append(f"{normalized_context}-gender-term-{normalized_form}")
+            message_ids.append(
+                f"{normalized_context}-gender-term-{normalized_form}"
+            )
         message_ids.append(f"gender-term-{normalized_form}")
-        locale_order = [locale] if locale == "en" else [locale, "en"]
+
+        resolved_locale = cls.resolve_locale(locale)
+        locale_order = [resolved_locale]
+        if resolved_locale != DEFAULT_LOCALE:
+            locale_order.append(DEFAULT_LOCALE)
         kwargs = {"gender": normalize_gender(gender).selector}
+        # Prefer a shared form in the listener's locale over a contextual form
+        # that exists only in English. This keeps the entire sentence in one
+        # language while still allowing English to be the final fallback.
         for candidate_locale in locale_order:
-            bundle = cls._get_bundle(candidate_locale)
             for message_id in message_ids:
-                if message_id not in bundle._compiled_messages:
-                    continue
-                result, _errors = bundle.format(message_id, kwargs)
-                for char in cls._BIDI_CHARS:
-                    result = result.replace(char, "")
-                return result
+                result = cls._format_from_bundle(
+                    candidate_locale,
+                    message_id,
+                    kwargs,
+                )
+                if result is not None:
+                    return result
         return ""
 
     # Unicode bidi isolation characters that Fluent adds around variables
     _BIDI_CHARS = "\u2068\u2069"  # FIRST STRONG ISOLATE, POP DIRECTIONAL ISOLATE
 
     @classmethod
-    def _format_message(cls, locale: str, message_id: str, kwargs: dict[str, object]) -> str:
-        """Format a message from a specific locale bundle."""
+    def _format_from_bundle(
+        cls, locale: str, message_id: str, kwargs: dict
+    ) -> str | None:
+        """Format one message from one bundle, returning None when unavailable."""
         bundle = cls._get_bundle(locale)
-        result, errors = bundle.format(message_id, kwargs)
-        if errors:
-            LOG.warning(
-                "Fluent formatting errors for '%s' [%s]: %s",
-                message_id, locale, errors,
-            )
+        base_id, _, attribute = message_id.partition(".")
+        try:
+            message = bundle.get_message(base_id)
+        except KeyError:
+            return None
+        if message is None:
+            return None
+        pattern = message.attributes.get(attribute) if attribute else message.value
+        if pattern is None:
+            return None
+        result, _errors = bundle.format_pattern(pattern, kwargs)
         for char in cls._BIDI_CHARS:
             result = result.replace(char, "")
         return result
+
+    @classmethod
+    def _message_exists_in_bundle(cls, locale: str, message_id: str) -> bool:
+        """Return whether a message or attribute exists without formatting it."""
+        bundle = cls._get_bundle(locale)
+        base_id, _, attribute = message_id.partition(".")
+        try:
+            message = bundle.get_message(base_id)
+        except KeyError:
+            return False
+        if message is None:
+            return False
+        if attribute:
+            return message.attributes.get(attribute) is not None
+        return message.value is not None
 
     @classmethod
     def get(cls, locale: str, message_id: str, **kwargs) -> str:
@@ -355,46 +397,127 @@ class Localization:
             The formatted message string.
         """
         try:
-            return cls._format_message(locale, message_id, kwargs)
+            resolved_locale = cls.resolve_locale(locale)
+            result = cls._format_from_bundle(resolved_locale, message_id, kwargs)
+            if result is not None:
+                return result
+            if resolved_locale != DEFAULT_LOCALE:
+                result = cls._format_from_bundle(DEFAULT_LOCALE, message_id, kwargs)
+                if result is not None:
+                    return result
         except Exception:
-            if locale != "en":
-                try:
-                    fallback = cls._format_message("en", message_id, kwargs)
-                except Exception:
-                    pass
-                else:
-                    warning_key = (locale, message_id)
-                    if warning_key not in cls._missing_key_fallback_warnings:
-                        cls._missing_key_fallback_warnings.add(warning_key)
-                        LOG.warning(
-                            "Missing localized message '%s' for locale '%s'; falling back to English.",
-                            message_id, locale,
-                        )
-                    return fallback
-            LOG.exception(
-                "Failed to format message '%s' for locale '%s'",
-                message_id, locale,
-            )
-            return f"[{message_id}]"
+            pass
+        return message_id
 
     @classmethod
-    def get_optional(cls, locale: str, message_id: str, **kwargs) -> str | None:
-        """Return a formatted message, or None if it is not defined.
-
-        Unlike :meth:`get`, a missing message is an expected, non-error
-        condition here: nothing is logged and ``None`` is returned. Use this
-        for optional text such as per-game help/rules, where many games
-        legitimately define no message and a logged error would be noise.
-        """
+    def format_utc_datetime(cls, locale: str, value: datetime) -> str:
+        """Render an aware instant as a readable, locale-aware UTC timestamp."""
+        if not isinstance(value, datetime) or value.tzinfo is None:
+            raise ValueError("Localized timestamps require an aware datetime")
+        normalized = value.astimezone(timezone.utc).replace(microsecond=0)
         try:
-            return cls._format_message(locale, message_id, kwargs)
+            return format_datetime(
+                normalized,
+                format="long",
+                tzinfo=timezone.utc,
+                locale=cls._babel_locale(locale),
+            )
+        except (UnknownLocaleError, ValueError):
+            return format_datetime(
+                normalized,
+                format="long",
+                tzinfo=timezone.utc,
+                locale=DEFAULT_LOCALE,
+            )
+
+    @classmethod
+    def has_message(cls, locale: str, message_id: str) -> bool:
+        """Return whether a message exists in the resolved locale or English fallback."""
+        try:
+            resolved_locale = cls.resolve_locale(locale)
+            if cls._message_exists_in_bundle(resolved_locale, message_id):
+                return True
+            if resolved_locale != DEFAULT_LOCALE:
+                return cls._message_exists_in_bundle(DEFAULT_LOCALE, message_id)
         except Exception:
-            if locale != "en":
+            return False
+        return False
+
+    @classmethod
+    def get_message_attribute_values(
+        cls,
+        locale: str,
+        message_id: str,
+        *,
+        include_fallback: bool = True,
+    ) -> tuple[str, ...]:
+        """Render a message's attributes in stable key order with fallback.
+
+        Attribute collections are useful for locale-owned extensible data such
+        as bot-name pools. A translated attribute overrides the matching
+        English attribute; omitted attributes fall back individually, while a
+        community locale may add new attributes without a code change. Callers
+        that need to exhaust locale-native data before using English can turn
+        off fallback and request the two pools separately.
+        """
+        if not isinstance(message_id, str) or not message_id or "." in message_id:
+            return ()
+        try:
+            resolved_locale = cls.resolve_locale(locale)
+            locale_order = [resolved_locale]
+            if include_fallback and resolved_locale != DEFAULT_LOCALE:
+                locale_order.append(DEFAULT_LOCALE)
+
+            attribute_names: set[str] = set()
+            for candidate_locale in locale_order:
+                bundle = cls._get_bundle(candidate_locale)
                 try:
-                    return cls._format_message("en", message_id, kwargs)
-                except Exception:
-                    return None
-            return None
+                    message = bundle.get_message(message_id)
+                except KeyError:
+                    message = None
+                if message is not None:
+                    attribute_names.update(message.attributes)
+
+            values: list[str] = []
+            for attribute_name in sorted(attribute_names):
+                attribute_id = f"{message_id}.{attribute_name}"
+                for candidate_locale in locale_order:
+                    value = cls._format_from_bundle(
+                        candidate_locale,
+                        attribute_id,
+                        {},
+                    )
+                    if value is not None:
+                        values.append(value)
+                        break
+            return tuple(values)
+        except Exception:
+            return ()
+
+    @classmethod
+    def _babel_locale(cls, locale: str) -> str:
+        """Return a Babel-safe locale code with English fallback."""
+        resolved = cls.resolve_locale(locale)
+        babel_locale = resolved.replace("-", "_")
+        try:
+            Locale.parse(babel_locale)
+            return babel_locale
+        except (UnknownLocaleError, ValueError):
+            return DEFAULT_LOCALE
+
+    @classmethod
+    def format_list(cls, locale: str, items: list[str]) -> str:
+        """
+        Format a list using standard style (e.g. 'A, B, and C').
+
+        Args:
+            locale: The locale code.
+            items: List of items to format.
+
+        Returns:
+            Formatted list string.
+        """
+        return format_list(items, style="standard", locale=cls._babel_locale(locale))
 
     @classmethod
     def format_list_and(cls, locale: str, items: list[str]) -> str:
@@ -408,7 +531,7 @@ class Localization:
         Returns:
             Formatted list string (e.g., "A, B, and C").
         """
-        return format_list(items, style="standard", locale=locale)
+        return format_list(items, style="standard", locale=cls._babel_locale(locale))
 
     @classmethod
     def format_list_or(cls, locale: str, items: list[str]) -> str:
@@ -422,29 +545,57 @@ class Localization:
         Returns:
             Formatted list string (e.g., "A, B, or C").
         """
-        return format_list(items, style="or", locale=locale)
+        return format_list(items, style="or", locale=cls._babel_locale(locale))
 
     @classmethod
-    def get_available_locale_codes(cls) -> list[str]:
-        """Return sorted language codes from the locales directory.
+    def _language_display_name(cls, locale_code: str, display_language: str) -> str:
+        """Return a localized language name with Fluent and Babel fallbacks."""
+        message_id = f"language-{locale_code}"
+        lookup_locale = display_language or locale_code
+        name = cls.get(lookup_locale, message_id)
+        if name != message_id:
+            return name
+        if display_language:
+            name = cls.get(locale_code, message_id)
+            if name != message_id:
+                return name
+        metadata = cls.get_locale_metadata(locale_code)
+        if display_language == DEFAULT_LOCALE and metadata.name:
+            return metadata.name
+        if metadata.native_name:
+            return metadata.native_name
+        if metadata.name:
+            return metadata.name
+        try:
+            language = Locale.parse(locale_code.replace("-", "_"))
+            display_locale = Locale.parse(
+                cls.resolve_locale(display_language or locale_code).replace("-", "_")
+            )
+            return language.get_display_name(display_locale)
+        except (UnknownLocaleError, ValueError):
+            return locale_code
 
-        Only returns locales that are enabled in the server configuration.
-        Unlike :meth:`get_available_languages`, this only scans the
-        filesystem and never triggers bundle compilation, so it is safe
-        to call during warmup.
+    @classmethod
+    def get_language_display_name(
+        cls, locale_code: str, display_language: str
+    ) -> str:
+        """Return a localized name for any valid language code.
+
+        Unlike ``get_available_languages()``, this is not limited to installed
+        PlayAural UI locales. It is used by data-driven features such as global
+        chat language channels.
         """
-        if cls._locales_dir is None:
-            raise RuntimeError("Localization not initialized. Call Localization.init() first.")
-        return sorted(
-            locale_dir.name
-            for locale_dir in cls._locales_dir.iterdir()
-            if locale_dir.is_dir()
-            and (cls._enabled_locales is None or locale_dir.name in cls._enabled_locales)
+        normalized = cls.normalize_locale_code(locale_code)
+        if not normalized:
+            return ""
+        return cls._language_display_name(
+            normalized,
+            cls.resolve_locale(display_language),
         )
 
     @classmethod
     def get_available_languages(
-        cls, display_language: str = "", *, fallback: str = "en"
+        cls, display_language: str = "", *, fallback: str = DEFAULT_LOCALE
     ) -> dict[str, str]:
         """
         Get a dictionary of available languages.
@@ -460,36 +611,18 @@ class Localization:
             Dictionary mapping language codes to language names.
         """
         if cls._locales_dir is None:
-            raise RuntimeError("Localization not initialized. Call Localization.init() first.")
+            raise RuntimeError(
+                "Localization not initialized. Call Localization.init() first."
+            )
 
         result = {}
+        display_locale = cls.resolve_locale(display_language, fallback=fallback)
 
-        # Get list of valid locale directories (filtered by enabled_locales)
-        locales = [
-            locale_dir.name
-            for locale_dir in cls._locales_dir.iterdir()
-            if locale_dir.is_dir()
-            and (cls._enabled_locales is None or locale_dir.name in cls._enabled_locales)
-        ]
-
-        for locale_code in sorted(locales):
-            message_id = f"language-{locale_code}"
-            if display_language:
-                # Use the display language's bundle for all names
-                name = cls.get(display_language, message_id)
-            else:
-                # Use each locale's own bundle for its name
-                name = cls.get(locale_code, message_id)
-
-            # If translation not found, try fallback locale
-            if name in (message_id, f"[{message_id}]") and fallback != display_language:
-                name = cls.get(fallback, message_id)
-
-            # If fallback is not "en" and still not found, try "en"
-            if name in (message_id, f"[{message_id}]") and fallback != "en":
-                name = cls.get("en", message_id)
-
-            result[locale_code] = name
+        for locale_code in cls.available_locale_codes():
+            result[locale_code] = cls._language_display_name(
+                locale_code,
+                display_locale if display_language else "",
+            )
 
         return result
 

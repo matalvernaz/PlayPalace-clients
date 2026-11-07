@@ -1,5 +1,7 @@
-game-name-deadmansdeck = Bộ Bài Tử Thần
+# deadmansdeck.ftl for locale vi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-deadmansdeck = Bộ Bài Tử Thần
 deadmansdeck-call-liar = Vạch mặt
 deadmansdeck-play-selected = Đánh các lá đã chọn
 deadmansdeck-clear-selection = Xóa lựa chọn
@@ -7,7 +9,6 @@ deadmansdeck-read-hand = Đọc bài trên tay
 deadmansdeck-read-table = Đọc tình hình bàn
 deadmansdeck-read-revolvers = Đọc trạng thái ổ đạn
 deadmansdeck-read-card-counts = Đọc số lá bài
-
 deadmansdeck-rank-ace = quân Át
 deadmansdeck-rank-ace-plural = quân Át
 deadmansdeck-rank-king = quân Vua
@@ -17,7 +18,6 @@ deadmansdeck-rank-queen-plural = quân Đầm
 deadmansdeck-rank-joker = quân Hề
 deadmansdeck-rank-joker-plural = quân Hề
 deadmansdeck-claim-text = { $count } { $rank }
-
 deadmansdeck-card-label = { $card }
 deadmansdeck-selected-card-label = Đã chọn: { $card }
 deadmansdeck-card-selected = Đã chọn { $card }.
@@ -30,7 +30,6 @@ deadmansdeck-no-claim-to-challenge = Chưa có lời khai nào để vạch mặ
 deadmansdeck-cannot-challenge-self = Bạn không thể tự vạch mặt chính lời khai của mình.
 deadmansdeck-action-sequence-running = Hãy chờ diễn biến hiện tại kết thúc.
 deadmansdeck-action-eliminated = Bạn đã bị loại khỏi ván.
-
 deadmansdeck-prepare-revolver = Các khẩu súng đang được chuẩn bị.
 deadmansdeck-round-start = Vòng { $round }. Hạng mục tiêu là { $target }.
 deadmansdeck-turn-order = Thứ tự lượt vòng này: { $order }.
@@ -62,14 +61,13 @@ deadmansdeck-truthful-claim = { $accused } khai thật. { $challenger } phải b
 deadmansdeck-you-face-revolver = Bạn đối mặt với khẩu súng.
 deadmansdeck-roulette-start = { $player } đối mặt với khẩu súng.
 deadmansdeck-you-roulette-survived = Khoang trống. Bạn còn sống. Lần bóp cò kế tiếp của bạn có rủi ro 1 trên { $remaining }.
-deadmansdeck-roulette-survived = Khoang trống. { $player } còn sống. Lần bóp cò kế tiếp có rủi ro 1 trên { $remaining }.
+deadmansdeck-roulette-survived = Khoang trống. { $player } còn sống. Lần bóp cò kế tiếp { GENDER_TERM($player_gender, "possessive-determiner") } có rủi ro 1 trên { $remaining }.
 deadmansdeck-you-eliminated-by-gun = Súng nổ. Bạn đã gục.
 deadmansdeck-player-eliminated = Súng nổ. { $player } đã gục.
 deadmansdeck-you-win-game = Bạn là kẻ sống sót cuối cùng và thắng Bộ Bài Tử Thần.
 deadmansdeck-player-wins = { $player } là kẻ sống sót cuối cùng và thắng Bộ Bài Tử Thần.
 deadmansdeck-no-winner = Không còn ai đủ tư cách thắng.
 deadmansdeck-you-are-eliminated = Bạn đã bị loại khỏi ván này.
-
 deadmansdeck-table-round = Vòng { $round }. Hạng mục tiêu: { $target }.
 deadmansdeck-table-target-pending = chưa được đặt
 deadmansdeck-table-current-turn = Lượt hiện tại: { $player }.
@@ -77,17 +75,15 @@ deadmansdeck-table-last-claim = Lời khai gần nhất: { $player } khai { $cla
 deadmansdeck-table-no-claim = Chưa có lời khai nào đang chờ.
 deadmansdeck-table-alive = Còn sống: { $players }.
 deadmansdeck-table-eliminated = Đã gục: { $players }.
-
-deadmansdeck-card-count-line = { $player }: còn { $count ->
-    [one] 1 lá
-   *[other] { $count } lá
-}.
+deadmansdeck-card-count-line =
+    { $player }: còn { $count ->
+        [one] 1 lá
+       *[other] { $count } lá
+    }.
 deadmansdeck-card-count-eliminated = { $player }: đã gục.
-
 deadmansdeck-revolvers-header = Trạng thái ổ đạn
 deadmansdeck-revolver-status = { $player }: đã qua { $survived } khoang trống; lần bóp cò kế tiếp có rủi ro 1 trên { $remaining }.
 deadmansdeck-revolver-eliminated = { $player }: đã gục.
-
 deadmansdeck-results-header = Kết quả Bộ Bài Tử Thần
 deadmansdeck-results-winner = Kẻ sống sót: { $player }.
 deadmansdeck-results-survived = còn sống

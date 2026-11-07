@@ -1,163 +1,173 @@
-# Mile by Mile game messages
-# Note: Common messages like round-start, turn-start, team-mode are in games.ftl
+# milebymile.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game name
 game-name-milebymile = Mile by Mile
-
-# Game options
 milebymile-set-distance = Jarak balapan: { $miles } mil
-milebymile-enter-distance = Masukkan jarak balapan (300-3000)
-milebymile-set-winning-score = Skor kemenangan: { $score } poin
-milebymile-enter-winning-score = Masukkan skor kemenangan (1000-10000)
-milebymile-toggle-perfect-crossing = Memerlukan finish tepat: { $enabled }
+milebymile-enter-distance = Masukkan jarak balapan, 300 sampai 3000
+milebymile-set-winning-score = Target kemenangan: { $score } poin
+milebymile-enter-winning-score = Masukkan target kemenangan, 1000 sampai 10000
+milebymile-desc-team-mode = Bermain sendiri atau dalam susunan tim yang didukung oleh jumlah pemain saat ini.
+milebymile-toggle-perfect-crossing = Wajib finis tepat: { $enabled }
 milebymile-toggle-stacking = Izinkan serangan bertumpuk: { $enabled }
 milebymile-toggle-reshuffle = Kocok ulang tumpukan buangan: { $enabled }
 milebymile-toggle-karma = Aturan karma: { $enabled }
-milebymile-set-rig = Kecurangan dek: { $rig }
-milebymile-select-rig = Pilih opsi kecurangan dek
-
-# Option change announcements
-milebymile-option-changed-distance = Jarak balapan diatur ke { $miles } mil.
-milebymile-option-changed-winning = Skor kemenangan diatur ke { $score } poin.
-milebymile-option-changed-crossing = Memerlukan finish tepat { $enabled }.
+milebymile-set-rig = Susunan dek: { $rig }
+milebymile-select-rig = Pilih variasi susunan dek
+milebymile-rig-none = Tanpa perubahan
+milebymile-rig-no-duplicates = Tanpa kartu duplikat
+milebymile-rig-2x-attacks = Serangan dua kali lipat
+milebymile-rig-2x-defenses = Pertahanan dua kali lipat
+milebymile-option-changed-distance = Jarak balapan diubah menjadi { $miles } mil.
+milebymile-desc-round-distance = Target jarak setiap balapan. Jika finis tepat diaktifkan, jaraknya harus habis dibagi 25. Nilai awal 1000 mil, dengan rentang 300 sampai 3000.
+milebymile-option-changed-winning = Target kemenangan diubah menjadi { $score } poin.
+milebymile-desc-winning-score = Total poin untuk memenangkan pertandingan Mile by Mile. Nilai awal 5000, dengan rentang 1000 sampai 10000.
+milebymile-option-changed-crossing = Wajib finis tepat { $enabled }.
+milebymile-desc-only-allow-perfect-crossing = Jika diaktifkan, pemain harus mencapai target jarak dengan tepat. Kartu jarak yang akan melewati garis finis tidak dapat dimainkan.
 milebymile-option-changed-stacking = Izinkan serangan bertumpuk { $enabled }.
+milebymile-desc-allow-stacking-attacks = Jika diaktifkan, satu mobil dapat terkena beberapa gangguan sekaligus meskipun sudah mengalami gangguan sebelumnya.
 milebymile-option-changed-reshuffle = Kocok ulang tumpukan buangan { $enabled }.
+milebymile-desc-reshuffle-discard-pile = Jika diaktifkan, tumpukan buangan dikocok kembali menjadi tumpukan ambil ketika kartu habis.
 milebymile-option-changed-karma = Aturan karma { $enabled }.
-milebymile-option-changed-rig = Kecurangan dek diatur ke { $rig }.
-
-# Status
-milebymile-status = { $name }: { $points } poin, { $miles } mil, Masalah: { $problems }, Keselamatan: { $safeties }
-
-# Card actions
-milebymile-no-matching-safety = Anda tidak memiliki kartu keselamatan yang sesuai!
-milebymile-cant-play = Anda tidak dapat memainkan { $card } karena { $reason }.
-milebymile-no-card-selected = Tidak ada kartu yang dipilih untuk dibuang.
-milebymile-no-valid-targets = Tidak ada target yang valid untuk bahaya ini!
+milebymile-desc-karma-rule = Tentukan apakah kartu karma dan pengucilan digunakan. Serangan ketika kedua pihak masih memiliki karma akan dinetralkan. Penyerang yang dikucilkan hanya boleh menyerang pihak lain yang juga dikucilkan. Memerlukan sedikitnya 3 mobil atau tim.
+milebymile-option-changed-rig = Susunan dek diubah menjadi { $rig }.
+milebymile-desc-rig-game = Variasi susunan kartu: normal, tanpa kartu duplikat, serangan dua kali lipat, atau pertahanan dua kali lipat.
+milebymile-status = { $score_info }, { $miles } mil. Gangguan: { $problems }. Perlindungan: { $safeties }
+milebymile-no-matching-safety = Anda tidak memiliki kartu perlindungan yang sesuai!
+milebymile-cant-play = Anda tidak bisa memainkan { $card } karena { $reason }.
+milebymile-unplayable-card-menu-title = Kartu tidak bisa dimainkan
+milebymile-unplayable-discard-question = Anda tidak bisa memainkan { $card } karena { $reason }. Ingin membuangnya?
+milebymile-no-card-selected = Belum ada kartu yang dipilih untuk dibuang.
+milebymile-no-valid-targets = Tidak ada sasaran yang sah untuk gangguan ini!
 milebymile-you-drew = Anda mengambil: { $card }
-milebymile-discards = { $player } membuang kartu.
-milebymile-select-target = Pilih target
-
-# Distance plays
-milebymile-plays-distance-individual = { $player } memainkan { $distance } mil, dan sekarang di { $total } mil.
-milebymile-plays-distance-team = { $player } memainkan { $distance } mil; tim mereka sekarang di { $total } mil.
-
-# Journey complete
-milebymile-journey-complete-perfect-individual = { $player } telah menyelesaikan perjalanan dengan penyeberangan sempurna!
-milebymile-journey-complete-perfect-team = Tim { $team } telah menyelesaikan perjalanan dengan penyeberangan sempurna!
-milebymile-journey-complete-individual = { $player } telah menyelesaikan perjalanan!
-milebymile-journey-complete-team = Tim { $team } telah menyelesaikan perjalanan!
-
-# Hazard plays
+milebymile-you-discard = Anda membuang { $card }.
+milebymile-discards = { $player } membuang { $card }.
+milebymile-select-target = Pilih sasaran
+milebymile-you-play-distance-individual = Anda memainkan { $distance } mil dan kini telah menempuh { $total } mil.
+milebymile-plays-distance-individual = { $player } memainkan { $distance } mil dan kini telah menempuh { $total } mil.
+milebymile-you-play-distance-team = Anda memainkan { $distance } mil. Tim Anda kini telah menempuh { $total } mil.
+milebymile-teammate-plays-distance-team = { $player } memainkan { $distance } mil. Tim Anda kini telah menempuh { $total } mil.
+milebymile-plays-distance-team = { $player } memainkan { $distance } mil. Timnya kini telah menempuh { $total } mil.
+milebymile-you-complete-perfect-individual = Anda menyelesaikan perjalanan dengan jarak tepat!
+milebymile-journey-complete-perfect-individual = { $player } menyelesaikan perjalanan dengan jarak tepat!
+milebymile-your-team-completes-perfect = Tim Anda menyelesaikan perjalanan dengan jarak tepat!
+milebymile-journey-complete-perfect-team = Tim { $team } menyelesaikan perjalanan dengan jarak tepat!
+milebymile-you-complete-individual = Anda menyelesaikan perjalanan!
+milebymile-journey-complete-individual = { $player } menyelesaikan perjalanan!
+milebymile-your-team-completes = Tim Anda menyelesaikan perjalanan!
+milebymile-journey-complete-team = Tim { $team } menyelesaikan perjalanan!
+milebymile-you-play-hazard-individual = Anda memainkan { $card } pada { $target }.
+milebymile-hazard-played-on-you = { $player } memainkan { $card } pada Anda. Anda punya 7 detik untuk menangkalnya.
 milebymile-plays-hazard-individual = { $player } memainkan { $card } pada { $target }.
+milebymile-you-play-hazard-team = Anda memainkan { $card } pada Tim { $team }.
+milebymile-hazard-played-on-your-team = { $player } memainkan { $card } pada tim Anda. Tim Anda punya 7 detik untuk menangkalnya.
 milebymile-plays-hazard-team = { $player } memainkan { $card } pada Tim { $team }.
-
-# Remedy/Safety plays
+milebymile-you-play-card = Anda memainkan { $card }.
 milebymile-plays-card = { $player } memainkan { $card }.
-milebymile-plays-dirty-trick = { $player } memainkan { $card } sebagai Trik Kotor!
-
-# Deck
-milebymile-deck-reshuffled = Tumpukan buangan dikocok kembali ke dek.
-
-# Race
+milebymile-you-play-team-card = Anda memainkan { $card } untuk tim Anda.
+milebymile-teammate-plays-team-card = { $player } memainkan { $card } untuk tim Anda.
+milebymile-opponent-plays-team-card = { $player } memainkan { $card } untuk timnya.
+milebymile-you-play-dirty-trick = Anda memainkan { $card } sebagai Dirty Trick!
+milebymile-plays-dirty-trick = { $player } memainkan { $card } sebagai Dirty Trick!
+milebymile-you-play-dirty-trick-team = Anda memainkan { $card } sebagai Dirty Trick untuk tim Anda!
+milebymile-teammate-plays-dirty-trick-team = { $player } memainkan { $card } sebagai Dirty Trick untuk tim Anda!
+milebymile-opponent-plays-dirty-trick-team = { $player } memainkan { $card } sebagai Dirty Trick untuk timnya!
+milebymile-deck-reshuffled = Tumpukan buangan dikocok kembali menjadi tumpukan ambil.
 milebymile-new-race = Balapan baru dimulai!
-milebymile-race-complete = Balapan selesai! Menghitung skor...
-milebymile-earned-points = { $name } mendapat { $score } poin di balapan ini: { $breakdown }.
-milebymile-total-scores = Total skor:
+milebymile-race-complete = Balapan selesai! Menghitung poin.
+milebymile-earned-points = { $name } mendapat { $score } poin dalam balapan ini: { $breakdown }.
+milebymile-total-scores = Total poin:
 milebymile-team-score = { $name }: { $score } poin
-
-# Scoring breakdown
-milebymile-from-distance = { $miles } dari jarak yang ditempuh
+milebymile-from-distance = { $miles } dari jarak tempuh
 milebymile-from-trip = { $points } dari menyelesaikan perjalanan
-milebymile-from-perfect = { $points } dari penyeberangan sempurna
+milebymile-from-delayed = { $points } dari finis setelah tumpukan ambil habis
+milebymile-from-perfect = { $points } dari finis tepat
 milebymile-from-safe = { $points } dari perjalanan aman
-milebymile-from-shutout = { $points } dari shut out
-milebymile-from-safeties = { $points } dari { $count } { $safeties ->
-    [one] keselamatan
-    *[other] keselamatan
-}
-milebymile-from-all-safeties = { $points } dari semua 4 keselamatan
-milebymile-from-dirty-tricks = { $points } dari { $count } { $tricks ->
-    [one] trik kotor
-    *[other] trik kotor
-}
-
-# Game end
+milebymile-from-shutout = { $points } dari membuat lawan tetap di nol mil
+milebymile-from-safeties =
+    { $points } dari { $count } { $count ->
+        [one] kartu perlindungan
+       *[other] kartu perlindungan
+    }
+milebymile-from-all-safeties = { $points } dari keempat kartu perlindungan
+milebymile-from-dirty-tricks =
+    { $points } dari { $count } { $count ->
+        [one] Dirty Trick
+       *[other] Dirty Trick
+    }
+milebymile-you-win-individual = Anda memenangkan permainan!
 milebymile-wins-individual = { $player } memenangkan permainan!
-milebymile-wins-team = Tim { $team } memenangkan permainan! ({ $members })
+milebymile-your-team-wins = Tim Anda memenangkan permainan!
+milebymile-wins-team = Tim { $team } memenangkan permainan! Anggotanya: { $members }.
 milebymile-final-score = Skor akhir: { $score } poin
-
-# Karma messages - clash (both lose karma)
-milebymile-karma-clash-you-target = Anda dan target Anda sama-sama dicemooh! Serangan dinetralkan.
-milebymile-karma-clash-you-attacker = Anda dan { $attacker } sama-sama dicemooh! Serangan dinetralkan.
-milebymile-karma-clash-others = { $attacker } dan { $target } sama-sama dicemooh! Serangan dinetralkan.
-milebymile-karma-clash-your-team = Tim Anda dan target Anda sama-sama dicemooh! Serangan dinetralkan.
-milebymile-karma-clash-target-team = Anda dan Tim { $team } sama-sama dicemooh! Serangan dinetralkan.
-milebymile-karma-clash-other-teams = Tim { $attacker } dan Tim { $target } sama-sama dicemooh! Serangan dinetralkan.
-
-# Karma messages - attacker shunned
-milebymile-karma-shunned-you = Anda telah dicemooh karena agresi Anda! Karma Anda hilang.
-milebymile-karma-shunned-other = { $player } telah dicemooh karena agresi mereka!
-milebymile-karma-shunned-your-team = Tim Anda telah dicemooh karena agresinya! Karma tim Anda hilang.
-milebymile-karma-shunned-other-team = Tim { $team } telah dicemooh karena agresinya!
-
-# False Virtue
-milebymile-false-virtue-you = Anda memainkan False Virtue dan mendapatkan kembali karma Anda!
-milebymile-false-virtue-other = { $player } memainkan False Virtue dan mendapatkan kembali karma mereka!
-milebymile-false-virtue-your-team = Tim Anda memainkan False Virtue dan mendapatkan kembali karmanya!
-milebymile-false-virtue-other-team = Tim { $team } memainkan False Virtue dan mendapatkan kembali karmanya!
-
-# Problems/Safeties (for status display)
+milebymile-karma-clash-you-target = Anda dan sasaran Anda sama-sama dikucilkan! Serangan dinetralkan.
+milebymile-karma-clash-you-attacker = Anda dan { $attacker } sama-sama dikucilkan! Serangan dinetralkan.
+milebymile-karma-clash-others = { $attacker } dan { $target } sama-sama dikucilkan! Serangan dinetralkan.
+milebymile-karma-clash-your-team = Tim Anda dan sasarannya sama-sama dikucilkan! Serangan dinetralkan.
+milebymile-karma-clash-target-team = Tim Anda dan Tim { $team } sama-sama dikucilkan! Serangan dinetralkan.
+milebymile-karma-clash-other-teams = Tim { $attacker } dan Tim { $target } sama-sama dikucilkan! Serangan dinetralkan.
+milebymile-karma-shunned-you = Anda dikucilkan karena menyerang! Karma Anda hilang.
+milebymile-karma-shunned-other = { $player } dikucilkan karena menyerang!
+milebymile-karma-shunned-your-team = Tim Anda dikucilkan karena menyerang! Karma tim Anda hilang.
+milebymile-karma-shunned-other-team = Tim { $team } dikucilkan karena menyerang!
+milebymile-false-virtue-you = Anda memainkan Kebajikan Palsu dan mendapatkan karma kembali!
+milebymile-false-virtue-other = { $player } memainkan Kebajikan Palsu dan mendapatkan karma kembali!
+milebymile-false-virtue-teammate = { $player } memainkan Kebajikan Palsu. Tim Anda mendapatkan karma kembali!
+milebymile-false-virtue-opponent = { $player } memainkan Kebajikan Palsu. Timnya mendapatkan karma kembali!
 milebymile-none = tidak ada
-
-# Unplayable card reasons
-milebymile-reason-not-on-team = Anda tidak dalam tim
-milebymile-reason-stopped = Anda berhenti
-milebymile-reason-has-problem = Anda memiliki masalah yang mencegah mengemudi
-milebymile-reason-speed-limit = batas kecepatan aktif
-milebymile-reason-exceeds-distance = akan melebihi { $miles } mil
-milebymile-reason-no-targets = tidak ada target yang valid
-milebymile-reason-no-speed-limit = Anda tidak di bawah batas kecepatan
-milebymile-reason-has-right-of-way = Right of Way memungkinkan Anda pergi tanpa lampu hijau
-milebymile-reason-already-moving = Anda sudah bergerak
-milebymile-reason-must-fix-first = Anda harus memperbaiki { $problem } terlebih dahulu
-milebymile-reason-has-gas = mobil Anda memiliki bensin
-milebymile-reason-tires-fine = ban Anda baik-baik saja
+milebymile-reason-not-on-team = Anda tidak tergabung dalam tim
+milebymile-reason-stopped = Anda perlu Lampu Hijau sebelum bisa melaju
+milebymile-reason-has-problem = mobil Anda terhenti akibat gangguan di jalan
+milebymile-reason-out-of-gas = mobil Anda kehabisan bensin. Mainkan Bensin atau Tangki Cadangan terlebih dahulu
+milebymile-reason-flat-tire = ban mobil Anda kempis. Mainkan Ban Cadangan atau Ban Antibocor terlebih dahulu
+milebymile-reason-accident = mobil Anda mengalami kecelakaan. Mainkan Perbaikan atau Pengemudi Andal terlebih dahulu
+milebymile-reason-speed-limit = Anda terkena Batas Kecepatan, jadi hanya kartu 25 atau 50 mil yang boleh dimainkan
+milebymile-reason-exceeds-distance = jarak Anda saat ini { $current } mil dan kartu { $distance } mil akan membuatnya menjadi { $total } mil, melewati garis finis { $target } mil. Finis tepat diaktifkan, jadi Anda perlu tepat { $miles } mil lagi
+milebymile-reason-too-many-200s = Anda sudah memainkan dua kartu 200 mil dalam balapan ini
+milebymile-reason-no-targets = saat ini tidak ada lawan yang bisa menerima gangguan ini menurut aturan
+milebymile-reason-no-opponents = tidak ada tim lawan untuk dijadikan sasaran
+milebymile-reason-hazard-protected = semua sasaran yang tersedia terlindungi dari { $card } oleh { $safety }
+milebymile-reason-hazard-karma = Anda kehilangan karma dan hanya boleh menyerang sasaran yang juga kehilangan karma
+milebymile-reason-hazard-duplicate-speed-limit = semua sasaran yang tersedia sudah terkena Batas Kecepatan
+milebymile-reason-hazard-duplicate = semua sasaran yang tersedia sudah terkena { $card }
+milebymile-reason-hazard-blocked = semua sasaran yang tersedia sudah terhenti oleh gangguan lain
+milebymile-reason-no-speed-limit = Anda tidak terkena batas kecepatan
+milebymile-reason-has-right-of-way = Hak Melaju memungkinkan Anda melaju tanpa Lampu Hijau
+milebymile-reason-already-moving = Anda sudah melaju
+milebymile-reason-must-fix-first = Anda harus mengatasi { $problem } dengan { $remedy } terlebih dahulu
+milebymile-reason-has-gas = mobil Anda masih memiliki bensin
+milebymile-reason-tires-fine = ban mobil Anda baik-baik saja
 milebymile-reason-no-accident = mobil Anda tidak mengalami kecelakaan
-milebymile-reason-has-safety = Anda sudah memiliki keselamatan itu
-milebymile-reason-has-karma = Anda masih memiliki karma Anda
-milebymile-reason-generic = tidak dapat dimainkan sekarang
-
-# Card names
-milebymile-card-out-of-gas = Out of Gas
-milebymile-card-flat-tire = Flat Tire
-milebymile-card-accident = Accident
-milebymile-card-speed-limit = Speed Limit
-milebymile-card-stop = Stop
-milebymile-card-gasoline = Gasoline
-milebymile-card-spare-tire = Spare Tire
-milebymile-card-repairs = Repairs
-milebymile-card-end-of-limit = End of Limit
-milebymile-card-green-light = Green Light
-milebymile-card-extra-tank = Extra Tank
-milebymile-card-puncture-proof = Puncture Proof
-milebymile-card-driving-ace = Driving Ace
-milebymile-card-right-of-way = Right of Way
-milebymile-card-false-virtue = False Virtue
+milebymile-reason-has-safety = Anda sudah memiliki perlindungan itu
+milebymile-reason-has-karma = Anda masih memiliki karma
+milebymile-reason-generic = kartu itu belum bisa dimainkan
+milebymile-card-out-of-gas = Kehabisan Bensin
+milebymile-card-flat-tire = Ban Kempis
+milebymile-card-accident = Kecelakaan
+milebymile-card-speed-limit = Batas Kecepatan
+milebymile-card-stop = Berhenti
+milebymile-card-gasoline = Bensin
+milebymile-card-spare-tire = Ban Cadangan
+milebymile-card-repairs = Perbaikan
+milebymile-card-end-of-limit = Akhir Batas Kecepatan
+milebymile-card-green-light = Lampu Hijau
+milebymile-card-extra-tank = Tangki Cadangan
+milebymile-card-puncture-proof = Ban Antibocor
+milebymile-card-driving-ace = Pengemudi Andal
+milebymile-card-right-of-way = Hak Melaju
+milebymile-card-false-virtue = Kebajikan Palsu
 milebymile-card-miles = { $miles } mil
-
-# Disabled action reasons
-milebymile-no-dirty-trick-window = Tidak ada jendela trik kotor yang aktif.
-milebymile-not-your-dirty-trick = Bukan jendela trik kotor tim Anda.
-milebymile-between-races = Tunggu balapan berikutnya untuk dimulai.
-
-# Validation errors
-milebymile-error-karma-needs-three-teams = Aturan karma memerlukan setidaknya 3 mobil/tim yang berbeda.
-
-milebymile-you-play-safety-with-effect = Kamu memainkan { $card }. { $effect }
-milebymile-player-plays-safety-with-effect = { $player } memainkan { $card }. { $effect }
-milebymile-you-play-dirty-trick-with-effect = Kamu memainkan { $card } sebagai Trik Kotor. { $effect }
-milebymile-player-plays-dirty-trick-with-effect = { $player } memainkan { $card } sebagai Trik Kotor. { $effect }
-milebymile-safety-effect-extra-tank = Sekarang terlindungi dari Kehabisan Bensin.
-milebymile-safety-effect-puncture-proof = Sekarang terlindungi dari Ban Kempis.
-milebymile-safety-effect-driving-ace = Sekarang terlindungi dari Kecelakaan.
-milebymile-safety-effect-right-of-way = Sekarang terlindungi dari Berhenti dan Batas Kecepatan.
+milebymile-no-dirty-trick-window = Tidak ada kesempatan Dirty Trick saat ini.
+milebymile-not-your-dirty-trick = Kesempatan Dirty Trick ini bukan milik tim Anda.
+milebymile-between-races = Tunggu balapan berikutnya dimulai.
+milebymile-error-karma-needs-three-teams = Aturan karma memerlukan sedikitnya 3 mobil atau tim yang berbeda.
+milebymile-error-perfect-distance-step = Finis tepat memerlukan jarak balapan yang habis dibagi 25 karena semua kartu jarak adalah kelipatan 25.
+milebymile-line-format = { $rank }. { $name }: { $points }
+milebymile-target-individual = { $name } ({ $miles } mil)
+milebymile-target-team = Tim { $team }: { $members } ({ $miles } mil)
+milebymile-discard-card = Buang kartu
+milebymile-detailed-status = Status terperinci
+milebymile-check-status = Periksa status
+milebymile-dirty-trick = Mainkan Dirty Trick
+milebymile-info-button = Info
+milebymile-info-msg-individual = { $player }: Gangguan: { $hazards }. Perlindungan: { $safeties }. Jarak: { $miles } mil.
+milebymile-info-msg-team = { $team } ({ $members }): Gangguan: { $hazards }. Perlindungan: { $safeties }. Jarak: { $miles } mil.

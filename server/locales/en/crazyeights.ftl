@@ -1,63 +1,62 @@
-# Crazy Eights
+# crazyeights.ftl for locale en. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 game-name-crazyeights = Crazy Eights
-
 crazyeights-set-winning-score = Winning score: { $score }
 crazyeights-enter-winning-score = Enter winning score
 crazyeights-option-changed-winning-score = Winning score set to { $score }.
-
+crazyeights-desc-winning-score = Score target that ends the Crazy Eights match (default 500, range 1-10000).
 crazyeights-set-turn-timer = Turn timer: { $mode }
 crazyeights-select-turn-timer = Select turn timer
 crazyeights-option-changed-turn-timer = Turn timer set to { $mode }.
-
+crazyeights-desc-turn-timer = Optional time limit for each Crazy Eights turn: 5, 10, 15, 20, 30, 45, 60, or 90 seconds, or Unlimited (default Unlimited).
 crazyeights-draw = Draw
 crazyeights-pass = Pass
 crazyeights-read-top = Read top card
 crazyeights-read-counts = Read card counts
-crazyeights-deck-count =
-    { $count ->
-        [one] Deck: 1 card.
-       *[other] Deck: { $count } cards.
-    }
-
+crazyeights-count-entry = { $player }: { $count }
+crazyeights-deck-count = deck { $count }
+crazyeights-game-blocked = The game is blocked! No one can play.
 crazyeights-new-hand = Round { $round }.
+crazyeights-start-card-you = You turn up { $card }.
 crazyeights-start-card = { $player } turns up { $card }.
-crazyeights-you-turn-up = You turn up { $card }.
-crazyeights-wild-played = { $player } played a Wild Eight.
-
 crazyeights-no-players = No players.
-crazyeights-no-hands = No hand in progress.
 crazyeights-no-top = No top card.
-
-# Card display names. The game's own name is "Crazy Eights" with a word,
-# so the wild card uses the word too (style guide §7).
-crazyeights-wild = Wild Eight
-crazyeights-wild-suit = Wild Eight, { $suit }
-crazyeights-reverse = Reverse, { $suit }
-crazyeights-skip = Skip, { $suit }
-crazyeights-draw-two = Draw Two, { $suit }
-
-crazyeights-suit-chosen = { $suit }
-
+crazyeights-wild = Wild 8
+crazyeights-wild-suit = Wild 8, { $suit }
+crazyeights-reverse = Reverse of { $suit }
+crazyeights-skip = Skip of { $suit }
+crazyeights-draw-two = Draw Two of { $suit }
+crazyeights-you-choose-suit = You choose { $suit }. The next player must follow that suit or play another Wild 8.
+crazyeights-player-chooses-suit = { $player } chooses { $suit }. The next player must follow that suit or play another Wild 8.
 crazyeights-round-summary = { $player } wins the round. { $details }. { $player } gains { $total } points.
-crazyeights-you-win-round = You win the round. { $details }. You gain { $total } points.
+crazyeights-round-summary-you = You win the round. { $details }. You gain { $total } points.
 crazyeights-round-details-none = No points were taken from opponents.
-crazyeights-round-winner = { $player } wins { $points } points. { $detail }
 crazyeights-round-points-from = { $points } from { $player }
 crazyeights-dealt-cards = Everyone is dealt in with { $cards } cards.
-crazyeights-one-card = 1 card.
-
-crazyeights-game-winner = { $player } wins with { $score } points!
-crazyeights-you-win-game = You win with { $score } points!
-
-crazyeights-player-plays = { $player } plays { $card }.
+crazyeights-game-winner = { $player } wins the game with { $score } points.
+crazyeights-game-winner-you = You win the game with { $score } points.
 crazyeights-you-play = You play { $card }.
-crazyeights-player-draws-one = { $player } draws a card.
+crazyeights-player-plays = { $player } plays { $card }.
 crazyeights-you-draw-one = You draw a card.
-crazyeights-player-draws-many = { $player } draws { $count } cards.
 crazyeights-you-draw-many = You draw { $count } cards.
-crazyeights-player-passes = { $player } passes.
+crazyeights-player-draws-one = { $player } draws a card.
+crazyeights-player-draws-many = { $player } draws { $count } cards.
 crazyeights-you-pass = You pass.
-
-crazyeights-player-skipped = Skipping { $player }.
-crazyeights-you-are-skipped = Skipping you.
+crazyeights-player-passes = { $player } passes.
+crazyeights-error-choose-suit-first = Choose a suit for the Wild 8 before taking another action.
+crazyeights-error-wild-transition = Wait for the chosen suit to take effect before playing another card.
+crazyeights-error-card-not-playable = You cannot play { $card }. The top card is { $top }, and the active suit is { $suit }; play that suit, match the rank, or play a Wild 8.
+crazyeights-line-format = { $rank }. { $player }: { $score }
+crazyeights-check-turn-timer = Check turn timer
+crazyeights-timer-5 = 5 seconds
+crazyeights-timer-10 = 10 seconds
+crazyeights-timer-15 = 15 seconds
+crazyeights-timer-20 = 20 seconds
+crazyeights-timer-30 = 30 seconds
+crazyeights-timer-45 = 45 seconds
+crazyeights-timer-60 = 60 seconds
+crazyeights-timer-90 = 90 seconds
+crazyeights-timer-unlimited = Unlimited
+crazyeights-timer-disabled = Turn timer is disabled.
+crazyeights-timer-remaining = { $seconds } seconds remaining.

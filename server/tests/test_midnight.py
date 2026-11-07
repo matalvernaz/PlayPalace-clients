@@ -8,54 +8,25 @@ Following the testing strategy:
 """
 
 import pytest
+from pathlib import Path
+import re
 import random
 import json
 
-from server.games.midnight.game import MidnightGame, MidnightOptions
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
+from ..game_utils import dice as dice_utils
+from ..games.midnight.game import MidnightGame, MidnightOptions
+from ..users.test_user import MockUser
+from ..users.bot import Bot
 
 
-def _play_human_turn(game: MidnightGame, player) -> None:
-    """Execute a simple human turn strategy."""
-    if not player.dice.has_rolled:
-        game.execute_action(player, "roll")
-        return
-    if player.dice.kept_unlocked_count > 0:
-        game.execute_action(player, "roll")
-        return
-
-    locked_values = [player.dice.values[i] for i in player.dice.locked]
-    action = (
-        _find_keep_action(player.dice, locked_values, 1)
-        or _find_keep_action(player.dice, locked_values, 4)
-        or _find_keep_highest_action(player.dice)
-    )
-    game.execute_action(player, action or "bank")
-
-
-def _find_keep_action(dice, locked_values, target_value: int) -> str | None:
-    """Find the action to keep a specific die value."""
-    if target_value in locked_values:
-        return None
-    for i in range(6):
-        if not dice.is_locked(i) and dice.values[i] == target_value:
-            return f"toggle_die_{i}"
-    return None
-
-
-def _find_keep_highest_action(dice) -> str | None:
-    """Find the action to keep the highest available die."""
-    best_i = -1
-    best_v = 0
-    for i in range(6):
-        if dice.is_locked(i) or dice.is_kept(i):
-            continue
-        if dice.values[i] > best_v:
-            best_v = dice.values[i]
-            best_i = i
-    if best_i >= 0:
-        return f"toggle_die_{best_i}"
+def latest_turn_selection(user: MockUser) -> str | None:
+    """Return the last explicit turn-menu focus directive sent to a mock user."""
+    for message in reversed(user.messages):
+        if (
+            message.type in {"show_menu", "update_menu"}
+            and message.data.get("menu_id") == "turn_menu"
+        ):
+            return message.data.get("selection_id")
     return None
 
 
@@ -67,7 +38,7 @@ class TestMidnightGameUnit:
         game = MidnightGame()
         assert game.get_name() == "1-4-24"
         assert game.get_type() == "midnight"
-        assert game.get_category() == "category-dice-games"
+        assert game.get_category() == "dice"
         assert game.get_min_players() == 2
         assert game.get_max_players() == 6
 
@@ -105,13 +76,14 @@ class TestMidnightGameUnit:
         game.add_player("Bob", user2)
 
         game.on_start()
+        game.flush_menus()
 
         # Modify some state
         game.players[0].round_score = 20
         game.players[0].round_wins = 2
         game.players[0].qualified = True
         game.players[0].dice.values = [1, 2, 3, 4, 5, 6]
-        game.players[0].dice.locked = {0, 3}
+        game.players[0].dice.locked = [0, 3]
         game.round = 3
 
         # Serialize
@@ -134,7 +106,7 @@ class TestMidnightGameUnit:
         assert loaded_game.players[0].round_wins == 2
         assert loaded_game.players[0].qualified is True
         assert loaded_game.players[0].dice.values == [1, 2, 3, 4, 5, 6]
-        assert loaded_game.players[0].dice.locked == {0, 3}
+        assert loaded_game.players[0].dice.locked == [0, 3]
 
 
 class TestMidnightGameActions:
@@ -148,6 +120,7 @@ class TestMidnightGameActions:
         self.player1 = self.game.add_player("Alice", self.user1)
         self.player2 = self.game.add_player("Bob", self.user2)
         self.game.on_start()
+        self.game.flush_menus()
         self.game.reset_turn_order()
 
     def test_roll_initial(self):
@@ -160,6 +133,34 @@ class TestMidnightGameActions:
         assert self.player1.dice.has_rolled
         assert len(self.player1.dice.values) == 6
         assert all(1 <= v <= 6 for v in self.player1.dice.values)
+
+    def test_roll_broadcast_formats_dice_list_in_listener_locale(self, monkeypatch):
+        """Dice roll lists should use each listener's localized conjunction."""
+        self.user1._locale = "vi"
+        rolls = iter([1, 3, 3, 3, 1, 4])
+        monkeypatch.setattr(
+            dice_utils.random,
+            "randint",
+            lambda _low, _high: next(rolls),
+        )
+
+        self.game.execute_action(self.player1, "roll")
+
+        spoken = self.user1.get_last_spoken()
+        assert spoken == "Bạn gieo được: 1, 3, 3, 3, 1 và 4."
+        assert " and " not in spoken
+
+    def test_score_broadcast_formats_scoring_dice_in_listener_locale(self):
+        """Scoring dice lists should also use the listener's localized conjunction."""
+        self.user1._locale = "vi"
+        self.player1.dice.values = [1, 4, 6, 5, 3, 2]
+        self.player1.dice.locked = [0, 1, 2, 3, 4, 5]
+
+        self.game._score_turn(self.player1)
+
+        spoken = self.user1.get_spoken_messages()
+        assert any("6, 5, 3 và 2" in message for message in spoken)
+        assert not any("6, 5, 3, and 2" in message for message in spoken)
 
     def test_keep_die(self):
         """Test keeping a die."""
@@ -211,18 +212,18 @@ class TestMidnightGameActions:
         for i in range(6):
             self.game.execute_action(self.player1, f"toggle_die_{i}")
 
-        # When all dice are kept, roll is hidden/disabled and bank ends turn.
+        # Roll to lock them all (autobank should trigger)
         old_player = self.game.current_player
-        self.game.execute_action(self.player1, "bank")
+        self.game.execute_action(self.player1, "roll")
 
-        # Turn should have ended due to banking
+        # Turn should have ended due to autobank
         assert self.game.current_player != old_player
 
     def test_qualification_with_1_and_4(self):
         """Test that having 1 and 4 qualifies the player."""
         # Manually set dice values to ensure we have 1 and 4
         self.player1.dice.values = [1, 4, 6, 6, 5, 3]
-        self.player1.dice.locked = {0, 1, 2, 3, 4, 5}  # All locked
+        self.player1.dice.locked = [0, 1, 2, 3, 4, 5]  # All locked
 
         self.game._score_turn(self.player1)
 
@@ -233,7 +234,7 @@ class TestMidnightGameActions:
     def test_disqualification_without_1(self):
         """Test that not having 1 disqualifies."""
         self.player1.dice.values = [2, 4, 6, 6, 5, 3]
-        self.player1.dice.locked = {0, 1, 2, 3, 4, 5}
+        self.player1.dice.locked = [0, 1, 2, 3, 4, 5]
 
         self.game._score_turn(self.player1)
 
@@ -243,7 +244,7 @@ class TestMidnightGameActions:
     def test_disqualification_without_4(self):
         """Test that not having 4 disqualifies."""
         self.player1.dice.values = [1, 2, 6, 6, 5, 3]
-        self.player1.dice.locked = {0, 1, 2, 3, 4, 5}
+        self.player1.dice.locked = [0, 1, 2, 3, 4, 5]
 
         self.game._score_turn(self.player1)
 
@@ -281,6 +282,20 @@ class TestMidnightGameActions:
         # Should not reach here
         assert False, "Autobank should have triggered"
 
+    def test_auto_score_after_roll_focuses_roll_anchor_for_touch(self, monkeypatch):
+        """Touch focus should return to Roll when rolling triggers auto-score."""
+        self.user1.client_type = "mobile"
+        self.player1.dice.values = [1, 4, 6, 5, 3, 2]
+        self.player1.dice.locked = [0, 1, 2, 3]
+        self.player1.dice.kept = [0, 1, 2, 3, 4]
+        monkeypatch.setattr(dice_utils.random, "randint", lambda _low, _high: 6)
+
+        self.game.execute_action(self.player1, "roll")
+        self.game.flush_menus()
+
+        assert self.game.current_player == self.player2
+        assert latest_turn_selection(self.user1) == "roll"
+
     def test_dice_toggle_hidden_before_roll(self):
         """Test that dice toggle actions are hidden before first roll."""
         visible_actions = self.game.get_all_visible_actions(self.player1)
@@ -301,16 +316,140 @@ class TestMidnightGameActions:
         toggle_actions = [id for id in visible_ids if id.startswith("toggle_die_")]
         assert len(toggle_actions) > 0
 
+    def test_roll_focuses_first_selectable_die(self):
+        """Test that rolling focuses the first dice keep option."""
+        random.seed(42)
+
+        self.game.execute_action(self.player1, "roll")
+        self.game.flush_menus()
+
+        assert self.user1.menus["turn_menu"]["selection_id"] == "toggle_die_0"
+
+    def test_later_roll_focuses_first_unlocked_die(self):
+        """Test that focus skips locked dice after later rolls."""
+        random.seed(42)
+        self.game.execute_action(self.player1, "roll")
+        self.game.execute_action(self.player1, "toggle_die_0")
+
+        self.game.execute_action(self.player1, "roll")
+        self.game.flush_menus()
+
+        menu = self.user1.menus["turn_menu"]
+        visible_ids = [item.id for item in menu["items"] if getattr(item, "id", None)]
+        assert "toggle_die_0" not in visible_ids
+        assert "toggle_die_1" in visible_ids
+        assert menu["selection_id"] == "toggle_die_1"
+
     def test_requires_turn(self):
         """Test that turn-required actions are only available on your turn."""
-        p1_actions = self.game.get_all_enabled_actions(self.player1)
-        p2_actions = self.game.get_all_enabled_actions(self.player2)
+        p1_actions = self.game.get_all_visible_actions(self.player1)
+        p2_actions = self.game.get_all_visible_actions(self.player2)
 
         p1_ids = [a.action.id for a in p1_actions]
         p2_ids = [a.action.id for a in p2_actions]
 
+        p2_by_id = {a.action.id: a for a in p2_actions}
+
         assert "roll" in p1_ids
-        assert "roll" not in p2_ids
+        assert "roll" in p2_ids
+        assert p2_by_id["roll"].enabled is False
+        assert p2_by_id["roll"].disabled_reason == "action-not-your-turn"
+
+    def test_touch_status_actions_are_visible_and_ordered(self):
+        """Touch clients get useful state checks before standard table actions."""
+        self.user1.client_type = "web"
+        standard_set = self.game.create_standard_action_set(self.player1)
+        visible_ids = [
+            a.action.id for a in standard_set.get_visible_actions(self.game, self.player1)
+        ]
+
+        ordered_subset = [
+            action_id
+            for action_id in visible_ids
+            if action_id in {
+                "check_dice",
+                "check_round_status",
+                "check_scores",
+                "whose_turn",
+                "whos_at_table",
+            }
+        ]
+        assert ordered_subset == [
+            "check_dice",
+            "check_round_status",
+            "check_scores",
+            "whose_turn",
+            "whos_at_table",
+        ]
+
+    def test_check_dice_reports_current_player_context(self):
+        """Read current dice explains the active player's dice state."""
+        self.player1.dice.values = [1, 4, 6, 5, 2, 3]
+        self.player1.dice.kept = [0, 1, 2]
+        self.player1.dice.locked = [0, 1]
+
+        self.game.execute_action(self.player2, "check_dice")
+
+        spoken = self.user2.get_last_spoken()
+        assert spoken is not None
+        assert "Alice's dice" in spoken
+        assert "Current qualifying score would be 16" in spoken
+
+    def test_round_tie_does_not_award_round_wins(self):
+        """A tied high score is announced but no player receives a round win."""
+        self.game.options.rounds = 1
+        self.player1.qualified = True
+        self.player2.qualified = True
+        self.player1.round_score = 20
+        self.player2.round_score = 20
+
+        self.game._on_round_end()
+
+        assert self.player1.round_wins == 0
+        assert self.player2.round_wins == 0
+        assert any("No round win is awarded" in msg for msg in self.user1.get_spoken_messages())
+
+    def test_tied_game_result_has_no_single_winner(self):
+        """Stored results should not invent a winner when round wins are tied."""
+        self.player1.round_wins = 1
+        self.player2.round_wins = 1
+
+        result = self.game.build_game_result()
+
+        assert result.custom_data["winner_name"] is None
+        assert result.custom_data["winner_rounds"] == 1
+
+    def test_score_actions_are_backed_by_round_wins(self):
+        """Shared score actions report synchronized round-win totals."""
+        self.player1.round_wins = 2
+        self.player2.round_wins = 1
+        self.game._sync_team_scores()
+
+        self.game.execute_action(self.player1, "check_scores")
+
+        spoken = self.user1.get_spoken_messages()
+        assert any("Alice: 2 round wins" in msg for msg in spoken)
+        assert any("Bob: 1 round win" in msg for msg in spoken)
+
+    def test_invalid_round_count_is_contextual_start_error(self):
+        """Directly invalid option state is blocked before start."""
+        game = MidnightGame(options=MidnightOptions(rounds=0))
+        errors = game.prestart_validate()
+
+        assert (
+            "midnight-error-rounds-out-of-range",
+            {"rounds": 0, "min": 1, "max": 20},
+        ) in errors
+
+    def test_bot_keeps_multiple_useful_dice_before_rerolling(self):
+        """Bot should not reroll immediately after keeping only one useful die."""
+        self.player1.dice.values = [1, 4, 6, 2, 3, 5]
+        self.player1.dice.kept = []
+        self.player1.dice.locked = []
+
+        assert self.game.bot_think(self.player1) == "toggle_die_0"
+        self.game.execute_action(self.player1, "toggle_die_0")
+        assert self.game.bot_think(self.player1) == "toggle_die_1"
 
 
 class TestMidnightPlayTest:
@@ -332,6 +471,7 @@ class TestMidnightPlayTest:
         game.add_player("Bot2", bot2)
 
         game.on_start()
+        game.flush_menus()
 
         # Run game with periodic save/reload to test persistence
         max_ticks = 2000
@@ -350,6 +490,7 @@ class TestMidnightPlayTest:
                     game.setup_player_actions(player)
 
             game.on_tick()
+            game.flush_menus()
 
         assert not game.game_active, "Game should have ended"
         # At least one player should have won a round
@@ -366,6 +507,7 @@ class TestMidnightPlayTest:
             game.add_player(bot.username, bot)
 
         game.on_start()
+        game.flush_menus()
 
         max_ticks = 3000
         for tick in range(max_ticks):
@@ -383,6 +525,7 @@ class TestMidnightPlayTest:
                     game.setup_player_actions(player)
 
             game.on_tick()
+            game.flush_menus()
 
         assert not game.game_active
 
@@ -397,6 +540,7 @@ class TestMidnightPlayTest:
         game.add_player("Bot", bot)
 
         game.on_start()
+        game.flush_menus()
 
         max_ticks = 2000
         for tick in range(max_ticks):
@@ -405,9 +549,52 @@ class TestMidnightPlayTest:
 
             current = game.current_player
             if current and current.name == "Human":
-                _play_human_turn(game, current)
+                # Simple human strategy: roll, keep 1 and 4, keep highest dice, roll or stop
+                if not current.dice.has_rolled:
+                    game.execute_action(current, "roll")
+                elif current.dice.kept_unlocked_count > 0:
+                    # Have kept dice, roll to lock them
+                    game.execute_action(current, "roll")
+                else:
+                    # Check if we should keep something
+                    found_action = False
+
+                    # Keep 1 if we don't have it
+                    locked_values = [current.dice.values[i] for i in current.dice.locked]
+                    if 1 not in locked_values:
+                        for i in range(6):
+                            if not current.dice.is_locked(i) and current.dice.values[i] == 1:
+                                game.execute_action(current, f"toggle_die_{i}")
+                                found_action = True
+                                break
+
+                    # Keep 4 if we don't have it
+                    if not found_action and 4 not in locked_values:
+                        for i in range(6):
+                            if not current.dice.is_locked(i) and current.dice.values[i] == 4:
+                                game.execute_action(current, f"toggle_die_{i}")
+                                found_action = True
+                                break
+
+                    # Keep highest
+                    if not found_action:
+                        best_i = -1
+                        best_v = 0
+                        for i in range(6):
+                            if not current.dice.is_locked(i) and not current.dice.is_kept(i):
+                                if current.dice.values[i] > best_v:
+                                    best_v = current.dice.values[i]
+                                    best_i = i
+                        if best_i >= 0:
+                            game.execute_action(current, f"toggle_die_{best_i}")
+                            found_action = True
+
+                    # Bank if nothing to do
+                    if not found_action:
+                        game.execute_action(current, "bank")
             else:
                 game.on_tick()
+                game.flush_menus()
 
         assert not game.game_active
 
@@ -428,11 +615,13 @@ class TestMidnightPlayTest:
             game.add_player("Bot2", bot2)
 
             game.on_start()
+            game.flush_menus()
 
             for _ in range(rounds * 1000 + 1000):
                 if not game.game_active:
                     break
                 game.on_tick()
+                game.flush_menus()
 
             assert not game.game_active, f"Game with {rounds} rounds should complete"
 
@@ -449,6 +638,7 @@ class TestMidnightPersistence:
         game.add_player("Bob", user2)
 
         game.on_start()
+        game.flush_menus()
 
         # Set various state
         game.round = 5
@@ -457,7 +647,7 @@ class TestMidnightPersistence:
         game.players[0].round_wins = 2
         game.players[0].qualified = True
         game.players[0].dice.values = [1, 4, 6, 5, 3, 2]
-        game.players[0].dice.locked = {0, 1, 2}
+        game.players[0].dice.locked = [0, 1, 2]
         game.players[1].round_score = 0
         game.players[1].round_wins = 3
         game.players[1].qualified = False
@@ -476,7 +666,7 @@ class TestMidnightPersistence:
         assert loaded.players[0].round_wins == 2
         assert loaded.players[0].qualified is True
         assert loaded.players[0].dice.values == [1, 4, 6, 5, 3, 2]
-        assert loaded.players[0].dice.locked == {0, 1, 2}
+        assert loaded.players[0].dice.locked == [0, 1, 2]
         assert loaded.players[1].round_score == 0
         assert loaded.players[1].round_wins == 3
         assert loaded.players[1].qualified is False
@@ -489,6 +679,7 @@ class TestMidnightPersistence:
         game.add_player("Alice", user)
         game.add_player("Bot", bot)
         game.on_start()
+        game.flush_menus()
 
         # Do some actions
         game.execute_action(game.players[0], "roll")
@@ -506,5 +697,41 @@ class TestMidnightPersistence:
         assert len(actions) > 0
 
 
+def test_midnight_locale_key_and_variable_parity():
+    """English and Vietnamese Midnight locale files must stay structurally synced."""
+    root = Path(__file__).resolve().parents[1]
+    en_text = (root / "locales" / "en" / "midnight.ftl").read_text(encoding="utf-8")
+    vi_text = (root / "locales" / "vi" / "midnight.ftl").read_text(encoding="utf-8")
+
+    def messages(text: str) -> dict[str, set[str]]:
+        result = {}
+        current_key = None
+        current_lines: list[str] = []
+        for line in text.splitlines():
+            if line and not line.startswith((" ", "\t")) and "=" in line:
+                if current_key is not None:
+                    result[current_key] = set(
+                        re.findall(
+                            r"\{\s*\$([a-zA-Z_][\w-]*)",
+                            "\n".join(current_lines),
+                        )
+                    )
+                current_key = line.split("=", 1)[0].strip()
+                current_lines = [line]
+            elif current_key is not None:
+                current_lines.append(line)
+        if current_key is not None:
+            result[current_key] = set(
+                re.findall(
+                    r"\{\s*\$([a-zA-Z_][\w-]*)",
+                    "\n".join(current_lines),
+                )
+            )
+        return result
+
+    assert messages(en_text) == messages(vi_text)
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+

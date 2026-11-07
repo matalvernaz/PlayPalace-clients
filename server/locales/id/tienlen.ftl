@@ -1,138 +1,129 @@
+# tienlen.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 game-name-tienlen = Tien Len
-
-tienlen-set-variant = Variant: { $choice }
-tienlen-select-variant = Select Tien Len variant:
-tienlen-option-changed-variant = Variant set to { $choice }.
-tienlen-desc-variant = Chooses Southern or Northern Tiến Lên rules.
-
-tienlen-set-coin-target = Starting coins: { $choice }
-tienlen-select-coin-target = Select starting coins:
-tienlen-option-changed-coin-target = Starting coins set to { $choice }.
-tienlen-desc-match-length = Starting bankroll for each player. Settlements use 10-coin stake units; players at 0 coins are eliminated.
-
-tienlen-set-turn-timer = Turn Timer: { $choice }
-tienlen-select-turn-timer = Select turn timer duration:
-tienlen-option-changed-turn-timer = Turn timer set to { $choice }.
-tienlen-desc-turn-timer = Optional time limit for each Tiến Lên turn: Unlimited, 10, 15, 20, 30, 45, 60, or 90 seconds (default Unlimited).
-
-tienlen-variant-south = Southern Tien Len
-tienlen-variant-north = Northern Tien Len
-tienlen-target-20 = 20 coins
-tienlen-target-50 = 50 coins
-tienlen-target-100 = 100 coins
-tienlen-target-200 = 200 coins
-
-tienlen-timer-10 = 10 Seconds
-tienlen-timer-15 = 15 Seconds
-tienlen-timer-20 = 20 Seconds
-tienlen-timer-30 = 30 Seconds
-tienlen-timer-45 = 45 Seconds
-tienlen-timer-60 = 60 Seconds
-tienlen-timer-90 = 90 Seconds
-tienlen-timer-unlimited = Unlimited
-
-tienlen-game-start = Starting Tien Len.
-tienlen-new-hand = Hand { $round }.
-tienlen-dealt = Dealt 13 cards: { $cards }.
-tienlen-variant-status = This table is playing { $variant }.
-
+tienlen-set-variant = Varian: { $choice }
+tienlen-select-variant = Pilih varian Tien Len:
+tienlen-option-changed-variant = Varian diubah menjadi { $choice }.
+tienlen-desc-variant = Pilih aturan Tien Len Selatan atau Utara.
+tienlen-set-coin-target = Koin awal: { $choice }
+tienlen-select-coin-target = Pilih jumlah koin awal:
+tienlen-option-changed-coin-target = Jumlah koin awal diubah menjadi { $choice }.
+tienlen-desc-match-length = Jumlah koin awal setiap pemain. Pembayaran dihitung dalam satuan 10 koin. Pemain yang kehabisan koin tersingkir.
+tienlen-set-turn-timer = Batas waktu giliran: { $choice }
+tienlen-select-turn-timer = Pilih batas waktu giliran:
+tienlen-option-changed-turn-timer = Batas waktu giliran diubah menjadi { $choice }.
+tienlen-desc-turn-timer = Batas waktu opsional untuk setiap giliran Tien Len. Pilih tanpa batas, 10, 15, 20, 30, 45, 60, atau 90 detik. Bawaannya tanpa batas.
+tienlen-variant-south = Tien Len Selatan
+tienlen-variant-north = Tien Len Utara
+tienlen-target-20 = 20 koin
+tienlen-target-50 = 50 koin
+tienlen-target-100 = 100 koin
+tienlen-target-200 = 200 koin
+tienlen-timer-10 = 10 detik
+tienlen-timer-15 = 15 detik
+tienlen-timer-20 = 20 detik
+tienlen-timer-30 = 30 detik
+tienlen-timer-45 = 45 detik
+tienlen-timer-60 = 60 detik
+tienlen-timer-90 = 90 detik
+tienlen-timer-unlimited = Tanpa batas
+tienlen-game-start = Memulai Tien Len.
+tienlen-new-hand = Ronde { $round }.
+tienlen-dealt = Anda mendapat 13 kartu: { $cards }.
+tienlen-variant-status = Meja ini menggunakan { $variant }.
 tienlen-card-unselected = { $card }
-tienlen-card-selected = { $card } (selected)
-
-tienlen-play-none = Select cards to play.
-tienlen-play-invalid = Invalid combination.
-tienlen-play-combo = Play { $combo }
-
-tienlen-pass = Pass
-tienlen-confirm-pass = Passing locks you out of the current trick. Press Pass again within 10 seconds to confirm.
-tienlen-check-trick = Check trick
-tienlen-read-hand = Read hand
-tienlen-read-card-counts = Read card counts
-tienlen-check-variant = Check variant
-tienlen-check-turn-timer = Check turn timer
-tienlen-timer-disabled = The turn timer is disabled.
-tienlen-timer-remaining = { $seconds } seconds remaining.
-
-tienlen-error-no-cards = You have not selected any cards.
-tienlen-error-invalid-combo = The selected cards do not form a valid Tien Len combination for this variant.
-tienlen-error-pass-lock = You already passed on this trick and must wait until the table clears.
-tienlen-error-pass-lock-chop = You already passed on this trick. You may only return with a legal chop against the current 2s or chopping combination.
-tienlen-error-wrong-length = You must play exactly { $count } cards to answer the current trick.
-tienlen-error-must-match-type = Your play must match the current trick's combination type unless it is a legal chop.
-tienlen-error-structure-mismatch = In Northern Tien Len, your play must match the suit or color structure of the current trick.
-tienlen-error-lower-combo = Your combination does not beat the current trick.
-tienlen-error-must-play = You cannot pass when starting a new trick.
-tienlen-error-cannot-finish-on-two = In Northern Tien Len, you cannot finish the hand with 2s or leave only 2s behind.
-tienlen-error-not-your-turn-chop = It is not your turn. In Southern Tien Len you may only jump in with a selected legal chop.
-tienlen-error-already-finished = You have already finished this hand.
-tienlen-error-opening-card-required = The opening play must include { $card }.
-tienlen-error-invalid-variant = Select a supported Tien Len variant.
-tienlen-error-invalid-starting-coins = Select a supported starting coin amount.
-tienlen-error-invalid-turn-timer = Select a supported turn timer.
-
-tienlen-you-play-single = You play { $card }.
-tienlen-player-plays-single = { $player } plays { $card }.
-tienlen-you-play-combo = You play { $combo }: { $cards }.
-tienlen-player-plays-combo = { $player } plays { $combo }: { $cards }.
-tienlen-you-one-card = You have one card left.
-tienlen-one-card = { $player } has one card left.
-tienlen-you-pass = You pass and are locked out until this trick clears.
-tienlen-player-passes = { $player } passes and is locked out until this trick clears.
-tienlen-you-chop-payment = You chop { $player }. { $amount } coins pending.
-tienlen-you-are-chopped-payment = { $player } chops you. { $amount } coins pending.
-tienlen-player-chop-payment = { $chopper } chops { $chopped }. { $amount } coins pending.
-tienlen-you-leftover-penalty = You pay { $amount } coins for leftover 2s or chopping cards.
-tienlen-player-leftover-penalty = { $player } pays { $amount } coins for leftover 2s or chopping cards.
-tienlen-you-finish-place = You emptied your hand and take place { $place } for this hand.
-tienlen-player-finishes-place = { $player } empties their hand and takes place { $place } for this hand.
-tienlen-trick-empty = The trick is empty.
-tienlen-trick-status = { $player } is leading with { $combo }: { $cards }.
-tienlen-your-hand = Your hand: { $cards }.
-tienlen-card-count-line = { $player } has { $count } cards
-tienlen-card-count-eliminated-line = { $player } is eliminated
-
-tienlen-combo-single = single
-tienlen-combo-pair = pair
-tienlen-combo-triple = triple
+tienlen-card-selected = { $card } (dipilih)
+tienlen-play-none = Pilih kartu yang akan dimainkan.
+tienlen-play-invalid = Kombinasi tidak sah.
+tienlen-play-combo = Mainkan { $combo }
+tienlen-pass = Lewat
+tienlen-confirm-pass = Jika lewat, Anda tidak bisa bermain lagi sampai adu kartu ini selesai. Tekan Lewat lagi dalam 10 detik untuk mengonfirmasi.
+tienlen-check-trick = Periksa adu kartu
+tienlen-read-hand = Bacakan kartu di tangan
+tienlen-read-card-counts = Bacakan jumlah kartu
+tienlen-check-variant = Periksa varian
+tienlen-check-turn-timer = Periksa waktu giliran
+tienlen-timer-disabled = Batas waktu giliran dinonaktifkan.
+tienlen-timer-remaining = Tersisa { $seconds } detik.
+tienlen-error-no-cards = Anda belum memilih kartu.
+tienlen-error-invalid-combo = Kartu yang dipilih tidak membentuk kombinasi Tien Len yang sah untuk varian ini.
+tienlen-error-pass-lock = Anda sudah lewat pada adu kartu ini. Tunggu sampai kartu di meja disingkirkan.
+tienlen-error-pass-lock-chop = Anda sudah lewat pada adu kartu ini. Anda hanya boleh kembali dengan chop yang sah terhadap kartu 2 atau kombinasi chop di meja.
+tienlen-error-wrong-length = Anda harus memainkan tepat { $count } kartu untuk membalas kombinasi di meja.
+tienlen-error-must-match-type = Kombinasi Anda harus sejenis dengan kombinasi di meja, kecuali jika Anda melakukan chop yang sah.
+tienlen-error-structure-mismatch = Dalam Tien Len Utara, kombinasi Anda harus mengikuti pola jenis atau warna kartu dari kombinasi di meja.
+tienlen-error-lower-combo = Kombinasi Anda tidak mengalahkan kombinasi di meja.
+tienlen-error-must-play = Anda tidak boleh lewat saat membuka adu kartu baru.
+tienlen-error-cannot-finish-on-two = Dalam Tien Len Utara, Anda tidak boleh menghabiskan kartu dengan kartu 2 atau menyisakan kartu 2 saja di tangan.
+tienlen-error-not-your-turn-chop = Belum giliran Anda. Dalam Tien Len Selatan, Anda hanya boleh menyela dengan memilih kombinasi chop yang sah.
+tienlen-error-already-finished = Anda sudah menyelesaikan ronde ini.
+tienlen-error-opening-card-required = Kombinasi pembuka harus menyertakan { $card }.
+tienlen-error-invalid-variant = Pilih varian Tien Len yang tersedia.
+tienlen-error-invalid-starting-coins = Pilih jumlah koin awal yang tersedia.
+tienlen-error-invalid-turn-timer = Pilih batas waktu giliran yang tersedia.
+tienlen-you-play-single = Anda memainkan { $card }.
+tienlen-player-plays-single = { $player } memainkan { $card }.
+tienlen-you-play-combo = Anda memainkan { $combo }: { $cards }.
+tienlen-player-plays-combo = { $player } memainkan { $combo }: { $cards }.
+tienlen-you-one-card = Kartu Anda tinggal satu.
+tienlen-one-card = Kartu { $player } tinggal satu.
+tienlen-you-pass = Anda lewat dan harus menunggu sampai adu kartu ini selesai.
+tienlen-player-passes = { $player } lewat dan harus menunggu sampai adu kartu ini selesai.
+tienlen-you-chop-payment = Anda melakukan chop terhadap { $player }. Pembayaran { $amount } koin menunggu akhir ronde.
+tienlen-you-are-chopped-payment = { $player } melakukan chop terhadap Anda. Pembayaran { $amount } koin menunggu akhir ronde.
+tienlen-player-chop-payment = { $chopper } melakukan chop terhadap { $chopped }. Pembayaran { $amount } koin menunggu akhir ronde.
+tienlen-you-leftover-penalty = Anda membayar { $amount } koin untuk sisa kartu 2 atau kombinasi chop.
+tienlen-player-leftover-penalty = { $player } membayar { $amount } koin untuk sisa kartu 2 atau kombinasi chop.
+tienlen-you-finish-place = Kartu Anda habis. Anda menempati urutan { $place } pada ronde ini.
+tienlen-player-finishes-place = { $player } menghabiskan kartunya dan menempati urutan { $place } pada ronde ini.
+tienlen-trick-empty = Belum ada kartu dalam adu kartu ini.
+tienlen-trick-status = { $player } memimpin dengan { $combo }: { $cards }.
+tienlen-your-hand = Kartu Anda: { $cards }.
+tienlen-card-count-line = { $player } memiliki { $count } kartu
+tienlen-card-count-eliminated-line = { $player } tersingkir
+tienlen-combo-single = kartu tunggal
+tienlen-combo-pair = pasangan
+tienlen-combo-triple = tiga kartu senilai
 tienlen-combo-four_of_a_kind = four of a kind
 tienlen-combo-straight = straight
-tienlen-combo-consecutive_pairs = consecutive pairs
-
-tienlen-instant-six-pairs = six pairs
-tienlen-instant-five-consecutive-pairs = five consecutive pairs
-tienlen-instant-three-consecutive-triples = three consecutive triples
-tienlen-instant-four-twos = four 2s
+tienlen-combo-consecutive_pairs = pasangan berurutan
+tienlen-instant-six-pairs = enam pasangan
+tienlen-instant-five-consecutive-pairs = lima pasangan berurutan
+tienlen-instant-three-consecutive-triples = tiga kelompok tiga kartu senilai berurutan
+tienlen-instant-four-twos = empat kartu 2
 tienlen-instant-dragon = dragon straight
-tienlen-instant-six-consecutive-pairs = six consecutive pairs
-tienlen-instant-four-triples = four triples
-tienlen-instant-two-four-of-a-kind = two four-of-a-kind sets
-tienlen-instant-same-color = 12 cards of one color
-tienlen-you-instant-win = You have an instant win with { $reason }.
-tienlen-player-instant-wins = { $player } has an instant win with { $reason }.
-tienlen-you-win-hand = You take first place.
-tienlen-player-wins-hand = { $player } takes first place.
-tienlen-settlement-rank = placing { $change }
-tienlen-settlement-chop = chops { $change }
-tienlen-settlement-leftover = leftovers { $change }
-tienlen-settlement-instant = instant win { $change }
-tienlen-settlement-adjustment = adjustment { $change }
-tienlen-settlement-no-change = no change
-tienlen-hand-settlement-line = { $place }. { $player }: { $breakdown }; net { $net }; total { $total }.
-tienlen-you-eliminated = You are out of coins and eliminated.
-tienlen-player-eliminated = { $player } is out of coins and eliminated.
-tienlen-players-remaining = { $count ->
-    [one] 1 player remains.
-   *[other] { $count } players remain.
-}
-tienlen-you-win-match = You win the Tien Len match with { $coins } coins left.
-tienlen-player-wins-match = { $player } wins the Tien Len match with { $coins } coins left.
-tienlen-line-format = { $rank }. { $player }: { $score ->
-    [one] 1 coin
-   *[other] { $score } coins
-}
-
-tienlen-south-card-name = { $rank } of { $suit }
-tienlen-south-rank-1 = Ace
+tienlen-instant-six-consecutive-pairs = enam pasangan berurutan
+tienlen-instant-four-triples = empat kelompok tiga kartu senilai
+tienlen-instant-two-four-of-a-kind = dua kelompok four of a kind
+tienlen-instant-same-color = 12 kartu berwarna sama
+tienlen-you-instant-win = Anda langsung menang dengan { $reason }.
+tienlen-player-instant-wins = { $player } langsung menang dengan { $reason }.
+tienlen-you-win-hand = Anda menempati urutan pertama.
+tienlen-player-wins-hand = { $player } menempati urutan pertama.
+tienlen-settlement-rank = posisi akhir { $change }
+tienlen-settlement-chop = chop { $change }
+tienlen-settlement-leftover = sisa kartu { $change }
+tienlen-settlement-instant = menang langsung { $change }
+tienlen-settlement-adjustment = penyesuaian { $change }
+tienlen-settlement-no-change = tidak berubah
+tienlen-hand-settlement-line = { $place }. { $player }: { $breakdown }. Perubahan bersih { $net }, total { $total }.
+tienlen-you-eliminated = Anda kehabisan koin dan tersingkir.
+tienlen-player-eliminated = { $player } kehabisan koin dan tersingkir.
+tienlen-players-remaining =
+    { $count ->
+        [one] Tersisa 1 pemain.
+       *[other] Tersisa { $count } pemain.
+    }
+tienlen-you-win-match = Anda memenangkan pertandingan Tien Len dengan sisa { $coins } koin.
+tienlen-player-wins-match = { $player } memenangkan pertandingan Tien Len dengan sisa { $coins } koin.
+tienlen-line-format =
+    { $rank }. { $player }: { $score ->
+        [one] 1 koin
+       *[other] { $score } koin
+    }
+tienlen-south-card-name = { $rank } { $suit }
+tienlen-south-rank-1 = As
 tienlen-south-rank-2 = 2
 tienlen-south-rank-3 = 3
 tienlen-south-rank-4 = 4
@@ -145,7 +136,7 @@ tienlen-south-rank-10 = 10
 tienlen-south-rank-11 = Jack
 tienlen-south-rank-12 = Queen
 tienlen-south-rank-13 = King
-tienlen-south-suit-1 = Diamonds
-tienlen-south-suit-2 = Clubs
-tienlen-south-suit-3 = Hearts
-tienlen-south-suit-4 = Spades
+tienlen-south-suit-1 = wajik
+tienlen-south-suit-2 = keriting
+tienlen-south-suit-3 = hati
+tienlen-south-suit-4 = sekop

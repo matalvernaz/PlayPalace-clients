@@ -8,7 +8,7 @@ missing-user timing path, and trusted-proxy gating of forwarded headers.
 import pytest
 
 from server.auth.auth import AuthManager, AuthResult
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
 from server.network.websocket_server import WebSocketServer
 from server.persistence.database import Database
 

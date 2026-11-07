@@ -1,3 +1,6 @@
+# languages.ftl for locale zu. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Language names translated into this language
 language-ar = Isi-Arabhu
 language-cs = IsiCzech
@@ -11,7 +14,6 @@ language-hr = IsiCroatia
 language-hu = IsiHungary
 language-id = Isi-Indonesia
 language-it = Isi-Italiyane
-language-ja = IsiJaphani
 language-ko = IsiKoriya
 language-mk = IsiMacedonia
 language-mn = IsiMongolia
@@ -30,3 +32,4 @@ language-uk = Isi-Ukraine
 language-vi = IsiVietnam
 language-zh = IsiShayina
 language-zu = IsiZulu
+language-ja = IsiJaphani

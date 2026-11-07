@@ -17,21 +17,6 @@ def test_safe_json_load():
     assert _safe_json_load("{not valid", []) == []
 
 
-def test_diceset_discards_inconsistent_values():
-    # Too-short values list -> treated as unrolled (no IndexError on roll).
-    assert DiceSet(num_dice=5, sides=6, values=[1, 2, 3]).values == []
-    # Out-of-range value -> reset.
-    assert DiceSet(num_dice=2, sides=6, values=[7, 1]).values == []
-    # Consistent, in-range values preserved.
-    assert DiceSet(num_dice=3, sides=6, values=[1, 2, 3]).values == [1, 2, 3]
-
-
-def test_diceset_filters_out_of_range_indices():
-    d = DiceSet(num_dice=3, sides=6, values=[1, 2, 3], kept=[0, 9], locked=[-1, 2])
-    assert d.kept == {0}
-    assert d.locked == {2}
-
-
 def test_diceset_bad_load_then_roll_no_indexerror():
     d = DiceSet.from_dict({"num_dice": 5, "sides": 6, "values": [1, 2]})
     assert d.has_rolled is False

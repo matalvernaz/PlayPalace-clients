@@ -1,8 +1,4 @@
-"""
-Snakes and Ladders Game Implementation for PlayPalace.
-
-Classic board game where players race to 100.
-"""
+"""Audio-first Snakes and Ladders implementation."""
 
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -13,42 +9,105 @@ from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
+from ...game_utils.options import (
+    BoolOption,
+    GameOptions,
+    MenuOption,
+    option_field,
+)
+from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...messages.localization import Localization
-from ...game_utils.game_status import GameStatus
-from server.core.ui.keybinds import KeybindState
+from ...ui.keybinds import KeybindState
+from ...users.base import MenuItem
+
+
+WINNING_SQUARE = 100
+STARTING_POSITION = 0
+FINISH_BOUNCE_BACK = "bounce_back"
+FINISH_EXACT_STAY = "exact_stay"
+FINISH_RULES = (FINISH_BOUNCE_BACK, FINISH_EXACT_STAY)
+FINISH_RULE_LABELS = {
+    FINISH_BOUNCE_BACK: "snakes-finish-bounce-back",
+    FINISH_EXACT_STAY: "snakes-finish-exact-stay",
+}
+
+STEP_DELAY_START = 8
+STEP_INTERVAL = 4
+NUM_STEP_SOUNDS = 3
+NUM_DICE_SOUNDS = 3
+NUM_LADDER_SOUNDS = 3
 
 
 @dataclass
 class SnakesPlayer(Player):
-    """Player state for Snakes and Ladders."""
+    """Per-player race state."""
 
-    position: int = 1  # Start at square 1
+    position: int = STARTING_POSITION
     finished: bool = False
+
+
+@dataclass
+class SnakesAndLaddersOptions(GameOptions):
+    """Published rule variants supported by the game."""
+
+    finish_rule: str = option_field(
+        MenuOption(
+            default=FINISH_BOUNCE_BACK,
+            choices=list(FINISH_RULES),
+            value_key="rule",
+            label="snakes-set-finish-rule",
+            prompt="snakes-select-finish-rule",
+            change_msg="snakes-option-changed-finish-rule",
+            choice_labels=FINISH_RULE_LABELS,
+        )
+    )
+    extra_turn_on_six: bool = option_field(
+        BoolOption(
+            default=True,
+            value_key="enabled",
+            label="snakes-set-extra-turn-six",
+            change_msg="snakes-option-changed-extra-turn-six",
+        )
+    )
 
 
 @dataclass
 @register_game
 class SnakesAndLaddersGame(Game):
-    """
-    Snakes and Ladders.
+    """Race from before square 1 to square 100."""
 
-    Race to square 100. Ladders move you up, Snakes move you down.
-    Exact roll required to win (bounce back rule).
-    """
+    relevant_preferences = ["brief_announcements"]
 
-    # Game State - Override players list with specific type for Mashumaro
     players: list[SnakesPlayer] = field(default_factory=list)
+    options: SnakesAndLaddersOptions = field(default_factory=SnakesAndLaddersOptions)
+    is_rolling: bool = False
+    last_roll: int = 0
+    winner_id: str = ""
 
-    # Game Constants
-    WINNING_SQUARE = 100
-
-    # Sound configurations
-    NUM_STEP_SOUNDS = 3
-    NUM_LADDER_SOUNDS = 3
-
-    # Standard Snakes and Ladders board layout
-    LADDERS = {1: 38, 4: 14, 9: 31, 21: 42, 28: 84, 36: 44, 51: 67, 71: 91, 80: 100}
-    SNAKES = {16: 6, 47: 26, 49: 11, 56: 53, 62: 19, 64: 60, 87: 24, 93: 73, 95: 75, 98: 78}
+    WINNING_SQUARE = WINNING_SQUARE
+    LADDERS = {
+        1: 38,
+        4: 14,
+        9: 31,
+        21: 42,
+        28: 84,
+        36: 44,
+        51: 67,
+        71: 91,
+        80: 100,
+    }
+    SNAKES = {
+        16: 6,
+        47: 26,
+        49: 11,
+        56: 53,
+        62: 19,
+        64: 60,
+        87: 24,
+        93: 73,
+        95: 75,
+        98: 78,
+    }
 
     @classmethod
     def get_name(cls) -> str:
@@ -60,7 +119,11 @@ class SnakesAndLaddersGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-board-games"
+        return "board"
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -70,77 +133,343 @@ class SnakesAndLaddersGame(Game):
     def get_max_players(cls) -> int:
         return 4
 
-    def create_player(self, player_id: str, name: str, is_bot: bool = False) -> SnakesPlayer:
+    @property
+    def winner(self) -> SnakesPlayer | None:
+        player = self.get_player_by_id(self.winner_id) if self.winner_id else None
+        return player if isinstance(player, SnakesPlayer) else None
+
+    def create_player(
+        self, player_id: str, name: str, is_bot: bool = False
+    ) -> SnakesPlayer:
         return SnakesPlayer(id=player_id, name=name, is_bot=is_bot)
 
+    def prestart_validate(self) -> list[str | tuple[str, dict]]:
+        errors: list[str | tuple[str, dict]] = list(super().prestart_validate())
+        if self.options.finish_rule not in FINISH_RULES:
+            errors.append(
+                (
+                    "snakes-error-invalid-finish-rule",
+                    {"rule": self.options.finish_rule},
+                )
+            )
+        return errors
+
+    # ------------------------------------------------------------------
+    # Communication helpers
+    # ------------------------------------------------------------------
+
+    def _wants_brief(self, user) -> bool:
+        return bool(
+            user
+            and user.preferences.get_effective(
+                "brief_announcements", game_type=self.get_type()
+            )
+        )
+
+    def _broadcast_actor_l(
+        self,
+        actor: SnakesPlayer,
+        personal_key: str,
+        others_key: str,
+        *,
+        brief_personal_key: str | None = None,
+        brief_others_key: str | None = None,
+        **kwargs,
+    ) -> None:
+        """Broadcast with listener-specific perspective and verbosity."""
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+
+            is_actor = listener.id == actor.id
+            key = personal_key if is_actor else others_key
+            if self._wants_brief(user):
+                if is_actor and brief_personal_key:
+                    key = brief_personal_key
+                elif not is_actor and brief_others_key:
+                    key = brief_others_key
+
+            payload = dict(kwargs)
+            if not is_actor:
+                payload["player"] = actor
+            payload = self._resolve_broadcast_kwargs(user.locale, payload)
+            user.speak_l(key, buffer="game", **payload)
+
+    def _announce_turn(self, player: SnakesPlayer) -> None:
+        user = self.get_user(player)
+        if user and getattr(user.preferences, "play_turn_sound", True):
+            user.play_sound("turn.ogg")
+
+        if player.position == STARTING_POSITION:
+            self._broadcast_actor_l(
+                player,
+                "snakes-turn-start-you",
+                "snakes-turn-start-other",
+            )
+        else:
+            self._broadcast_actor_l(
+                player,
+                "snakes-turn-you",
+                "snakes-turn-other",
+                position=player.position,
+            )
+
+    # ------------------------------------------------------------------
+    # Lifecycle and turn flow
+    # ------------------------------------------------------------------
+
     def on_start(self) -> None:
-        """Called when the game starts."""
-        self.status = GameStatus.PLAYING
-
+        self.status = "playing"
+        self._sync_table_status()
         self.game_active = True
+        self.cancel_all_sequences()
+        self.clear_scheduled_sounds()
+        self.is_rolling = False
+        self.last_roll = 0
+        self.winner_id = ""
 
-        # Initialize players
-        for p in self.players:
-            p.position = 1
-            p.finished = False
+        active_players = self.get_active_players()
+        for player in active_players:
+            player.position = STARTING_POSITION
+            player.finished = False
 
-        # Set turn order
-        self.set_turn_players(self.get_active_players())
-
-        # Play intro music/sounds (Reuse Pig music as placeholder/standard)
+        self.set_turn_players(active_players)
         self.play_music("game_pig/mus.ogg")
-        self.broadcast_l("game-snakesandladders-desc")
+        self.broadcast_l("game-snakesandladders-desc", buffer="game")
+        self._start_turn(announce=True)
 
-        self._start_turn()
-
-    def _start_turn(self, previous_player: "SnakesPlayer | None" = None) -> None:
-        """Start the current player's turn.
-
-        Args:
-            previous_player: The player whose turn just ended. Only that player
-                and the new current player need menu rebuilds. Pass None to
-                rebuild all players (e.g. on game start).
-        """
+    def _start_turn(self, *, announce: bool) -> None:
+        self.cancel_sequences_by_tag("turn_flow")
+        self.is_rolling = False
         player = self.current_player
-        if not player:
+        if not isinstance(player, SnakesPlayer):
             return
 
-        # Announce turn using custom message
-        # We do NOT call self.announce_turn() to avoid the generic "It's X's turn" message.
-
-        # Manually play turn sound (logic borrowed from TurnManagementMixin)
-        user = self.get_user(player)
-        # Note: We assume user object has preferences.play_turn_sound as used in base mixin
-        if user and getattr(user.preferences, "play_turn_sound", True):
-            user.play_sound("game_pig/turn.ogg")
-
-        self.broadcast_l("snakes-turn", player=player.name, position=player.position)
-
-        # Jolt bots
+        if announce:
+            self._announce_turn(player)
         if player.is_bot:
-            BotHelper.jolt_bot(player, ticks=random.randint(20, 40))
+            BotHelper.jolt_bot(player, ticks=random.randint(20, 40))  # nosec B311
+        self.refresh_menus()
 
-        # Rebuild menus only for affected players
-        if previous_player is not None:
-            # Only rebuild the two affected players:
-            # - previous player: turn actions disappeared
-            # - current player: turn actions appeared
-            self.rebuild_player_menu(player, position=1)
-            if previous_player != player:
-                self.rebuild_player_menu(previous_player)
-        else:
-            # Game start — rebuild everyone
-            for p in self.players:
-                if p == player:
-                    self.rebuild_player_menu(p, position=1)
-                else:
-                    self.rebuild_player_menu(p)
+    def _complete_turn(self, player_id: str, extra_turn: bool) -> None:
+        self.is_rolling = False
+        if self.status != "playing":
+            return
+
+        player = self.get_player_by_id(player_id)
+        current = self.current_player
+        if not isinstance(player, SnakesPlayer) or current is not player:
+            self._start_turn(announce=current is not None)
+            return
+
+        if extra_turn:
+            self._broadcast_actor_l(
+                player,
+                "snakes-extra-turn-you",
+                "snakes-extra-turn-other",
+                position=player.position,
+            )
+            self._start_turn(announce=False)
+            return
+
+        self.advance_turn(announce=False)
+        self._start_turn(announce=True)
+
+    def on_tick(self) -> None:
+        super().on_tick()
+        self.process_scheduled_sounds()
+        self.process_sequences()
+        if self.status == "playing" and not self.is_sequence_bot_paused():
+            BotHelper.on_tick(self)
+
+    def bot_think(self, player: SnakesPlayer) -> str | None:
+        return "roll"
+
+    # ------------------------------------------------------------------
+    # Sequence callbacks
+    # ------------------------------------------------------------------
+
+    def on_sequence_callback(
+        self,
+        sequence_id: str,
+        callback_id: str,
+        payload: dict,
+    ) -> None:
+        _ = sequence_id
+        player_id = str(payload.get("player_id", ""))
+        player = self.get_player_by_id(player_id) if player_id else None
+        actor = player if isinstance(player, SnakesPlayer) else None
+
+        # Compatibility for turn sequences saved before the polished flow.
+        if callback_id == "move":
+            if not actor or "pos" not in payload:
+                return
+            start = actor.position
+            position = int(payload["pos"])
+            if position > WINNING_SQUARE:
+                # The legacy bounce callback carries the valid landing square.
+                return
+            actor.position = position
+            if start == STARTING_POSITION:
+                self._broadcast_actor_l(
+                    actor,
+                    "snakes-enter-you",
+                    "snakes-enter-other",
+                    brief_personal_key="snakes-enter-you-brief",
+                    brief_others_key="snakes-enter-other-brief",
+                    position=position,
+                )
+            else:
+                self._broadcast_actor_l(
+                    actor,
+                    "snakes-move-you",
+                    "snakes-move-other",
+                    brief_personal_key="snakes-move-you-brief",
+                    brief_others_key="snakes-move-other-brief",
+                    start=start,
+                    position=position,
+                    roll=max(0, position - start),
+                )
+            self.refresh_menus()
+            return
+
+        if callback_id == "land":
+            if not actor:
+                return
+            start = int(payload["start"])
+            position = int(payload["position"])
+            roll = int(payload["roll"])
+            actor.position = position
+            if start == STARTING_POSITION:
+                self._broadcast_actor_l(
+                    actor,
+                    "snakes-enter-you",
+                    "snakes-enter-other",
+                    brief_personal_key="snakes-enter-you-brief",
+                    brief_others_key="snakes-enter-other-brief",
+                    position=position,
+                )
+            else:
+                self._broadcast_actor_l(
+                    actor,
+                    "snakes-move-you",
+                    "snakes-move-other",
+                    brief_personal_key="snakes-move-you-brief",
+                    brief_others_key="snakes-move-other-brief",
+                    start=start,
+                    position=position,
+                    roll=roll,
+                )
+            self.refresh_menus()
+            return
+
+        if callback_id == "bounce":
+            if not actor:
+                return
+            if "position" not in payload and "pos" in payload:
+                position = int(payload["pos"])
+                actor.position = position
+                self._broadcast_actor_l(
+                    actor,
+                    "snakes-restored-bounce-you",
+                    "snakes-restored-bounce-other",
+                    position=position,
+                )
+                self.refresh_menus()
+                return
+            start = int(payload["start"])
+            position = int(payload["position"])
+            roll = int(payload["roll"])
+            actor.position = position
+            self._broadcast_actor_l(
+                actor,
+                "snakes-bounce-you",
+                "snakes-bounce-other",
+                brief_personal_key="snakes-bounce-you-brief",
+                brief_others_key="snakes-bounce-other-brief",
+                start=start,
+                position=position,
+                roll=roll,
+                target=WINNING_SQUARE,
+            )
+            self.refresh_menus()
+            return
+
+        if callback_id == "exact_miss":
+            if not actor:
+                return
+            roll = int(payload["roll"])
+            needed = WINNING_SQUARE - actor.position
+            self._broadcast_actor_l(
+                actor,
+                "snakes-exact-miss-you",
+                "snakes-exact-miss-other",
+                brief_personal_key="snakes-exact-miss-you-brief",
+                brief_others_key="snakes-exact-miss-other-brief",
+                needed=needed,
+                position=actor.position,
+                roll=roll,
+                target=WINNING_SQUARE,
+            )
+            return
+
+        if callback_id == "ladder":
+            if not actor:
+                return
+            start = int(payload["start"])
+            end = int(payload["end"])
+            actor.position = end
+            self._broadcast_actor_l(
+                actor,
+                "snakes-ladder-you",
+                "snakes-ladder-other",
+                brief_personal_key="snakes-ladder-you-brief",
+                brief_others_key="snakes-ladder-other-brief",
+                start=start,
+                end=end,
+                distance=end - start,
+            )
+            self.refresh_menus()
+            return
+
+        if callback_id == "snake":
+            if not actor:
+                return
+            start = int(payload["start"])
+            end = int(payload["end"])
+            actor.position = end
+            self._broadcast_actor_l(
+                actor,
+                "snakes-snake-you",
+                "snakes-snake-other",
+                brief_personal_key="snakes-snake-you-brief",
+                brief_others_key="snakes-snake-other-brief",
+                start=start,
+                end=end,
+                distance=start - end,
+            )
+            self.refresh_menus()
+            return
+
+        if callback_id == "win":
+            if actor:
+                self._handle_win(actor)
+            return
+
+        if callback_id == "end_turn":
+            if not player_id and self.current_player:
+                player_id = self.current_player.id
+            self._complete_turn(player_id, bool(payload.get("extra_turn", False)))
+
+    # ------------------------------------------------------------------
+    # Actions and menus
+    # ------------------------------------------------------------------
 
     def create_turn_action_set(self, player: SnakesPlayer) -> ActionSet:
-        action_set = ActionSet(name="turn")
         user = self.get_user(player)
         locale = user.locale if user else "en"
-
+        action_set = ActionSet(name="turn")
         action_set.add(
             Action(
                 id="roll",
@@ -148,318 +477,406 @@ class SnakesAndLaddersGame(Game):
                 handler="_action_roll",
                 is_enabled="_is_roll_enabled",
                 is_hidden="_is_roll_hidden",
+                show_in_actions_menu=False,
             )
         )
         return action_set
 
-    # Visibility / Enabled checks
     def _is_roll_enabled(self, player: Player) -> str | None:
         if self.status != "playing":
-            return "action-not-playing"
-        if self.is_animating:
-            return "action-game-in-progress"
+            return "snakes-error-roll-not-playing"
         if self.current_player != player:
-            return "action-not-your-turn"
+            return "snakes-error-roll-not-your-turn"
+        if self.is_rolling or self.has_active_sequence(tag="turn_flow"):
+            return "snakes-error-roll-resolving"
         return None
 
     def _is_roll_hidden(self, player: Player) -> Visibility:
-        if self.status != "playing":
-            return Visibility.HIDDEN
-        if self.current_player != player:
+        if self.status != "playing" or player.is_spectator:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
-    # WEB-SPECIFIC: Visibility Overrides
-    # We keep "Who's at table" and "Whose turn" overrides as they provided helpful info
-    # for web clients that might miss structure, but regular clients have UI for this.
-    def _is_whos_at_table_hidden(self, player: "Player") -> Visibility:
+    def _is_whos_at_table_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if self.is_touch_client(user):
             return Visibility.VISIBLE
         return super()._is_whos_at_table_hidden(player)
 
-    def _is_whose_turn_hidden(self, player: "Player") -> Visibility:
+    def _is_whose_turn_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
-            if self.status == "playing":
-                return Visibility.VISIBLE
-            return Visibility.HIDDEN
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE if self.status == "playing" else Visibility.HIDDEN
         return super()._is_whose_turn_hidden(player)
 
     def create_standard_action_set(self, player: Player) -> ActionSet:
-        """Add Check Positions to standard actions."""
         action_set = super().create_standard_action_set(player)
         user = self.get_user(player)
         locale = user.locale if user else "en"
-
-        # Add Check Positions action
         action_set.add(
             Action(
                 id="check_positions",
-                label=Localization.get(locale, "check-positions"),
+                label=Localization.get(locale, "snakes-check-positions"),
                 handler="_action_check_positions",
                 is_enabled="_is_check_positions_enabled",
                 is_hidden="_is_check_positions_hidden",
+                include_spectators=True,
             )
         )
-
-        # Reorder actions to put "Check positions" at the top of the standard lists
-        # This makes it appear higher in the Actions menu
-        if "check_positions" in action_set._order:
-            action_set._order.remove("check_positions")
-            action_set._order.insert(0, "check_positions")
-
+        if self.is_touch_client(user):
+            self._order_touch_standard_actions(
+                action_set,
+                ["check_positions", "whose_turn", "whos_at_table"],
+            )
         return action_set
 
     def _is_check_positions_hidden(self, player: Player) -> Visibility:
-        """Show check positions for everyone when playing."""
         if self.status != "playing":
             return Visibility.HIDDEN
-        # Removed client_type check to allow Desktop clients (NVDA) to use this feature.
-        return Visibility.VISIBLE
+        user = self.get_user(player)
+        return Visibility.VISIBLE if self.is_touch_client(user) else Visibility.HIDDEN
 
     def _is_check_positions_enabled(self, player: Player) -> str | None:
-        """Check positions is only available while a game is active."""
         if self.status != "playing":
-            return "action-not-playing"
+            return "snakes-error-positions-not-playing"
         return None
 
     def setup_keybinds(self) -> None:
         super().setup_keybinds()
-        self.define_keybind("r", "Roll dice", ["roll"], state=KeybindState.ACTIVE)
-        self.define_keybind("space", "Roll dice", ["roll"], state=KeybindState.ACTIVE)
+        locale = "en"
+        host = self.get_player_by_name(self.host) if self.host else None
+        host_user = self.get_user(host) if host else None
+        if host_user:
+            locale = host_user.locale
+        self.define_keybind(
+            "r",
+            Localization.get(locale, "snakes-roll"),
+            ["roll"],
+            state=KeybindState.ACTIVE,
+        )
+        self.define_keybind(
+            "space",
+            Localization.get(locale, "snakes-roll"),
+            ["roll"],
+            state=KeybindState.ACTIVE,
+        )
         self.define_keybind(
             "c",
-            "Check positions",
+            Localization.get(locale, "snakes-check-positions"),
             ["check_positions"],
             state=KeybindState.ACTIVE,
             include_spectators=True,
         )
 
-    def _action_check_positions(self, player: Player, action_id: str) -> None:
-        """Announce current player positions."""
-        user = self.get_user(player)
-        if not user:
-            return
-
-        # Format for speech: "Trung 1, Bot 5"
-        # Use comma for natural pause
-        speech_parts = []
-
-        for p in self.get_active_players():
-            sp: SnakesPlayer = p  # type: ignore
-            speech_parts.append(f"{p.name} {sp.position}")
-
-        # Speak the positions
-        header = Localization.get(user.locale, "snakes-positions-header")
-        user.speak(f"{header} {', '.join(speech_parts)}")
-
-    def _action_roll(self, player: Player, action_id: str) -> None:
-        """Handle roll action with sequential events."""
-        snakes_player: SnakesPlayer = player  # type: ignore
-        self.is_animating = True
-
-        # Roll dice (1-6)
-        roll = random.randint(1, 6)
-
-        self.play_standard_dice_roll_sound()
-
-        self.broadcast_l("snakes-roll-result", player=player.name, roll=roll)
-
-        # Delays
-        step_delay_start = 8  # Wait after roll
-        step_interval = 4  # Fast steps
-
-        # --- PHASE 1: Movement Steps ---
-        # Calculate logical new position
-        old_pos = snakes_player.position
-        intermediate_pos = old_pos + roll
-
-        # Event: Update position AFTER steps
-        next_delay = self.schedule_standard_token_movement_sounds(
-            roll,
-            start_delay_ticks=step_delay_start,
-            step_interval_ticks=step_interval,
-            variant_count=self.NUM_STEP_SOUNDS,
+    def _finish_rule_label(self, locale: str) -> str:
+        key = FINISH_RULE_LABELS.get(
+            self.options.finish_rule, "snakes-finish-bounce-back"
         )
-        self.schedule_event(
-            "move", {"player_id": player.id, "pos": intermediate_pos}, delay_ticks=next_delay
-        )
+        return Localization.get(locale, key)
 
-        next_delay += 2  # Tiny pause after move
-
-        # --- PHASE 2: Bounce Back ---
-        final_pre_interaction_pos = intermediate_pos
-
-        if intermediate_pos > self.WINNING_SQUARE:
-            overshoot = intermediate_pos - self.WINNING_SQUARE
-            final_pre_interaction_pos = self.WINNING_SQUARE - overshoot
-
-            # Bounce sound + event
-            self.schedule_sound("game_snakes/bounce.ogg", delay_ticks=next_delay)
-            self.schedule_event(
-                "bounce",
-                {"player_id": player.id, "pos": final_pre_interaction_pos},
-                delay_ticks=next_delay,
+    def _position_status_items(self, locale: str) -> list[MenuItem]:
+        items = [
+            MenuItem(
+                text=Localization.get(
+                    locale,
+                    "snakes-status-goal",
+                    target=WINNING_SQUARE,
+                    rule=self._finish_rule_label(locale),
+                ),
+                id="goal",
             )
-
-            next_delay += 8  # Pause after bounce
-
-        # --- PHASE 3: Interactions (Snake/Ladder) ---
-        # Check interaction at the position where player landed (after potential bounce)
-
-        final_pos = final_pre_interaction_pos
-        is_win = False
-
-        if final_pos == self.WINNING_SQUARE:
-            # Win immediately (no further interactions)
-            is_win = True
-        elif final_pos in self.LADDERS:
-            # Ladder
-            top = self.LADDERS[final_pos]
-
-            # Sound + event
-            ladder_variant = random.randint(1, self.NUM_LADDER_SOUNDS)
-            self.schedule_sound(f"game_snakes/ladder{ladder_variant}.ogg", delay_ticks=next_delay)
-            self.schedule_event(
-                "ladder",
-                {"player_id": player.id, "start": final_pos, "end": top},
-                delay_ticks=next_delay,
-            )
-
-            final_pos = top
-            next_delay += 15  # Pause for ladder
-
-            if final_pos == self.WINNING_SQUARE:
-                is_win = True
-
-        elif final_pos in self.SNAKES:
-            # Snake
-            tail = self.SNAKES[final_pos]
-
-            # Sound + event
-            self.schedule_sound("game_snakes/snake.ogg", delay_ticks=next_delay)
-            self.schedule_event(
-                "snake",
-                {"player_id": player.id, "start": final_pos, "end": tail},
-                delay_ticks=next_delay,
-            )
-
-            final_pos = tail
-            next_delay += 12  # Pause for snake
-
-        # --- PHASE 4: Conclusion ---
-
-        if is_win:
-            self.schedule_event("win", {"player_id": player.id}, delay_ticks=next_delay)
-        else:
-            self.schedule_event("end_turn", {}, delay_ticks=next_delay + 5)
-
-    def on_game_event(self, event_type: str, data: dict) -> None:
-        """Handle a scheduled game event."""
-        player_id = data.get("player_id")
-        player = self.get_player_by_id(player_id) if player_id else None
-
-        if event_type == "move":
-            if player:
-                new_pos = data["pos"]
-                player.position = new_pos
-                self.broadcast_l("snakes-move", player=player.name, position=new_pos)
-
-        elif event_type == "bounce":
-            if player:
-                new_pos = data["pos"]
-                player.position = new_pos
-                self.broadcast_l("snakes-bounce", player=player.name, position=new_pos)
-
-        elif event_type == "ladder":
-            if player:
-                start = data["start"]
-                end = data["end"]
-                player.position = end
-                self.broadcast_l("snakes-ladder", player=player.name, start=start, end=end)
-
-        elif event_type == "snake":
-            if player:
-                start = data["start"]
-                end = data["end"]
-                player.position = end
-                self.broadcast_l("snakes-snake", player=player.name, start=start, end=end)
-
-        elif event_type == "win":
-            if player:
-                self._handle_win(player)  # type: ignore
-
-        elif event_type == "end_turn":
-            self.is_animating = False
-            self.end_turn()
-
-    def _handle_win(self, winner: SnakesPlayer, delay: int = 0) -> None:
-        """Handle win condition."""
-        winner.finished = True
-        self.winner = winner
-
-        # Reuse Pig win sound
-        self.play_sound("game_pig/win.ogg")
-        self.broadcast_l("snakes-win", player=winner.name)
-
-        self.finish_game()
-
-    def end_turn(self) -> None:
-        """Advance turn."""
-        previous = self.current_player
-        self.turn_index = (self.turn_index + self.turn_direction) % len(self.turn_player_ids)
-        self._start_turn(previous_player=previous)
-
-    def on_tick(self) -> None:
-        super().on_tick()
-        self.process_scheduled_events()
-
-        if self.status == "playing":
-            BotHelper.on_tick(self)
-
-    def bot_think(self, player: SnakesPlayer) -> str | None:
-        """Bot always rolls."""
-        return "roll"
-
-    def build_game_result(self) -> GameResult:
-        """Build standard game result."""
-        winner = getattr(self, "winner", None)
-
-        # Sort players by position (descending)
-        sorted_players = sorted(
+        ]
+        current = self.current_player
+        ordered_players = sorted(
             self.get_active_players(),
-            key=lambda p: (p.finished, p.position),  # Finished first, then highest position
+            key=lambda candidate: (candidate.finished, candidate.position),
             reverse=True,
         )
+        for candidate in ordered_players:
+            player = candidate
+            if player.finished or player.position >= WINNING_SQUARE:
+                key = "snakes-status-player-finished"
+                kwargs = {"player": player.name, "position": player.position}
+            elif player.position == STARTING_POSITION:
+                key = (
+                    "snakes-status-current-start"
+                    if player is current
+                    else "snakes-status-player-start"
+                )
+                kwargs = {"player": player.name}
+            else:
+                key = (
+                    "snakes-status-current-position"
+                    if player is current
+                    else "snakes-status-player-position"
+                )
+                kwargs = {
+                    "player": player.name,
+                    "position": player.position,
+                    "remaining": WINNING_SQUARE - player.position,
+                }
+            items.append(
+                MenuItem(
+                    text=Localization.get(locale, key, **kwargs),
+                    id=f"player:{player.id}",
+                )
+            )
+        return items
 
-        # Store final positions for end screen
-        final_positions = {p.name: p.position for p in self.players}
+    def _action_check_positions(self, player: Player, action_id: str) -> None:
+        current = self.current_player
+        focus_id = f"player:{current.id}" if current else "goal"
+        self.live_status_box(
+            player,
+            "snakes_positions",
+            lambda _player, user: self._position_status_items(user.locale),
+            focus_id=focus_id,
+        )
 
+    # ------------------------------------------------------------------
+    # Roll resolution
+    # ------------------------------------------------------------------
+
+    def _append_interaction_beats(
+        self,
+        beats: list[SequenceBeat],
+        player: SnakesPlayer,
+        landing_position: int,
+    ) -> int:
+        final_position = landing_position
+        if landing_position in self.LADDERS:
+            final_position = self.LADDERS[landing_position]
+            ladder_sound = (
+                f"game_snakes/ladder{random.randint(1, NUM_LADDER_SOUNDS)}.ogg"  # nosec B311
+            )
+            beats.append(
+                SequenceBeat(
+                    ops=[
+                        SequenceOperation.sound_op(ladder_sound),
+                        SequenceOperation.callback_op(
+                            "ladder",
+                            {
+                                "player_id": player.id,
+                                "start": landing_position,
+                                "end": final_position,
+                            },
+                        ),
+                    ],
+                    delay_after_ticks=15,
+                )
+            )
+        elif landing_position in self.SNAKES:
+            final_position = self.SNAKES[landing_position]
+            beats.append(
+                SequenceBeat(
+                    ops=[
+                        SequenceOperation.sound_op("game_snakes/snake.ogg"),
+                        SequenceOperation.callback_op(
+                            "snake",
+                            {
+                                "player_id": player.id,
+                                "start": landing_position,
+                                "end": final_position,
+                            },
+                        ),
+                    ],
+                    delay_after_ticks=12,
+                )
+            )
+        return final_position
+
+    def _action_roll(self, player: Player, action_id: str) -> None:
+        actor = player if isinstance(player, SnakesPlayer) else None
+        if not actor:
+            return
+
+        self.is_rolling = True
+        self.last_roll = random.randint(1, 6)  # nosec B311
+        self.refresh_menus()
+        self._broadcast_actor_l(
+            actor,
+            "snakes-roll-you",
+            "snakes-roll-other",
+            roll=self.last_roll,
+        )
+
+        dice_sound = (
+            f"game_squares/diceroll{random.randint(1, NUM_DICE_SOUNDS)}.ogg"  # nosec B311
+        )
+        beats = [
+            SequenceBeat(
+                ops=[SequenceOperation.sound_op(dice_sound)],
+                delay_after_ticks=STEP_DELAY_START,
+            )
+        ]
+
+        start = actor.position
+        attempted_position = start + self.last_roll
+        overshoots = attempted_position > WINNING_SQUARE
+        if overshoots and self.options.finish_rule == FINISH_EXACT_STAY:
+            beats.append(
+                SequenceBeat(
+                    ops=[
+                        SequenceOperation.callback_op(
+                            "exact_miss",
+                            {"player_id": actor.id, "roll": self.last_roll},
+                        )
+                    ],
+                    delay_after_ticks=5,
+                )
+            )
+            final_position = start
+        else:
+            for _ in range(self.last_roll):
+                step_sound = (
+                    f"game_squares/step{random.randint(1, NUM_STEP_SOUNDS)}.ogg"  # nosec B311
+                )
+                beats.append(
+                    SequenceBeat(
+                        ops=[SequenceOperation.sound_op(step_sound)],
+                        delay_after_ticks=STEP_INTERVAL,
+                    )
+                )
+
+            landing_position = attempted_position
+            if overshoots:
+                landing_position = WINNING_SQUARE - (
+                    attempted_position - WINNING_SQUARE
+                )
+                beats.append(
+                    SequenceBeat(
+                        ops=[
+                            SequenceOperation.sound_op("game_snakes/bounce.ogg"),
+                            SequenceOperation.callback_op(
+                                "bounce",
+                                {
+                                    "player_id": actor.id,
+                                    "start": start,
+                                    "position": landing_position,
+                                    "roll": self.last_roll,
+                                },
+                            ),
+                        ],
+                        delay_after_ticks=8,
+                    )
+                )
+            else:
+                beats.append(
+                    SequenceBeat(
+                        ops=[
+                            SequenceOperation.callback_op(
+                                "land",
+                                {
+                                    "player_id": actor.id,
+                                    "start": start,
+                                    "position": landing_position,
+                                    "roll": self.last_roll,
+                                },
+                            )
+                        ],
+                        delay_after_ticks=2,
+                    )
+                )
+
+            final_position = self._append_interaction_beats(
+                beats, actor, landing_position
+            )
+
+        if final_position == WINNING_SQUARE:
+            beats.append(
+                SequenceBeat(
+                    ops=[
+                        SequenceOperation.callback_op(
+                            "win", {"player_id": actor.id}
+                        )
+                    ]
+                )
+            )
+        else:
+            beats.append(SequenceBeat.pause(5))
+            beats.append(
+                SequenceBeat(
+                    ops=[
+                        SequenceOperation.callback_op(
+                            "end_turn",
+                            {
+                                "player_id": actor.id,
+                                "extra_turn": bool(
+                                    self.options.extra_turn_on_six
+                                    and self.last_roll == 6
+                                ),
+                            },
+                        )
+                    ]
+                )
+            )
+
+        self.start_sequence(
+            "turn_flow",
+            beats,
+            tag="turn_flow",
+            lock_scope=self.SEQUENCE_LOCK_GAMEPLAY,
+            pause_bots=True,
+        )
+
+    # ------------------------------------------------------------------
+    # Results
+    # ------------------------------------------------------------------
+
+    def _handle_win(self, winner: SnakesPlayer) -> None:
+        self.is_rolling = False
+        winner.position = WINNING_SQUARE
+        winner.finished = True
+        self.winner_id = winner.id
+        self.play_sound("game_pig/win.ogg")
+        self._broadcast_actor_l(
+            winner,
+            "snakes-win-you",
+            "snakes-win-other",
+            position=WINNING_SQUARE,
+        )
+        self.finish_game()
+
+    def build_game_result(self) -> GameResult:
+        winner = self.winner
+        sorted_players = sorted(
+            self.get_active_players(),
+            key=lambda player: (player.finished, player.position),
+            reverse=True,
+        )
+        final_positions = {player.id: player.position for player in sorted_players}
         return GameResult(
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(player_id=p.id, player_name=p.name, is_bot=p.is_bot)
-                for p in sorted_players  # Return sorted list
+                PlayerResult.from_player(player)
+                for player in sorted_players
             ],
             custom_data={
                 "winner_name": winner.name if winner else None,
+                "winner_ids": [winner.id] if winner else [],
                 "final_positions": final_positions,
             },
         )
 
     def format_end_screen(self, result: GameResult, locale: str) -> list[str]:
         lines = [Localization.get(locale, "game-final-scores")]
-
-        # Players are already sorted in result.player_results
-        for i, p_result in enumerate(result.player_results, 1):
-            pos = result.custom_data["final_positions"].get(p_result.player_name, 0)
-            lines.append(
-                Localization.get(
-                    locale, "snakes-end-score", rank=i, player=p_result.player_name, position=pos
-                )
+        final_positions = result.custom_data.get("final_positions", {})
+        for rank, player_result in enumerate(result.player_results, 1):
+            position = final_positions.get(
+                player_result.player_id,
+                final_positions.get(player_result.player_name, STARTING_POSITION),
             )
-
+            key = (
+                "snakes-end-score-start"
+                if position == STARTING_POSITION
+                else "snakes-end-score"
+            )
+            kwargs = {
+                "rank": rank,
+                "player": player_result.player_name,
+            }
+            if position != STARTING_POSITION:
+                kwargs["position"] = position
+            lines.append(Localization.get(locale, key, **kwargs))
         return lines

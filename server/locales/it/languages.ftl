@@ -1,3 +1,6 @@
+# languages.ftl for locale it. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Language names translated into this language
 language-ar = Arabo
 language-cs = Ceco
@@ -11,7 +14,6 @@ language-hr = Croato
 language-hu = Ungherese
 language-id = Indonesiano
 language-it = Italiano
-language-ja = Giapponese
 language-ko = Coreano
 language-mk = Macedone
 language-mn = Mongolo
@@ -30,3 +32,4 @@ language-uk = Ucraino
 language-vi = Vietnamita
 language-zh = Cinese
 language-zu = Zulu
+language-ja = Giapponese

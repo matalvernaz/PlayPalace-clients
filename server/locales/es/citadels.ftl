@@ -1,235 +1,245 @@
-game-name-citadels = Citadels
+# citadels.ftl for locale es. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-citadels-character-1 = Assassin
-citadels-character-2 = Thief
-citadels-character-3 = Magician
-citadels-character-4 = King
-citadels-character-5 = Bishop
-citadels-character-6 = Merchant
-citadels-character-7 = Architect
-citadels-character-8 = Warlord
-citadels-character-9 = Queen
-
+game-name-citadels = Ciudadelas
+citadels-character-1 = Asesino
+citadels-character-2 = Ladrón
+citadels-character-3 = Mago
+citadels-character-4 = Rey
+citadels-character-5 = Obispo
+citadels-character-6 = Comerciante
+citadels-character-7 = Arquitecto
+citadels-character-8 = Condotiero
+citadels-character-9 = Reina
 citadels-district-type-noble = Noble
-citadels-district-type-religious = Religious
-citadels-district-type-trade = Trade
-citadels-district-type-military = Military
-citadels-district-type-unique = Unique
-
-citadels-district-temple = Temple
-citadels-district-church = Church
-citadels-district-monastery = Monastery
-citadels-district-cathedral = Cathedral
-citadels-district-manor = Manor
-citadels-district-castle = Castle
-citadels-district-palace = Palace
-citadels-district-tavern = Tavern
-citadels-district-market = Market
-citadels-district-trading_post = Trading Post
-citadels-district-docks = Docks
-citadels-district-harbor = Harbor
-citadels-district-town_hall = Town Hall
-citadels-district-watchtower = Watchtower
-citadels-district-prison = Prison
-citadels-district-barracks = Barracks
-citadels-district-fortress = Fortress
-citadels-district-dragon_gate = Dragon Gate
-citadels-district-factory = Factory
-citadels-district-haunted_quarter = Haunted Quarter
-citadels-district-imperial_treasury = Imperial Treasury
-citadels-district-keep = Keep
-citadels-district-laboratory = Laboratory
-citadels-district-library = Library
-citadels-district-map_room = Map Room
-citadels-district-quarry = Quarry
-citadels-district-school_of_magic = School of Magic
-citadels-district-smithy = Smithy
-citadels-district-statue = Statue
-citadels-district-thieves_den = Thieves' Den
-citadels-district-wishing_well = Wishing Well
-
-citadels-game-start = Citadels has begun.
-citadels-selection-start-you = Round { $round }. You choose a character first.
-citadels-selection-start = Round { $round }. { $player } chooses a character first.
-citadels-selection-prompt = Choose a character now.
-citadels-you-chose-character = You chose a character.
-citadels-character-chosen = { $player } has chosen a character.
-citadels-select-character-line = { $brief ->
-    [yes] { $character }
-   *[no] Rank { $rank }: { $character }
-}
-citadels-turn-phase-start = Character calling begins.
-citadels-no-characters = There is no { $characters }.
-citadels-list-pair = { $first } or { $last }
-citadels-list-series = { $head }, or { $last }
-citadels-you-character-revealed = { $brief ->
-    [yes] You reveal the { $character }.
-   *[no] You reveal rank { $rank }, { $character }.
-}
-citadels-character-revealed = { $brief ->
-    [yes] { $player } reveals the { $character }.
-   *[no] { $player } reveals rank { $rank }, { $character }.
-}
-citadels-you-took-crown = You take the crown and will choose first next round.
-citadels-crown-taken = { $player } takes the crown.
-citadels-you-king-heir = You reveal the King at end of round and take the crown.
-citadels-king-heir = { $player } reveals the King at end of round and takes the crown.
-citadels-you-assassin-targeted = { $brief ->
-    [yes] You name the { $character } for assassination.
-   *[no] You name rank { $rank }, { $character }, for assassination.
-}
-citadels-assassin-targeted = { $brief ->
-    [yes] { $player }, the Assassin, names the { $character }.
-   *[no] { $player }, the Assassin, names rank { $rank }, { $character }.
-}
-citadels-character-killed-skip = { $brief ->
-    [yes] The { $character } was assassinated and loses its turn.
-   *[no] Rank { $rank }, { $character }, was assassinated and loses its turn.
-}
-citadels-you-character-killed-skip = { $brief ->
-    [yes] You were assassinated as the { $character } and lose this turn.
-   *[no] You were assassinated as rank { $rank }, { $character }, and lose this turn.
-}
-citadels-you-thief-targeted = { $brief ->
-    [yes] You will rob the { $character } when that character is revealed.
-   *[no] You will rob rank { $rank }, { $character }, when that character is revealed.
-}
-citadels-thief-targeted = { $brief ->
-    [yes] { $player }, the Thief, marks the { $character } for robbery.
-   *[no] { $player }, the Thief, marks rank { $rank }, { $character }, for robbery.
-}
-citadels-you-thief-found-nothing = Your robbery finds no gold to steal.
-citadels-thief-found-nothing = { $player }, the Thief, finds no gold to steal.
-citadels-you-thief-stole-gold = You steal { $amount } gold as the Thief.
-citadels-thief-stole-gold = { $player }, the Thief, steals { $amount } gold.
-citadels-you-took-gold = You take { $amount } gold.
-citadels-player-took-gold = { $player } takes { $amount } gold.
-citadels-you-drew-options = You draw district cards and must keep one.
-citadels-player-drew-options = { $player } draws district cards and must keep one.
-citadels-player-kept-card = { $player } keeps one district card.
-citadels-you-kept-card = You keep { $district }.
-citadels-you-income-collected = You collect { $amount } gold from the { $character }.
-citadels-income-collected = { $player } collects { $amount } gold from the { $character }.
-citadels-you-architect-bonus = You draw { $count } bonus cards as the Architect.
-citadels-architect-bonus = { $player } draws { $count } bonus cards.
-citadels-you-magician-swapped = You swap hands with { $target }.
-citadels-magician-swapped = { $player } swaps hands with { $target }.
-citadels-you-magician-redrew = You redraw { $count } cards.
-citadels-magician-redrew = { $player } redraws { $count } cards.
-citadels-you-laboratory-used = You use the Laboratory and gain { $amount } gold.
-citadels-laboratory-used = { $player } uses the Laboratory and gains { $amount } gold.
-citadels-you-smithy-used = You use the Smithy and draw { $count } cards.
-citadels-smithy-used = { $player } uses the Smithy and draws { $count } cards.
-citadels-you-library-draw = You use the Library and keep all { $count } drawn cards.
-citadels-library-draw = { $player } uses the Library and keeps all { $count } drawn cards.
-citadels-you-built-district = You build { $district } and pay { $gold } gold.
-citadels-district-built = { $player } builds { $district } and pays { $gold } gold.
-citadels-thieves-den-payment = You discard { $cards } to help pay for Thieves' Den.
-citadels-you-city-completed = You complete your city with { $count } districts.
-citadels-city-completed = { $player } completes a city with { $count } districts.
-citadels-you-queen-bonus = You gain { $amount } bonus gold from the Queen.
-citadels-queen-bonus = { $player } gains { $amount } bonus gold from the Queen.
-citadels-you-warlord-destroyed = You destroy { $target }'s { $district }.
-citadels-warlord-destroyed = { $player } destroys { $target }'s { $district }.
-
-citadels-take-gold = Take 2 gold
-citadels-draw-cards = Draw district cards
-citadels-collect-income = Collect character income
-citadels-magician-swap = Swap hands
-citadels-magician-redraw = Redraw cards
-citadels-use-laboratory = Use Laboratory
-citadels-use-smithy = Use Smithy
-citadels-warlord-destroy = Destroy a district
-citadels-confirm-redraw = Confirm redraw
-citadels-build-thieves-den = Build Thieves' Den
-citadels-end-turn = End turn
-citadels-read-status = Read status summary
-citadels-read-status-detailed = Read detailed status
-citadels-read-character = Read character
-citadels-read-hand = Read hand
-citadels-read-cities = Read cities
-citadels-read-discards = Read discards
-
-citadels-assassinate-target-line = { $brief ->
-    [yes] Assassinate the { $character }
-   *[no] Assassinate rank { $rank }: { $character }
-}
-citadels-thief-target-line = { $brief ->
-    [yes] Rob the { $character }
-   *[no] Rob rank { $rank }: { $character }
-}
-citadels-magician-swap-line = Swap with { $player } ({ $cards } cards)
-citadels-warlord-target-line = Destroy { $player }'s { $district } for { $cost } gold. { $description }
-citadels-build-card-line = Build { $district } ({ $cost } gold). { $description }
-citadels-build-card-disabled-line = Cannot build { $district } ({ $cost } gold): { $reason } { $description }
-citadels-district-line = { $district }, cost { $cost }, { $type }. { $description }
-citadels-toggle-selected = Selected: { $district }, cost { $cost }
-citadels-toggle-not-selected = Not selected: { $district }, cost { $cost }
-
-citadels-build-error = You cannot build { $district }: { $reason }
-citadels-build-error-card-missing = That district card is no longer in your hand.
-citadels-build-reason-need-resource = You must take gold or draw district cards before building.
-citadels-build-reason-limit = You have already built the { $limit } { $limit ->
-    [one] district
-   *[other] districts
-} allowed this turn.
-citadels-build-reason-duplicate = Your city already contains { $district }, and you do not have Quarry to allow duplicate districts.
-citadels-build-reason-gold = You need { $needed } more gold.
-citadels-build-reason-thieves-den-payment = Even after discarding every other card in your hand, you still need { $needed } more gold worth of payment.
-
-citadels-district-effect-none = No special ability.
-citadels-district-effect-dragon_gate = End of game: gain 2 extra points.
-citadels-district-effect-factory = Your other unique districts cost 1 less to build.
-citadels-district-effect-haunted_quarter = End of game: this may count as noble, religious, trade, military, or unique for the five-color bonus.
-citadels-district-effect-imperial_treasury = End of game: gain 1 point for each gold you still have.
-citadels-district-effect-keep = The Warlord cannot destroy this district.
-citadels-district-effect-laboratory = Once per turn, discard a card from your hand to gain 2 gold.
-citadels-district-effect-library = When you draw district cards, keep both drawn cards.
-citadels-district-effect-map_room = End of game: gain 1 point for each card in your hand.
-citadels-district-effect-quarry = You may build duplicate districts in your city.
-citadels-district-effect-school_of_magic = During King, Bishop, Merchant, or Warlord income, this counts as a district type of your choice.
-citadels-district-effect-smithy = Once per turn after taking resources, pay 2 gold to draw 3 cards.
-citadels-district-effect-statue = End of game: gain 5 points if you hold the crown.
-citadels-district-effect-thieves_den = When building this district, you may discard cards from your hand to pay 1 gold per discarded card.
-citadels-district-effect-wishing_well = End of game: gain 1 point for each unique district in your city, including this one.
-
-citadels-hand-header = Your hand has { $count } cards.
-citadels-hand-empty = Your hand is empty.
-citadels-cities-header = Cities at the table
-citadels-city-empty = no districts
-citadels-city-line = { $player }: { $count } districts, { $gold } gold, { $score } points. { $districts }
-citadels-character-none = You do not currently hold a character. You have { $gold } gold.
-citadels-character-line = { $brief ->
-    [yes] { $character }. You have { $gold } gold.
-   *[no] Rank { $rank }: { $character }. You have { $gold } gold.
-}
-citadels-discards-none = none
-citadels-faceup-discards-line = Faceup discarded characters: { $characters }
-
-citadels-status-header = Citadels status
-citadels-status-crown = Crown holder: { $player }
-citadels-status-selection = Character selection. { $player } is choosing.
-citadels-status-rank-resolution = { $brief ->
-    [yes] Calling the { $character }.
-   *[no] Calling rank { $rank }: { $character }.
-}
-citadels-status-turn = { $brief ->
-    [yes] { $player } is taking a turn as the { $character }.
-   *[no] { $player } is taking a turn as rank { $rank }, { $character }.
-}
-citadels-status-turn-progress = Built { $builds } of { $limit } allowed districts this turn.
-citadels-status-killed = { $brief ->
-    [yes] Assassinated: { $character }.
-   *[no] Assassinated rank: { $rank }, { $character }.
-}
-citadels-status-killed-none = No character has been assassinated this round.
-citadels-status-robbed = { $brief ->
-    [yes] Robbed: { $character }.
-   *[no] Robbed rank: { $rank }, { $character }.
-}
-citadels-status-robbed-none = No character has been marked for robbery this round.
-citadels-status-first-completed = First completed city: { $player }
-
-citadels-standings-header = Current standings
-citadels-standing-line = Rank { $rank }: { $player }, { $score } points, { $gold } gold, { $districts } districts, { $cards } cards in hand.
-citadels-end-line = Rank { $rank }: { $player }, { $score } points, { $gold } gold, { $districts } districts.
+citadels-district-type-religious = Religiosa
+citadels-district-type-trade = Comercial
+citadels-district-type-military = Militar
+citadels-district-type-unique = Única
+citadels-district-temple = Templo
+citadels-district-church = Iglesia
+citadels-district-monastery = Monasterio
+citadels-district-cathedral = Catedral
+citadels-district-manor = Mansión
+citadels-district-castle = Castillo
+citadels-district-palace = Palacio
+citadels-district-tavern = Taberna
+citadels-district-market = Mercado
+citadels-district-trading_post = Puesto Comercial
+citadels-district-docks = Muelles
+citadels-district-harbor = Puerto
+citadels-district-town_hall = Ayuntamiento
+citadels-district-watchtower = Atalaya
+citadels-district-prison = Prisión
+citadels-district-barracks = Cuartel
+citadels-district-fortress = Fortaleza
+citadels-district-dragon_gate = Puerta del Dragón
+citadels-district-factory = Fábrica
+citadels-district-haunted_quarter = Barrio Encantado
+citadels-district-imperial_treasury = Tesoro Imperial
+citadels-district-keep = Torreón
+citadels-district-laboratory = Laboratorio
+citadels-district-library = Biblioteca
+citadels-district-map_room = Sala de Mapas
+citadels-district-quarry = Cantera
+citadels-district-school_of_magic = Escuela de Magia
+citadels-district-smithy = Herrería
+citadels-district-statue = Estatua
+citadels-district-thieves_den = Guarida de Ladrones
+citadels-district-wishing_well = Pozo de los Deseos
+citadels-game-start = Comenzó Ciudadelas.
+citadels-selection-start-you = Ronda { $round }. Eliges un personaje primero.
+citadels-selection-start = Ronda { $round }. { $player } elige un personaje primero.
+citadels-selection-prompt = Elige un personaje ahora.
+citadels-you-chose-character = Elegiste un personaje.
+citadels-character-chosen = { $player } eligió un personaje.
+citadels-select-character-line =
+    { $brief ->
+        [yes] { $character }
+       *[no] Rango { $rank }: { $character }
+    }
+citadels-turn-phase-start = Comienza el llamado de personajes.
+citadels-no-characters = No hay { $characters }.
+citadels-list-pair = { $first } o { $last }
+citadels-list-series = { $head }, o { $last }
+citadels-you-character-revealed =
+    { $brief ->
+        [yes] Revelas al { $character }.
+       *[no] Revelas el rango { $rank }, { $character }.
+    }
+citadels-character-revealed =
+    { $brief ->
+        [yes] { $player } revela al { $character }.
+       *[no] { $player } revela el rango { $rank }, { $character }.
+    }
+citadels-you-took-crown = Tomas la corona y elegirás primero la próxima ronda.
+citadels-crown-taken = { $player } toma la corona.
+citadels-you-king-heir = Revelas al Rey al final de la ronda y tomas la corona.
+citadels-king-heir = { $player } revela al Rey al final de la ronda y toma la corona.
+citadels-you-assassin-targeted =
+    { $brief ->
+        [yes] Nombras al { $character } para el asesinato.
+       *[no] Nombras el rango { $rank }, { $character }, para el asesinato.
+    }
+citadels-assassin-targeted =
+    { $brief ->
+        [yes] { $player }, el Asesino, nombra al { $character }.
+       *[no] { $player }, el Asesino, nombra el rango { $rank }, { $character }.
+    }
+citadels-character-killed-skip =
+    { $brief ->
+        [yes] El { $character } fue asesinado y pierde su turno.
+       *[no] El rango { $rank }, { $character }, fue asesinado y pierde su turno.
+    }
+citadels-you-character-killed-skip =
+    { $brief ->
+        [yes] Fuiste asesinado siendo el { $character } y pierdes este turno.
+       *[no] Fuiste asesinado en el rango { $rank }, { $character }, y pierdes este turno.
+    }
+citadels-you-thief-targeted =
+    { $brief ->
+        [yes] Robarás al { $character } cuando se revele ese personaje.
+       *[no] Robarás el rango { $rank }, { $character }, cuando se revele ese personaje.
+    }
+citadels-thief-targeted =
+    { $brief ->
+        [yes] { $player }, el Ladrón, marca al { $character } para el robo.
+       *[no] { $player }, el Ladrón, marca el rango { $rank }, { $character }, para el robo.
+    }
+citadels-you-thief-found-nothing = Tu robo no encuentra oro para robar.
+citadels-thief-found-nothing = { $player }, el Ladrón, no encuentra oro para robar.
+citadels-you-thief-stole-gold = Robas { $amount } de oro como el Ladrón.
+citadels-thief-stole-gold = { $player }, el Ladrón, roba { $amount } de oro.
+citadels-you-took-gold = Tomas { $amount } de oro.
+citadels-player-took-gold = { $player } toma { $amount } de oro.
+citadels-you-drew-options = Robas cartas de distrito y debes quedarte con una.
+citadels-player-drew-options = { $player } roba cartas de distrito y debe quedarse con una.
+citadels-player-kept-card = { $player } se queda con una carta de distrito.
+citadels-you-kept-card = Te quedas con { $district }.
+citadels-you-income-collected = Recolectas { $amount } de oro como el { $character }.
+citadels-income-collected = { $player } recolecta { $amount } de oro como el { $character }.
+citadels-you-architect-bonus = Robas { $count } cartas extra como el Arquitecto.
+citadels-architect-bonus = { $player } roba { $count } cartas extra.
+citadels-you-magician-swapped = Intercambias tu mano con { $target }.
+citadels-magician-swapped = { $player } intercambia su mano con { $target }.
+citadels-you-magician-redrew = Vuelves a robar { $count } cartas.
+citadels-magician-redrew = { $player } vuelve a robar { $count } cartas.
+citadels-you-laboratory-used = Usas el Laboratorio y ganas { $amount } de oro.
+citadels-laboratory-used = { $player } usa el Laboratorio y gana { $amount } de oro.
+citadels-you-smithy-used = Usas la Herrería y robas { $count } cartas.
+citadels-smithy-used = { $player } usa la Herrería y roba { $count } cartas.
+citadels-you-library-draw = Usas la Biblioteca y te quedas con las { $count } cartas robadas.
+citadels-library-draw = { $player } usa la Biblioteca y se queda con las { $count } cartas robadas.
+citadels-you-built-district = Construyes { $district } y pagas { $gold } de oro.
+citadels-district-built = { $player } construye { $district } y paga { $gold } de oro.
+citadels-thieves-den-payment = Descartas { $cards } para ayudar a pagar la Guarida de Ladrones.
+citadels-you-city-completed = Completas tu ciudad con { $count } distritos.
+citadels-city-completed = { $player } completa una ciudad con { $count } distritos.
+citadels-you-queen-bonus = Ganas { $amount } de oro extra de la Reina.
+citadels-queen-bonus = { $player } gana { $amount } de oro extra de la Reina.
+citadels-you-warlord-destroyed = Destruyes { $district } de { $target }.
+citadels-warlord-destroyed = { $player } destruye { $district } de { $target }.
+citadels-take-gold = Tomar 2 de oro
+citadels-draw-cards = Robar cartas de distrito
+citadels-collect-income = Recolectar ingreso de personaje
+citadels-magician-swap = Intercambiar manos
+citadels-magician-redraw = Volver a robar cartas
+citadels-use-laboratory = Usar Laboratorio
+citadels-use-smithy = Usar Herrería
+citadels-warlord-destroy = Destruir un distrito
+citadels-confirm-redraw = Confirmar nuevo robo
+citadels-build-thieves-den = Construir Guarida de Ladrones
+citadels-end-turn = Terminar turno
+citadels-read-status = Leer resumen de estado
+citadels-read-status-detailed = Leer estado detallado
+citadels-read-character = Leer personaje
+citadels-read-hand = Leer mano
+citadels-read-cities = Leer ciudades
+citadels-read-discards = Leer descartes
+citadels-assassinate-target-line =
+    { $brief ->
+        [yes] Asesinar al { $character }
+       *[no] Asesinar rango { $rank }: { $character }
+    }
+citadels-thief-target-line =
+    { $brief ->
+        [yes] Robar al { $character }
+       *[no] Robar rango { $rank }: { $character }
+    }
+citadels-magician-swap-line = Intercambiar con { $player } ({ $cards } cartas)
+citadels-warlord-target-line = Destruir { $district } de { $player } por { $cost } de oro
+citadels-build-card-line = Construir { $district } ({ $cost } de oro)
+citadels-build-card-disabled-line = No se puede construir { $district } ({ $cost } de oro): { $reason }
+citadels-district-line = { $district }, costo { $cost }, { $type }. { $description }
+citadels-district-menu-line = { $district }, costo { $cost }, { $type }
+citadels-toggle-selected = Seleccionado: { $district }, costo { $cost }
+citadels-toggle-not-selected = No seleccionado: { $district }, costo { $cost }
+citadels-build-error = No puedes construir { $district }: { $reason }
+citadels-build-error-card-missing = Esa carta de distrito ya no está en tu mano.
+citadels-build-reason-need-resource = Debes tomar oro o robar cartas de distrito antes de construir.
+citadels-build-reason-limit =
+    Ya construiste el { $limit } { $limit ->
+        [one] distrito permitido
+       *[other] distritos permitidos
+    } este turno.
+citadels-build-reason-duplicate = Tu ciudad ya contiene { $district }, y no tienes la Cantera para permitir distritos duplicados.
+citadels-build-reason-gold = Necesitas { $needed } más de oro.
+citadels-build-reason-thieves-den-payment = Incluso después de descartar todas las demás cartas de tu mano, todavía necesitas { $needed } más de oro en valor de pago.
+citadels-district-effect-none = Sin habilidad especial.
+citadels-district-effect-dragon_gate = Fin de la partida: ganas 2 puntos extra.
+citadels-district-effect-factory = Tus otros distritos únicos cuestan 1 menos al construir.
+citadels-district-effect-haunted_quarter = Fin de la partida: puede contar como noble, religiosa, comercial, militar o única para el bono de cinco colores.
+citadels-district-effect-imperial_treasury = Fin de la partida: ganas 1 punto por cada oro que aún tengas.
+citadels-district-effect-keep = El Condotiero no puede destruir este distrito.
+citadels-district-effect-laboratory = Una vez por turno, descarta una carta de tu mano para ganar 2 de oro.
+citadels-district-effect-library = Cuando robes cartas de distrito, te quedas con ambas cartas robadas.
+citadels-district-effect-map_room = Fin de la partida: ganas 1 punto por cada carta en tu mano.
+citadels-district-effect-quarry = Puedes construir distritos duplicados en tu ciudad.
+citadels-district-effect-school_of_magic = Durante el ingreso del Rey, el Obispo, el Comerciante o el Condotiero, este distrito cuenta como el tipo que elijas.
+citadels-district-effect-smithy = Una vez por turno después de tomar recursos, paga 2 de oro para robar 3 cartas.
+citadels-district-effect-statue = Fin de la partida: ganas 5 puntos si tienes la corona.
+citadels-district-effect-thieves_den = Al construir este distrito, puedes descartar cartas de tu mano para pagar 1 de oro por cada carta descartada.
+citadels-district-effect-wishing_well = Fin de la partida: ganas 1 punto por cada distrito único en tu ciudad, incluido este.
+citadels-hand-header = Tu mano tiene { $count } cartas.
+citadels-hand-empty = Tu mano está vacía.
+citadels-cities-header = Ciudades en la mesa
+citadels-city-empty = sin distritos
+citadels-city-line = { $player }: { $count } distritos, { $gold } de oro, { $score } puntos. { $districts }
+citadels-character-none = Actualmente no tienes ningún personaje. Tienes { $gold } de oro.
+citadels-character-line =
+    { $brief ->
+        [yes] { $character }. Tienes { $gold } de oro.
+       *[no] Rango { $rank }: { $character }. Tienes { $gold } de oro.
+    }
+citadels-discards-none = ninguno
+citadels-faceup-discards-line = Personajes descartados boca arriba: { $characters }
+citadels-status-header = Estado de Ciudadelas
+citadels-status-crown = Poseedor de la corona: { $player }
+citadels-status-selection = Selección de personajes. { $player } está eligiendo.
+citadels-status-rank-resolution =
+    { $brief ->
+        [yes] Llamando al { $character }.
+       *[no] Llamando al rango { $rank }: { $character }.
+    }
+citadels-status-turn =
+    { $brief ->
+        [yes] { $player } está tomando su turno como el { $character }.
+       *[no] { $player } está tomando su turno en el rango { $rank }, { $character }.
+    }
+citadels-status-turn-progress = Construidos { $builds } de { $limit } distritos permitidos este turno.
+citadels-status-killed =
+    { $brief ->
+        [yes] Asesinado: { $character }.
+       *[no] Rango asesinado: { $rank }, { $character }.
+    }
+citadels-status-killed-none = Ningún personaje ha sido asesinado esta ronda.
+citadels-status-robbed =
+    { $brief ->
+        [yes] Robado: { $character }.
+       *[no] Rango robado: { $rank }, { $character }.
+    }
+citadels-status-robbed-none = Ningún personaje ha sido marcado para robo esta ronda.
+citadels-status-first-completed = Primera ciudad completada: { $player }
+citadels-standings-header = Clasificación actual
+citadels-standing-line = Rango { $rank }: { $player }, { $score } puntos, { $gold } de oro, { $districts } distritos, { $cards } cartas en mano.
+citadels-end-line = Rango { $rank }: { $player }, { $score } puntos, { $gold } de oro, { $districts } distritos.

@@ -1,32 +1,26 @@
-# Mancala game messages — pt
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale pt. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mancala
-
 # Actions
 mancala-pit-label = Cova { $pit }: { $stones } pedras
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } semeia { $stones } pedras da cova { $pit }
 mancala-capture = { $player } captura { $captured } pedras!
 mancala-extra-turn = Última pedra no depósito! { $player } joga novamente.
 mancala-winner = { $player } vence com { $score } pedras!
 mancala-draw = Empate! Ambos jogadores têm { $score } pedras.
-
 # Board status
-mancala-board-status =
-    Suas covas: { $own_pits }. Seu depósito: { $own_store }. Covas do oponente: { $opp_pits }. Depósito do oponente: { $opp_store }.
-
+mancala-board-status = Suas covas: { $own_pits }. Seu depósito: { $own_store }. Covas do oponente: { $opp_pits }. Depósito do oponente: { $opp_store }.
 # Options
 mancala-set-stones = Pedras por cova: { $stones }
 mancala-desc-stones = Número de pedras em cada cova no início
 mancala-enter-stones = Digite o número de pedras iniciais por cova:
 mancala-option-changed-stones = Pedras iniciais alteradas para { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Essa cova está vazia.
-
 # Rules
 mancala-rules =
     Mancala é um jogo de covas e pedras para dois jogadores.
@@ -38,7 +32,5 @@ mancala-rules =
     O jogo termina quando um lado está completamente vazio.
     O jogador com mais pedras vence.
     Use as teclas 1 a 6 para escolher uma cova. Pressione E para verificar o tabuleiro.
-
 # End screen
 mancala-final-score = { $player }: { $score } pedras
-mancala-check-board = Check board

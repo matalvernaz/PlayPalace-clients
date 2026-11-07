@@ -1,48 +1,24 @@
-# Nachrichten für Left Right Center (Deutsch)
+# leftrightcenter.ftl for locale de. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Spielname
 game-name-leftrightcenter = Left Right Center
-
 # Aktionen
-lrc-roll = { $count } { $count ->
-    [one] Würfel
-   *[other] Würfel
-} würfeln
-
+lrc-roll =
+    { $count } { $count ->
+        [one] Würfel
+       *[other] Würfel
+    } würfeln
 # Würfelseiten
 lrc-face-left = Links
-lrc-face-right = Rechts
 lrc-face-center = Mitte
+lrc-face-right = Rechts
 lrc-face-dot = Punkt
-
-# Spielereignisse
-lrc-roll-results = { $player } würfelt { $results }.
-lrc-pass-left = { $player } gibt { $count } { $count ->
-    [one] Chip
-   *[other] Chips
-} an { $target } weiter.
-lrc-pass-right = { $player } gibt { $count } { $count ->
-    [one] Chip
-   *[other] Chips
-} an { $target } weiter.
-lrc-pass-center = { $player } legt { $count } { $count ->
-    [one] Chip
-   *[other] Chips
-} in die Mitte.
-lrc-no-chips = { $player } hat keine Chips zum Würfeln.
-lrc-center-pot = { $count } { $count ->
-    [one] Chip
-   *[other] Chips
-} in der Mitte.
-lrc-player-chips = { $player } hat jetzt { $count } { $count ->
-    [one] Chip
-   *[other] Chips
-}.
-lrc-winner = { $player } gewinnt mit { $count } { $count ->
-    [one] Chip
-   *[other] Chips
-}!
-
+lrc-center-pot =
+    { $count } { $count ->
+        [one] Chip
+       *[other] Chips
+    } in der Mitte.
 # Optionen
 lrc-set-starting-chips = Startchips: { $count }
 lrc-enter-starting-chips = Startchips eingeben:

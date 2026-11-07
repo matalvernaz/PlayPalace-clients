@@ -14,6 +14,9 @@ from typing import TYPE_CHECKING
 
 from mashumaro.mixins.json import DataClassJSONMixin
 
+from ...messages.localization import Localization
+from .skills import ALL_SKILLS
+
 if TYPE_CHECKING:
     from .game import PiratesGame
     from .skills import Skill
@@ -58,15 +61,17 @@ class LevelingSystem(DataClassJSONMixin):
 
     def get_unlocked_skills(self) -> list["Skill"]:
         """Get list of skills unlocked at or below current level."""
-        from .skills import ALL_SKILLS
-
-        return [skill for skill in ALL_SKILLS if skill.required_level <= self.level]
+        return [
+            skill for skill in ALL_SKILLS
+            if skill.required_level <= self.level
+        ]
 
     def get_locked_skills(self) -> list["Skill"]:
         """Get list of skills not yet unlocked."""
-        from .skills import ALL_SKILLS
-
-        return [skill for skill in ALL_SKILLS if skill.required_level > self.level]
+        return [
+            skill for skill in ALL_SKILLS
+            if skill.required_level > self.level
+        ]
 
     def get_next_skill_unlock(self) -> tuple[int, "Skill"] | None:
         """Get the next skill unlock (level, skill) or None if all unlocked."""
@@ -80,9 +85,10 @@ class LevelingSystem(DataClassJSONMixin):
 
     def get_skills_at_level(self, level: int) -> list["Skill"]:
         """Get skills that unlock exactly at the given level."""
-        from .skills import ALL_SKILLS
-
-        return [skill for skill in ALL_SKILLS if skill.required_level == level]
+        return [
+            skill for skill in ALL_SKILLS
+            if skill.required_level == level
+        ]
 
     def give_xp(
         self,
@@ -91,13 +97,14 @@ class LevelingSystem(DataClassJSONMixin):
         base_xp: int,
         golden_moon_multiplier: float = 1.0,
         global_multiplier: float = 1.0,
+        reason: str = "generic",
     ) -> list["Skill"]:
         """
         Give XP to this leveling system and process level ups.
 
         Args:
             game: The game instance for announcements
-            player_name: Name of the player for announcements
+            player_name: Legacy caller-provided name; player state is authoritative
             base_xp: Base XP amount to give
             golden_moon_multiplier: Multiplier from golden moon (default 1.0)
             global_multiplier: Global XP multiplier from game options (default 1.0)
@@ -109,13 +116,21 @@ class LevelingSystem(DataClassJSONMixin):
         xp_gained = int(base_xp * total_multiplier)
         self.xp += xp_gained
 
-        # Announce XP gain
-        game.broadcast_l("pirates-xp-gained", xp=xp_gained)
-
         # Get skill manager for this player to check unlocks
         player = game.get_player_by_id(self.user_id)
         if not player:
             return []
+
+        game._broadcast_actor_l(
+            player,
+            "pirates-xp-gained-you",
+            "pirates-xp-gained-player",
+            brief_personal_key="pirates-xp-gained-you-brief",
+            brief_others_key="pirates-xp-gained-player-brief",
+            xp=xp_gained,
+            total=self.xp,
+            reason=reason,
+        )
 
         # Process level ups
         starting_level = self.level
@@ -132,45 +147,59 @@ class LevelingSystem(DataClassJSONMixin):
         if self.level > starting_level:
             game.play_sound("game_pig/win.ogg", volume=80)
             levels_gained = self.level - starting_level
-            user = game.get_user(player)
-
             if levels_gained == 1:
-                if user:
-                    user.speak_l("pirates-level-up-you", level=self.level, buffer="table")
-                game.broadcast_l(
-                    "pirates-level-up", player=player_name, level=self.level, exclude=player
+                game._broadcast_actor_l(
+                    player,
+                    "pirates-level-up-you",
+                    "pirates-level-up",
+                    brief_personal_key="pirates-level-up-you-brief",
+                    brief_others_key="pirates-level-up-brief",
+                    level=self.level,
                 )
             else:
-                if user:
-                    user.speak_l(
-                        "pirates-level-up-multiple-you",
-                        levels=levels_gained,
-                        level=self.level,
-                        buffer="table",
-                    )
-                game.broadcast_l(
+                game._broadcast_actor_l(
+                    player,
+                    "pirates-level-up-multiple-you",
                     "pirates-level-up-multiple",
-                    player=player_name,
+                    brief_personal_key="pirates-level-up-multiple-you-brief",
+                    brief_others_key="pirates-level-up-multiple-brief",
                     levels=levels_gained,
                     level=self.level,
-                    exclude=player,
                 )
 
-            # Announce unlocked skills in a single message
             if skills_unlocked:
-                skill_names = ", ".join(skill.name for skill in skills_unlocked)
-                if user:
-                    user.speak_l(
-                        "pirates-skills-unlocked-you",
-                        skills=skill_names,
-                        buffer="table",
+                for listener in game.players:
+                    user = game.get_user(listener)
+                    if not user:
+                        continue
+                    skill_names = Localization.format_list_and(
+                        user.locale,
+                        [
+                            Localization.get(user.locale, skill.name)
+                            for skill in skills_unlocked
+                        ],
                     )
-                game.broadcast_l(
-                    "pirates-skills-unlocked",
-                    player=player_name,
-                    skills=skill_names,
-                    exclude=player,
-                )
+                    if listener.id == player.id:
+                        key = "pirates-skills-unlocked-you"
+                        if game._wants_brief(user):
+                            key += "-brief"
+                        user.speak_l(
+                            key,
+                            buffer="game",
+                            skills=skill_names,
+                            level=self.level,
+                        )
+                    else:
+                        key = "pirates-skills-unlocked"
+                        if game._wants_brief(user):
+                            key += "-brief"
+                        user.speak_l(
+                            key,
+                            buffer="game",
+                            player=player.name,
+                            skills=skill_names,
+                            level=self.level,
+                        )
 
         return skills_unlocked
 

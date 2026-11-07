@@ -1,0 +1,444 @@
+"""Declarative user preferences for PlayPalace.
+
+Preferences are defined using the same option types as game options
+(BoolOption, MenuOption, etc.) with category grouping, per-game overrides,
+and auto-serialization.
+
+Usage:
+    prefs = UserPreferences()
+    prefs.play_turn_sound  # True (default)
+    prefs.get_effective("play_turn_sound", game_type="pig")  # per-game or global
+    prefs.set_game_override("play_turn_sound", "pig", False)
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field, fields
+from enum import Enum
+from typing import Any, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Dice keeping style enum (kept for type safety in game code)
+# ---------------------------------------------------------------------------
+
+
+class DiceKeepingStyle(Enum):
+    """Dice keeping style preference.
+
+    PlayAural's game engine names the styles INDEX_BASED and VALUE_BASED;
+    this server stored them as "playpalace" and "quentin_c" long before, so
+    those stay the stored values and the old names stay as aliases.
+    """
+
+    INDEX_BASED = "playpalace"  # Dice indexes (1-5 keys)
+    VALUE_BASED = "quentin_c"  # Dice values (1-6 keys)
+    PLAYPALACE = "playpalace"
+    QUENTIN_C = "quentin_c"
+
+    @classmethod
+    def _missing_(cls, value: object) -> "DiceKeepingStyle | None":
+        """Accept PlayAural's spelling of the stored values too."""
+        return {"index_based": cls.INDEX_BASED, "value_based": cls.VALUE_BASED}.get(value)
+
+    @classmethod
+    def from_str(cls, value: str) -> "DiceKeepingStyle":
+        """Convert string to enum, defaulting to index-based keeping."""
+        try:
+            return cls(value)
+        except ValueError:
+            return cls.INDEX_BASED
+
+
+# ---------------------------------------------------------------------------
+# Preference field metadata
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class PrefMeta:
+    """Metadata for a single preference field.
+
+    Attributes:
+        category: Category key (e.g. "display", "dice").
+        label: Fluent key for menu label (receives $status or $choice).
+        change_msg: Fluent key for change announcement.
+        description: Fluent key spoken on Space.
+        prompt: Fluent key for input prompt (menu options only).
+        kind: "bool" or "menu".
+        default: Default value.
+        choices: For menu prefs, list of (value, fluent_key) tuples.
+        enum_class: Optional enum class for type conversion.
+    """
+
+    category: str
+    label: str
+    change_msg: str
+    description: str = ""
+    prompt: str = ""
+    kind: str = "bool"  # "bool" or "menu"
+    default: Any = None
+    choices: list[tuple[str, str]] | None = None
+    enum_class: type[Enum] | None = None
+
+
+def pref_field(meta: PrefMeta) -> Any:
+    """Create a dataclass field with preference metadata."""
+    from dataclasses import field as dc_field
+
+    return dc_field(default=meta.default, metadata={"pref_meta": meta})
+
+
+# ---------------------------------------------------------------------------
+# Category definitions (order matters — this is menu order)
+# ---------------------------------------------------------------------------
+
+PREF_CATEGORIES: list[tuple[str, str]] = [
+    ("display", "pref-category-display"),
+    ("sounds", "pref-category-sounds"),
+    ("gameplay", "pref-category-gameplay"),
+    ("dice", "pref-category-dice"),
+]
+"""(category_key, fluent_key) in display order."""
+
+
+# ---------------------------------------------------------------------------
+# UserPreferences dataclass
+# ---------------------------------------------------------------------------
+
+#: Upper bound on a user's ignore list, to cap stored/serialized growth.
+MAX_IGNORED_USERS = 500
+
+
+@dataclass
+class UserPreferences:
+    """User preferences that persist across sessions.
+
+    Fields are defined in display order within each category.
+    Metadata on each field drives menu generation and serialization.
+    """
+
+    # --- Display category ---
+    brief_announcements: bool = pref_field(
+        PrefMeta(
+            category="display",
+            label="pref-set-brief-announcements",
+            change_msg="pref-changed-brief-announcements",
+            description="pref-desc-brief-announcements",
+            kind="bool",
+            default=False,
+        )
+    )
+
+    # Menu rows that carry a description read it after their name. Our
+    # clients can't ask for a row's description on its own, so this is the
+    # only way to hear it; on by default, as in PlayAural.
+    show_menu_hints: bool = pref_field(
+        PrefMeta(
+            category="display",
+            label="pref-set-show-menu-hints",
+            change_msg="pref-changed-show-menu-hints",
+            description="pref-desc-show-menu-hints",
+            kind="bool",
+            default=True,
+        )
+    )
+
+    # --- Sounds category ---
+    play_turn_sound: bool = pref_field(
+        PrefMeta(
+            category="sounds",
+            label="pref-set-play-turn-sound",
+            change_msg="pref-changed-play-turn-sound",
+            description="pref-desc-play-turn-sound",
+            kind="bool",
+            default=True,
+        )
+    )
+    music_volume: str = pref_field(
+        PrefMeta(
+            category="sounds",
+            label="pref-set-music-volume",
+            change_msg="pref-changed-music-volume",
+            description="pref-desc-music-volume",
+            prompt="pref-select-music-volume",
+            kind="menu",
+            default="20",
+            choices=[
+                ("0", "pref-volume-0"),
+                ("10", "pref-volume-10"),
+                ("20", "pref-volume-20"),
+                ("30", "pref-volume-30"),
+                ("40", "pref-volume-40"),
+                ("50", "pref-volume-50"),
+                ("60", "pref-volume-60"),
+                ("70", "pref-volume-70"),
+                ("80", "pref-volume-80"),
+                ("90", "pref-volume-90"),
+                ("100", "pref-volume-100"),
+            ],
+        )
+    )
+    ambience_volume: str = pref_field(
+        PrefMeta(
+            category="sounds",
+            label="pref-set-ambience-volume",
+            change_msg="pref-changed-ambience-volume",
+            description="pref-desc-ambience-volume",
+            prompt="pref-select-ambience-volume",
+            kind="menu",
+            default="20",
+            choices=[
+                ("0", "pref-volume-0"),
+                ("10", "pref-volume-10"),
+                ("20", "pref-volume-20"),
+                ("30", "pref-volume-30"),
+                ("40", "pref-volume-40"),
+                ("50", "pref-volume-50"),
+                ("60", "pref-volume-60"),
+                ("70", "pref-volume-70"),
+                ("80", "pref-volume-80"),
+                ("90", "pref-volume-90"),
+                ("100", "pref-volume-100"),
+            ],
+        )
+    )
+
+    # --- Gameplay category ---
+    # Lets the lobby's Add bot action ask for a name instead of picking one.
+    # The game engine reads it; it defaults off like PlayAural's.
+    allow_custom_bot_names: bool = pref_field(
+        PrefMeta(
+            category="gameplay",
+            label="pref-set-allow-custom-bot-names",
+            change_msg="pref-changed-allow-custom-bot-names",
+            description="pref-desc-allow-custom-bot-names",
+            kind="bool",
+            default=False,
+        )
+    )
+
+    confirm_destructive_actions: bool = pref_field(
+        PrefMeta(
+            category="gameplay",
+            label="pref-set-confirm-destructive-actions",
+            change_msg="pref-changed-confirm-destructive-actions",
+            description="pref-desc-confirm-destructive-actions",
+            kind="bool",
+            default=True,
+        )
+    )
+
+    # --- Dice category ---
+    clear_kept_on_roll: bool = pref_field(
+        PrefMeta(
+            category="dice",
+            label="pref-set-clear-kept-on-roll",
+            change_msg="pref-changed-clear-kept-on-roll",
+            description="pref-desc-clear-kept-on-roll",
+            kind="bool",
+            default=False,
+        )
+    )
+
+    dice_keeping_style: DiceKeepingStyle = pref_field(
+        PrefMeta(
+            category="dice",
+            label="pref-set-dice-keeping-style",
+            change_msg="pref-changed-dice-keeping-style",
+            description="pref-desc-dice-keeping-style",
+            prompt="pref-select-dice-keeping-style",
+            kind="menu",
+            default=DiceKeepingStyle.PLAYPALACE,
+            choices=[
+                ("playpalace", "pref-dice-keeping-style-playpalace"),
+                ("quentin_c", "pref-dice-keeping-style-quentin_c"),
+            ],
+            enum_class=DiceKeepingStyle,
+        )
+    )
+
+    # --- Per-game overrides ---
+    game_overrides: dict[str, dict[str, Any]] = field(
+        default_factory=dict,
+        metadata={"skip_pref": True},  # not a preference itself
+    )
+
+    # --- Ignored users ---
+    # Lowercase usernames the player has chosen to mute. Server uses this to
+    # filter outbound chat / table_create / online_users / tables_menu before
+    # delivery; clients also mirror it locally so the feature still works
+    # against vanilla servers that haven't implemented filtering.
+    ignored_users: list[str] = field(
+        default_factory=list,
+        metadata={"skip_pref": True},
+    )
+
+    # ------------------------------------------------------------------
+    # Introspection helpers
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def get_pref_fields(cls) -> list[tuple[str, PrefMeta]]:
+        """Return (field_name, PrefMeta) for every preference field, in order."""
+        result = []
+        for f in fields(cls):
+            meta = f.metadata.get("pref_meta")
+            if meta is not None:
+                result.append((f.name, meta))
+        return result
+
+    @classmethod
+    def get_fields_for_category(cls, category: str) -> list[tuple[str, PrefMeta]]:
+        """Return pref fields belonging to a category, in definition order."""
+        return [(n, m) for n, m in cls.get_pref_fields() if m.category == category]
+
+    @classmethod
+    def get_pref_meta(cls, field_name: str) -> PrefMeta | None:
+        """Get PrefMeta for a field by name."""
+        for f in fields(cls):
+            if f.name == field_name:
+                return f.metadata.get("pref_meta")
+        return None
+
+    # ------------------------------------------------------------------
+    # Per-game overrides
+    # ------------------------------------------------------------------
+
+    def get_effective(self, field_name: str, game_type: str | None = None) -> Any:
+        """Get the effective value of a preference, considering per-game overrides.
+
+        If game_type is provided and a per-game override exists, return that.
+        Otherwise return the global value.
+        """
+        if game_type and game_type in self.game_overrides:
+            overrides = self.game_overrides[game_type]
+            if field_name in overrides:
+                raw = overrides[field_name]
+                # Convert enums
+                meta = self.get_pref_meta(field_name)
+                if meta and meta.enum_class:
+                    return meta.enum_class(raw) if isinstance(raw, str) else raw
+                return raw
+        return getattr(self, field_name)
+
+    def set_game_override(self, field_name: str, game_type: str, value: Any) -> None:
+        """Set a per-game override."""
+        if game_type not in self.game_overrides:
+            self.game_overrides[game_type] = {}
+        # Store enum values as strings
+        if isinstance(value, Enum):
+            value = value.value
+        self.game_overrides[game_type][field_name] = value
+
+    def clear_game_override(self, field_name: str, game_type: str) -> None:
+        """Remove a per-game override (revert to global default)."""
+        if game_type in self.game_overrides:
+            self.game_overrides[game_type].pop(field_name, None)
+            if not self.game_overrides[game_type]:
+                del self.game_overrides[game_type]
+
+    def get_game_override(self, field_name: str, game_type: str) -> Any | None:
+        """Get a per-game override, or None if not set."""
+        if game_type in self.game_overrides:
+            return self.game_overrides[game_type].get(field_name)
+        return None
+
+    def has_game_override(self, field_name: str, game_type: str) -> bool:
+        """Check if a per-game override is set."""
+        return game_type in self.game_overrides and field_name in self.game_overrides[game_type]
+
+    # ------------------------------------------------------------------
+    # Reset
+    # ------------------------------------------------------------------
+
+    def reset_all(self) -> None:
+        """Reset all preferences and overrides to defaults."""
+        for name, meta in self.get_pref_fields():
+            setattr(self, name, meta.default)
+        self.game_overrides.clear()
+
+    def reset_category(self, category: str) -> None:
+        """Reset all preferences in a category to defaults."""
+        for name, meta in self.get_fields_for_category(category):
+            setattr(self, name, meta.default)
+            # Also clear per-game overrides for these fields
+            for game_type in list(self.game_overrides):
+                self.game_overrides[game_type].pop(name, None)
+                if not self.game_overrides[game_type]:
+                    del self.game_overrides[game_type]
+
+    # ------------------------------------------------------------------
+    # Serialization (auto-generated from field metadata)
+    # ------------------------------------------------------------------
+
+    def to_dict(self) -> dict:
+        """Convert to dictionary for storage."""
+        result: dict[str, Any] = {}
+        for name, meta in self.get_pref_fields():
+            value = getattr(self, name)
+            if isinstance(value, Enum):
+                result[name] = value.value
+            else:
+                result[name] = value
+        if self.game_overrides:
+            result["game_overrides"] = self.game_overrides
+        if self.ignored_users:
+            result["ignored_users"] = self.ignored_users
+        return result
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "UserPreferences":
+        """Create from dictionary."""
+        kwargs: dict[str, Any] = {}
+        for name, meta in cls.get_pref_fields():
+            if name in data:
+                raw = data[name]
+                if meta.enum_class:
+                    try:
+                        kwargs[name] = meta.enum_class(raw)
+                    except (ValueError, KeyError):
+                        kwargs[name] = meta.default
+                elif meta.kind == "bool":
+                    kwargs[name] = bool(raw)
+                else:
+                    kwargs[name] = raw
+            # If not in data, default is used automatically
+        prefs = cls(**kwargs)
+        if "game_overrides" in data and isinstance(data["game_overrides"], dict):
+            prefs.game_overrides = data["game_overrides"]
+        if "ignored_users" in data and isinstance(data["ignored_users"], list):
+            # Defensive normalization — accept strings only, dedup, lowercase.
+            prefs.ignored_users = sorted({
+                str(u).lower() for u in data["ignored_users"] if isinstance(u, str)
+            })
+        return prefs
+
+    # ------------------------------------------------------------------
+    # Ignored-users helpers
+    # ------------------------------------------------------------------
+
+    def is_ignored(self, username: str) -> bool:
+        """True if `username` (case-insensitive) is in the ignore list."""
+        return username.lower() in self.ignored_users
+
+    def add_ignored(self, username: str) -> bool:
+        """Add `username` to the ignore list. Returns True iff it was added."""
+        normalized = username.lower().strip()
+        if not normalized or normalized in self.ignored_users:
+            return False
+        if len(self.ignored_users) >= MAX_IGNORED_USERS:
+            return False
+        self.ignored_users = sorted({*self.ignored_users, normalized})
+        return True
+
+    def remove_ignored(self, username: str) -> bool:
+        """Remove `username` from the ignore list. Returns True iff present."""
+        normalized = username.lower().strip()
+        if normalized not in self.ignored_users:
+            return False
+        self.ignored_users = [u for u in self.ignored_users if u != normalized]
+        return True

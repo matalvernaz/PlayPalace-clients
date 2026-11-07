@@ -1,3 +1,6 @@
+# languages.ftl for locale zh. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # 语言名称翻译成本语言
 language-ar = 阿拉伯语
 language-cs = 捷克语
@@ -11,7 +14,6 @@ language-hr = 克罗地亚语
 language-hu = 匈牙利语
 language-id = 印度尼西亚语
 language-it = 意大利语
-language-ja = 日语
 language-ko = 韩语
 language-mk = 马其顿语
 language-mn = 蒙古语
@@ -30,3 +32,4 @@ language-uk = 乌克兰语
 language-vi = 越南语
 language-zh = 中文
 language-zu = 祖鲁语
+language-ja = 日语

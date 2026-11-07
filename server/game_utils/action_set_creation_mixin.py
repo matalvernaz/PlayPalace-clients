@@ -3,25 +3,22 @@
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..games.base import Player
+    from .player import Player
 
-from .actions import Action, ActionSet, EditboxInput
+from .actions import Action, ActionSet, EditboxInput, MenuInput
 from ..messages.localization import Localization
-from server.core.ui.keybinds import Keybind, KeybindState
+from ..ui.keybinds import Keybind, KeybindState
 
 
 class ActionSetCreationMixin:
-    """Create standard/lobby action sets and define keybinds.
+    """Mixin providing action set creation (lobby, estimate, standard) and keybind management.
 
-    Games override `create_turn_action_set` to define turn-specific actions.
-    This mixin also defines the global keybinds used across games.
-
-    Expected Game attributes:
-        players: list[Player].
-        player_action_sets: dict[str, list[ActionSet]].
-        _keybinds: dict[str, list[Keybind]].
-        get_user(player) -> User | None.
-        add_action_set(player, action_set).
+    Expects on the Game class:
+        - self.players: list[Player]
+        - self.player_action_sets: dict[str, list[ActionSet]]
+        - self._keybinds: dict[str, list[Keybind]]
+        - self.get_user(player) -> User | None
+        - self.add_action_set(player, action_set)
     """
 
     def create_lobby_action_set(self, player: "Player") -> ActionSet:
@@ -37,6 +34,72 @@ class ActionSetCreationMixin:
                 handler="_action_start_game",
                 is_enabled="_is_start_game_enabled",
                 is_hidden="_is_start_game_hidden",
+                get_label="_get_start_game_label",
+                include_spectators=True,
+            )
+        )
+        action_set.add(
+            Action(
+                id="confirm_team_arrangement",
+                label=Localization.get(locale, "team-arrangement-confirm"),
+                handler="_action_confirm_team_arrangement",
+                is_enabled="_is_confirm_team_arrangement_enabled",
+                is_hidden="_is_confirm_team_arrangement_hidden",
+                show_in_actions_menu=False,
+                include_spectators=True,
+            )
+        )
+        action_set.add(
+            Action(
+                id="read_team_arrangement",
+                label=Localization.get(locale, "team-arrangement-read"),
+                handler="_action_read_team_arrangement",
+                is_enabled="_is_read_team_arrangement_enabled",
+                is_hidden="_is_read_team_arrangement_hidden",
+                include_spectators=True,
+            )
+        )
+        action_set.add(
+            Action(
+                id="select_team_member",
+                label=Localization.get(
+                    locale, "team-arrangement-select-member-action"
+                ),
+                handler="_action_select_team_member",
+                is_enabled="_is_select_team_member_enabled",
+                is_hidden="_is_select_team_member_hidden",
+                input_request=MenuInput(
+                    prompt="team-arrangement-select-member",
+                    options="_team_arrangement_member_options",
+                    option_label="_team_arrangement_member_label",
+                ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
+            Action(
+                id="swap_team_member",
+                label=Localization.get(locale, "team-arrangement-swap-member"),
+                handler="_action_swap_team_member",
+                is_enabled="_is_swap_team_member_enabled",
+                is_hidden="_is_swap_team_member_hidden",
+                get_label="_get_swap_team_member_label",
+                input_request=MenuInput(
+                    prompt="team-arrangement-select-swap-target",
+                    options="_team_arrangement_swap_options",
+                    option_label="_team_arrangement_swap_label",
+                ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
+            Action(
+                id="cancel_team_arrangement",
+                label=Localization.get(locale, "team-arrangement-cancel"),
+                handler="_action_cancel_team_arrangement",
+                is_enabled="_is_cancel_team_arrangement_enabled",
+                is_hidden="_is_cancel_team_arrangement_hidden",
+                include_spectators=True,
             )
         )
         action_set.add(
@@ -50,7 +113,9 @@ class ActionSetCreationMixin:
                     prompt="enter-bot-name",
                     default="",
                     bot_input="_bot_input_add_bot",
+                    should_prompt="_should_prompt_add_bot",
                 ),
+                include_spectators=True,
             )
         )
         action_set.add(
@@ -60,6 +125,7 @@ class ActionSetCreationMixin:
                 handler="_action_remove_bot",
                 is_enabled="_is_remove_bot_enabled",
                 is_hidden="_is_remove_bot_hidden",
+                include_spectators=True,
             )
         )
         action_set.add(
@@ -70,29 +136,35 @@ class ActionSetCreationMixin:
                 is_enabled="_is_toggle_spectator_enabled",
                 is_hidden="_is_toggle_spectator_hidden",
                 get_label="_get_toggle_spectator_label",
+                include_spectators=True,
             )
         )
-        return action_set
-
-    def create_estimate_action_set(self, player: "Player") -> ActionSet:
-        """Create the estimate duration action set for a player."""
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
-
-        action_set = ActionSet(name="estimate")
         action_set.add(
             Action(
-                id="estimate_duration",
-                label=Localization.get(locale, "estimate-duration"),
-                handler="_action_estimate_duration",
-                is_enabled="_is_estimate_duration_enabled",
-                is_hidden="_is_estimate_duration_hidden",
+                id="host_management",
+                label=Localization.get(locale, "host-management"),
+                handler="_action_host_management",
+                is_enabled="_is_host_management_enabled",
+                is_hidden="_is_host_management_hidden",
+                include_spectators=True,
+            )
+        )
+        action_set.add(
+            Action(
+                id="leave_game",
+                label=Localization.get(locale, "leave-table"),
+                handler="_action_leave_game",
+                is_enabled="_is_leave_game_enabled",
+                is_hidden="_is_leave_game_hidden",
+                include_spectators=True,
             )
         )
         return action_set
 
+
+
     def create_standard_action_set(self, player: "Player") -> ActionSet:
-        """Create the standard action set (F5, save) for a player."""
+        """Create the standard action set (actions menu, save) for a player."""
         user = self.get_user(player)
         locale = user.locale if user else "en"
 
@@ -103,8 +175,9 @@ class ActionSetCreationMixin:
                 label=Localization.get(locale, "actions-menu"),
                 handler="_action_show_actions_menu",
                 is_enabled="_is_show_actions_enabled",
-                is_hidden="_is_always_hidden",
+                is_hidden="_is_show_actions_hidden",
                 show_in_actions_menu=False,
+                include_spectators=True,
             )
         )
         action_set.add(
@@ -125,6 +198,7 @@ class ActionSetCreationMixin:
                 handler="_action_whose_turn",
                 is_enabled="_is_whose_turn_enabled",
                 is_hidden="_is_whose_turn_hidden",
+                include_spectators=True,
             )
         )
         action_set.add(
@@ -134,6 +208,7 @@ class ActionSetCreationMixin:
                 handler="_action_whos_at_table",
                 is_enabled="_is_whos_at_table_enabled",
                 is_hidden="_is_whos_at_table_hidden",
+                include_spectators=True,
             )
         )
         action_set.add(
@@ -143,6 +218,7 @@ class ActionSetCreationMixin:
                 handler="_action_check_scores",
                 is_enabled="_is_check_scores_enabled",
                 is_hidden="_is_check_scores_hidden",
+                include_spectators=True,
             )
         )
         action_set.add(
@@ -152,36 +228,29 @@ class ActionSetCreationMixin:
                 handler="_action_check_scores_detailed",
                 is_enabled="_is_check_scores_detailed_enabled",
                 is_hidden="_is_check_scores_detailed_hidden",
+                include_spectators=True,
             )
         )
         action_set.add(
             Action(
-                id="check_game_options",
-                label=Localization.get(locale, "check-game-options"),
-                handler="_action_check_game_options",
-                is_enabled="_is_check_game_options_enabled",
-                is_hidden="_is_check_game_options_hidden",
+                id="game_info",
+                label=Localization.get(locale, "game-info"),
+                handler="_action_game_info",
+                is_enabled="_is_game_info_enabled",
+                is_hidden="_is_game_info_hidden",
+                include_spectators=True,
             )
         )
         action_set.add(
             Action(
-                id="predict_outcomes",
-                label=Localization.get(locale, "predict-outcomes"),
-                handler="_action_predict_outcomes",
-                is_enabled="_is_predict_outcomes_enabled",
-                is_hidden="_is_predict_outcomes_hidden",
+                id="game_rules",
+                label=Localization.get(locale, "how-to-play"),
+                handler="_action_game_rules",
+                is_enabled="_is_game_rules_enabled",
+                is_hidden="_is_game_rules_hidden",
+                include_spectators=True,
             )
         )
-        action_set.add(
-            Action(
-                id="leave_game",
-                label=Localization.get(locale, "leave-table"),
-                handler="_action_leave_game",
-                is_enabled="_is_leave_game_enabled",
-                is_hidden="_is_leave_game_hidden",
-            )
-        )
-
         return action_set
 
     def _order_touch_standard_actions(
@@ -228,6 +297,13 @@ class ActionSetCreationMixin:
             include_spectators=True,
         )
         self.define_keybind(
+            "ctrl+m",
+            "Host Management",
+            ["host_management"],
+            state=KeybindState.ALWAYS,
+            include_spectators=True,
+        )
+        self.define_keybind(
             "ctrl+q",
             "Leave table",
             ["leave_game"],
@@ -243,14 +319,8 @@ class ActionSetCreationMixin:
             include_spectators=True,
         )
         self.define_keybind(
-            "ctrl+e",
-            "Estimate duration",
-            ["estimate_duration"],
-            state=KeybindState.IDLE,
-            players=[self.host],
-            include_spectators=True,
+            "ctrl+s", "Save table", ["save_table"], state=KeybindState.ALWAYS
         )
-        self.define_keybind("ctrl+s", "Save table", ["save_table"], state=KeybindState.ALWAYS)
 
         # Status keybinds (during play)
         self.define_keybind(
@@ -261,7 +331,7 @@ class ActionSetCreationMixin:
             include_spectators=True,
         )
         self.define_keybind(
-            "ctrl+w",
+            "ctrl+u",
             "Who's at the table",
             ["whos_at_table"],
             state=KeybindState.ALWAYS,
@@ -282,17 +352,17 @@ class ActionSetCreationMixin:
             include_spectators=True,
         )
         self.define_keybind(
-            "alt+o",
-            "Check game options",
-            ["check_game_options"],
-            state=KeybindState.ACTIVE,
+            "ctrl+i",
+            "Game info",
+            ["game_info"],
+            state=KeybindState.ALWAYS,
             include_spectators=True,
         )
         self.define_keybind(
-            "ctrl+r",
-            "Predict outcomes",
-            ["predict_outcomes"],
-            state=KeybindState.ACTIVE,
+            "ctrl+f1",
+            "How to play",
+            ["game_rules"],
+            state=KeybindState.ALWAYS,
             include_spectators=True,
         )
 
@@ -319,10 +389,6 @@ class ActionSetCreationMixin:
         if hasattr(self, "options"):
             options_set = self.create_options_action_set(player)
             self.add_action_set(player, options_set)
-
-        # Add estimate action set (after options)
-        estimate_set = self.create_estimate_action_set(player)
-        self.add_action_set(player, estimate_set)
 
         standard_set = self.create_standard_action_set(player)
         self.add_action_set(player, standard_set)

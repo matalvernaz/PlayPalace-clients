@@ -18,8 +18,8 @@ from server.games.life.state import (
     filter_events_for_options,
 )
 from server.games.life import bot as life_bot
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
+from server.users.test_user import MockUser
+from server.users.bot import Bot
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +172,7 @@ class TestGameSetup:
         assert game.get_name() == "The Game of Life"
         assert game.get_min_players() == 1
         assert game.get_max_players() == 6
-        assert game.get_category() == "category-board-games"
+        assert game.get_category() == "board"
 
     def test_player_creation(self):
         game = GameOfLifeGame()
@@ -524,3 +524,20 @@ class TestPlayToCompletion:
                 break
             game.on_tick()
         assert not game.game_active
+
+
+def test_career_pick_shows_one_row_per_career_on_offer():
+    """Bug: the three pick rows always showed, so two offers left a blank third row."""
+    game = GameOfLifeGame()
+    game.options.college_path = False
+    game.add_player("Alice", MockUser("Alice"))
+    game.add_player("Bob", MockUser("Bob"))
+    game.on_start()
+    player = game.current_player
+    assert player.pending == "career_pick"
+    game.career_offers[player.id] = game.career_offers.get(player.id, [0, 1, 2])[:2]
+
+    visible = [resolved.action.id for resolved in game.get_all_visible_actions(player)]
+    picks = [action_id for action_id in visible if action_id.startswith("pick_career_")]
+    assert picks == ["pick_career_0", "pick_career_1"]
+    assert game.resolve_action(player, game.find_action(player, "pick_career_2")).enabled is False

@@ -1,151 +1,142 @@
-game-name-tienlen = Tien Len
+# tienlen.ftl for locale fa. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-tienlen-set-variant = Variant: { $choice }
-tienlen-select-variant = Select Tien Len variant:
-tienlen-option-changed-variant = Variant set to { $choice }.
-tienlen-desc-variant = Chooses Southern or Northern Tiến Lên rules.
-
-tienlen-set-coin-target = Starting coins: { $choice }
-tienlen-select-coin-target = Select starting coins:
-tienlen-option-changed-coin-target = Starting coins set to { $choice }.
-tienlen-desc-match-length = Starting bankroll for each player. Settlements use 10-coin stake units; players at 0 coins are eliminated.
-
-tienlen-set-turn-timer = Turn Timer: { $choice }
-tienlen-select-turn-timer = Select turn timer duration:
-tienlen-option-changed-turn-timer = Turn timer set to { $choice }.
-tienlen-desc-turn-timer = Optional time limit for each Tiến Lên turn: Unlimited, 10, 15, 20, 30, 45, 60, or 90 seconds (default Unlimited).
-
-tienlen-variant-south = Southern Tien Len
-tienlen-variant-north = Northern Tien Len
-tienlen-target-20 = 20 coins
-tienlen-target-50 = 50 coins
-tienlen-target-100 = 100 coins
-tienlen-target-200 = 200 coins
-
-tienlen-timer-10 = 10 Seconds
-tienlen-timer-15 = 15 Seconds
-tienlen-timer-20 = 20 Seconds
-tienlen-timer-30 = 30 Seconds
-tienlen-timer-45 = 45 Seconds
-tienlen-timer-60 = 60 Seconds
-tienlen-timer-90 = 90 Seconds
-tienlen-timer-unlimited = Unlimited
-
-tienlen-game-start = Starting Tien Len.
-tienlen-new-hand = Hand { $round }.
-tienlen-dealt = Dealt 13 cards: { $cards }.
-tienlen-variant-status = This table is playing { $variant }.
-
+game-name-tienlen = تین لن
+tienlen-set-variant = نسخه: { $choice }
+tienlen-select-variant = نسخه‌ی تین لن را انتخاب کنید:
+tienlen-option-changed-variant = نسخه روی { $choice } تنظیم شد.
+tienlen-desc-variant = قوانین تین لن جنوبی یا شمالی را انتخاب می‌کند.
+tienlen-set-coin-target = سکه‌های شروع: { $choice }
+tienlen-select-coin-target = سکه‌های شروع را انتخاب کنید:
+tienlen-option-changed-coin-target = سکه‌های شروع روی { $choice } تنظیم شد.
+tienlen-desc-match-length = سرمایه‌ی اولیه برای هر بازیکن. تسویه‌ها از واحدهای شرط ۱۰ سکه‌ای استفاده می‌کنند؛ بازیکنان با ۰ سکه حذف می‌شوند.
+tienlen-set-turn-timer = زمان‌سنج نوبت: { $choice }
+tienlen-select-turn-timer = مدت زمان‌سنج نوبت را انتخاب کنید:
+tienlen-option-changed-turn-timer = زمان‌سنج نوبت روی { $choice } تنظیم شد.
+tienlen-desc-turn-timer = محدودیت زمانی اختیاری برای هر نوبت تین لن: بدون محدودیت، ۱۰، ۱۵، ۲۰، ۳۰، ۴۵، ۶۰، یا ۹۰ ثانیه (پیش‌فرض بدون محدودیت).
+tienlen-variant-south = تین لن جنوبی
+tienlen-variant-north = تین لن شمالی
+tienlen-target-20 = ۲۰ سکه
+tienlen-target-50 = ۵۰ سکه
+tienlen-target-100 = ۱۰۰ سکه
+tienlen-target-200 = ۲۰۰ سکه
+tienlen-timer-10 = ۱۰ ثانیه
+tienlen-timer-15 = ۱۵ ثانیه
+tienlen-timer-20 = ۲۰ ثانیه
+tienlen-timer-30 = ۳۰ ثانیه
+tienlen-timer-45 = ۴۵ ثانیه
+tienlen-timer-60 = ۶۰ ثانیه
+tienlen-timer-90 = ۹۰ ثانیه
+tienlen-timer-unlimited = بدون محدودیت
+tienlen-game-start = شروع تین لن.
+tienlen-new-hand = دست { $round }.
+tienlen-dealt = ۱۳ کارت داده شد: { $cards }.
+tienlen-variant-status = این میز در حال بازی { $variant } است.
 tienlen-card-unselected = { $card }
-tienlen-card-selected = { $card } (selected)
-
-tienlen-play-none = Select cards to play.
-tienlen-play-invalid = Invalid combination.
-tienlen-play-combo = Play { $combo }
-
-tienlen-pass = Pass
-tienlen-confirm-pass = Passing locks you out of the current trick. Press Pass again within 10 seconds to confirm.
-tienlen-check-trick = Check trick
-tienlen-read-hand = Read hand
-tienlen-read-card-counts = Read card counts
-tienlen-check-variant = Check variant
-tienlen-check-turn-timer = Check turn timer
-tienlen-timer-disabled = The turn timer is disabled.
-tienlen-timer-remaining = { $seconds } seconds remaining.
-
-tienlen-error-no-cards = You have not selected any cards.
-tienlen-error-invalid-combo = The selected cards do not form a valid Tien Len combination for this variant.
-tienlen-error-pass-lock = You already passed on this trick and must wait until the table clears.
-tienlen-error-pass-lock-chop = You already passed on this trick. You may only return with a legal chop against the current 2s or chopping combination.
-tienlen-error-wrong-length = You must play exactly { $count } cards to answer the current trick.
-tienlen-error-must-match-type = Your play must match the current trick's combination type unless it is a legal chop.
-tienlen-error-structure-mismatch = In Northern Tien Len, your play must match the suit or color structure of the current trick.
-tienlen-error-lower-combo = Your combination does not beat the current trick.
-tienlen-error-must-play = You cannot pass when starting a new trick.
-tienlen-error-cannot-finish-on-two = In Northern Tien Len, you cannot finish the hand with 2s or leave only 2s behind.
-tienlen-error-not-your-turn-chop = It is not your turn. In Southern Tien Len you may only jump in with a selected legal chop.
-tienlen-error-already-finished = You have already finished this hand.
-tienlen-error-opening-card-required = The opening play must include { $card }.
-tienlen-error-invalid-variant = Select a supported Tien Len variant.
-tienlen-error-invalid-starting-coins = Select a supported starting coin amount.
-tienlen-error-invalid-turn-timer = Select a supported turn timer.
-
-tienlen-you-play-single = You play { $card }.
-tienlen-player-plays-single = { $player } plays { $card }.
-tienlen-you-play-combo = You play { $combo }: { $cards }.
-tienlen-player-plays-combo = { $player } plays { $combo }: { $cards }.
-tienlen-you-one-card = You have one card left.
-tienlen-one-card = { $player } has one card left.
-tienlen-you-pass = You pass and are locked out until this trick clears.
-tienlen-player-passes = { $player } passes and is locked out until this trick clears.
-tienlen-you-chop-payment = You chop { $player }. { $amount } coins pending.
-tienlen-you-are-chopped-payment = { $player } chops you. { $amount } coins pending.
-tienlen-player-chop-payment = { $chopper } chops { $chopped }. { $amount } coins pending.
-tienlen-you-leftover-penalty = You pay { $amount } coins for leftover 2s or chopping cards.
-tienlen-player-leftover-penalty = { $player } pays { $amount } coins for leftover 2s or chopping cards.
-tienlen-you-finish-place = You emptied your hand and take place { $place } for this hand.
-tienlen-player-finishes-place = { $player } empties their hand and takes place { $place } for this hand.
-tienlen-trick-empty = The trick is empty.
-tienlen-trick-status = { $player } is leading with { $combo }: { $cards }.
-tienlen-your-hand = Your hand: { $cards }.
-tienlen-card-count-line = { $player } has { $count } cards
-tienlen-card-count-eliminated-line = { $player } is eliminated
-
-tienlen-combo-single = single
-tienlen-combo-pair = pair
-tienlen-combo-triple = triple
-tienlen-combo-four_of_a_kind = four of a kind
-tienlen-combo-straight = straight
-tienlen-combo-consecutive_pairs = consecutive pairs
-
-tienlen-instant-six-pairs = six pairs
-tienlen-instant-five-consecutive-pairs = five consecutive pairs
-tienlen-instant-three-consecutive-triples = three consecutive triples
-tienlen-instant-four-twos = four 2s
-tienlen-instant-dragon = dragon straight
-tienlen-instant-six-consecutive-pairs = six consecutive pairs
-tienlen-instant-four-triples = four triples
-tienlen-instant-two-four-of-a-kind = two four-of-a-kind sets
-tienlen-instant-same-color = 12 cards of one color
-tienlen-you-instant-win = You have an instant win with { $reason }.
-tienlen-player-instant-wins = { $player } has an instant win with { $reason }.
-tienlen-you-win-hand = You take first place.
-tienlen-player-wins-hand = { $player } takes first place.
-tienlen-settlement-rank = placing { $change }
-tienlen-settlement-chop = chops { $change }
-tienlen-settlement-leftover = leftovers { $change }
-tienlen-settlement-instant = instant win { $change }
-tienlen-settlement-adjustment = adjustment { $change }
-tienlen-settlement-no-change = no change
-tienlen-hand-settlement-line = { $place }. { $player }: { $breakdown }; net { $net }; total { $total }.
-tienlen-you-eliminated = You are out of coins and eliminated.
-tienlen-player-eliminated = { $player } is out of coins and eliminated.
-tienlen-players-remaining = { $count ->
-    [one] 1 player remains.
-   *[other] { $count } players remain.
-}
-tienlen-you-win-match = You win the Tien Len match with { $coins } coins left.
-tienlen-player-wins-match = { $player } wins the Tien Len match with { $coins } coins left.
-tienlen-line-format = { $rank }. { $player }: { $score ->
-    [one] 1 coin
-   *[other] { $score } coins
-}
-
-tienlen-south-card-name = { $rank } of { $suit }
-tienlen-south-rank-1 = Ace
-tienlen-south-rank-2 = 2
-tienlen-south-rank-3 = 3
-tienlen-south-rank-4 = 4
-tienlen-south-rank-5 = 5
-tienlen-south-rank-6 = 6
-tienlen-south-rank-7 = 7
-tienlen-south-rank-8 = 8
-tienlen-south-rank-9 = 9
-tienlen-south-rank-10 = 10
-tienlen-south-rank-11 = Jack
-tienlen-south-rank-12 = Queen
-tienlen-south-rank-13 = King
-tienlen-south-suit-1 = Diamonds
-tienlen-south-suit-2 = Clubs
-tienlen-south-suit-3 = Hearts
-tienlen-south-suit-4 = Spades
+tienlen-card-selected = { $card } (انتخاب شد)
+tienlen-play-none = کارت‌هایی برای بازی انتخاب کنید.
+tienlen-play-invalid = ترکیب نامعتبر.
+tienlen-play-combo = بازی { $combo }
+tienlen-pass = گذشتن
+tienlen-confirm-pass = گذشتن شما را از دسته‌ی فعلی قفل می‌کند. برای تأیید، ظرف ۱۰ ثانیه دوباره روی گذشتن فشار دهید.
+tienlen-check-trick = بررسی دسته
+tienlen-read-hand = مشاهده‌ی دست
+tienlen-read-card-counts = مشاهده‌ی تعداد کارت‌ها
+tienlen-check-variant = بررسی نسخه
+tienlen-check-turn-timer = بررسی زمان‌سنج نوبت
+tienlen-timer-disabled = زمان‌سنج نوبت غیرفعال است.
+tienlen-timer-remaining = { $seconds } ثانیه باقی‌مانده.
+tienlen-error-no-cards = شما هیچ کارتی انتخاب نکرده‌اید.
+tienlen-error-invalid-combo = کارت‌های انتخاب‌شده ترکیب معتبری برای این نسخه از تین لن تشکیل نمی‌دهند.
+tienlen-error-pass-lock = شما قبلاً در این دسته گذشتید و باید منتظر بمانید تا میز پاک شود.
+tienlen-error-pass-lock-chop = شما قبلاً در این دسته گذشتید. فقط می‌توانید با یک برش قانونی در برابر ۲های فعلی یا ترکیب برش برگردید.
+tienlen-error-wrong-length = برای پاسخ به دسته‌ی فعلی باید دقیقاً { $count } کارت بازی کنید.
+tienlen-error-must-match-type = بازی شما باید با نوع ترکیب دسته‌ی فعلی مطابقت داشته باشد مگر اینکه یک برش قانونی باشد.
+tienlen-error-structure-mismatch = در تین لن شمالی، بازی شما باید با ساختار خال یا رنگ دسته‌ی فعلی مطابقت داشته باشد.
+tienlen-error-lower-combo = ترکیب شما از دسته‌ی فعلی بالاتر نیست.
+tienlen-error-must-play = هنگام شروع یک دسته‌ی جدید نمی‌توانید بگذرید.
+tienlen-error-cannot-finish-on-two = در تین لن شمالی، نمی‌توانید دست را با ۲ها تمام کنید یا فقط ۲ها را پشت سر بگذارید.
+tienlen-error-not-your-turn-chop = نوبت شما نیست. در تین لن جنوبی فقط می‌توانید با یک برش قانونی انتخاب‌شده وارد شوید.
+tienlen-error-already-finished = شما قبلاً این دست را تمام کرده‌اید.
+tienlen-error-opening-card-required = بازی شروع باید شامل { $card } باشد.
+tienlen-error-invalid-variant = یک نسخه‌ی پشتیبانی‌شده از تین لن انتخاب کنید.
+tienlen-error-invalid-starting-coins = یک مبلغ سکه‌های شروع پشتیبانی‌شده انتخاب کنید.
+tienlen-error-invalid-turn-timer = یک زمان‌سنج پشتیبانی‌شده انتخاب کنید.
+tienlen-you-play-single = شما { $card } بازی می‌کنید.
+tienlen-player-plays-single = { $player } { $card } بازی می‌کند.
+tienlen-you-play-combo = شما { $combo } بازی می‌کنید: { $cards }.
+tienlen-player-plays-combo = { $player } { $combo } بازی می‌کند: { $cards }.
+tienlen-you-one-card = شما یک کارت باقی‌مانده دارید.
+tienlen-one-card = { $player } یک کارت باقی‌مانده دارد.
+tienlen-you-pass = شما می‌گذرید و تا پاک شدن این دسته قفل می‌شوید.
+tienlen-player-passes = { $player } می‌گذرد و تا پاک شدن این دسته قفل می‌شود.
+tienlen-you-chop-payment = شما { $player } را برش می‌دهید. { $amount } سکه در انتظار.
+tienlen-you-are-chopped-payment = { $player } شما را برش می‌دهد. { $amount } سکه در انتظار.
+tienlen-player-chop-payment = { $chopper } { $chopped } را برش می‌دهد. { $amount } سکه در انتظار.
+tienlen-you-leftover-penalty = شما { $amount } سکه برای ۲های باقی‌مانده یا کارت‌های برش پرداخت می‌کنید.
+tienlen-player-leftover-penalty = { $player } { $amount } سکه برای ۲های باقی‌مانده یا کارت‌های برش پرداخت می‌کند.
+tienlen-you-finish-place = شما دست خود را خالی کردید و مقام { $place } را در این دست کسب کردید.
+tienlen-player-finishes-place = { $player } دست خود را خالی می‌کند و مقام { $place } را در این دست کسب می‌کند.
+tienlen-trick-empty = دسته خالی است.
+tienlen-trick-status = { $player } با { $combo } پیشتاز است: { $cards }.
+tienlen-your-hand = دست شما: { $cards }.
+tienlen-card-count-line = { $player } { $count } کارت دارد.
+tienlen-card-count-eliminated-line = { $player } حذف شد
+tienlen-combo-single = تکی
+tienlen-combo-pair = جفت
+tienlen-combo-triple = سه‌تایی
+tienlen-combo-four_of_a_kind = چهارتایی
+tienlen-combo-straight = دنباله
+tienlen-combo-consecutive_pairs = جفت‌های متوالی
+tienlen-instant-six-pairs = شش جفت
+tienlen-instant-five-consecutive-pairs = پنج جفت متوالی
+tienlen-instant-three-consecutive-triples = سه سه‌تایی متوالی
+tienlen-instant-four-twos = چهار ۲
+tienlen-instant-dragon = دنباله‌ی اژدها
+tienlen-instant-six-consecutive-pairs = شش جفت متوالی
+tienlen-instant-four-triples = چهار سه‌تایی
+tienlen-instant-two-four-of-a-kind = دو چهارتایی
+tienlen-instant-same-color = ۱۲ کارت از یک رنگ
+tienlen-you-instant-win = شما با { $reason } یک برد فوری دارید.
+tienlen-player-instant-wins = { $player } با { $reason } یک برد فوری دارد.
+tienlen-you-win-hand = شما مقام اول را می‌گیرید.
+tienlen-player-wins-hand = { $player } مقام اول را می‌گیرد.
+tienlen-settlement-rank = مقام { $change }
+tienlen-settlement-chop = برش { $change }
+tienlen-settlement-leftover = کارت‌های باقی‌مانده { $change }
+tienlen-settlement-instant = برد فوری { $change }
+tienlen-settlement-adjustment = تنظیم { $change }
+tienlen-settlement-no-change = بدون تغییر
+tienlen-hand-settlement-line = { $place }. { $player }: { $breakdown }; خالص { $net }; مجموع { $total }.
+tienlen-you-eliminated = سکه‌های شما تمام شد و حذف شدید.
+tienlen-player-eliminated = سکه‌های { $player } تمام شد و حذف شد.
+tienlen-players-remaining =
+    { $count ->
+        [one] ۱ بازیکن باقی‌مانده.
+       *[other] { $count } بازیکن باقی‌مانده.
+    }
+tienlen-you-win-match = شما مسابقه‌ی تین لن را با { $coins } سکه باقی‌مانده برنده شدید.
+tienlen-player-wins-match = { $player } مسابقه‌ی تین لن را با { $coins } سکه باقی‌مانده برنده شد.
+tienlen-line-format =
+    { $rank }. { $player }: { $score ->
+        [one] ۱ سکه
+       *[other] { $score } سکه
+    }
+tienlen-south-card-name = { $rank } { $suit }
+tienlen-south-rank-1 = آس
+tienlen-south-rank-2 = ۲
+tienlen-south-rank-3 = ۳
+tienlen-south-rank-4 = ۴
+tienlen-south-rank-5 = ۵
+tienlen-south-rank-6 = ۶
+tienlen-south-rank-7 = ۷
+tienlen-south-rank-8 = ۸
+tienlen-south-rank-9 = ۹
+tienlen-south-rank-10 = ۱۰
+tienlen-south-rank-11 = سرباز
+tienlen-south-rank-12 = بی‌بی
+tienlen-south-rank-13 = شاه
+tienlen-south-suit-1 = خشت
+tienlen-south-suit-2 = پیک
+tienlen-south-suit-3 = دل
+tienlen-south-suit-4 = خشت‌های سیاه

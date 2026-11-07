@@ -7,17 +7,21 @@ from datetime import datetime
 import random
 
 from ..base import Game, GameOptions, Player
+from ..categories import CATEGORY_CARDS
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
-from ...game_utils.game_status import GameStatus
+from ...game_utils.stats_helpers import (
+    RATING_COMPETITORS_KEY,
+    rating_competitors_from_scores,
+)
 from ...game_utils.menu_management_mixin import StatusBoxBuild
 from ...game_utils.options import BoolOption, MenuOption, option_field
 from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
-from server.core.users.base import MenuItem
+from ...ui.keybinds import KeybindState
+from ...users.base import MenuItem
 from .cards import (
     ACTION_KINDS,
     ATTACK,
@@ -215,7 +219,7 @@ class ExplodingKittensGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-card-games"
+        return CATEGORY_CARDS
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -277,7 +281,7 @@ class ExplodingKittensGame(Game):
         return random.choice(SOUND_SHUFFLES)  # nosec B311 - cosmetic variation
 
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self._sync_table_status()
         self.game_active = True
         self.round = 1
@@ -413,6 +417,7 @@ class ExplodingKittensGame(Game):
             self.pending_action if self.phase == PHASE_NOPE else None
         )
         super().on_tick()
+        self.process_scheduled_sounds()
         self.process_sequences()
         if not self.game_active or self.is_sequence_bot_paused():
             return
@@ -2808,11 +2813,7 @@ class ExplodingKittensGame(Game):
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=player.id,
-                    player_name=player.name,
-                    is_bot=player.is_bot and not player.replaced_human,
-                )
+                PlayerResult.from_player(player)
                 for player in active
             ],
             custom_data={
@@ -2827,6 +2828,12 @@ class ExplodingKittensGame(Game):
                     }
                     for index, player in enumerate(rankings)
                 ],
+                RATING_COMPETITORS_KEY: rating_competitors_from_scores(
+                    (
+                        ([player.id], len(rankings) - index)
+                        for index, player in enumerate(rankings)
+                    )
+                ),
                 "rankings": [player.name for player in rankings],
             },
         )

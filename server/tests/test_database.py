@@ -6,7 +6,7 @@ import pytest
 
 from server.persistence.database import Database
 from server.core.tables.table import Table, TableMember
-from server.core.users.base import TrustLevel
+from server.users.trust_level import TrustLevel
 
 
 @pytest.fixture

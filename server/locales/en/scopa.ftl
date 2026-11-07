@@ -1,98 +1,129 @@
-# Scopa game messages
-# Note: Common messages like round-start, turn-start, target-score, team-mode are in games.ftl
+# scopa.ftl for locale en. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game name
 game-name-scopa = Scopa
-
-# Game events
 scopa-initial-table = Table cards: { $cards }
 scopa-no-initial-table = No cards on the table to start.
-scopa-you-collect = You collect { $cards } with { $card }
-scopa-player-collects = { $player } collects { $cards } with { $card }
+scopa-you-capture = You capture { $cards } with { $card }.
+scopa-player-captures = { $player } captures { $cards } with { $card }.
+scopa-you-capture-scopa = You capture { $cards } with { $card } and score a scopa!
+scopa-player-captures-scopa = { $player } captures { $cards } with { $card } and scores a scopa!
+scopa-you-capture-clear = You capture { $cards } with { $card }, clearing the table.
+scopa-player-captures-clear = { $player } captures { $cards } with { $card }, clearing the table.
 scopa-you-put-down = You put down { $card }.
 scopa-player-puts-down = { $player } puts down { $card }.
-scopa-scopa-suffix =  - SCOPA!
 scopa-clear-table-suffix = , clearing the table.
-scopa-remaining-cards = { $player } gets the remaining table cards.
+scopa-you-get-remaining-cards = You get the remaining table cards: { $cards }.
+scopa-player-gets-remaining-cards = { $player } gets the remaining table cards: { $cards }.
+scopa-you-instant-win = You win immediately with a scopa!
+scopa-your-team-instant-win = Your team wins immediately with a scopa!
+scopa-instant-win = { $player } wins immediately with a scopa!
 scopa-scoring-round = Scoring round...
+scopa-you-most-cards = You score 1 point for most cards ({ $count } cards).
+scopa-your-team-most-cards = Your team scores 1 point for most cards ({ $count } cards).
 scopa-most-cards = { $player } scores 1 point for most cards ({ $count } cards).
 scopa-most-cards-tie = Most cards is a tie - no point awarded.
+scopa-you-most-diamonds = You score 1 point for most diamonds ({ $count } diamonds).
+scopa-your-team-most-diamonds = Your team scores 1 point for most diamonds ({ $count } diamonds).
 scopa-most-diamonds = { $player } scores 1 point for most diamonds ({ $count } diamonds).
 scopa-most-diamonds-tie = Most diamonds is a tie - no point awarded.
+scopa-you-seven-diamonds = You score 1 point for the 7 of diamonds.
+scopa-your-team-seven-diamonds = Your team scores 1 point for the 7 of diamonds.
 scopa-seven-diamonds = { $player } scores 1 point for the 7 of diamonds.
+scopa-you-seven-diamonds-multi = You score 1 point for most 7 of diamonds ({ $count } x 7 of diamonds).
+scopa-your-team-seven-diamonds-multi = Your team scores 1 point for most 7 of diamonds ({ $count } x 7 of diamonds).
 scopa-seven-diamonds-multi = { $player } scores 1 point for most 7 of diamonds ({ $count } × 7 of diamonds).
 scopa-seven-diamonds-tie = 7 of diamonds is a tie - no point awarded.
+scopa-you-most-sevens = You score 1 point for most sevens ({ $count } sevens).
+scopa-your-team-most-sevens = Your team scores 1 point for most sevens ({ $count } sevens).
 scopa-most-sevens = { $player } scores 1 point for most sevens ({ $count } sevens).
 scopa-most-sevens-tie = Most sevens is a tie - no point awarded.
+scopa-you-primiera = You score 1 point for primiera ({ $score } points).
+scopa-your-team-primiera = Your team scores 1 point for primiera ({ $score } points).
+scopa-primiera = { $player } scores 1 point for primiera ({ $score } points).
+scopa-primiera-tie = Primiera is a tie - no point awarded.
+scopa-primiera-none = No one has captured cards in all four suits, so no primiera point is awarded.
+scopa-you-napola = You score { $points } points for napola.
+scopa-your-team-napola = Your team scores { $points } points for napola.
+scopa-napola = { $player } scores { $points } points for napola.
+scopa-manual-select-prompt = You must choose which cards to capture.
+scopa-capture-option = Capture { $cards }
+scopa-error-conflict-escoba-asso = Escoba and Asso Piglia Tutto cannot be enabled at the same time.
+scopa-error-conflict-instant-inverse = Instant win on scopa cannot be enabled with inverse mode.
+scopa-error-conflict-instant-no-scopas = Instant win on scopa cannot be enabled when scopas do not score.
+scopa-score-line-target-pending = { $player }: { $score }/{ $target } { $unit } (+{ $round_score } pending Scopa { $pending_unit } this round)
+scopa-score-line-pending = { $player }: { $score } { $unit } (+{ $round_score } pending Scopa { $pending_unit } this round)
+scopa-target-tie-continue =
+    Multiple sides are tied at { $score } { $score ->
+        [one] point
+       *[other] points
+    }, so Scopa continues past the target of { $target } { $target ->
+        [one] point
+       *[other] points
+    } until the tie is broken.
 scopa-round-scores = Round scores:
 scopa-round-score-line = { $player }: +{ $round_score } (total: { $total_score })
 scopa-table-empty = There are no cards on the table.
 scopa-no-such-card = No card at that position.
 scopa-captured-count = You have captured { $count } cards
-
-# View actions
 scopa-view-table = View table
 scopa-view-captured = View captured
-
-# Scopa-specific options
-scopa-desc-target-score = Points needed to win the game
+scopa-view-table-card = View table card { $index }
+scopa-pause-timer = Pause timer
+scopa-hint-match = -> { $card }
+scopa-hint-multi = -> { $count } cards
 scopa-enter-target-score = Enter target score (1-121)
-
+scopa-desc-target-score = Score needed to win Scopa (default 11, range 1-121).
 scopa-set-cards-per-deal = Cards per deal: { $cards }
-scopa-desc-cards-per-deal = Number of cards each player receives per deal. Leftover cards go on table.
 scopa-enter-cards-per-deal = Enter cards per deal (1-10)
-scopa-option-changed-cards = Cards per deal set to { $cards }.
-
 scopa-set-decks = Number of decks: { $decks }
-scopa-desc-decks = How many 40-card decks to use (allows more players and deals)
 scopa-enter-decks = Enter number of decks (1-6)
-scopa-option-changed-decks = Number of decks set to { $decks }.
-
 scopa-toggle-escoba = Escoba (sum to 15): { $enabled }
-scopa-desc-escoba = Spanish variant: capture cards that sum to 15 (instead of matching rank)
-scopa-option-changed-escoba = Escoba { $enabled }.
-
 scopa-toggle-hints = Show capture hints: { $enabled }
-scopa-desc-hints = Show what each card will capture in the menu
-scopa-option-changed-hints = Capture hints { $enabled }.
-
 scopa-set-mechanic = Scopa mechanic: { $mechanic }
-scopa-desc-mechanic = How scopas affect scoring
 scopa-select-mechanic = Select scopa mechanic
-scopa-option-changed-mechanic = Scopa mechanic set to { $mechanic }.
-
 scopa-toggle-instant-win = Instant win on scopa: { $enabled }
-scopa-desc-instant-win = Scopas award points immediately and can win the game mid-round
-scopa-option-changed-instant = Instant win on scopa { $enabled }.
-
+scopa-desc-team-mode = Chooses individual play or fixed team sizes for Scopa.
 scopa-toggle-team-scoring = Pool team cards for scoring: { $enabled }
-scopa-desc-team-scoring = Affects end-of-round score calculations. When ON, teams pool cards together. When OFF, teammates compete individually (beware ties)
-scopa-option-changed-team-scoring = Team card scoring { $enabled }.
-
 scopa-toggle-inverse = Inverse mode (reach target = elimination): { $enabled }
-scopa-desc-inverse = Reaching the target score eliminates you - last player standing wins!
+scopa-toggle-manual = Manual capture selection: { $enabled }
+scopa-toggle-asso = Asso piglia tutto (Ace takes all): { $enabled }
+scopa-toggle-primiera = Traditional Primiera scoring: { $enabled }
+scopa-toggle-napola = Napola (Diamond sequence): { $enabled }
+scopa-option-changed-cards = Cards per deal set to { $cards }.
+scopa-desc-cards-per-deal = How many cards each player receives per Scopa deal (default 3, range 1-10).
+scopa-option-changed-decks = Number of decks set to { $decks }.
+scopa-desc-number-of-decks = How many 40-card Scopa decks are shuffled together (default 1, range 1-6).
+scopa-option-changed-escoba = Escoba { $enabled }.
+scopa-desc-escoba = Switches captures to Escoba rules, where the played card and captured table cards must total 15.
+scopa-option-changed-hints = Capture hints { $enabled }.
+scopa-desc-show-capture-hints = Shows which table cards each hand card can capture.
+scopa-option-changed-mechanic = Scopa mechanic set to { $mechanic }.
+scopa-desc-scopa-mechanic = Chooses normal sweep scoring, no Scopa points, or Only Scopas scoring.
+scopa-option-changed-instant = Instant win on scopa { $enabled }.
+scopa-desc-instant-win-scopas = When enabled, a valid Scopa immediately wins the game. This cannot be combined with No Scopas or Inverse Scopa.
+scopa-option-changed-team-scoring = Team card scoring { $enabled }.
+scopa-desc-team-card-scoring = Controls whether teammates combine captured cards for end-of-round scoring. If disabled in a team game, each player's captures are evaluated separately and any points won are added to that player's team.
 scopa-option-changed-inverse = Inverse mode { $enabled }.
-
-# Scopa mechanic choices
+scopa-desc-inverse-scopa = Inverts the goal so reaching the target score eliminates a player or team.
+scopa-option-changed-manual = Manual capture selection { $enabled }.
+scopa-desc-manual-selection = Lets players choose a capture combination manually when more than one legal capture exists.
+scopa-option-changed-asso = Asso piglia tutto { $enabled }.
+scopa-desc-asso-piglia-tutto = Enables Ace takes all: an Ace sweeps the table and scores a scopa unless another Ace is already present. This cannot be combined with Escoba.
+scopa-option-changed-primiera = Traditional Primiera scoring { $enabled }.
+scopa-desc-primiera-scoring = Enables traditional Primiera scoring; when off, the game uses the simpler Most Sevens variant.
+scopa-option-changed-napola = Napola { $enabled }.
+scopa-desc-napola = Awards bonus points for capturing a continuous Diamond sequence starting with the Ace.
 scopa-mechanic-normal = Normal
 scopa-mechanic-no_scopas = No Scopas
 scopa-mechanic-only_scopas = Scopas Only
-
-# Disabled action reasons
 scopa-timer-not-active = The round timer is not active.
-
-# Validation errors
-scopa-error-not-enough-cards = Not enough cards in { $decks } { $decks ->
-    [one] deck
-    *[other] decks
-} for { $players } { $players ->
-    [one] player
-    *[other] players
-} with { $cards_per_deal } cards each. (Need { $cards_per_deal } × { $players } = { $cards_needed } cards, but only have { $total_cards }.)
-
-scopa-rules =
-    Capture cards from the table by playing a card from your hand.
-    A card takes a single table card of the same rank; if nothing matches, it takes any group of cards that adds up to its value.
-    Clearing the whole table in one play is a scopa and scores a point.
-    Each round also awards a point for the most cards, the most coins, the seven of coins, and the most sevens.
-    The first player to reach the target score (default eleven) wins.
+scopa-error-not-enough-cards =
+    Not enough cards in { $decks } { $decks ->
+        [one] deck
+       *[other] decks
+    } for { $players } { $players ->
+        [one] player
+       *[other] players
+    } with { $cards_per_deal } cards each. (Need { $cards_per_deal } × { $players } = { $cards_needed } cards, but only have { $total_cards }.)
+scopa-line-format = { $rank }. { $player }: { $points }

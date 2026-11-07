@@ -1,52 +1,121 @@
-# Chaos Bear game messages
+# chaosbear.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game name
 game-name-chaosbear = Chaos Bear
-
-# Actions
 chaosbear-roll-dice = Lempar dadu
 chaosbear-draw-card = Ambil kartu
 chaosbear-check-status = Periksa status
-
-# Game intro (3 separate messages like v10)
-chaosbear-intro-1 = Chaos Bear telah dimulai! Semua pemain mulai 30 kotak di depan beruang.
-chaosbear-intro-2 = Lempar dadu untuk bergerak maju, dan ambil kartu pada kelipatan 5 untuk mendapat efek khusus.
-chaosbear-intro-3 = Jangan biarkan beruang menangkap Anda!
-
-# Turn announcement
-chaosbear-turn = Giliran { $player }; kotak { $position }.
-
-# Rolling
-chaosbear-roll = { $player } melempar { $roll }.
-chaosbear-position = { $player } sekarang di kotak { $position }.
-
-# Drawing cards
-chaosbear-draws-card = { $player } mengambil kartu.
-chaosbear-card-impulsion = Dorongan! { $player } maju 3 kotak ke kotak { $position }!
-chaosbear-card-super-impulsion = Dorongan super! { $player } maju 5 kotak ke kotak { $position }!
-chaosbear-card-tiredness = Kelelahan! Energi beruang minus 1. Sekarang memiliki { $energy } energi.
-chaosbear-card-hunger = Kelaparan! Energi beruang plus 1. Sekarang memiliki { $energy } energi.
-chaosbear-card-backward = Dorongan mundur! { $player } mundur ke kotak { $position }.
-chaosbear-card-random-gift = Hadiah acak!
-chaosbear-gift-back = { $player } mundur ke kotak { $position }.
-chaosbear-gift-forward = { $player } maju ke kotak { $position }!
-
-# Bear turn
-chaosbear-bear-roll = Beruang melempar { $roll } + { $energy } energinya = { $total }.
-chaosbear-bear-energy-up = Beruang melempar 3 dan mendapat 1 energi!
-chaosbear-bear-position = Beruang sekarang di kotak { $position }!
-chaosbear-player-caught = Beruang menangkap { $player }! { $player } telah kalah!
-chaosbear-bear-feast = Beruang kehilangan 3 energi setelah memangsa mereka!
-
-# Status check
-chaosbear-status-player-alive = { $player }: kotak { $position }.
-chaosbear-status-player-caught = { $player }: tertangkap di kotak { $position }.
-chaosbear-status-bear = Beruang di kotak { $position } dengan { $energy } energi.
-
-# End game
-chaosbear-winner = { $player } selamat dan menang! Mereka mencapai kotak { $position }!
-chaosbear-tie = Seri di kotak { $position }!
-
-# Disabled action reasons
-chaosbear-you-are-caught = Anda telah ditangkap oleh beruang.
-chaosbear-not-on-multiple = Anda hanya bisa mengambil kartu pada kelipatan 5.
+chaosbear-action-in-progress = Tunggu sampai gerakan pengejaran selesai sebelum bertindak lagi.
+chaosbear-error-roll-not-playing = Anda belum bisa melempar dadu karena pengejaran Chaos Bear belum dimulai.
+chaosbear-error-roll-no-turn = Anda belum bisa melempar dadu karena sedang jeda antargiliran. Tunggu sampai pelari berikutnya diumumkan.
+chaosbear-error-roll-not-your-turn = Anda belum bisa melempar dadu karena sekarang giliran pelari lain.
+chaosbear-error-roll-resolving = Anda belum bisa melempar lagi karena gerakan pengejaran masih berlangsung.
+chaosbear-error-roll-caught = Anda tidak bisa melempar dadu karena beruang sudah menangkap Anda di petak { $position }. Beruang berada di petak { $bear_position }.
+chaosbear-error-draw-not-playing = Anda belum bisa mengambil kartu kekacauan karena pengejaran Chaos Bear belum dimulai.
+chaosbear-error-draw-no-turn = Anda belum bisa mengambil kartu kekacauan karena sedang jeda antargiliran. Tunggu sampai pelari berikutnya diumumkan.
+chaosbear-error-draw-not-your-turn = Anda belum bisa mengambil kartu kekacauan karena sekarang giliran pelari lain.
+chaosbear-error-draw-resolving = Anda belum bisa mengambil kartu kekacauan lagi karena gerakan pengejaran masih berlangsung.
+chaosbear-error-draw-caught = Anda tidak bisa mengambil kartu kekacauan karena beruang sudah menangkap Anda di petak { $position }. Beruang berada di petak { $bear_position }.
+chaosbear-error-draw-not-on-multiple = Kartu kekacauan hanya bisa diambil di petak bernomor kelipatan 5 yang positif. Pindahlah ke petak yang sesuai terlebih dahulu.
+chaosbear-error-status-not-playing = Status Chaos Bear bisa diperiksa setelah pengejaran dimulai.
+chaosbear-intro-1 = Chaos Bear dimulai! Semua pemain mulai 30 petak di depan beruang.
+chaosbear-intro-2 = Lempar dadu untuk maju. Ambil kartu di petak kelipatan 5 untuk maju 3 petak dan mendapatkan efek khusus.
+chaosbear-intro-3 = Jangan sampai beruang menangkap Anda!
+chaosbear-intro-brief = Chaos Bear dimulai. Mulai dari petak 30 dan tetaplah di depan beruang.
+chaosbear-turn-you = Giliran Anda. Anda berada di petak { $position }, { $gap } petak di depan beruang.
+chaosbear-turn-other = Giliran { $player }. Posisinya di petak { $position }, { $gap } petak di depan beruang.
+chaosbear-turn = Giliran { $player }, petak { $position }.
+chaosbear-turn-you-brief = Giliran Anda. Petak { $position }, jarak { $gap }.
+chaosbear-turn-other-brief = { $player }: petak { $position }, jarak { $gap }.
+chaosbear-roll-you = Hasil lemparan Anda { $roll }.
+chaosbear-roll-other = Hasil lemparan { $player } adalah { $roll }.
+chaosbear-roll = Hasil lemparan { $player } adalah { $roll }.
+chaosbear-roll-you-brief = Hasil dadu { $roll }.
+chaosbear-roll-other-brief = Hasil dadu { $player }: { $roll }.
+chaosbear-position-you = Anda mencapai petak { $position }, { $gap } petak di depan beruang.
+chaosbear-position-other = { $player } mencapai petak { $position }, { $gap } petak di depan beruang.
+chaosbear-position = { $player } kini berada di petak { $position }.
+chaosbear-position-you-brief = Petak { $position }, jarak { $gap }.
+chaosbear-position-other-brief = { $player }: petak { $position }, jarak { $gap }.
+chaosbear-draw-card-you = Anda mengambil kartu kekacauan.
+chaosbear-draw-card-other = { $player } mengambil kartu kekacauan.
+chaosbear-draw-card-you-brief = Anda mengambil kartu.
+chaosbear-draw-card-other-brief = { $player } mengambil kartu.
+chaosbear-card-impulsion-you = Dorongan! Anda melesat ke petak { $position }, { $gap } petak di depan beruang.
+chaosbear-card-impulsion-other = Dorongan! { $player } melesat ke petak { $position }, { $gap } petak di depan beruang.
+chaosbear-card-impulsion = Dorongan! { $player } melesat ke petak { $position }!
+chaosbear-card-impulsion-you-brief = Dorongan. Petak { $position }, jarak { $gap }.
+chaosbear-card-impulsion-other-brief = { $player } mendapat Dorongan. Petak { $position }, jarak { $gap }.
+chaosbear-card-super-impulsion-you = Dorongan Super! Anda melesat ke petak { $position }, { $gap } petak di depan beruang.
+chaosbear-card-super-impulsion-other = Dorongan Super! { $player } melesat ke petak { $position }, { $gap } petak di depan beruang.
+chaosbear-card-super-impulsion = Dorongan Super! { $player } melesat ke petak { $position }!
+chaosbear-card-super-impulsion-you-brief = Dorongan Super. Petak { $position }, jarak { $gap }.
+chaosbear-card-super-impulsion-other-brief = { $player } mendapat Dorongan Super. Petak { $position }, jarak { $gap }.
+chaosbear-card-tiredness-you = Kelelahan! Anda mencapai petak { $position }, { $gap } petak di depan beruang. Energi beruang turun menjadi { $energy }.
+chaosbear-card-tiredness-other = Kelelahan! { $player } mencapai petak { $position }, { $gap } petak di depan beruang. Energi beruang turun menjadi { $energy }.
+chaosbear-card-tiredness = Kelelahan! { $player } mencapai petak { $position }. Energi beruang turun menjadi { $energy }.
+chaosbear-card-tiredness-you-brief = Kelelahan. Petak { $position }, energi beruang { $energy }.
+chaosbear-card-tiredness-other-brief = { $player } mendapat Kelelahan. Petak { $position }, energi beruang { $energy }.
+chaosbear-card-hunger-you = Kelaparan! Anda mencapai petak { $position }, { $gap } petak di depan beruang. Namun, energi beruang naik menjadi { $energy }.
+chaosbear-card-hunger-other = Kelaparan! { $player } mencapai petak { $position }, { $gap } petak di depan beruang. Namun, energi beruang naik menjadi { $energy }.
+chaosbear-card-hunger = Kelaparan! { $player } mencapai petak { $position }. Namun, energi beruang naik menjadi { $energy }.
+chaosbear-card-hunger-you-brief = Kelaparan. Petak { $position }, energi beruang { $energy }.
+chaosbear-card-hunger-other-brief = { $player } mendapat Kelaparan. Petak { $position }, energi beruang { $energy }.
+chaosbear-card-backward-you = Dorongan Mundur! Kemajuan 3 petak Anda dibatalkan. Anda tetap di petak { $position }, { $gap } petak di depan beruang.
+chaosbear-card-backward-other = Dorongan Mundur! Kemajuan 3 petak { $player } dibatalkan. Posisinya tetap di petak { $position }, { $gap } petak di depan beruang.
+chaosbear-card-backward = Dorongan Mundur! Kemajuan { $player } dibatalkan. Posisinya tetap di petak { $position }.
+chaosbear-card-backward-you-brief = Dorongan Mundur. Petak { $position }, jarak { $gap }.
+chaosbear-card-backward-other-brief = { $player } mendapat Dorongan Mundur. Petak { $position }, jarak { $gap }.
+chaosbear-card-random-gift-you = Hadiah Acak! Kartu Anda sedang menentukan apakah akan membantu atau merugikan Anda.
+chaosbear-card-random-gift-other = Hadiah Acak! Kartu { $player } sedang menentukan apakah akan membantu atau merugikannya.
+chaosbear-card-random-gift = Hadiah Acak!
+chaosbear-card-random-gift-you-brief = Hadiah Acak.
+chaosbear-card-random-gift-other-brief = { $player } mendapat Hadiah Acak.
+chaosbear-gift-back-you = Hadiah Acak justru merugikan Anda. Anda mundur { $amount } petak ke petak { $position }, { $gap } petak di depan beruang.
+chaosbear-gift-back-other = Hadiah Acak justru merugikan { $player }. Pemain ini mundur { $amount } petak ke petak { $position }, { $gap } petak di depan beruang.
+chaosbear-gift-back = { $player } mundur ke petak { $position }.
+chaosbear-gift-back-you-brief = Hadiah membuat Anda mundur { $amount }. Petak { $position }, jarak { $gap }.
+chaosbear-gift-back-other-brief = Hadiah membuat { $player } mundur { $amount }. Petak { $position }, jarak { $gap }.
+chaosbear-gift-forward-you = Hadiah Acak membantu Anda maju { $amount } petak ke petak { $position }, { $gap } petak di depan beruang.
+chaosbear-gift-forward-other = Hadiah Acak membantu { $player } maju { $amount } petak ke petak { $position }, { $gap } petak di depan beruang.
+chaosbear-gift-forward = { $player } maju ke petak { $position }!
+chaosbear-gift-forward-you-brief = Hadiah membuat Anda maju { $amount }. Petak { $position }, jarak { $gap }.
+chaosbear-gift-forward-other-brief = Hadiah membuat { $player } maju { $amount }. Petak { $position }, jarak { $gap }.
+chaosbear-bear-roll = Hasil dadu beruang { $roll } ditambah energinya { $energy }, total { $total }.
+chaosbear-bear-energy-up = Beruang mendapat angka 3 dan energinya bertambah 1. Energinya kini { $energy }.
+chaosbear-bear-position = Beruang kini berada di petak { $position }!
+chaosbear-you-caught = Beruang mencapai petak { $bear_position } dan menangkap Anda di petak { $position }. Anda tersingkir dari pengejaran.
+chaosbear-player-caught = Beruang mencapai petak { $bear_position } dan menangkap { $player } di petak { $position }. { $player } tersingkir dari pengejaran.
+chaosbear-bear-feast = Beruang melambat setelah menangkap pelari. Energinya kini { $energy }.
+chaosbear-bear-roll-brief = Dadu beruang { $roll } ditambah { $energy }, total { $total }.
+chaosbear-bear-energy-up-brief = Energi beruang { $energy }.
+chaosbear-bear-position-brief = Beruang di petak { $position }.
+chaosbear-you-caught-brief = Tertangkap di petak { $position }. Anda tersingkir.
+chaosbear-player-caught-brief = { $player } tertangkap di petak { $position }.
+chaosbear-bear-feast-brief = Beruang melambat. Energi { $energy }.
+chaosbear-status-header = Status pengejaran
+chaosbear-status-round = Ronde { $round }
+chaosbear-status-turn = Giliran { $player }, petak { $position }, { $gap } petak di depan beruang.
+chaosbear-status-no-turn = Saat ini belum ada pelari yang mendapat giliran.
+chaosbear-status-player-alive = { $player }: petak { $position }, { $gap } petak di depan beruang.
+chaosbear-status-player-caught = { $player }: tertangkap di petak { $position }.
+chaosbear-status-bear = Beruang di petak { $position } dengan energi { $energy }.
+chaosbear-winner-you = Anda menang! Anda tetap di depan beruang dan mencapai petak { $position }.
+chaosbear-winner-other = { $player } menang! Pemain ini tetap di depan beruang dan mencapai petak { $position }.
+chaosbear-winner = { $player } menang dengan mencapai petak { $position }!
+chaosbear-winner-you-brief = Anda menang di petak { $position }.
+chaosbear-winner-other-brief = { $player } menang di petak { $position }.
+chaosbear-distance-winner-you = Setelah beruang menangkap semua orang, Anda menang berdasarkan jarak terjauh di petak { $position }.
+chaosbear-distance-winner-other = Setelah beruang menangkap semua orang, { $player } menang berdasarkan jarak terjauh di petak { $position }.
+chaosbear-distance-winner-you-brief = Anda menang berdasarkan jarak di petak { $position }.
+chaosbear-distance-winner-other-brief = { $player } menang berdasarkan jarak di petak { $position }.
+chaosbear-tie-you = Setelah beruang menangkap semua orang, Anda seri dengan { $players } untuk jarak terjauh di petak { $position }.
+chaosbear-tie = Jarak terjauh seri di petak { $position }. { $players } tertangkap bersama setelah mencapai jarak yang sama.
+chaosbear-tie-you-brief = Seri di petak { $position } bersama { $players }.
+chaosbear-tie-brief = Jarak seri di petak { $position }: { $players }.
+chaosbear-you-are-caught = Anda sudah tertangkap beruang.
+chaosbear-not-on-multiple = Kartu kekacauan hanya bisa diambil di petak bernomor kelipatan 5 yang positif.
+chaosbear-final-positions = Posisi akhir
+chaosbear-line-format = { $rank }. { $player }: { $position } petak ({ $status })
+chaosbear-status-caught = tertangkap
+chaosbear-status-survived = bertahan

@@ -1,19 +1,14 @@
-# Scopa game messages
-# Note: Common messages like round-start, turn-start, target-score, team-mode are in games.ftl
+# scopa.ftl for locale nl. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name
 game-name-scopa = Scopa
-
 # Game events
 scopa-initial-table = Tafelkaarten: { $cards }
 scopa-no-initial-table = Geen kaarten op tafel om te beginnen.
-scopa-you-collect = Je verzamelt { $cards } met { $card }
-scopa-player-collects = { $player } verzamelt { $cards } met { $card }
 scopa-you-put-down = Je legt { $card } neer.
 scopa-player-puts-down = { $player } legt { $card } neer.
-scopa-scopa-suffix =  - SCOPA!
 scopa-clear-table-suffix = , en ruimt de tafel leeg.
-scopa-remaining-cards = { $player } krijgt de resterende tafelkaarten.
 scopa-scoring-round = Scoren ronde...
 scopa-most-cards = { $player } scoort 1 punt voor de meeste kaarten ({ $count } kaarten).
 scopa-most-cards-tie = Meeste kaarten is gelijk - geen punt toegekend.
@@ -29,11 +24,9 @@ scopa-round-score-line = { $player }: +{ $round_score } (totaal: { $total_score 
 scopa-table-empty = Er liggen geen kaarten op tafel.
 scopa-no-such-card = Geen kaart op die positie.
 scopa-captured-count = Je hebt { $count } kaarten verzameld
-
 # View actions
 scopa-view-table = Bekijk tafel
 scopa-view-captured = Bekijk verzameld
-
 # Scopa-specific options
 scopa-enter-target-score = Voer doelscore in (1-121)
 scopa-set-cards-per-deal = Kaarten per deel: { $cards }
@@ -47,7 +40,6 @@ scopa-select-mechanic = Selecteer scopa mechanisme
 scopa-toggle-instant-win = Direct winnen op scopa: { $enabled }
 scopa-toggle-team-scoring = Pool teamkaarten voor scoren: { $enabled }
 scopa-toggle-inverse = Omgekeerde modus (doelscore bereiken = eliminatie): { $enabled }
-
 # Option change announcements
 scopa-option-changed-cards = Kaarten per deel ingesteld op { $cards }.
 scopa-option-changed-decks = Aantal decks ingesteld op { $decks }.
@@ -57,20 +49,18 @@ scopa-option-changed-mechanic = Scopa mechanisme ingesteld op { $mechanic }.
 scopa-option-changed-instant = Direct winnen op scopa { $enabled }.
 scopa-option-changed-team-scoring = Team kaart scoren { $enabled }.
 scopa-option-changed-inverse = Omgekeerde modus { $enabled }.
-
 # Scopa mechanic choices
 scopa-mechanic-normal = Normaal
 scopa-mechanic-no_scopas = Geen Scopas
 scopa-mechanic-only_scopas = Alleen Scopas
-
 # Disabled action reasons
 scopa-timer-not-active = De rondetimer is niet actief.
-
 # Validation errors
-scopa-error-not-enough-cards = Niet genoeg kaarten in { $decks } { $decks ->
-    [one] deck
-    *[other] decks
-} voor { $players } { $players ->
-    [one] speler
-    *[other] spelers
-} met { $cards_per_deal } kaarten elk. (Nodig { $cards_per_deal } × { $players } = { $cards_needed } kaarten, maar hebben slechts { $total_cards }.)
+scopa-error-not-enough-cards =
+    Niet genoeg kaarten in { $decks } { $decks ->
+        [one] deck
+       *[other] decks
+    } voor { $players } { $players ->
+        [one] speler
+       *[other] spelers
+    } met { $cards_per_deal } kaarten elk. (Nodig { $cards_per_deal } × { $players } = { $cards_needed } kaarten, maar hebben slechts { $total_cards }.)

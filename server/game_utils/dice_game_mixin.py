@@ -10,37 +10,39 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .actions import Action, ActionSet, Visibility
-from server.core.ui.keybinds import KeybindState
-from server.core.users.preferences import DiceKeepingStyle
-from server.messages.localization import Localization
+from ..messages.localization import Localization
+from ..ui.keybinds import KeybindState
+from ..users.preferences import DiceKeepingStyle
 
 if TYPE_CHECKING:
-    from ..games.base import Player
+    from .player import Player
 
 
 class DiceGameMixin:
-    """Provide dice toggle actions for DiceSet-based games.
+    """
+    Mixin providing dice toggle actions for games using DiceSet.
 
-    Supports two keeping styles:
-        - Dice indexes: keys 1-5 toggle dice by index.
-        - Dice values: keys 1-6 keep by face value; shift+1-6 reroll by value.
+    Supports two dice keeping styles:
+    - Dice indexes: Keys 1-5 toggle dice by index
+    - Dice values: Keys 1-6 reroll by face value, shift+1-6 keep by value
 
-    Expected Game attributes:
-        get_user(player) -> User.
-        get_action_set(player, name) -> ActionSet.
-        rebuild_player_menu(player).
-        Player objects with a `dice: DiceSet` attribute.
+    Expects the game class to have:
+    - self.get_user(player) -> User
+    - self.get_action_set(player, name) -> ActionSet
+    - self.refresh_menus(player)
+    - Player objects with a `dice: DiceSet` attribute
 
-    Required Game methods:
-        _is_dice_toggle_enabled(player, die_index) -> str | None.
-        _is_dice_toggle_hidden(player, die_index) -> Visibility.
-        _get_dice_toggle_label(player, die_index) -> str.
+    Games must implement these methods for dice action state:
+    - _is_dice_toggle_enabled(self, player, die_index) -> str | None
+    - _is_dice_toggle_hidden(self, player, die_index) -> Visibility
+    - _get_dice_toggle_label(self, player, die_index) -> str
 
-    Example:
+    Usage:
         class MyGame(Game, DiceGameMixin):
             def create_turn_action_set(self, player):
                 action_set = ActionSet(name="turn")
                 self.add_dice_toggle_actions(action_set)
+                # ... add other actions
                 return action_set
 
             def setup_keybinds(self):
@@ -70,7 +72,6 @@ class DiceGameMixin:
                     is_hidden=f"_is_toggle_die_{i}_hidden",
                     get_label=f"_get_toggle_die_{i}_label",
                     show_in_actions_menu=False,
-                    show_disabled_label=False,
                 )
             )
 
@@ -85,10 +86,10 @@ class DiceGameMixin:
                     is_enabled="_is_dice_key_enabled",
                     is_hidden="_is_dice_key_hidden",
                     get_label="_get_dice_key_label",
-                    show_in_actions_menu=True,
+                    show_in_actions_menu=False,
                 )
             )
-            # Shift+key actions for dice values style rerolling
+            # Shift+key actions for dice values style keeping
             action_set.add(
                 Action(
                     id=f"dice_unkeep_{v}",
@@ -97,7 +98,7 @@ class DiceGameMixin:
                     is_enabled="_is_dice_unkeep_enabled",
                     is_hidden="_is_dice_key_hidden",
                     get_label="_get_dice_unkeep_label",
-                    show_in_actions_menu=True,
+                    show_in_actions_menu=False,
                 )
             )
 
@@ -120,7 +121,7 @@ class DiceGameMixin:
                 [f"dice_key_{v}"],
                 state=KeybindState.ACTIVE,
             )
-            # Shift+1-6 for rerolling (Quentin C style)
+            # Shift+1-6 for unkeeping (value-based style)
             self.define_keybind(
                 f"shift+{v}",
                 f"Unkeep dice {v}",
@@ -132,6 +133,20 @@ class DiceGameMixin:
     # Default is_enabled / is_hidden implementations (games can override)
     # ==========================================================================
 
+    def _first_toggleable_die_index(self, player: Player) -> int | None:
+        """Return any die index that the game currently allows toggling."""
+        if not hasattr(player, "dice"):
+            return None
+
+        dice = player.dice
+        for die_index in range(dice.num_dice):
+            if dice.is_locked(die_index):
+                continue
+            toggle_reason = self._is_dice_toggle_enabled(player, die_index)
+            if toggle_reason is None:
+                return die_index
+        return None
+
     def _is_dice_key_enabled(self, player: Player, *, action_id: str | None = None) -> str | None:
         """Enable dice keybind actions based on game state and keeping style."""
         if self.status != "playing":
@@ -142,39 +157,34 @@ class DiceGameMixin:
         style = (
             user.preferences.get_effective("dice_keeping_style", game_type=self.get_type())
             if user
-            else DiceKeepingStyle.PLAYPALACE
+            else DiceKeepingStyle.INDEX_BASED
         )
         try:
             key_num = int(action_id.split("_")[-1])
         except ValueError:
             return "action-not-available"
         if hasattr(player, "dice"):
-            if style == DiceKeepingStyle.QUENTIN_C:
+            if style == DiceKeepingStyle.VALUE_BASED:
                 if key_num > player.dice.sides:
                     return "action-not-available"
             elif key_num > player.dice.num_dice:
                 return "action-not-available"
-        if style == DiceKeepingStyle.QUENTIN_C:
-            die_index = self._find_value_die_index(player, key_num, want_kept=False)
-            if die_index is None:
-                return "action-not-available"
-            if hasattr(self, "_is_dice_toggle_enabled"):
+        if hasattr(self, "_is_dice_toggle_enabled"):
+            if style == DiceKeepingStyle.INDEX_BASED:
+                die_index = key_num - 1
+                if hasattr(player, "dice") and die_index >= player.dice.num_dice:
+                    return "action-not-available"
                 toggle_reason = self._is_dice_toggle_enabled(player, die_index)
                 if toggle_reason is not None:
                     return "action-not-available"
-            return None
-        if hasattr(self, "_is_dice_toggle_enabled"):
-            die_index = key_num - 1
-            if hasattr(player, "dice") and die_index >= player.dice.num_dice:
+            elif self._first_toggleable_die_index(player) is None:
                 return "action-not-available"
-            toggle_reason = self._is_dice_toggle_enabled(player, die_index)
-            if toggle_reason is not None:
+        if style == DiceKeepingStyle.VALUE_BASED and hasattr(player, "dice"):
+            if not self._has_kept_value(player, key_num):
                 return "action-not-available"
         return None
 
-    def _is_dice_unkeep_enabled(
-        self, player: Player, *, action_id: str | None = None
-    ) -> str | None:
+    def _is_dice_unkeep_enabled(self, player: Player, *, action_id: str | None = None) -> str | None:
         """Only enable unkeep keybinds for dice values style."""
         if self.status != "playing":
             return "action-not-playing"
@@ -182,24 +192,23 @@ class DiceGameMixin:
         style = (
             user.preferences.get_effective("dice_keeping_style", game_type=self.get_type())
             if user
-            else DiceKeepingStyle.PLAYPALACE
+            else DiceKeepingStyle.INDEX_BASED
         )
-        if style != DiceKeepingStyle.QUENTIN_C:
+        if style != DiceKeepingStyle.VALUE_BASED:
             return "action-not-available"
-        if not action_id:
-            return "action-not-available"
-        try:
-            key_num = int(action_id.split("_")[-1])
-        except ValueError:
-            return "action-not-available"
-        if hasattr(player, "dice") and key_num > player.dice.sides:
-            return "action-not-available"
-        die_index = self._find_value_die_index(player, key_num, want_kept=True)
-        if die_index is None:
-            return "action-not-available"
+        key_num: int | None = None
+        if action_id:
+            try:
+                key_num = int(action_id.split("_")[-1])
+            except ValueError:
+                return "action-not-available"
+            if hasattr(player, "dice") and key_num > player.dice.sides:
+                return "action-not-available"
         if hasattr(self, "_is_dice_toggle_enabled"):
-            toggle_reason = self._is_dice_toggle_enabled(player, die_index)
-            if toggle_reason is not None:
+            if self._first_toggleable_die_index(player) is None:
+                return "action-not-available"
+        if hasattr(player, "dice") and key_num is not None:
+            if not self._has_unkept_value(player, key_num):
                 return "action-not-available"
         return None
 
@@ -213,16 +222,16 @@ class DiceGameMixin:
         style = (
             user.preferences.get_effective("dice_keeping_style", game_type=self.get_type())
             if user
-            else DiceKeepingStyle.PLAYPALACE
+            else DiceKeepingStyle.INDEX_BASED
         )
-        if style == DiceKeepingStyle.PLAYPALACE and hasattr(player, "dice"):
+        if style == DiceKeepingStyle.INDEX_BASED and hasattr(player, "dice"):
             die_index = key_num - 1
             if die_index >= player.dice.num_dice:
                 return f"Keep die {key_num}"
             if player.dice.is_kept(die_index):
                 return f"Reroll die {key_num}"
             return f"Keep die {key_num}"
-        return f"Keep {key_num}"
+        return f"Reroll {key_num}"
 
     def _get_dice_unkeep_label(self, player: Player, action_id: str) -> str:
         """Label for dice_unkeep actions in the actions menu."""
@@ -230,33 +239,60 @@ class DiceGameMixin:
             key_num = int(action_id.split("_")[-1])
         except ValueError:
             return action_id
-        return f"Reroll {key_num}"
+        return f"Keep {key_num}"
 
-    def _apply_dice_values_defaults(self, player: Player) -> None:
-        """Hook for values mode defaults after roll.
+    def _apply_dice_values_defaults(
+        self, player: Player, *, keep_all: bool = True
+    ) -> None:
+        """Initialize the post-roll selection used by value-based controls.
 
-        Keep state now follows each game's normal roll behavior so both dice
-        styles remain consistent.
+        Value-based controls use number keys to release matching dice and
+        Shift+number to keep them. Most games therefore begin with every newly
+        rolled die kept. A game that explicitly clears kept dice can pass
+        ``keep_all=False`` so that policy remains authoritative.
         """
-        return
-
-    def _find_value_die_index(self, player: Player, value: int, *, want_kept: bool) -> int | None:
-        """Find a matching unlocked die index by face value and kept state."""
+        user = self.get_user(player)
+        style = (
+            user.preferences.get_effective("dice_keeping_style", game_type=self.get_type())
+            if user
+            else DiceKeepingStyle.INDEX_BASED
+        )
+        if style != DiceKeepingStyle.VALUE_BASED:
+            return
         if not hasattr(player, "dice"):
-            return None
+            return
         dice = player.dice
         if not dice.has_rolled:
-            return None
+            return
+        dice.kept = (
+            list(range(dice.num_dice)) if keep_all else list(dice.locked)
+        )
+
+    def _has_kept_value(self, player: Player, value: int) -> bool:
+        if not hasattr(player, "dice"):
+            return False
+        dice = player.dice
+        if not dice.has_rolled:
+            return False
         for i in range(dice.num_dice):
-            if dice.is_locked(i):
+            if dice.is_locked(i) or not dice.is_kept(i):
                 continue
-            if dice.get_value(i) != value:
+            if dice.get_value(i) == value:
+                return True
+        return False
+
+    def _has_unkept_value(self, player: Player, value: int) -> bool:
+        if not hasattr(player, "dice"):
+            return False
+        dice = player.dice
+        if not dice.has_rolled:
+            return False
+        for i in range(dice.num_dice):
+            if dice.is_locked(i) or dice.is_kept(i):
                 continue
-            if want_kept and dice.is_kept(i):
-                return i
-            if not want_kept and not dice.is_kept(i):
-                return i
-        return None
+            if dice.get_value(i) == value:
+                return True
+        return False
 
     def _is_dice_key_hidden(self, player: Player) -> Visibility:
         """Dice keybind actions are always hidden (keybind only)."""
@@ -267,92 +303,74 @@ class DiceGameMixin:
     # Games must implement _is_dice_toggle_enabled, _is_dice_toggle_hidden, _get_dice_toggle_label
 
     def _is_toggle_die_0_enabled(self, player: Player, *, action_id: str = None) -> str | None:
-        """Check if toggling die 0 is enabled (via generic handler)."""
         die_index = int(action_id.split("_")[-1]) if action_id else 0
         return self._is_dice_toggle_enabled(player, die_index)
 
     def _is_toggle_die_1_enabled(self, player: Player, *, action_id: str = None) -> str | None:
-        """Check if toggling die 1 is enabled (via generic handler)."""
         die_index = int(action_id.split("_")[-1]) if action_id else 1
         return self._is_dice_toggle_enabled(player, die_index)
 
     def _is_toggle_die_2_enabled(self, player: Player, *, action_id: str = None) -> str | None:
-        """Check if toggling die 2 is enabled (via generic handler)."""
         die_index = int(action_id.split("_")[-1]) if action_id else 2
         return self._is_dice_toggle_enabled(player, die_index)
 
     def _is_toggle_die_3_enabled(self, player: Player, *, action_id: str = None) -> str | None:
-        """Check if toggling die 3 is enabled (via generic handler)."""
         die_index = int(action_id.split("_")[-1]) if action_id else 3
         return self._is_dice_toggle_enabled(player, die_index)
 
     def _is_toggle_die_4_enabled(self, player: Player, *, action_id: str = None) -> str | None:
-        """Check if toggling die 4 is enabled (via generic handler)."""
         die_index = int(action_id.split("_")[-1]) if action_id else 4
         return self._is_dice_toggle_enabled(player, die_index)
 
     def _is_toggle_die_5_enabled(self, player: Player, *, action_id: str = None) -> str | None:
-        """Check if toggling die 5 is enabled (via generic handler)."""
         die_index = int(action_id.split("_")[-1]) if action_id else 5
         return self._is_dice_toggle_enabled(player, die_index)
 
     def _is_toggle_die_0_hidden(self, player: Player, *, action_id: str = None) -> Visibility:
-        """Check if die 0 toggle action should be hidden."""
         die_index = int(action_id.split("_")[-1]) if action_id else 0
         return self._is_dice_toggle_hidden(player, die_index)
 
     def _is_toggle_die_1_hidden(self, player: Player, *, action_id: str = None) -> Visibility:
-        """Check if die 1 toggle action should be hidden."""
         die_index = int(action_id.split("_")[-1]) if action_id else 1
         return self._is_dice_toggle_hidden(player, die_index)
 
     def _is_toggle_die_2_hidden(self, player: Player, *, action_id: str = None) -> Visibility:
-        """Check if die 2 toggle action should be hidden."""
         die_index = int(action_id.split("_")[-1]) if action_id else 2
         return self._is_dice_toggle_hidden(player, die_index)
 
     def _is_toggle_die_3_hidden(self, player: Player, *, action_id: str = None) -> Visibility:
-        """Check if die 3 toggle action should be hidden."""
         die_index = int(action_id.split("_")[-1]) if action_id else 3
         return self._is_dice_toggle_hidden(player, die_index)
 
     def _is_toggle_die_4_hidden(self, player: Player, *, action_id: str = None) -> Visibility:
-        """Check if die 4 toggle action should be hidden."""
         die_index = int(action_id.split("_")[-1]) if action_id else 4
         return self._is_dice_toggle_hidden(player, die_index)
 
     def _is_toggle_die_5_hidden(self, player: Player, *, action_id: str = None) -> Visibility:
-        """Check if die 5 toggle action should be hidden."""
         die_index = int(action_id.split("_")[-1]) if action_id else 5
         return self._is_dice_toggle_hidden(player, die_index)
 
     def _get_toggle_die_0_label(self, player: Player, action_id: str) -> str:
-        """Return the label for the die 0 toggle action."""
         die_index = int(action_id.split("_")[-1])
         return self._get_dice_toggle_label(player, die_index)
 
     def _get_toggle_die_1_label(self, player: Player, action_id: str) -> str:
-        """Return the label for the die 1 toggle action."""
         die_index = int(action_id.split("_")[-1])
         return self._get_dice_toggle_label(player, die_index)
 
     def _get_toggle_die_2_label(self, player: Player, action_id: str) -> str:
-        """Return the label for the die 2 toggle action."""
         die_index = int(action_id.split("_")[-1])
         return self._get_dice_toggle_label(player, die_index)
 
     def _get_toggle_die_3_label(self, player: Player, action_id: str) -> str:
-        """Return the label for the die 3 toggle action."""
         die_index = int(action_id.split("_")[-1])
         return self._get_dice_toggle_label(player, die_index)
 
     def _get_toggle_die_4_label(self, player: Player, action_id: str) -> str:
-        """Return the label for the die 4 toggle action."""
         die_index = int(action_id.split("_")[-1])
         return self._get_dice_toggle_label(player, die_index)
 
     def _get_toggle_die_5_label(self, player: Player, action_id: str) -> str:
-        """Return the label for the die 5 toggle action."""
         die_index = int(action_id.split("_")[-1])
         return self._get_dice_toggle_label(player, die_index)
 
@@ -387,17 +405,18 @@ class DiceGameMixin:
         """Get label for die toggle action. Override in game class."""
         if not hasattr(player, "dice"):
             return f"Die {die_index + 1}"
+
+        # Determine locale
+        user = self.get_user(player)
+        locale = user.locale if user else "en"
+
         die_val = player.dice.get_value(die_index)
         if die_val is None:
             return f"Die {die_index + 1}"
-        user = self.get_user(player)
-        locale = user.locale if user else "en"
         if player.dice.is_locked(die_index):
-            status = Localization.get(locale, "dice-status-locked")
-            return f"{die_val} ({status})"
+            return Localization.get(locale, "dice-status-label-locked", value=die_val)
         if player.dice.is_kept(die_index):
-            status = Localization.get(locale, "dice-status-kept")
-            return f"{die_val} ({status})"
+            return Localization.get(locale, "dice-status-label-kept", value=die_val)
         return str(die_val)
 
     # Single toggle handler for all dice (extracts index from action ID)
@@ -427,26 +446,28 @@ class DiceGameMixin:
 
         Behavior depends on user's dice keeping style preference:
         - Dice indexes: Toggle die at index (key_num - 1)
-        - Dice values: Keep first unkept die with face value key_num
+        - Dice values: Reroll first kept die with face value key_num
         """
         user = self.get_user(player)
         if not user:
             return
 
-        style = user.preferences.get_effective("dice_keeping_style", game_type=self.get_type())
+        style = user.preferences.get_effective(
+            "dice_keeping_style", game_type=self.get_type()
+        )
 
-        if style == DiceKeepingStyle.PLAYPALACE:
+        if style == DiceKeepingStyle.INDEX_BASED:
             # Toggle by index - check if die index is valid
             die_index = key_num - 1
             if hasattr(player, "dice") and die_index < player.dice.num_dice:
                 self._toggle_die(player, die_index)
         else:
-            # Dice values style: keep by face value
-            self._keep_by_value(player, key_num)
+            # Dice values style: reroll by face value
+            self._unkeep_by_value(player, key_num)
 
     def _handle_dice_unkeep(self, player: Player, value: int) -> None:
         """
-        Handle shift+key press for rerolling by value.
+        Handle shift+key press for unkeeping by value.
 
         Only works in dice values style. Silent in dice indexes style.
         """
@@ -454,10 +475,12 @@ class DiceGameMixin:
         if not user:
             return
 
-        style = user.preferences.get_effective("dice_keeping_style", game_type=self.get_type())
+        style = user.preferences.get_effective(
+            "dice_keeping_style", game_type=self.get_type()
+        )
 
-        if style == DiceKeepingStyle.QUENTIN_C:
-            self._unkeep_by_value(player, value)
+        if style == DiceKeepingStyle.VALUE_BASED:
+            self._keep_by_value(player, value)
         # Silent in dice indexes style
 
     def _toggle_die(self, player: Player, die_index: int) -> None:
@@ -476,20 +499,20 @@ class DiceGameMixin:
         if result is None:
             # Die is locked
             if user:
-                user.speak_l("dice-locked")
+                user.speak_l("dice-locked", buffer="game")
             return
 
         die_val = player.dice.get_value(die_index)
         if result:
             # Now kept
             if user:
-                user.speak_l("dice-keeping", value=die_val)
+                user.speak_l("dice-keeping", buffer="game", value=die_val)
         else:
             # Now unkept
             if user:
-                user.speak_l("dice-rerolling", value=die_val)
+                user.speak_l("dice-rerolling", buffer="game", value=die_val)
 
-        self.rebuild_player_menu(player)
+        self.refresh_menus(player)
 
     def _keep_by_value(self, player: Player, value: int) -> None:
         """
@@ -509,8 +532,8 @@ class DiceGameMixin:
                 if dice.get_value(i) == value:
                     dice.keep(i)
                     if user:
-                        user.speak_l("dice-keeping", value=value)
-                    self.rebuild_player_menu(player)
+                        user.speak_l("dice-keeping", buffer="game", value=value)
+                    self.refresh_menus(player)
                     return
 
         # No matching die found - silent
@@ -533,8 +556,8 @@ class DiceGameMixin:
                 if dice.get_value(i) == value:
                     dice.unkeep(i)
                     if user:
-                        user.speak_l("dice-rerolling", value=value)
-                    self.rebuild_player_menu(player)
+                        user.speak_l("dice-rerolling", buffer="game", value=value)
+                    self.refresh_menus(player)
                     return
 
         # No matching die found - silent

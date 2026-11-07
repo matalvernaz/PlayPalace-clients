@@ -2,17 +2,17 @@ from pathlib import Path
 import json
 import random
 
-from server.games.registry import GameRegistry
-from server.games.tienlen.evaluator import (
+from ..games.registry import GameRegistry
+from ..games.tienlen.evaluator import (
     NORTHERN_VARIANT,
     SOUTHERN_VARIANT,
     evaluate_combo,
 )
-from server.games.tienlen.game import TienLenGame, TienLenOptions
-from server.games.tienlen.rules import get_rules
-from server.messages.localization import Localization
-from server.core.users.bot import Bot
-from server.core.users.test_user import MockUser
+from ..games.tienlen.game import TienLenGame, TienLenOptions
+from ..games.tienlen.rules import get_rules
+from ..messages.localization import Localization
+from ..users.bot import Bot
+from ..users.test_user import MockUser
 
 
 _locales_dir = Path(__file__).parent.parent / "locales"
@@ -42,16 +42,21 @@ def make_game(
         else:
             user = MockUser(name, uuid=f"p{index + 1}")
             if web_first and index == 0:
-                user.set_client_type("web")
+                user.client_type = "web"
         game.add_player(name, user)
     game.host = "Player1"
     if start:
-        game.on_start()
-        for _ in range(5):
-            if game.hand_wait_ticks == 0 or game.status != "playing":
-                break
-            game.hand_wait_ticks = 1
-            game.on_tick()
+        random_state = random.getstate()
+        random.seed(0)
+        try:
+            game.on_start()
+            for _ in range(5):
+                if game.hand_wait_ticks == 0 or game.status != "playing":
+                    break
+                game.hand_wait_ticks = 1
+                game.on_tick()
+        finally:
+            random.setstate(random_state)
     return game
 
 
@@ -115,7 +120,12 @@ def test_tienlen_starts_first_hand_without_intro_delay_or_intro_sound() -> None:
     first_user = game.get_user(game.players[0])
     assert isinstance(first_user, MockUser)
 
-    game.on_start()
+    random_state = random.getstate()
+    random.seed(0)
+    try:
+        game.on_start()
+    finally:
+        random.setstate(random_state)
 
     assert game.round == 1
     assert game.intro_wait_ticks == 0

@@ -4,17 +4,17 @@ from pathlib import Path
 import random
 from unittest.mock import patch
 
-from server.games.colorgame.game import (
+from ..games.colorgame.game import (
     ColorGameGame,
     ColorGameOptions,
     PHASE_ROLLING,
     RISK_CONFIRM_TICKS,
     evaluate_color_bet,
 )
-from server.games.registry import GameRegistry
-from server.messages.localization import Localization
-from server.core.users.bot import Bot
-from server.core.users.test_user import MockUser
+from ..games.registry import GameRegistry
+from ..messages.localization import Localization
+from ..users.bot import Bot
+from ..users.test_user import MockUser
 
 
 _locales_dir = Path(__file__).parent.parent / "locales"
@@ -38,7 +38,7 @@ def make_game(
         else:
             user = MockUser(name, uuid=f"p{index + 1}")
             if web_first and index == 0:
-                user.set_client_type("web")
+                user.client_type = "web"
         game.add_player(name, user)
     game.host = "Player1"
     if start:
@@ -59,7 +59,7 @@ def test_game_registered_and_defaults() -> None:
     game = ColorGameGame()
     assert game.get_name() == "Color Game"
     assert game.get_type() == "colorgame"
-    assert game.get_category() == "category-dice-games"
+    assert game.get_category() == "dice"
     assert game.get_min_players() == 2
     assert game.get_max_players() == 6
     assert game.get_supported_leaderboards() == ["wins", "games_played"]

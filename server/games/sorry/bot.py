@@ -1,9 +1,8 @@
-"""Bot policy helpers for Sorry."""
+"""Bot move selection for Sorry."""
 
 from copy import deepcopy
 
-from .moves import SorryMove
-from .moves import apply_move
+from .moves import SorryMove, apply_move
 from .rules import SorryRulesProfile
 from .state import (
     SAFETY_LENGTH,
@@ -12,6 +11,9 @@ from .state import (
     TRACK_LENGTH,
     clockwise_distance,
 )
+
+
+_LEGAL_BACKWARD_THREAT_DISTANCES = {1, 4}
 
 
 def _track_threat_count(
@@ -30,7 +32,7 @@ def _track_threat_count(
             backward = clockwise_distance(target_track, pawn.track_position)
             if 1 <= forward <= 12:
                 threats += 1
-            elif 1 <= backward <= 4:
+            elif backward in _LEGAL_BACKWARD_THREAT_DISTANCES:
                 threats += 1
     return threats
 
@@ -61,40 +63,17 @@ def _moved_pawn_indexes(move: SorryMove) -> list[int]:
     return indexes
 
 
-def _capture_count(before: SorryGameState, after: SorryGameState, player_id: str) -> int:
-    before_start = 0
-    after_start = 0
-    for opponent_id, opponent_state in before.player_states.items():
-        if opponent_id == player_id:
-            continue
-        before_start += sum(1 for pawn in opponent_state.pawns if pawn.zone == "start")
-    for opponent_id, opponent_state in after.player_states.items():
-        if opponent_id == player_id:
-            continue
-        after_start += sum(1 for pawn in opponent_state.pawns if pawn.zone == "start")
-    return max(0, after_start - before_start)
-
-
 def choose_move(
     state: SorryGameState,
     player_state: SorryPlayerState,
     moves: list[SorryMove],
     rules: SorryRulesProfile,
 ) -> SorryMove | None:
-    """Choose a move using deterministic classic heuristics.
-
-    Priority:
-    1) winning move
-    2) capture move
-    3) leave start
-    4) safer advancement
-    5) max progress gain
-    """
     if not moves:
         return None
 
     best_move: SorryMove | None = None
-    best_score: tuple[int, int, int, int, int] | None = None
+    best_score: tuple[int, int, int, int, int, int] | None = None
 
     for move in moves:
         sim_state = deepcopy(state)
@@ -107,7 +86,7 @@ def choose_move(
         own_start_before = sum(1 for pawn in player_state.pawns if pawn.zone == "start")
 
         try:
-            apply_move(sim_state, sim_player, move, rules)
+            captures = apply_move(sim_state, sim_player, move, rules)
         except ValueError:
             continue
 
@@ -115,7 +94,7 @@ def choose_move(
         own_start_after = sum(1 for pawn in sim_player.pawns if pawn.zone == "start")
 
         winning_flag = int(all(pawn.zone == "home" for pawn in sim_player.pawns))
-        capture_flag = int(_capture_count(state, sim_state, player_state.player_id) > 0)
+        capture_total = len(captures)
         leave_start_flag = int(own_start_after < own_start_before)
 
         threat_count = 0
@@ -137,20 +116,18 @@ def choose_move(
 
         score = (
             winning_flag,
-            capture_flag,
+            capture_total,
             leave_start_flag,
             safe_score,
             progress_gain,
+            -len(move.action_id),
         )
 
         if best_score is None or score > best_score:
             best_score = score
             best_move = move
             continue
-        if score == best_score and best_move is not None:
-            if move.action_id < best_move.action_id:
-                best_move = move
+        if score == best_score and best_move is not None and move.action_id < best_move.action_id:
+            best_move = move
 
-    if best_move is None:
-        return moves[0]
-    return best_move
+    return best_move if best_move is not None else moves[0]

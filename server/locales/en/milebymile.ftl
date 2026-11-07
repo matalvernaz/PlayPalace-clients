@@ -1,5 +1,7 @@
-game-name-milebymile = Mile by Mile
+# milebymile.ftl for locale en. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-milebymile = Mile by Mile
 milebymile-set-distance = Race distance: { $miles } miles
 milebymile-enter-distance = Enter race distance (300-3000)
 milebymile-set-winning-score = Winning score: { $score } points
@@ -15,7 +17,6 @@ milebymile-rig-none = None
 milebymile-rig-no-duplicates = No Duplicates
 milebymile-rig-2x-attacks = 2x Attacks
 milebymile-rig-2x-defenses = 2x Defenses
-
 milebymile-option-changed-distance = Race distance set to { $miles } miles.
 milebymile-desc-round-distance = Target distance for each race. If exact finish is enabled, this distance must be divisible by 25 (default 1,000 miles, range 300-3,000).
 milebymile-option-changed-winning = Winning score set to { $score } points.
@@ -30,9 +31,7 @@ milebymile-option-changed-karma = Karma rule { $enabled }.
 milebymile-desc-karma-rule = Controls whether karma cards and shunning are used. Attacking while both sides have karma neutralizes the attack; a shunned attacker can only target another shunned side. Requires at least 3 cars or teams.
 milebymile-option-changed-rig = Deck rigging set to { $rig }.
 milebymile-desc-rig-game = Optional deck composition variant: normal, no duplicate cards, double attacks, or double defenses.
-
 milebymile-status = { $score_info }, { $miles } miles, Problems: { $problems }, Safeties: { $safeties }
-
 milebymile-no-matching-safety = You don't have the matching safety card!
 milebymile-cant-play = You can't play { $card } because { $reason }.
 milebymile-unplayable-card-menu-title = Card cannot be played
@@ -43,13 +42,11 @@ milebymile-you-drew = You drew: { $card }
 milebymile-you-discard = You discard { $card }.
 milebymile-discards = { $player } discards { $card }.
 milebymile-select-target = Select a target
-
 milebymile-you-play-distance-individual = You play { $distance } miles, and are now at { $total } miles.
 milebymile-plays-distance-individual = { $player } plays { $distance } miles, and is now at { $total } miles.
 milebymile-you-play-distance-team = You play { $distance } miles; your team is now at { $total } miles.
 milebymile-teammate-plays-distance-team = { $player } plays { $distance } miles; your team is now at { $total } miles.
-milebymile-plays-distance-team = { $player } plays { $distance } miles; their team is now at { $total } miles.
-
+milebymile-plays-distance-team = { $player } plays { $distance } miles; { GENDER_TERM($player_gender, "possessive-determiner") } team is now at { $total } miles.
 milebymile-you-complete-perfect-individual = You complete the journey with a perfect crossing!
 milebymile-journey-complete-perfect-individual = { $player } has completed the journey with a perfect crossing!
 milebymile-your-team-completes-perfect = Your team completes the journey with a perfect crossing!
@@ -58,74 +55,65 @@ milebymile-you-complete-individual = You complete the journey!
 milebymile-journey-complete-individual = { $player } has completed the journey!
 milebymile-your-team-completes = Your team completes the journey!
 milebymile-journey-complete-team = Team { $team } has completed the journey!
-
 milebymile-you-play-hazard-individual = You play { $card } on { $target }.
 milebymile-hazard-played-on-you = { $player } plays { $card } on you. You have 7 seconds to counter.
 milebymile-plays-hazard-individual = { $player } plays { $card } on { $target }.
 milebymile-you-play-hazard-team = You play { $card } on Team { $team }.
 milebymile-hazard-played-on-your-team = { $player } plays { $card } on your team. Your team has 7 seconds to counter.
 milebymile-plays-hazard-team = { $player } plays { $card } on Team { $team }.
-
 milebymile-you-play-card = You play { $card }.
 milebymile-plays-card = { $player } plays { $card }.
 milebymile-you-play-team-card = You play { $card } for your team.
 milebymile-teammate-plays-team-card = { $player } plays { $card } for your team.
-milebymile-opponent-plays-team-card = { $player } plays { $card } for their team.
+milebymile-opponent-plays-team-card = { $player } plays { $card } for { GENDER_TERM($player_gender, "possessive-determiner") } team.
 milebymile-you-play-dirty-trick = You play { $card } as a Dirty Trick!
 milebymile-plays-dirty-trick = { $player } plays { $card } as a Dirty Trick!
 milebymile-you-play-dirty-trick-team = You play { $card } as a Dirty Trick for your team!
 milebymile-teammate-plays-dirty-trick-team = { $player } plays { $card } as a Dirty Trick for your team!
-milebymile-opponent-plays-dirty-trick-team = { $player } plays { $card } as a Dirty Trick for their team!
-
+milebymile-opponent-plays-dirty-trick-team = { $player } plays { $card } as a Dirty Trick for { GENDER_TERM($player_gender, "possessive-determiner") } team!
 milebymile-deck-reshuffled = Discard pile shuffled back into deck.
-
 milebymile-new-race = New race begins!
 milebymile-race-complete = Race complete! Calculating scores...
 milebymile-earned-points = { $name } earned { $score } points this race: { $breakdown }.
 milebymile-total-scores = Total scores:
 milebymile-team-score = { $name }: { $score } points
-
 milebymile-from-distance = { $miles } from distance travelled
 milebymile-from-trip = { $points } from completing the trip
 milebymile-from-delayed = { $points } from delayed action
 milebymile-from-perfect = { $points } from a perfect crossing
 milebymile-from-safe = { $points } from a safe trip
 milebymile-from-shutout = { $points } from a shut out
-milebymile-from-safeties = { $points } from { $count } { $count ->
-    [one] safety
-    *[other] safeties
-}
+milebymile-from-safeties =
+    { $points } from { $count } { $count ->
+        [one] safety
+       *[other] safeties
+    }
 milebymile-from-all-safeties = { $points } from all 4 safeties
-milebymile-from-dirty-tricks = { $points } from { $count } { $count ->
-    [one] dirty trick
-    *[other] dirty tricks
-}
-
+milebymile-from-dirty-tricks =
+    { $points } from { $count } { $count ->
+        [one] dirty trick
+       *[other] dirty tricks
+    }
 milebymile-you-win-individual = You win the game!
 milebymile-wins-individual = { $player } wins the game!
 milebymile-your-team-wins = Your team wins the game!
 milebymile-wins-team = Team { $team } wins the game! ({ $members })
 milebymile-final-score = Final score: { $score } points
-
 milebymile-karma-clash-you-target = You and your target are both shunned! The attack is neutralized.
 milebymile-karma-clash-you-attacker = You and { $attacker } are both shunned! The attack is neutralized.
 milebymile-karma-clash-others = { $attacker } and { $target } are both shunned! The attack is neutralized.
 milebymile-karma-clash-your-team = Your team and your target are both shunned! The attack is neutralized.
 milebymile-karma-clash-target-team = Your team and Team { $team } are both shunned! The attack is neutralized.
 milebymile-karma-clash-other-teams = Team { $attacker } and Team { $target } are both shunned! The attack is neutralized.
-
 milebymile-karma-shunned-you = You have been shunned for your aggression! Your karma is lost.
-milebymile-karma-shunned-other = { $player } has been shunned for their aggression!
+milebymile-karma-shunned-other = { $player } has been shunned for { GENDER_TERM($player_gender, "possessive-determiner") } aggression!
 milebymile-karma-shunned-your-team = Your team has been shunned for its aggression! Your team's karma is lost.
 milebymile-karma-shunned-other-team = Team { $team } has been shunned for its aggression!
-
 milebymile-false-virtue-you = You play False Virtue and regain your karma!
-milebymile-false-virtue-other = { $player } plays False Virtue and regains their karma!
+milebymile-false-virtue-other = { $player } plays False Virtue and regains { GENDER_TERM($player_gender, "possessive-determiner") } karma!
 milebymile-false-virtue-teammate = { $player } plays False Virtue; your team regains its karma!
-milebymile-false-virtue-opponent = { $player } plays False Virtue; their team regains its karma!
-
+milebymile-false-virtue-opponent = { $player } plays False Virtue; { GENDER_TERM($player_gender, "possessive-determiner") } team regains its karma!
 milebymile-none = none
-
 milebymile-reason-not-on-team = you're not on a team
 milebymile-reason-stopped = you need a Green Light before you can drive
 milebymile-reason-has-problem = a road problem is stopping your car
@@ -152,7 +140,6 @@ milebymile-reason-no-accident = your car hasn't been in an accident
 milebymile-reason-has-safety = you already have that safety
 milebymile-reason-has-karma = you still have your karma
 milebymile-reason-generic = it can't be played right now
-
 milebymile-card-out-of-gas = Out of Gas
 milebymile-card-flat-tire = Flat Tire
 milebymile-card-accident = Accident
@@ -169,19 +156,14 @@ milebymile-card-driving-ace = Driving Ace
 milebymile-card-right-of-way = Right of Way
 milebymile-card-false-virtue = False Virtue
 milebymile-card-miles = { $miles } miles
-
 milebymile-no-dirty-trick-window = No dirty trick window is active.
 milebymile-not-your-dirty-trick = It's not your team's dirty trick window.
 milebymile-between-races = Wait for the next race to start.
-
 milebymile-error-karma-needs-three-teams = Karma rule requires at least 3 distinct cars/teams.
 milebymile-error-perfect-distance-step = Exact finish requires a race distance divisible by 25, because all distance cards are multiples of 25.
-
 milebymile-line-format = { $rank }. { $name }: { $points }
-
 milebymile-target-individual = { $name } ({ $miles } miles)
 milebymile-target-team = Team { $team }: { $members } ({ $miles } miles)
-
 milebymile-discard-card = Discard card
 milebymile-detailed-status = Detailed status
 milebymile-check-status = Check status

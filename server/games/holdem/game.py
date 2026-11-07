@@ -17,15 +17,15 @@ from ...game_utils.poker_pot import PokerPotManager
 from ...game_utils.poker_table import PokerTableState
 from ...game_utils.poker_timer import PokerTurnTimer
 from ...game_utils.poker_evaluator import best_hand, describe_hand, describe_partial_hand
-from ...game_utils.poker_actions import compute_pot_limit_caps, clamp_total_to_cap
+from ...game_utils.poker_actions import compute_pot_limit_caps
 from ...game_utils.poker_showdown import order_winners_by_button, format_showdown_lines
-from ...game_utils.poker_payout import resolve_pots_with_payouts
+from ...game_utils.poker_payout import resolve_pot
 from ...game_utils import poker_log
 from ...messages.localization import Localization
-from ...game_utils.game_status import GameStatus
-from server.core.ui.keybinds import KeybindState
+from ...ui.keybinds import KeybindState
 from .bot import bot_think
-from ...game_utils.poker_state import order_after_button
+from ...game_utils.turn_timer_mixin import TurnTimerMixin
+from ...game_utils.poker_announcer import announce_pot_winners
 
 
 TURN_TIMER_CHOICES = ["5", "10", "15", "20", "30", "45", "60", "90", "0"]
@@ -56,6 +56,8 @@ RAISE_MODE_LABELS = {
     "pot_limit": "poker-raise-pot-limit",
     "double_pot": "poker-raise-double-pot",
 }
+
+BETTING_PHASES = {"preflop", "flop", "turn", "river"}
 
 
 @dataclass
@@ -157,10 +159,11 @@ class HoldemOptions(GameOptions):
 
 @dataclass
 @register_game
-class HoldemGame(Game):
+class HoldemGame(Game, TurnTimerMixin):
     players: list[HoldemPlayer] = field(default_factory=list)
     options: HoldemOptions = field(default_factory=HoldemOptions)
     deck: Deck | None = None
+    score_unit_key = "game-score-unit-chips"
     community: list[Card] = field(default_factory=list)
     pot_manager: PokerPotManager = field(default_factory=PokerPotManager)
     betting: PokerBettingRound | None = None
@@ -181,10 +184,20 @@ class HoldemGame(Game):
     pending_board_delay_ticks: int = 0
     pending_board_wait_ticks: int = 0
     last_showdown_winner_ids: set[str] = field(default_factory=set)
+    _next_hand_wait_ticks: int = 0
+
+    def __post_init__(self):
+        super().__post_init__()
+        # Ensure timer warning flag is initialized (Mixin field)
+        self._timer_warning_played = False
 
     @classmethod
     def get_name(cls) -> str:
         return "Texas Hold'em"
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
     @classmethod
     def get_type(cls) -> str:
@@ -192,7 +205,7 @@ class HoldemGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-poker"
+        return "poker"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -200,10 +213,53 @@ class HoldemGame(Game):
 
     @classmethod
     def get_max_players(cls) -> int:
-        return 12
+        return 10
 
     def create_player(self, player_id: str, name: str, is_bot: bool = False) -> HoldemPlayer:
         return HoldemPlayer(id=player_id, name=name, is_bot=is_bot, chips=0)
+
+    def prestart_validate(self) -> list[str | tuple[str, dict]]:
+        errors = list(super().prestart_validate())
+        if self.options.big_blind >= self.options.starting_chips:
+            errors.append(
+                (
+                    "holdem-error-big-blind-too-high",
+                    {
+                        "blind": self.options.big_blind,
+                        "chips": self.options.starting_chips,
+                    },
+                )
+            )
+        if self.options.ante >= self.options.starting_chips:
+            errors.append(
+                (
+                    "holdem-error-ante-too-high",
+                    {
+                        "ante": self.options.ante,
+                        "chips": self.options.starting_chips,
+                    },
+                )
+            )
+        forced_bets_individually_valid = (
+            self.options.big_blind < self.options.starting_chips
+            and self.options.ante < self.options.starting_chips
+        )
+        if (
+            forced_bets_individually_valid
+            and self.options.ante_start_level <= 0
+            and self.options.ante + self.options.big_blind >= self.options.starting_chips
+        ):
+            errors.append(
+                (
+                    "holdem-error-forced-bets-too-high",
+                    {
+                        "ante": self.options.ante,
+                        "blind": self.options.big_blind,
+                        "chips": self.options.starting_chips,
+                    },
+                )
+            )
+        return errors
 
     # ==========================================================================
     # Actions / keybinds
@@ -218,8 +274,9 @@ class HoldemGame(Game):
                 label=Localization.get(locale, "poker-call"),
                 handler="_action_call",
                 get_label="_get_call_label",
-                is_enabled="_is_turn_action_enabled",
+                is_enabled="_is_betting_action_enabled",
                 is_hidden="_is_turn_action_hidden",
+                show_in_actions_menu=False,
             )
         )
         action_set.add(
@@ -227,8 +284,9 @@ class HoldemGame(Game):
                 id="fold",
                 label=Localization.get(locale, "poker-fold"),
                 handler="_action_fold",
-                is_enabled="_is_turn_action_enabled",
+                is_enabled="_is_betting_action_enabled",
                 is_hidden="_is_turn_action_hidden",
+                show_in_actions_menu=False,
             )
         )
         action_set.add(
@@ -236,8 +294,9 @@ class HoldemGame(Game):
                 id="raise",
                 label=Localization.get(locale, "poker-raise"),
                 handler="_action_raise",
-                is_enabled="_is_turn_action_enabled",
+                is_enabled="_is_raise_enabled",
                 is_hidden="_is_turn_action_hidden",
+                show_in_actions_menu=False,
                 input_request=EditboxInput(
                     prompt="poker-enter-raise",
                     default="",
@@ -250,108 +309,140 @@ class HoldemGame(Game):
                 id="all_in",
                 label=Localization.get(locale, "poker-all-in"),
                 handler="_action_all_in",
-                is_enabled="_is_turn_action_enabled",
+                is_enabled="_is_all_in_enabled",
                 is_hidden="_is_turn_action_hidden",
+                show_in_actions_menu=False,
             )
         )
+
+        if self.is_touch_client(user):
+            bet_actions = ["call", "fold", "raise", "all_in"]
+            rest = [aid for aid in action_set._order if aid not in bet_actions]
+            action_set._order = [aid for aid in bet_actions if aid in action_set._order] + rest
+
         return action_set
 
     def create_standard_action_set(self, player: Player) -> ActionSet:
         action_set = super().create_standard_action_set(player)
         user = self.get_user(player)
         locale = user.locale if user else "en"
-        local_actions = [
+        action_set.add(
             Action(
                 id="check_pot",
                 label=Localization.get(locale, "poker-check-pot"),
                 handler="_action_check_pot",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
             Action(
                 id="check_bet",
                 label=Localization.get(locale, "poker-check-bet"),
                 handler="_action_check_bet",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
             Action(
                 id="check_min_raise",
                 label=Localization.get(locale, "poker-check-min-raise"),
                 handler="_action_check_min_raise",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
             Action(
                 id="check_hand_players",
                 label=Localization.get(locale, "poker-check-hand-players"),
                 handler="_action_check_hand_players",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
             Action(
                 id="check_turn_timer",
                 label=Localization.get(locale, "poker-check-turn-timer"),
                 handler="_action_check_turn_timer",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
             Action(
                 id="speak_hand",
                 label=Localization.get(locale, "poker-read-hand"),
                 handler="_action_read_hand",
-                is_enabled="_is_check_enabled",
-                is_hidden="_is_check_hidden",
-            ),
+                is_enabled="_is_private_check_enabled",
+                is_hidden="_is_private_check_hidden",
+            )
+        )
+        action_set.add(
             Action(
                 id="speak_table",
                 label=Localization.get(locale, "poker-read-table"),
                 handler="_action_read_table",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
             Action(
                 id="speak_hand_value",
                 label=Localization.get(locale, "poker-hand-value"),
                 handler="_action_read_hand_value",
-                is_enabled="_is_check_enabled",
-                is_hidden="_is_check_hidden",
-            ),
+                is_enabled="_is_private_check_enabled",
+                is_hidden="_is_private_check_hidden",
+            )
+        )
+        action_set.add(
             Action(
                 id="check_button",
                 label=Localization.get(locale, "poker-check-button"),
                 handler="_action_check_button",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
+                include_spectators=True,
+            )
+        )
+        action_set.add(
             Action(
                 id="check_position",
                 label=Localization.get(locale, "poker-check-position"),
                 handler="_action_check_position",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
+                include_spectators=False,
+            )
+        )
+        action_set.add(
             Action(
                 id="check_blind_timer",
                 label=Localization.get(locale, "poker-check-blind-timer"),
                 handler="_action_check_blind_timer",
                 is_enabled="_is_check_enabled",
                 is_hidden="_is_check_hidden",
-            ),
-        ]
-        for action in reversed(local_actions):
-            action_set.add(action)
-            if action.id in action_set._order:
-                action_set._order.remove(action.id)
-            action_set._order.insert(0, action.id)
+                include_spectators=True,
+            )
+        )
         for i in range(1, 8):
             action_set.add(
                 Action(
                     id=f"speak_card_{i}",
                     label=Localization.get(locale, "poker-read-card", index=i),
                     handler="_action_read_card",
-                    is_enabled="_is_check_enabled",
+                    is_enabled="_is_private_check_enabled",
                     is_hidden="_is_always_hidden",
+                    show_in_actions_menu=False,
                 )
             )
         action_set.add(
@@ -381,7 +472,58 @@ class HoldemGame(Game):
                 is_hidden="_is_reveal_hidden",
             )
         )
+
+        if self.is_touch_client(user):
+            self._order_touch_standard_actions(action_set, self.web_target_order)
+
         return action_set
+
+    web_target_order = [
+        "speak_hand",
+        "speak_table",
+        "speak_hand_value",
+        "check_pot",
+        "check_bet",
+        "check_min_raise",
+        "check_hand_players",
+        "check_button",
+        "check_position",
+        "check_turn_timer",
+        "check_blind_timer",
+        "reveal_both",
+        "reveal_first",
+        "reveal_second",
+        "check_scores",
+        "whose_turn",
+        "whos_at_table",
+    ]
+
+    # Touch-client visibility overrides
+
+    def _is_whos_at_table_hidden(self, player: "Player") -> Visibility:
+        """Override: Visible for Web (always), hidden otherwise."""
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE
+        return super()._is_whos_at_table_hidden(player)
+
+    def _is_whose_turn_hidden(self, player: "Player") -> Visibility:
+        """Override: Visible for Web (Playing only), hidden otherwise."""
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            if self.status == "playing":
+                return Visibility.VISIBLE
+            return Visibility.HIDDEN
+        return super()._is_whose_turn_hidden(player)
+
+    def _is_check_scores_hidden(self, player: "Player") -> Visibility:
+        """Override: Visible for Web (Playing only), hidden otherwise."""
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            if self.status == "playing":
+                return Visibility.VISIBLE
+            return Visibility.HIDDEN
+        return super()._is_check_scores_hidden(player)
 
     def setup_keybinds(self) -> None:
         super().setup_keybinds()
@@ -406,12 +548,13 @@ class HoldemGame(Game):
     # Game flow
     # ==========================================================================
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
+        self._sync_table_status()
         self.game_active = True
-        for player in self.players:
+        for player in self.get_active_players():
             player.chips = self.options.starting_chips
         self._team_manager.team_mode = "individual"
-        self._team_manager.setup_teams([p.name for p in self.players])
+        self._team_manager.setup_teams([p.name for p in self.get_active_players()])
         self._sync_team_scores()
         self.set_turn_players(self.get_active_players())
         self.play_music("game_3cardpoker/mus.ogg")
@@ -434,7 +577,7 @@ class HoldemGame(Game):
         self.blind_timer_ticks -= 1
         if self.blind_timer_ticks == 0:
             self.blinds_raise_next_hand = True
-            self.broadcast_l("poker-blinds-raise-next-hand")
+            self.broadcast_l("poker-blinds-raise-next-hand", buffer="game")
 
     def _advance_blind_level(self) -> None:
         if not self.blinds_raise_next_hand:
@@ -466,16 +609,20 @@ class HoldemGame(Game):
         self.deck, _ = DeckFactory.standard_deck()
         self.deck.shuffle()
 
-        active = [p for p in self.get_active_players() if p.chips > 0]
+        table_players = [
+            p for p in self.get_active_players() if isinstance(p, HoldemPlayer)
+        ]
+        active = [p for p in table_players if p.chips > 0]
+        active_ids = {p.id for p in active}
+        for p in table_players:
+            p.hand = []
+            p.folded = p.id not in active_ids
+            p.all_in = False
         if len(active) <= 1:
             self._end_game(active[0] if active else None)
             return
 
         self.table_state.advance_button([p.id for p in active])
-        for p in active:
-            p.hand = []
-            p.folded = False
-            p.all_in = False
 
         self.play_sound("game_cards/small_shuffle.ogg")
         self._post_antes(active)
@@ -485,6 +632,7 @@ class HoldemGame(Game):
 
     def _queue_new_hand(self) -> None:
         self._next_hand_wait_ticks = 100
+        self.refresh_menus()
 
     def _post_antes(self, active: list[HoldemPlayer]) -> None:
         ante = self._current_ante()
@@ -498,7 +646,11 @@ class HoldemGame(Game):
                 p.all_in = True
             self.pot_manager.add_contribution(p.id, pay)
         self._sync_team_scores()
-        self.broadcast_l("holdem-antes-posted", amount=ante)
+        self.broadcast_l(
+            "holdem-antes-posted",
+            buffer="game",
+            amount=self.pot_manager.total_pot(),
+        )
 
     def _current_ante(self) -> int:
         if self.options.ante <= 0:
@@ -528,7 +680,24 @@ class HoldemGame(Game):
         self.pot_manager.add_contribution(sb_player.id, sb_pay)
         self.pot_manager.add_contribution(bb_player.id, bb_pay)
         self._sync_team_scores()
-        self.broadcast_l("holdem-blinds-posted", sb=sb_pay, bb=bb_pay)
+        for listener in self.players:
+            user = self.get_user(listener)
+            if not user:
+                continue
+            if listener.id == sb_player.id:
+                key = "holdem-you-post-small-blind"
+            elif listener.id == bb_player.id:
+                key = "holdem-you-post-big-blind"
+            else:
+                key = "holdem-players-post-blinds"
+            user.speak_l(
+                key,
+                buffer="game",
+                sb_player=sb_player.name,
+                bb_player=bb_player.name,
+                sb=sb_pay,
+                bb=bb_pay,
+            )
 
     def _deal_hole_cards(self, players: list[HoldemPlayer]) -> None:
         if not players:
@@ -551,15 +720,21 @@ class HoldemGame(Game):
             p.hand = sort_cards(p.hand)
             user = self.get_user(p)
             if user:
-                user.speak_l("poker-dealt-cards", cards=read_cards(p.hand, user.locale))
+                user.speak_l("poker-dealt-cards", buffer="game", cards=read_cards(p.hand, user.locale))
 
     def _announce_board(self, stage: str) -> None:
-        if stage == "flop":
-            self.broadcast_l("poker-flop", cards=read_cards(self.community, "en"))
-        elif stage == "turn":
-            self.broadcast_l("poker-turn", card=card_name(self.community[-1], "en"))
-        elif stage == "river":
-            self.broadcast_l("poker-river", card=card_name(self.community[-1], "en"))
+        for p in self.players:
+            user = self.get_user(p)
+            if not user:
+                continue
+                
+            locale = user.locale
+            if stage == "flop":
+                user.speak_l("poker-flop", buffer="game", cards=read_cards(self.community, locale))
+            elif stage == "turn":
+                user.speak_l("poker-turn", buffer="game", card=card_name(self.community[-1], locale))
+            elif stage == "river":
+                user.speak_l("poker-river", buffer="game", card=card_name(self.community[-1], locale))
 
     def _deal_community(self, count: int) -> None:
         # Burn card (cosmetic)
@@ -648,37 +823,28 @@ class HoldemGame(Game):
             return
         self.announce_turn(turn_sound="game_3cardpoker/turn.ogg")
         if p.is_bot:
-            BotHelper.jolt_bot(p, ticks=random.randint(30, 50))  # nosec B311
-        self._start_turn_timer()
-        self.rebuild_all_menus()
+            BotHelper.jolt_bot(p, ticks=random.randint(30, 50))
+        self.start_turn_timer()
+        self.refresh_menus()
 
     def _advance_turn(self) -> None:
         if not self.betting:
             return
         active_ids = self._active_betting_ids()
-        next_id = self.betting.next_player(
-            self.current_player.id if self.current_player else None, active_ids
-        )
+        next_id = self.betting.next_player(self.current_player.id if self.current_player else None, active_ids)
         if next_id is None:
             return
         self.turn_index = self.turn_player_ids.index(next_id)
         self._start_turn()
 
-    def _start_turn_timer(self) -> None:
-        try:
-            seconds = int(self.options.turn_timer)
-        except ValueError:
-            seconds = 0
-        if seconds <= 0:
-            self.timer.clear()
-            return
-        self.timer.start(seconds)
+    # _start_turn_timer removed, handled by Mixin
 
     def on_tick(self) -> None:
         super().on_tick()
+        self.process_scheduled_sounds()
         if not self.game_active:
             return
-        if getattr(self, "_next_hand_wait_ticks", 0) > 0:
+        if self._next_hand_wait_ticks > 0:
             self._next_hand_wait_ticks -= 1
             if self._next_hand_wait_ticks == 0:
                 self._start_new_hand()
@@ -697,8 +863,7 @@ class HoldemGame(Game):
             self.pending_showdown = False
             self._showdown()
             return
-        if self.timer.tick():
-            self._handle_turn_timeout()
+        self.on_tick_turn_timer()
         self._tick_blind_timer()
         BotHelper.on_tick(self)
 
@@ -715,7 +880,7 @@ class HoldemGame(Game):
         p.folded = True
         self.pot_manager.mark_folded(p.id)
         poker_log.log_fold(self.action_log, p.name)
-        self.broadcast_l("poker-player-folds", player=p.name)
+        self.broadcast_personal_l(p, "poker-you-fold", "poker-player-folds", buffer="game")
         self._after_action()
 
     def _action_call(self, player: Player, action_id: str) -> None:
@@ -731,13 +896,13 @@ class HoldemGame(Game):
         self.betting.record_bet(p.id, pay, is_raise=False)
         if to_call == 0:
             poker_log.log_check(self.action_log, p.name)
-            self.broadcast_l("poker-player-checks", player=p.name)
+            self.broadcast_personal_l(p, "poker-you-check", "poker-player-checks", buffer="game")
         else:
             self.play_sound("game_3cardpoker/bet.ogg")
             poker_log.log_call(self.action_log, p.name, pay)
-            self.broadcast_l("poker-player-calls", player=p.name, amount=pay)
+            self.broadcast_personal_l(p, "poker-you-call", "poker-player-calls", buffer="game", amount=pay)
         if p.all_in and pay > 0:
-            self.broadcast_l("poker-player-all-in", player=p.name, amount=pay)
+            self.broadcast_personal_l(p, "poker-you-all-in", "poker-player-all-in", buffer="game", amount=pay)
         self._sync_team_scores()
         self._after_action()
 
@@ -745,32 +910,60 @@ class HoldemGame(Game):
         p = self._require_active_player(player)
         if not p or not self.betting:
             return
+        user = self.get_user(p)
         try:
             amount = int(amount_str)
         except ValueError:
+            if user:
+                user.speak_l("holdem-raise-invalid", buffer="game")
             return
         if amount <= 0:
+            if user:
+                user.speak_l("holdem-raise-invalid", buffer="game")
             return
         if not self.betting.can_raise():
-            self.broadcast_l("poker-raise-cap-reached")
+            if user:
+                user.speak_l(
+                    "holdem-raise-cap-reached",
+                    buffer="game",
+                    count=self.options.max_raises,
+                )
             return
         to_call = self.betting.amount_to_call(p.id)
         min_raise = max(self.betting.last_raise_size, 1)
         if amount > p.chips:
-            self.broadcast_personal_l(p, "poker-raise-too-large", "poker-raise-too-large")
+            if user:
+                user.speak_l(
+                    "holdem-raise-over-stack",
+                    buffer="game",
+                    requested=amount,
+                    chips=p.chips,
+                )
             return
         if amount == p.chips:
             self._action_all_in(p, "all_in")
             return
         if amount < min_raise:
-            self.broadcast_l("poker-raise-too-small", amount=min_raise)
+            if user:
+                user.speak_l(
+                    "holdem-raise-too-small",
+                    buffer="game",
+                    requested=amount,
+                    minimum=min_raise,
+                )
             return
         total = to_call + amount
-        # Apply raise mode limits
-        caps = compute_pot_limit_caps(
-            self.pot_manager.total_pot(), to_call, self.options.raise_mode
-        )
-        total = clamp_total_to_cap(total, caps)
+        maximum = self._maximum_additional_bet(p)
+        if total > maximum and total <= p.chips:
+            if user:
+                user.speak_l(
+                    "holdem-raise-over-limit",
+                    buffer="game",
+                    mode=self.options.raise_mode,
+                    requested=amount,
+                    maximum=max(0, maximum - to_call),
+                )
+            return
         if total > p.chips:
             total = p.chips
         if total < to_call + min_raise:
@@ -783,26 +976,30 @@ class HoldemGame(Game):
         self.play_sound("game_3cardpoker/bet.ogg")
         self.pot_manager.add_contribution(p.id, total)
         self.betting.record_bet(p.id, total, is_raise=True)
-        poker_log.log_raise(self.action_log, p.name, total)
-        self.broadcast_l("poker-player-raises", player=p.name, amount=total)
+        new_bet_total = self.betting.bets[p.id]
+        poker_log.log_raise(self.action_log, p.name, new_bet_total)
+        self.broadcast_personal_l(
+            p,
+            "poker-you-raise",
+            "poker-player-raises",
+            buffer="game",
+            amount=new_bet_total,
+        )
         if p.all_in:
-            self.broadcast_l("poker-player-all-in", player=p.name, amount=total)
+            self.broadcast_personal_l(p, "poker-you-all-in", "poker-player-all-in", buffer="game", amount=total)
         self._sync_team_scores()
         self._after_action()
 
     def _bot_input_raise(self, player: Player) -> str:
-        if not self.betting:
+        if not self.betting or not isinstance(player, HoldemPlayer):
             return "1"
         to_call = self.betting.amount_to_call(player.id)
         min_raise = max(self.betting.last_raise_size, 1)
-        amount = min_raise
-        caps = compute_pot_limit_caps(
-            self.pot_manager.total_pot(), to_call, self.options.raise_mode
-        )
-        total = clamp_total_to_cap(to_call + amount, caps)
-        amount = max(min_raise, total - to_call)
-        max_affordable = max(1, player.chips - to_call)
-        amount = min(amount, max_affordable)
+        max_raise = max(0, self._maximum_additional_bet(player) - to_call)
+        if max_raise < min_raise:
+            return str(min_raise)
+        desired = max(min_raise, self.pot_manager.total_pot() // 2)
+        amount = min(desired, max_raise)
         return str(max(1, amount))
 
     def _action_all_in(self, player: Player, action_id: str) -> None:
@@ -814,28 +1011,36 @@ class HoldemGame(Game):
             return
         to_call = self.betting.amount_to_call(p.id)
         min_raise = max(self.betting.last_raise_size, 1)
-        pay = clamp_total_to_cap(
-            amount,
-            compute_pot_limit_caps(self.pot_manager.total_pot(), to_call, self.options.raise_mode),
-        )
-        p.chips -= pay
-        p.all_in = p.chips == 0
-        self.play_sound("game_3cardpoker/bet.ogg")
-        self.pot_manager.add_contribution(p.id, pay)
+        pay = amount
         raise_amount = pay - to_call
         is_raise = raise_amount >= min_raise and pay > to_call
+        user = self.get_user(p)
+        if is_raise and not self.betting.can_raise():
+            if user:
+                user.speak_l(
+                    "holdem-all-in-raise-cap-reached",
+                    buffer="game",
+                    count=self.options.max_raises,
+                )
+            return
+        maximum = self._maximum_additional_bet(p)
+        if pay > maximum:
+            if user:
+                user.speak_l(
+                    "holdem-all-in-over-limit",
+                    buffer="game",
+                    mode=self.options.raise_mode,
+                    stack=pay,
+                    maximum=max(0, maximum - to_call),
+                )
+            return
+        p.chips -= pay
+        p.all_in = True
+        self.play_sound("game_3cardpoker/bet.ogg")
+        self.pot_manager.add_contribution(p.id, pay)
         self.betting.record_bet(p.id, pay, is_raise=is_raise)
-        if pay > to_call:
-            poker_log.log_raise(self.action_log, p.name, pay)
-            self.broadcast_l("poker-player-raises", player=p.name, amount=pay)
-        elif to_call == 0:
-            poker_log.log_check(self.action_log, p.name)
-            self.broadcast_l("poker-player-checks", player=p.name)
-        else:
-            poker_log.log_call(self.action_log, p.name, pay)
-            self.broadcast_l("poker-player-calls", player=p.name, amount=pay)
-        if p.all_in:
-            self.broadcast_l("poker-player-all-in", player=p.name, amount=pay)
+        poker_log.log_all_in(self.action_log, p.name, pay)
+        self.broadcast_personal_l(p, "poker-you-all-in", "poker-player-all-in", buffer="game", amount=pay)
         self._sync_team_scores()
         self._after_action()
 
@@ -878,7 +1083,7 @@ class HoldemGame(Game):
 
     def _showdown(self) -> None:
         self.phase = "showdown"
-        self.broadcast_l("poker-showdown")
+        self.broadcast_l("poker-showdown", buffer="game")
         self._resolve_pots()
         self._announce_showdown_hands(skip_best=True)
         self._advance_blind_level()
@@ -891,141 +1096,100 @@ class HoldemGame(Game):
         amount = self.pot_manager.total_pot()
         if isinstance(winner, HoldemPlayer):
             winner.chips += amount
-        self.play_sound(
-            random.choice(
-                ["game_blackjack/win1.ogg", "game_blackjack/win2.ogg", "game_blackjack/win3.ogg"]
+        winner_contribution = self.pot_manager.contributions.get(winner.id, 0)
+        amount_from_others = amount - winner_contribution
+        self.play_sound(random.choice(["game_blackjack/win1.ogg", "game_blackjack/win2.ogg", "game_blackjack/win3.ogg"]))
+        if amount_from_others > 0:
+            self.broadcast_personal_l(
+                winner,
+                "poker-you-win-pot",
+                "poker-player-wins-pot",
+                buffer="game",
+                amount=amount_from_others,
             )
-        )  # nosec B311
-        self.broadcast_l("poker-player-wins-pot", player=winner.name, amount=amount)
+        else:
+            self.broadcast_personal_l(
+                winner,
+                "poker-your-uncalled-bet-returned",
+                "poker-uncalled-bet-returned",
+                buffer="game",
+                amount=winner_contribution,
+            )
         self._sync_team_scores()
         self._advance_blind_level()
         self._queue_new_hand()
 
     def _resolve_pots(self) -> None:
         self.last_showdown_winner_ids.clear()
-        active_ids = [p.id for p in self.get_active_players()]
-        button_id = self.table_state.get_button_id(active_ids)
-        pot_results = resolve_pots_with_payouts(
-            self.pot_manager.get_pots(),
-            lambda player_id: (
-                player
-                if isinstance((player := self.get_player_by_id(player_id)), HoldemPlayer)
-                else None
-            ),
-            active_ids,
-            button_id,
-            lambda p: p.id,
-            lambda p: best_hand(p.hand + self.community)[0],
-            lambda winner, payout: setattr(winner, "chips", winner.chips + payout),
-        )
-        for pot_result in pot_results:
-            self.last_showdown_winner_ids.update(w.id for w in pot_result.winners)
-            desc = describe_hand(pot_result.best_score, "en")
-            if len(pot_result.winners) == 1:
-                winner = pot_result.winners[0]
-                cards = read_cards(winner.hand, "en")
-                if pot_result.pot_index == 0 or len(pot_result.eligible_player_ids) <= 1:
-                    self.play_sound(
-                        random.choice(
-                            [
-                                "game_blackjack/win1.ogg",
-                                "game_blackjack/win2.ogg",
-                                "game_blackjack/win3.ogg",
-                            ]
-                        )
-                    )  # nosec B311
-                    self.broadcast_l(
-                        "poker-player-wins-pot-hand",
-                        player=winner.name,
-                        amount=pot_result.pot_amount,
-                        cards=cards,
-                        hand=desc,
-                    )
-                else:
-                    self.play_sound(
-                        random.choice(
-                            [
-                                "game_blackjack/win1.ogg",
-                                "game_blackjack/win2.ogg",
-                                "game_blackjack/win3.ogg",
-                            ]
-                        )
-                    )  # nosec B311
-                    self.broadcast_l(
-                        "poker-player-wins-side-pot-hand",
-                        player=winner.name,
-                        amount=pot_result.pot_amount,
-                        index=pot_result.pot_index,
-                        cards=cards,
-                        hand=desc,
-                    )
-            else:
-                names = ", ".join(w.name for w in pot_result.winners)
-                self.play_sound(
-                    random.choice(
-                        [
-                            "game_blackjack/win1.ogg",
-                            "game_blackjack/win2.ogg",
-                            "game_blackjack/win3.ogg",
-                        ]
-                    )
-                )  # nosec B311
-                if pot_result.pot_index == 0:
-                    self.broadcast_l(
-                        "poker-players-split-pot",
-                        players=names,
-                        amount=pot_result.pot_amount,
-                        hand=desc,
-                    )
-                else:
-                    self.broadcast_l(
-                        "poker-players-split-side-pot",
-                        players=names,
-                        amount=pot_result.pot_amount,
-                        index=pot_result.pot_index,
-                        hand=desc,
-                    )
+        pots = self.pot_manager.get_pots()
+        for pot_index, pot in enumerate(pots):
+            eligible_players = [self.get_player_by_id(pid) for pid in pot.eligible_player_ids]
+            eligible_players = [p for p in eligible_players if isinstance(p, HoldemPlayer)]
+            if not eligible_players:
+                continue
+            active_ids = [p.id for p in self.get_active_players()]
+            winners, best_score, share, remainder = resolve_pot(
+                pot.amount,
+                eligible_players,
+                active_ids,
+                self.table_state.get_button_id(active_ids),
+                lambda p: p.id,
+                lambda p: best_hand(p.hand + self.community)[0],
+            )
+            if not winners or not best_score:
+                continue
+            self.last_showdown_winner_ids.update(w.id for w in winners)
+            for w in winners:
+                w.chips += share
+            if remainder > 0:
+                winners[0].chips += remainder
+            
+            # Announce winners using shared logic
+            announce_pot_winners(self, pot_index, pot.amount, winners, best_score)
+        
         self._sync_team_scores()
 
     def _announce_showdown_hands(self, skip_best: bool = False) -> None:
-        active = [
-            p for p in self.get_active_players() if isinstance(p, HoldemPlayer) and not p.folded
-        ]
+        active = [p for p in self.get_active_players() if isinstance(p, HoldemPlayer) and not p.folded]
         if len(active) <= 1:
             return
         skip_ids: set[str] = set()
         if skip_best and self.last_showdown_winner_ids:
             skip_ids = set(self.last_showdown_winner_ids)
         active_ids = [p.id for p in active]
-        lines = format_showdown_lines(
+        lines_data = format_showdown_lines(
             active,
             active_ids,
             self.table_state.get_button_id(active_ids),
             lambda p: p.id,
-            lambda p: (
-                (
-                    "poker-show-hand",
-                    {
-                        "player": p.name,
-                        "cards": read_cards(p.hand, "en"),
-                        "hand": describe_hand(best_hand(p.hand + self.community)[0], "en"),
-                    },
-                ),
-                best_hand(p.hand + self.community)[0],
-            ),
+            lambda p: (lambda s: ((p, s), s))(best_hand(p.hand + self.community)[0]),
         )
-        for player_id, (message_id, kwargs), _score in lines:
+        for player_id, (player_obj, hand_score), _score in lines_data:
             if skip_ids and player_id in skip_ids:
                 continue
-            self.broadcast_l(message_id, **kwargs)
+            
+            # Broadcast personalized message
+            for p in self.players:
+                user = self.get_user(p)
+                if not user:
+                    continue
+                    
+                cards_str = read_cards(player_obj.hand, user.locale)
+                hand_desc = describe_hand(hand_score, user.locale)
+                
+                user.speak_l(
+                    "poker-you-show-hand" if p.id == player_obj.id else "poker-show-hand",
+                    buffer="game",
+                    player=player_obj.name,
+                    cards=cards_str,
+                    hand=hand_desc
+                )
 
     def _order_winners_by_button(self, winners: list[HoldemPlayer]) -> list[HoldemPlayer]:
         if len(winners) <= 1:
             return winners
         active_ids = [p.id for p in self.get_active_players()]
-        return order_winners_by_button(
-            winners, active_ids, self.table_state.get_button_id(active_ids), lambda p: p.id
-        )
+        return order_winners_by_button(winners, active_ids, self.table_state.get_button_id(active_ids), lambda p: p.id)
 
     # ==========================================================================
     # Status actions
@@ -1036,30 +1200,81 @@ class HoldemGame(Game):
             return
         pots = self.pot_manager.get_pots()
         if not pots:
-            user.speak_l("poker-pot-total", amount=0)
+            user.speak_l("poker-pot-total", buffer="game", amount=0)
             return
-        user.speak_l("poker-pot-total", amount=self.pot_manager.total_pot())
+        user.speak_l("poker-pot-total", buffer="game", amount=self.pot_manager.total_pot())
         if not self._all_in_ids():
             return
-        user.speak_l("poker-pot-main", amount=pots[0].amount)
+        user.speak_l("poker-pot-main", buffer="game", amount=pots[0].amount)
         for idx, pot in enumerate(pots[1:], start=1):
-            user.speak_l("poker-pot-side", index=idx, amount=pot.amount)
+            user.speak_l("poker-pot-side", buffer="game", index=idx, amount=pot.amount)
 
     def _action_check_bet(self, player: Player, action_id: str) -> None:
-        if not self.betting:
-            return
-        to_call = self.betting.amount_to_call(player.id)
         user = self.get_user(player)
+        if not self.betting or self.phase not in BETTING_PHASES:
+            if user:
+                user.speak_l("poker-no-active-betting", buffer="game")
+            return
         if user:
-            user.speak_l("poker-to-call", amount=to_call)
+            if (
+                player.is_spectator
+                or not isinstance(player, HoldemPlayer)
+                or player.folded
+                or player.all_in
+                or player.id not in self.betting.bets
+            ):
+                user.speak_l(
+                    "holdem-current-bet",
+                    buffer="game",
+                    amount=self.betting.current_bet,
+                )
+            else:
+                user.speak_l(
+                    "poker-to-call",
+                    buffer="game",
+                    amount=self.betting.amount_to_call(player.id),
+                )
 
     def _action_check_min_raise(self, player: Player, action_id: str) -> None:
-        if not self.betting:
+        user = self.get_user(player)
+        if not self.betting or self.phase not in BETTING_PHASES:
+            if user:
+                user.speak_l("poker-no-active-betting", buffer="game")
+            return
+        if not self.betting.can_raise():
+            if user:
+                user.speak_l(
+                    "holdem-raise-cap-reached",
+                    buffer="game",
+                    count=self.options.max_raises,
+                )
             return
         min_raise = max(self.betting.last_raise_size, 1)
-        user = self.get_user(player)
         if user:
-            user.speak_l("poker-min-raise", amount=min_raise)
+            if (
+                isinstance(player, HoldemPlayer)
+                and not player.folded
+                and not player.all_in
+                and player.id in self.betting.bets
+            ):
+                to_call = self.betting.amount_to_call(player.id)
+                maximum = max(0, self._maximum_additional_bet(player) - to_call)
+                if maximum >= min_raise:
+                    user.speak_l(
+                        "holdem-raise-range",
+                        buffer="game",
+                        minimum=min_raise,
+                        maximum=maximum,
+                    )
+                else:
+                    user.speak_l(
+                        "holdem-no-full-raise-available",
+                        buffer="game",
+                        to_call=to_call,
+                        chips=player.chips,
+                    )
+            else:
+                user.speak_l("poker-min-raise", buffer="game", amount=min_raise)
 
     def _action_check_hand_players(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
@@ -1072,13 +1287,13 @@ class HoldemGame(Game):
         ]
         count = len(active)
         if count == 0:
-            user.speak_l("poker-hand-players-none")
+            user.speak_l("poker-hand-players-none", buffer="game")
             return
-        names = ", ".join(active)
+        names = Localization.format_list_and(user.locale, active)
         if count == 1:
-            user.speak_l("poker-hand-players-one", names=names, count=count)
+            user.speak_l("poker-hand-players-one", buffer="game", names=names, count=count)
         else:
-            user.speak_l("poker-hand-players", names=names, count=count)
+            user.speak_l("poker-hand-players", buffer="game", names=names, count=count)
 
     def _action_read_hand(self, player: Player, action_id: str) -> None:
         p = player if isinstance(player, HoldemPlayer) else None
@@ -1086,12 +1301,18 @@ class HoldemGame(Game):
             return
         user = self.get_user(player)
         if user:
-            user.speak(read_cards(p.hand, user.locale))
+            if not p.hand:
+                user.speak_l("poker-hand-no-cards", buffer="game")
+                return
+            user.speak_l("poker-your-hand", buffer="game", cards=read_cards(p.hand, user.locale))
 
     def _action_read_table(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
         if user:
-            user.speak(read_cards(self.community, user.locale))
+            if not self.community:
+                user.speak_l("poker-table-cards-none", buffer="game")
+            else:
+                user.speak_l("poker-table-cards", buffer="game", cards=read_cards(self.community, user.locale))
 
     def _action_read_hand_value(self, player: Player, action_id: str) -> None:
         p = player if isinstance(player, HoldemPlayer) else None
@@ -1099,8 +1320,10 @@ class HoldemGame(Game):
             return
         user = self.get_user(player)
         if user:
+            if not p.hand:
+                return
             desc = describe_partial_hand(p.hand + self.community, user.locale)
-            user.speak(desc)
+            user.speak(desc, buffer="game")
 
     def _action_read_card(self, player: Player, action_id: str) -> None:
         p = player if isinstance(player, HoldemPlayer) else None
@@ -1115,40 +1338,57 @@ class HoldemGame(Game):
             return
         user = self.get_user(player)
         if user:
-            user.speak(card_name(all_cards[idx], user.locale))
+            user.speak(card_name(all_cards[idx], user.locale), buffer="game")
 
     def _action_check_button(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
         if not user:
             return
-        active = [p for p in self.get_active_players() if p.chips > 0]
+        active = [
+            p
+            for p in self.get_active_players()
+            if isinstance(p, HoldemPlayer)
+            and not p.folded
+            and (p.hand or p.chips > 0 or p.all_in)
+        ]
         button_id = self.table_state.get_button_id([p.id for p in active])
         button_player = self.get_player_by_id(button_id) if button_id else None
         if button_player:
-            user.speak_l("poker-button-is", player=button_player.name)
+            user.speak_l("poker-button-is", buffer="game", player=button_player.name)
+        else:
+            user.speak_l("holdem-button-unavailable", buffer="game")
 
     def _action_check_position(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
         if not user:
             return
-        active = [p for p in self.get_active_players() if p.chips > 0]
+        active = [
+            p
+            for p in self.get_active_players()
+            if isinstance(p, HoldemPlayer)
+            and not p.folded
+            and (p.hand or p.chips > 0 or p.all_in)
+        ]
         if not active:
+            user.speak_l("holdem-position-unavailable", buffer="game")
             return
         button_id = self.table_state.get_button_id([p.id for p in active])
         order = [p.id for p in active]
         if button_id and player.id in order:
             idx = (order.index(player.id) - order.index(button_id)) % len(order)
             if idx == 0:
-                user.speak_l("poker-position-button")
+                user.speak_l("poker-position-button", buffer="game")
             else:
                 key = "poker-position-seat" if idx == 1 else "poker-position-seats"
-                user.speak_l(key, position=idx)
+                user.speak_l(key, buffer="game", position=idx)
+        else:
+            user.speak_l("holdem-position-unavailable", buffer="game")
         if len(order) >= 2:
             sb_idx, bb_idx = self.table_state.get_blind_indices(order)
             sb_player = self.get_player_by_id(order[sb_idx])
             bb_player = self.get_player_by_id(order[bb_idx])
             if sb_player and bb_player:
-                user.speak_l("poker-blinds-players", sb=sb_player.name, bb=bb_player.name)
+                user.speak_l("poker-blinds-players", buffer="game", sb=sb_player.name, bb=bb_player.name)
 
     def _action_check_turn_timer(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
@@ -1156,24 +1396,27 @@ class HoldemGame(Game):
             return
         remaining = self.timer.seconds_remaining()
         if remaining <= 0:
-            user.speak_l("poker-timer-disabled")
+            user.speak_l("poker-timer-disabled", buffer="game")
         else:
-            user.speak_l("poker-timer-remaining", seconds=remaining)
+            user.speak_l("poker-timer-remaining", buffer="game", seconds=remaining)
 
     def _action_check_blind_timer(self, player: Player, action_id: str) -> None:
         user = self.get_user(player)
         if not user:
             return
         if self.blinds_raise_next_hand:
-            user.speak_l("poker-blinds-raise-next-hand")
+            user.speak_l("poker-blinds-raise-next-hand", buffer="game")
             return
         if self.blind_timer_ticks <= 0:
-            user.speak_l("poker-blind-timer-disabled")
+            user.speak_l("poker-blind-timer-disabled", buffer="game")
             return
         remaining = (self.blind_timer_ticks + 19) // 20
         minutes = remaining // 60
         seconds = remaining % 60
-        user.speak_l("poker-blind-timer-remaining-ms", minutes=minutes, seconds=seconds)
+        if minutes > 0:
+            user.speak_l("poker-blind-timer-remaining-ms", buffer="game", minutes=minutes, seconds=seconds)
+        else:
+            user.speak_l("poker-blind-timer-remaining", buffer="game", seconds=seconds)
 
     def _action_reveal_both(self, player: Player, action_id: str) -> None:
         if self.phase != "showdown":
@@ -1183,7 +1426,7 @@ class HoldemGame(Game):
             return
         user = self.get_user(player)
         if user:
-            user.speak_l("poker-your-hand", cards=read_cards(p.hand, user.locale))
+            user.speak_l("poker-your-hand", buffer="game", cards=read_cards(p.hand, user.locale))
 
     def _action_reveal_first(self, player: Player, action_id: str) -> None:
         if self.phase != "showdown":
@@ -1193,7 +1436,7 @@ class HoldemGame(Game):
             return
         user = self.get_user(player)
         if user and p.hand:
-            user.speak(card_name(p.hand[0], user.locale))
+            user.speak(card_name(p.hand[0], user.locale), buffer="game")
 
     def _action_reveal_second(self, player: Player, action_id: str) -> None:
         if self.phase != "showdown":
@@ -1203,7 +1446,7 @@ class HoldemGame(Game):
             return
         user = self.get_user(player)
         if user and len(p.hand) > 1:
-            user.speak(card_name(p.hand[1], user.locale))
+            user.speak(card_name(p.hand[1], user.locale), buffer="game")
 
     # ==========================================================================
     # Helpers
@@ -1227,6 +1470,35 @@ class HoldemGame(Game):
             return None
         return player
 
+    def _maximum_additional_bet(self, player: HoldemPlayer) -> int:
+        if not self.betting or self.options.raise_mode == "no_limit":
+            return player.chips
+        to_call = self.betting.amount_to_call(player.id)
+        caps = compute_pot_limit_caps(
+            self.pot_manager.total_pot(),
+            to_call,
+            self.options.raise_mode,
+        )
+        if not caps:
+            return player.chips
+        return min(player.chips, caps.total_cap)
+
+    def _can_make_full_raise(self, player: HoldemPlayer) -> bool:
+        if not self.betting or not self.betting.can_raise():
+            return False
+        to_call = self.betting.amount_to_call(player.id)
+        min_raise = max(self.betting.last_raise_size, 1)
+        return self._maximum_additional_bet(player) >= to_call + min_raise
+
+    def _is_eliminated_player(self, player: Player) -> bool:
+        if not isinstance(player, HoldemPlayer) or player.chips > 0:
+            return False
+        if self._next_hand_wait_ticks > 0 or self.phase == "showdown":
+            return True
+        if player.all_in and player.hand and not player.folded:
+            return False
+        return player.folded or not player.hand
+
     def _is_turn_action_enabled(self, player: Player) -> str | None:
         if self.status != "playing":
             return "action-not-playing"
@@ -1236,10 +1508,59 @@ class HoldemGame(Game):
             return "action-not-your-turn"
         return None
 
+    def _is_betting_action_enabled(self, player: Player) -> str | None:
+        if (
+            self.phase not in BETTING_PHASES
+            or self._next_hand_wait_ticks > 0
+            or self.pending_showdown
+        ):
+            return "poker-no-active-betting"
+        return self._is_turn_action_enabled(player)
+
+    def _is_all_in_enabled(self, player: Player) -> str | None:
+        reason = self._is_betting_action_enabled(player)
+        if reason:
+            return reason
+        if not isinstance(player, HoldemPlayer) or not self.betting:
+            return "poker-no-active-betting"
+        to_call = self.betting.amount_to_call(player.id)
+        min_raise = max(self.betting.last_raise_size, 1)
+        is_full_raise = player.chips > to_call and player.chips - to_call >= min_raise
+        if is_full_raise and not self.betting.can_raise():
+            return "holdem-all-in-unavailable-raise-cap"
+        if player.chips > self._maximum_additional_bet(player):
+            return "holdem-all-in-unavailable-limit"
+        return None
+
+    def _is_raise_enabled(self, player: Player) -> str | None:
+        reason = self._is_betting_action_enabled(player)
+        if reason:
+            return reason
+        if not isinstance(player, HoldemPlayer) or not self.betting:
+            return "poker-no-active-betting"
+        if not self.betting.can_raise():
+            return "holdem-raise-unavailable-cap"
+        if not self._can_make_full_raise(player):
+            return "holdem-raise-unavailable-limit"
+        return None
+
     def _is_turn_action_hidden(self, player: Player) -> Visibility:
         if self.status != "playing" or player.is_spectator:
             return Visibility.HIDDEN
-        if self.current_player != player:
+        p = player if isinstance(player, HoldemPlayer) else None
+        if not p:
+            return Visibility.HIDDEN
+        if self._is_eliminated_player(p):
+            return Visibility.HIDDEN
+        if self._next_hand_wait_ticks > 0 or self.pending_showdown or self.phase == "showdown":
+            return Visibility.VISIBLE
+        if self.phase not in BETTING_PHASES:
+            return Visibility.HIDDEN
+        if p.folded:
+            return Visibility.HIDDEN
+        if p.all_in:
+            return Visibility.VISIBLE
+        if p.chips <= 0:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -1248,32 +1569,57 @@ class HoldemGame(Game):
             return "action-not-playing"
         return None
 
+    def _is_private_check_enabled(self, player: Player) -> str | None:
+        reason = self._is_check_enabled(player)
+        if reason:
+            return reason
+        if self._is_eliminated_player(player):
+            return "holdem-private-hand-unavailable"
+        return None
+
     def _is_check_hidden(self, player: Player) -> Visibility:
+        user = self.get_user(player)
+        if self.is_touch_client(user):
+            return Visibility.VISIBLE if self.status == "playing" else Visibility.HIDDEN
         return Visibility.HIDDEN
+
+    def _is_private_check_hidden(self, player: Player) -> Visibility:
+        if self._is_eliminated_player(player):
+            return Visibility.HIDDEN
+        return self._is_check_hidden(player)
 
     def _is_reveal_enabled(self, player: Player) -> str | None:
         if self.phase != "showdown":
             return "poker-reveal-only-showdown"
+        if self._is_eliminated_player(player):
+            return "holdem-private-hand-unavailable"
+        if not isinstance(player, HoldemPlayer) or player.folded or not player.hand:
+            return "holdem-reveal-no-live-hand"
         return None
 
     def _get_call_label(self, player: Player, action_id: str) -> str:
-        if not self.betting:
-            return Localization.get("en", "poker-call")
-        to_call = self.betting.amount_to_call(player.id)
-        key = "poker-check" if to_call == 0 else "poker-call"
         user = self.get_user(player)
         locale = user.locale if user else "en"
+        if not self.betting or self.phase not in BETTING_PHASES:
+            return Localization.get(locale, "poker-call")
+        to_call = self.betting.amount_to_call(player.id)
+        key = "poker-check" if to_call == 0 else "poker-call"
         return Localization.get(locale, key)
 
     def _is_reveal_hidden(self, player: Player) -> Visibility:
         if self.phase != "showdown":
+            return Visibility.HIDDEN
+        if self._is_eliminated_player(player):
+            return Visibility.HIDDEN
+        if not isinstance(player, HoldemPlayer) or player.folded or not player.hand:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
     def _is_always_hidden(self, player: Player) -> Visibility:
         return Visibility.HIDDEN
 
-    def _handle_turn_timeout(self) -> None:
+    def _on_turn_timeout(self) -> None:
+        """Called by TurnTimerMixin when time runs out."""
         player = self.current_player
         if not isinstance(player, HoldemPlayer):
             return
@@ -1282,7 +1628,7 @@ class HoldemGame(Game):
     def _sync_team_scores(self) -> None:
         for team in self._team_manager.teams:
             team.total_score = 0
-        for p in self.players:
+        for p in self.get_active_players():
             team = self._team_manager.get_team(p.name)
             if team:
                 team.total_score = p.chips
@@ -1290,22 +1636,19 @@ class HoldemGame(Game):
     def build_game_result(self) -> GameResult:
         active = self.get_active_players()
         winner = max(active, key=lambda p: p.chips, default=None)
+        winner_ids = [p.id for p in active if winner and p.chips == winner.chips]
         final_chips = {p.name: p.chips for p in active}
         return GameResult(
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot,
-                    is_virtual_bot=getattr(p, "is_virtual_bot", False),
-                )
+                PlayerResult.from_player(p)
                 for p in active
             ],
             custom_data={
                 "winner_name": winner.name if winner else None,
+                "winner_ids": winner_ids,
                 "winner_chips": winner.chips if winner else 0,
                 "final_chips": final_chips,
             },
@@ -1314,7 +1657,7 @@ class HoldemGame(Game):
     def _end_game(self, winner: HoldemPlayer | None) -> None:
         self.play_sound("game_pig/win.ogg")
         if winner:
-            self.broadcast_l("poker-player-wins-game", player=winner.name)
+            self.broadcast_personal_l(winner, "poker-you-win-game", "poker-player-wins-game", buffer="game")
         self.finish_game()
 
     def format_end_screen(self, result: GameResult, locale: str) -> list[str]:
@@ -1322,5 +1665,7 @@ class HoldemGame(Game):
         final_chips = result.custom_data.get("final_chips", {})
         sorted_scores = sorted(final_chips.items(), key=lambda item: item[1], reverse=True)
         for i, (name, chips) in enumerate(sorted_scores, 1):
-            lines.append(f"{i}. {name}: {chips} chips")
+             lines.append(
+                Localization.get(locale, "holdem-winner-chips", rank=i, player=name, chips=chips)
+            )
         return lines

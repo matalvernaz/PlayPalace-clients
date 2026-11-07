@@ -5,15 +5,18 @@ from datetime import datetime
 import random
 
 from ..base import Game, Player, GameOptions
-from ...game_utils.game_status import GameStatus
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
+from ...game_utils.stats_helpers import (
+    RATING_COMPETITORS_KEY,
+    rating_competitors_from_scores,
+)
 from ...game_utils.options import IntOption, MenuOption, option_field
 from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...messages.localization import Localization
-from ...core.ui.keybinds import KeybindState
+from ...ui.keybinds import KeybindState
 
 
 ROLL_SEQUENCE_ID = "bunko_roll"
@@ -113,7 +116,7 @@ class BunkoGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-dice-games"
+        return "dice"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -633,7 +636,7 @@ class BunkoGame(Game):
     # ======================================================================
 
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self._sync_table_status()
         self.game_active = True
         self.round = 0
@@ -767,11 +770,7 @@ class BunkoGame(Game):
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=player.id,
-                    player_name=player.name,
-                    is_bot=player.is_bot and not player.replaced_human,
-                )
+                PlayerResult.from_player(player)
                 for player in sorted_players
             ],
             custom_data={
@@ -780,6 +779,12 @@ class BunkoGame(Game):
                 "final_scores": final_scores,
                 "rankings": rankings,
                 "team_rankings": rankings,
+                RATING_COMPETITORS_KEY: rating_competitors_from_scores(
+                    (
+                        ([player.id], self._ranking_score_value(player))
+                        for player in sorted_players
+                    )
+                ),
                 "rounds_played": self.round,
                 "round_count": self._current_round_limit(),
                 "winning_mode": self.options.winning_mode,

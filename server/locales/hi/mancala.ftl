@@ -1,32 +1,26 @@
-# Mancala game messages — hi
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale hi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = मंकाला
-
 # Actions
 mancala-pit-label = गड्ढा { $pit }: { $stones } पत्थर
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } गड्ढे { $pit } से { $stones } पत्थर बोता है
 mancala-capture = { $player } ने { $captured } पत्थर पकड़े!
 mancala-extra-turn = आखिरी पत्थर भंडार में! { $player } को एक और बारी मिलती है।
 mancala-winner = { $player } { $score } पत्थरों से जीता!
 mancala-draw = बराबरी! दोनों खिलाड़ियों के पास { $score } पत्थर हैं।
-
 # Board status
-mancala-board-status =
-    आपके गड्ढे: { $own_pits }। आपका भंडार: { $own_store }। प्रतिद्वंद्वी के गड्ढे: { $opp_pits }। प्रतिद्वंद्वी का भंडार: { $opp_store }।
-
+mancala-board-status = आपके गड्ढे: { $own_pits }। आपका भंडार: { $own_store }। प्रतिद्वंद्वी के गड्ढे: { $opp_pits }। प्रतिद्वंद्वी का भंडार: { $opp_store }।
 # Options
 mancala-set-stones = प्रति गड्ढा पत्थर: { $stones }
 mancala-desc-stones = शुरुआत में हर गड्ढे में पत्थरों की संख्या
 mancala-enter-stones = प्रति गड्ढा शुरुआती पत्थरों की संख्या दर्ज करें:
 mancala-option-changed-stones = शुरुआती पत्थर { $stones } में बदले गए
-
 # Disabled reasons
 mancala-pit-empty = वह गड्ढा खाली है।
-
 # Rules
 mancala-rules =
     मंकाला दो खिलाड़ियों का गड्ढे और पत्थर का खेल है।
@@ -38,7 +32,5 @@ mancala-rules =
     खेल तब समाप्त होता है जब एक तरफ पूरी तरह खाली हो जाती है।
     सबसे ज्यादा पत्थरों वाला खिलाड़ी जीतता है।
     गड्ढा चुनने के लिए 1 से 6 कुंजियों का उपयोग करें। बोर्ड जांचने के लिए E दबाएं।
-
 # End screen
 mancala-final-score = { $player }: { $score } पत्थर
-mancala-check-board = Check board

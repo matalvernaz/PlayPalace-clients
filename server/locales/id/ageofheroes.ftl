@@ -1,426 +1,506 @@
-# Age of Heroes game messages
-# A civilization-building card game for 2-6 players
+# ageofheroes.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name
 game-name-ageofheroes = Age of Heroes
-
 # Tribes
 ageofheroes-tribe-egyptians = Mesir
 ageofheroes-tribe-romans = Romawi
 ageofheroes-tribe-greeks = Yunani
 ageofheroes-tribe-babylonians = Babilonia
 ageofheroes-tribe-celts = Kelt
-ageofheroes-tribe-chinese = Tionghoa
-
+ageofheroes-tribe-chinese = Tiongkok
 # Special Resources (for monuments)
-ageofheroes-special-limestone = Batu Kapur
+ageofheroes-special-limestone = Batu kapur
 ageofheroes-special-concrete = Beton
 ageofheroes-special-marble = Marmer
-ageofheroes-special-bricks = Bata
-ageofheroes-special-sandstone = Batu Pasir
+ageofheroes-special-bricks = Batu bata
+ageofheroes-special-sandstone = Batu pasir
 ageofheroes-special-granite = Granit
-
 # Standard Resources
 ageofheroes-resource-iron = Besi
 ageofheroes-resource-wood = Kayu
-ageofheroes-resource-grain = Gandum
+ageofheroes-resource-grain = Biji-bijian
 ageofheroes-resource-stone = Batu
 ageofheroes-resource-gold = Emas
-
 # Events
-ageofheroes-event-population-growth = Pertumbuhan Populasi
+ageofheroes-event-population-growth = Pertumbuhan Penduduk
 ageofheroes-event-earthquake = Gempa Bumi
 ageofheroes-event-eruption = Letusan
 ageofheroes-event-hunger = Kelaparan
-ageofheroes-event-barbarians = Barbar
+ageofheroes-event-barbarians = Kaum Barbar
 ageofheroes-event-olympics = Olimpiade
 ageofheroes-event-hero = Pahlawan
 ageofheroes-event-fortune = Keberuntungan
-
 # Buildings
-ageofheroes-building-army = Tentara
+ageofheroes-building-army = Pasukan
 ageofheroes-building-fortress = Benteng
 ageofheroes-building-general = Jenderal
 ageofheroes-building-road = Jalan
 ageofheroes-building-city = Kota
-
 # Actions
-ageofheroes-action-tax-collection = Pengumpulan Pajak
-ageofheroes-action-construction = Konstruksi
+ageofheroes-action-tax-collection = Pemungutan Pajak
+ageofheroes-action-construction = Pembangunan
 ageofheroes-action-war = Perang
-ageofheroes-action-do-nothing = Tidak Berbuat Apa-apa
-ageofheroes-play = Main
-
+ageofheroes-action-do-nothing = Lewati tindakan
+ageofheroes-play = Mainkan
+ageofheroes-play-card-label = Mainkan { $card }
+ageofheroes-card-count = { $count } { $card }
+ageofheroes-player-tribe = { $player } ({ $tribe })
+ageofheroes-player-tribe-direction = { $player } ({ $tribe }), { $direction }
 # War goals
 ageofheroes-war-conquest = Penaklukan
 ageofheroes-war-plunder = Penjarahan
 ageofheroes-war-destruction = Penghancuran
-
 # Game options
-ageofheroes-set-victory-cities = Kota kemenangan: { $cities }
-ageofheroes-enter-victory-cities = Masukkan jumlah kota untuk menang (3-7)
+ageofheroes-set-victory-cities = Kota untuk menang: { $cities }
+ageofheroes-enter-victory-cities = Masukkan jumlah kota untuk menang, dari 3 sampai 7
 ageofheroes-set-victory-monument = Penyelesaian monumen: { $progress }%
-ageofheroes-toggle-neighbor-roads = Jalan hanya ke tetangga: { $enabled }
-ageofheroes-set-max-hand = Maksimum kartu di tangan: { $cards } kartu
-
+ageofheroes-set-max-hand = Batas kartu di tangan: { $cards } kartu
 # Option change announcements
-ageofheroes-option-changed-victory-cities = Kemenangan memerlukan { $cities } kota.
-ageofheroes-option-changed-victory-monument = Ambang penyelesaian monumen diatur ke { $progress }%.
-ageofheroes-option-changed-neighbor-roads = Jalan hanya ke tetangga { $enabled }.
-ageofheroes-option-changed-max-hand = Maksimum kartu di tangan diatur ke { $cards } kartu.
-
+ageofheroes-option-changed-victory-cities = Untuk menang, diperlukan { $cities } kota.
+ageofheroes-desc-victory-cities = Jumlah kota yang harus dikuasai untuk memenangkan Age of Heroes. Bawaan 5, dari 3 sampai 7.
+ageofheroes-option-changed-victory-monument = Ambang batas penyelesaian monumen ditetapkan ke { $progress }%.
+ageofheroes-option-changed-max-hand = Batas kartu di tangan diatur menjadi { $cards } kartu.
 # Setup phase
-ageofheroes-setup-start = Anda adalah pemimpin suku { $tribe }. Sumber daya monumen khusus Anda adalah { $special }. Lempar dadu untuk menentukan urutan giliran.
-ageofheroes-setup-viewer = Pemain melempar dadu untuk menentukan urutan giliran.
+ageofheroes-setup-start = Anda memimpin suku { $tribe }. Bahan khusus untuk monumen Anda adalah { $special }. Lempar dadu untuk menentukan urutan giliran.
 ageofheroes-roll-dice = Lempar dadu
 ageofheroes-war-roll-dice = Lempar dadu
-ageofheroes-dice-result = Anda melempar { $total } ({ $die1 } + { $die2 }).
-ageofheroes-dice-result-other = { $player } melempar { $total }.
-ageofheroes-dice-tie = Beberapa pemain seri dengan { $total }. Melempar lagi...
-ageofheroes-first-player = { $player } melempar tertinggi dengan { $total } dan bermain pertama.
-ageofheroes-first-player-you = Dengan { $total } poin, Anda bermain pertama.
-
+ageofheroes-dice-result = Hasil lemparan Anda { $total }, dari { $die1 } ditambah { $die2 }.
+ageofheroes-dice-result-other = Hasil lemparan { $player } adalah { $total }.
+ageofheroes-dice-tie = Beberapa pemain mendapatkan hasil tertinggi yang sama, yaitu { $total }. Dadu dilempar lagi.
+ageofheroes-first-player = { $player } mendapat hasil tertinggi, yaitu { $total }, dan bermain lebih dulu.
+ageofheroes-first-player-you = Dengan hasil { $total }, Anda bermain lebih dulu.
+ageofheroes-whose-turn-setup = Tahap awal. Menunggu { $players } melempar dadu untuk menentukan urutan giliran.
+ageofheroes-whose-turn-setup-resolving = Tahap awal. Semua dadu telah dilempar. Urutan giliran sedang ditentukan.
+ageofheroes-whose-turn-prepare = Tahap persiapan. Peristiwa dan bencana sedang diselesaikan.
+ageofheroes-whose-turn-fair = Tahap pasar. { $players } masih dapat berdagang.
+ageofheroes-whose-turn-fair-resolving = Tahap pasar. Pertukaran sedang diselesaikan.
+ageofheroes-whose-turn-road = Tahap izin jalan. { $responder } harus menjawab permintaan pembangunan jalan dari { $requester }.
+ageofheroes-whose-turn-olympics = Perang diumumkan. { $defender } harus memutuskan apakah akan menggunakan Olimpiade melawan { $attacker }.
+ageofheroes-whose-turn-war-attack = Persiapan perang. { $attacker } sedang memilih pasukan untuk menyerang { $defender }.
+ageofheroes-whose-turn-war-defense = Persiapan perang. { $defender } sedang memilih pasukan untuk bertahan dari { $attacker }.
+ageofheroes-whose-turn-war-roll = Tahap pertempuran. Menunggu { $players } melempar dadu.
+ageofheroes-whose-turn-game-over = Permainan sudah berakhir.
 # Preparation phase
-ageofheroes-prepare-start = Pemain harus memainkan kartu peristiwa dan membuang bencana.
-ageofheroes-prepare-your-turn = Anda memiliki { $count } { $count ->
-    [one] kartu
-    *[other] kartu
-} untuk dimainkan atau dibuang.
-ageofheroes-prepare-done = Fase persiapan selesai.
-
+ageofheroes-prepare-start = Pemain harus memainkan kartu peristiwa dan membuang kartu bencana.
+ageofheroes-prepare-your-turn =
+    Anda memiliki { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    } untuk dimainkan atau dibuang.
 # Events played/discarded
-ageofheroes-population-growth = { $player } memainkan Pertumbuhan Populasi dan membangun kota baru.
-ageofheroes-population-growth-you = Anda memainkan Pertumbuhan Populasi dan membangun kota baru.
+ageofheroes-population-growth = { $player } memainkan Pertumbuhan Penduduk dan membangun kota baru.
+ageofheroes-population-growth-you = Anda memainkan Pertumbuhan Penduduk dan membangun kota baru.
 ageofheroes-discard-card = { $player } membuang { $card }.
 ageofheroes-discard-card-you = Anda membuang { $card }.
-ageofheroes-earthquake = Gempa bumi melanda suku { $player }; tentara mereka masuk pemulihan.
-ageofheroes-earthquake-you = Gempa bumi melanda suku Anda; tentara Anda masuk pemulihan.
-ageofheroes-eruption = Letusan menghancurkan salah satu kota { $player }.
-ageofheroes-eruption-you = Letusan menghancurkan salah satu kota Anda.
-
 # Disaster effects
 ageofheroes-hunger-strikes = Kelaparan melanda.
 ageofheroes-lose-card-hunger = Anda kehilangan { $card }.
-ageofheroes-barbarians-pillage = Barbar menyerang sumber daya { $player }.
-ageofheroes-barbarians-attack = Barbar menyerang sumber daya { $player }.
-ageofheroes-barbarians-attack-you = Barbar menyerang sumber daya Anda.
+ageofheroes-barbarians-attack = Kaum Barbar menyerang sumber daya { $player }.
+ageofheroes-barbarians-attack-you = Kaum Barbar menyerang sumber daya Anda.
 ageofheroes-lose-card-barbarians = Anda kehilangan { $card }.
-ageofheroes-block-with-card = { $player } memblokir bencana menggunakan { $card }.
-ageofheroes-block-with-card-you = Anda memblokir bencana menggunakan { $card }.
-
+ageofheroes-block-with-card = { $player } menangkal bencana menggunakan { $card }.
+ageofheroes-block-with-card-you = Anda menangkal bencana menggunakan { $card }.
 # Targeted disaster cards (Earthquake/Eruption)
 ageofheroes-select-disaster-target = Pilih target untuk { $card }.
 ageofheroes-no-targets = Tidak ada target valid yang tersedia.
-ageofheroes-earthquake-strikes-you = { $attacker } memainkan Gempa Bumi melawan Anda. Tentara Anda dinonaktifkan.
-ageofheroes-earthquake-strikes = { $attacker } memainkan Gempa Bumi melawan { $player }.
-ageofheroes-armies-disabled = { $count } { $count ->
-    [one] tentara
-    *[other] tentara
-} dinonaktifkan selama satu giliran.
-ageofheroes-eruption-strikes-you = { $attacker } memainkan Letusan melawan Anda. Salah satu kota Anda hancur.
-ageofheroes-eruption-strikes = { $attacker } memainkan Letusan melawan { $player }.
-ageofheroes-city-destroyed = Sebuah kota dihancurkan oleh letusan.
-
+ageofheroes-earthquake-strikes-you = { $attacker } memainkan Gempa Bumi terhadap Anda. Pasukan Anda tidak dapat digunakan.
+ageofheroes-earthquake-strikes = { $attacker } memainkan Gempa Bumi terhadap { $player }.
+ageofheroes-armies-disabled =
+    { $count } { $count ->
+        [one] pasukan
+       *[other] pasukan
+    } tidak dapat digunakan selama satu giliran.
+ageofheroes-eruption-strikes-you = { $attacker } memainkan Letusan terhadap Anda. Salah satu kota Anda hancur.
+ageofheroes-eruption-strikes = { $attacker } memainkan Letusan terhadap { $player }.
+ageofheroes-city-destroyed = Sebuah kota hancur akibat letusan tersebut.
 # Fair phase
-ageofheroes-fair-start = Hari dimulai di pasar.
-ageofheroes-fair-draw-base = Anda mengambil { $count } { $count ->
-    [one] kartu
-    *[other] kartu
-}.
-ageofheroes-fair-draw-roads = Anda mengambil { $count } { $count ->
-    [one] kartu
-    *[other] kartu
-} tambahan berkat jaringan jalan Anda.
-ageofheroes-fair-draw-other = { $player } mengambil { $count } { $count ->
-    [one] kartu
-    *[other] kartu
-}.
-
+ageofheroes-fair-start = Pagi tiba. Pasar dibuka.
+ageofheroes-fair-draw-base =
+    Anda mengambil { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }.
+ageofheroes-fair-draw-roads =
+    Anda mengambil { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    } tambahan berkat jaringan jalan Anda.
+ageofheroes-fair-draw-other =
+    { $player } mengambil { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }.
 # Trading/Auction
 ageofheroes-auction-start = Lelang dimulai.
-ageofheroes-offer-trade = Tawarkan untuk berdagang
 ageofheroes-offer-made = { $player } menawarkan { $card } untuk { $wanted }.
 ageofheroes-offer-made-you = Anda menawarkan { $card } untuk { $wanted }.
 ageofheroes-trade-accepted = { $player } menerima tawaran { $other } dan menukar { $give } dengan { $receive }.
 ageofheroes-trade-accepted-you = Anda menerima tawaran { $other } dan menerima { $receive }.
-ageofheroes-trade-cancelled = { $player } menarik tawaran mereka untuk { $card }.
-ageofheroes-trade-cancelled-you = Anda menarik tawaran Anda untuk { $card }.
-ageofheroes-stop-trading = Berhenti Berdagang
-ageofheroes-select-request = Anda menawarkan { $card }. Apa yang Anda inginkan sebagai balasannya?
+ageofheroes-trade-cancelled = { $player } membatalkan tawaran { $card }.
+ageofheroes-trade-cancelled-you = Anda membatalkan tawaran { $card }.
+ageofheroes-stop-trading = Berhenti berdagang
+ageofheroes-select-request = Anda menawarkan { $card }. Kartu apa yang Anda inginkan sebagai gantinya?
 ageofheroes-cancel = Batal
-ageofheroes-left-auction = { $player } pergi.
-ageofheroes-left-auction-you = Anda pergi dari pasar.
+ageofheroes-left-auction = { $player } meninggalkan pasar.
+ageofheroes-left-auction-you = Anda meninggalkan pasar.
+ageofheroes-already-left-auction = Anda telah meninggalkan pasar.
 ageofheroes-any-card = Kartu apa saja
-ageofheroes-cannot-trade-own-special = Anda tidak dapat memperdagangkan sumber daya monumen khusus Anda sendiri.
-ageofheroes-resource-not-in-game = Sumber daya khusus ini tidak digunakan dalam permainan ini.
-
+ageofheroes-cannot-trade-own-special = Anda tidak dapat memperdagangkan bahan khusus untuk monumen suku Anda sendiri.
+ageofheroes-resource-not-in-game = Bahan khusus ini tidak digunakan dalam permainan ini.
 # Main play phase
-ageofheroes-play-start = Fase bermain.
+ageofheroes-play-start = Tahap bermain.
 ageofheroes-day = Hari { $day }
-ageofheroes-draw-card = { $player } mengambil kartu dari dek.
-ageofheroes-draw-card-you = Anda mengambil { $card } dari dek.
+ageofheroes-draw-card = { $player } mengambil kartu dari tumpukan kartu.
+ageofheroes-draw-card-you = Anda mengambil { $card } dari tumpukan kartu.
+ageofheroes-draw-card-brief = { $player } mengambil kartu.
+ageofheroes-draw-card-you-brief = Kartu yang diambil: { $card }.
 ageofheroes-your-action = Apa yang ingin Anda lakukan?
-
+ageofheroes-your-action-brief = Tindakan?
 # Tax Collection
-ageofheroes-tax-collection = { $player } memilih Pengumpulan Pajak: { $cities } { $cities ->
-    [one] kota
-    *[other] kota
-} mengumpulkan { $cards } { $cards ->
-    [one] kartu
-    *[other] kartu
-}.
-ageofheroes-tax-collection-you = Anda memilih Pengumpulan Pajak: { $cities } { $cities ->
-    [one] kota
-    *[other] kota
-} mengumpulkan { $cards } { $cards ->
-    [one] kartu
-    *[other] kartu
-}.
-ageofheroes-tax-no-city = Pengumpulan Pajak: Anda tidak memiliki kota yang masih hidup. Buang kartu untuk mengambil yang baru.
-ageofheroes-tax-no-city-done = { $player } memilih Pengumpulan Pajak tetapi tidak memiliki kota, jadi mereka menukar kartu.
-ageofheroes-tax-no-city-done-you = Pengumpulan Pajak: Anda menukar { $card } dengan kartu baru.
-
+ageofheroes-tax-collection =
+    { $player } memilih Pemungutan Pajak: { $cities } { $cities ->
+        [one] kota
+       *[other] kota
+    } menghasilkan { $cards } { $cards ->
+        [one] kartu
+       *[other] kartu
+    }.
+ageofheroes-tax-collection-you =
+    Anda memilih Pemungutan Pajak: { $cities } { $cities ->
+        [one] kota
+       *[other] kota
+    } menghasilkan { $cards } { $cards ->
+        [one] kartu
+       *[other] kartu
+    }.
+ageofheroes-tax-collection-brief = Pajak { $player }: { $cards } kartu dari { $cities } kota.
+ageofheroes-tax-collection-you-brief = Pajak: { $cards } kartu dari { $cities } kota.
+ageofheroes-tax-no-city = Pemungutan Pajak: Anda tidak memiliki kota yang tersisa. Buang satu kartu untuk mengambil kartu baru.
+ageofheroes-tax-no-city-done = { $player } memilih Pemungutan Pajak, tetapi tidak memiliki kota sehingga harus menukar satu kartu.
+ageofheroes-tax-no-city-done-you = Pemungutan Pajak: Anda menukar { $card } dengan kartu baru.
 # Construction
 ageofheroes-construction-menu = Apa yang ingin Anda bangun?
-ageofheroes-construction-done = { $player } membangun { $article } { $building }.
-ageofheroes-construction-done-you = Anda membangun { $article } { $building }.
+ageofheroes-construction-done = { $player } membangun { $building }.
+ageofheroes-construction-done-you = Anda membangun { $building }.
+ageofheroes-build-cost-resource =
+    { $count ->
+        [one] { $resource }
+       *[other] { $count } { $resource }
+    }
+ageofheroes-build-menu-label = { $building } ({ $cost })
 ageofheroes-construction-stop = Berhenti membangun
 ageofheroes-construction-stopped = Anda memutuskan untuk berhenti membangun.
-ageofheroes-road-select-neighbor = Pilih tetangga mana yang akan dibangun jalannya.
-ageofheroes-direction-left = Ke kiri Anda
-ageofheroes-direction-right = Ke kanan Anda
-ageofheroes-road-request-sent = Permintaan jalan dikirim. Menunggu persetujuan tetangga.
-ageofheroes-road-request-received = { $requester } meminta izin untuk membangun jalan ke suku Anda.
+ageofheroes-road-select-neighbor = Pilih suku tetangga yang ingin Anda hubungkan dengan jalan.
+ageofheroes-direction-left = Di sebelah kiri Anda
+ageofheroes-direction-right = Di sebelah kanan Anda
+ageofheroes-road-request-sent = Permintaan jalan terkirim. Menunggu persetujuan tetangga.
+ageofheroes-road-request-received = { $requester } meminta izin untuk membangun jalan menuju suku Anda.
 ageofheroes-road-request-denied-you = Anda menolak permintaan jalan.
 ageofheroes-road-request-denied = { $denier } menolak permintaan jalan Anda.
-ageofheroes-road-built = { $tribe1 } dan { $tribe2 } sekarang terhubung dengan jalan.
+ageofheroes-road-built = { $tribe1 } dan { $tribe2 } sekarang terhubung melalui jalan darat.
+ageofheroes-road-built-you = Anda dan { $tribe2 } sekarang terhubung melalui jalan darat.
 ageofheroes-road-no-target = Tidak ada suku tetangga yang tersedia untuk pembangunan jalan.
-ageofheroes-approve = Setuju
+ageofheroes-approve = Setujui
 ageofheroes-deny = Tolak
-ageofheroes-supply-exhausted = Tidak ada { $building } lagi yang tersedia untuk dibangun.
-
 # Do Nothing
-ageofheroes-do-nothing = { $player } melewatkan.
-ageofheroes-do-nothing-you = Anda melewatkan...
-
+ageofheroes-do-nothing = { $player } melewati tindakan.
+ageofheroes-do-nothing-you = Anda melewati tindakan.
+ageofheroes-do-nothing-brief = { $player } melewati tindakan.
+ageofheroes-do-nothing-you-brief = Tindakan dilewati.
+ageofheroes-confirm-do-nothing = Anda akan melewati tindakan pada giliran ini. Tekan Lewati tindakan sekali lagi untuk mengonfirmasi.
 # War
 ageofheroes-war-declare = { $attacker } menyatakan perang terhadap { $defender }. Tujuan: { $goal }.
-ageofheroes-war-prepare = Pilih tentara Anda untuk { $action }.
-ageofheroes-war-no-army = Anda tidak memiliki tentara atau kartu pahlawan yang tersedia.
-ageofheroes-war-no-targets = Tidak ada target valid untuk perang.
+ageofheroes-war-prepare = Pilih pasukan Anda untuk { $action }.
+ageofheroes-war-no-army = Anda tidak memiliki pasukan atau kartu Pahlawan yang tersedia.
+ageofheroes-war-no-tribe = Anda tidak memiliki suku dalam pertempuran ini.
+ageofheroes-war-no-targets = Tidak ada target yang valid untuk perang.
 ageofheroes-war-no-valid-goal = Tidak ada tujuan perang yang valid terhadap target ini.
+ageofheroes-war-invalid-forces = Pilihan pasukan itu sudah tidak berlaku. Periksa pasukan, jenderal, dan kartu Pahlawan yang tersedia.
 ageofheroes-war-select-target = Pilih pemain mana yang akan diserang.
 ageofheroes-war-select-goal = Pilih tujuan perang Anda.
 ageofheroes-war-prepare-attack = Pilih pasukan penyerang Anda.
-ageofheroes-war-prepare-defense = { $attacker } menyerang Anda; Pilih pasukan pertahanan Anda.
-ageofheroes-war-select-armies = Pilih tentara: { $count }
-ageofheroes-war-select-generals = Pilih jenderal: { $count }
-ageofheroes-war-select-heroes = Pilih pahlawan: { $count }
-ageofheroes-war-attack = Serang...
-ageofheroes-war-defend = Bertahan...
-ageofheroes-war-prepared = Pasukan Anda: { $armies } { $armies ->
-    [one] tentara
-    *[other] tentara
-}{ $generals ->
-    [0] {""}
-    [one] {" dan 1 jenderal"}
-    *[other] {" dan { $generals } jenderal"}
-}{ $heroes ->
-    [0] {""}
-    [one] {" dan 1 pahlawan"}
-    *[other] {" dan { $heroes } pahlawan"}
-}.
-ageofheroes-war-roll-you = Anda melempar { $roll }.
-ageofheroes-war-roll-other = { $player } melempar { $roll }.
-ageofheroes-war-bonuses-you = { $general ->
-    [0] { $fortress ->
-        [0] {""}
-        [1] +1 dari benteng = { $total } total
-        *[other] +{ $fortress } dari benteng = { $total } total
+ageofheroes-war-prepare-defense = { $attacker } menyerang Anda. Pilih pasukan pertahanan Anda.
+ageofheroes-war-force-add-armies = Tambah satu pasukan. Pasukan yang dikerahkan: { $current } dari { $max }.
+ageofheroes-war-force-remove-armies = Kurangi satu pasukan. Pasukan yang dikerahkan: { $current } dari { $max }.
+ageofheroes-war-force-add-generals = Tambah satu jenderal. Jenderal yang dikerahkan: { $current } dari { $max }.
+ageofheroes-war-force-remove-generals = Kurangi satu jenderal. Jenderal yang dikerahkan: { $current } dari { $max }.
+ageofheroes-war-force-add-hero-armies = Tambah satu Pahlawan sebagai pasukan. Pahlawan sebagai pasukan: { $current } dari { $max }.
+ageofheroes-war-force-remove-hero-armies = Kurangi satu Pahlawan sebagai pasukan. Pahlawan sebagai pasukan: { $current } dari { $max }.
+ageofheroes-war-force-add-hero-generals = Tambah satu Pahlawan sebagai jenderal. Pahlawan sebagai jenderal: { $current } dari { $max }.
+ageofheroes-war-force-remove-hero-generals = Kurangi satu Pahlawan sebagai jenderal. Pahlawan sebagai jenderal: { $current } dari { $max }.
+ageofheroes-war-force-unit-armies = pasukan
+ageofheroes-war-force-unit-generals = jenderal
+ageofheroes-war-force-unit-hero-armies = Pahlawan sebagai pasukan
+ageofheroes-war-force-unit-hero-generals = Pahlawan sebagai jenderal
+ageofheroes-war-force-max = Jumlah { $unit } sudah mencapai batas, yaitu { $max }.
+ageofheroes-war-force-min = Belum ada { $unit } yang dikerahkan.
+ageofheroes-war-force-updated = Pasukan yang dikerahkan: { $armies } pasukan, { $generals } jenderal, { $hero_armies } Pahlawan sebagai pasukan, { $hero_generals } Pahlawan sebagai jenderal.
+ageofheroes-war-attack = Serang
+ageofheroes-war-defend = Bertahan
+ageofheroes-war-clear-forces = Kosongkan pilihan pasukan
+ageofheroes-war-prepared =
+    Pasukan Anda: { $armies } { $armies ->
+        [one] pasukan
+       *[other] pasukan
+    }{ $generals ->
+        [0] { "" }
+        [one] { " dan 1 jenderal" }
+       *[other] { " dan " }{ $generals } jenderal
+    }{ $heroes ->
+        [0] { "" }
+        [one] { " dan 1 pahlawan" }
+       *[other] { " dan " }{ $heroes } pahlawan
+    }.
+ageofheroes-war-roll-you = Hasil lemparan Anda { $roll }.
+ageofheroes-war-roll-other = Hasil lemparan { $player } adalah { $roll }.
+ageofheroes-war-bonuses-you =
+    { $general ->
+        [0]
+            { $fortress ->
+                [0] { "" }
+                [1] Ditambah 1 dari benteng, total { $total }
+               *[other] Ditambah { $fortress } dari benteng, total { $total }
+            }
+       *[other]
+            { $fortress ->
+                [0] Ditambah { $general } dari jenderal, total { $total }
+                [1] Ditambah { $general } dari jenderal dan 1 dari benteng, total { $total }
+               *[other] Ditambah { $general } dari jenderal dan { $fortress } dari benteng, total { $total }
+            }
     }
-    *[other] { $fortress ->
-        [0] +{ $general } dari jenderal = { $total } total
-        [1] +{ $general } dari jenderal, +1 dari benteng = { $total } total
-        *[other] +{ $general } dari jenderal, +{ $fortress } dari benteng = { $total } total
+ageofheroes-war-bonuses-other =
+    { $general ->
+        [0]
+            { $fortress ->
+                [0] { "" }
+                [1] { $player }: ditambah 1 dari benteng, total { $total }
+               *[other] { $player }: ditambah { $fortress } dari benteng, total { $total }
+            }
+       *[other]
+            { $fortress ->
+                [0] { $player }: ditambah { $general } dari jenderal, total { $total }
+                [1] { $player }: ditambah { $general } dari jenderal dan 1 dari benteng, total { $total }
+               *[other] { $player }: ditambah { $general } dari jenderal dan { $fortress } dari benteng, total { $total }
+            }
     }
-}
-ageofheroes-war-bonuses-other = { $general ->
-    [0] { $fortress ->
-        [0] {""}
-        [1] { $player }: +1 dari benteng = { $total } total
-        *[other] { $player }: +{ $fortress } dari benteng = { $total } total
-    }
-    *[other] { $fortress ->
-        [0] { $player }: +{ $general } dari jenderal = { $total } total
-        [1] { $player }: +{ $general } dari jenderal, +1 dari benteng = { $total } total
-        *[other] { $player }: +{ $general } dari jenderal, +{ $fortress } dari benteng = { $total } total
-    }
-}
-
+ageofheroes-war-bonuses-you-brief = Bonus { $bonus }, total { $total }.
+ageofheroes-war-bonuses-other-brief = Bonus { $player } sebesar { $bonus }, total { $total }.
 # Battle
-ageofheroes-battle-start = Pertempuran dimulai. { $attacker } dengan { $att_armies } { $att_armies ->
-    [one] tentara
-    *[other] tentara
-} melawan { $defender } dengan { $def_armies } { $def_armies ->
-    [one] tentara
-    *[other] tentara
-}.
-ageofheroes-dice-roll-detailed = { $name } melempar { $dice }{ $general ->
-    [0] {""}
-    *[other] { " + { $general } dari jenderal" }
-}{ $fortress ->
-    [0] {""}
-    [one] { " + 1 dari benteng" }
-    *[other] { " + { $fortress } dari benteng" }
-} = { $total }.
-ageofheroes-dice-roll-detailed-you = Anda melempar { $dice }{ $general ->
-    [0] {""}
-    *[other] { " + { $general } dari jenderal" }
-}{ $fortress ->
-    [0] {""}
-    [one] { " + 1 dari benteng" }
-    *[other] { " + { $fortress } dari benteng" }
-} = { $total }.
-ageofheroes-round-attacker-wins = { $attacker } menang putaran ini ({ $att_total } vs { $def_total }). { $defender } kehilangan satu tentara.
-ageofheroes-round-defender-wins = { $defender } berhasil bertahan ({ $def_total } vs { $att_total }). { $attacker } kehilangan satu tentara.
-ageofheroes-round-draw = Kedua sisi seri di { $total }. Tidak ada tentara yang hilang.
+ageofheroes-battle-start =
+    Pertempuran dimulai. { $attacker } dengan { $att_armies } { $att_armies ->
+        [one] pasukan
+       *[other] pasukan
+    } melawan { $defender } dengan { $def_armies } { $def_armies ->
+        [one] pasukan
+       *[other] pasukan
+    }.
+ageofheroes-battle-start-brief = Pertempuran: { $attacker } dengan { $att_armies } pasukan melawan { $defender } dengan { $def_armies } pasukan.
+ageofheroes-dice-roll-detailed =
+    Hasil lemparan { $name } adalah { $dice }{ $general ->
+        [0] { "" }
+       *[other] { " ditambah " }{ $general } dari jenderal
+    }{ $fortress ->
+        [0] { "" }
+        [one] { " ditambah 1 dari benteng" }
+       *[other] { " ditambah " }{ $fortress } dari benteng
+    }, total { $total }.
+ageofheroes-dice-roll-detailed-you =
+    Hasil lemparan Anda { $dice }{ $general ->
+        [0] { "" }
+       *[other] { " ditambah " }{ $general } dari jenderal
+    }{ $fortress ->
+        [0] { "" }
+        [one] { " ditambah 1 dari benteng" }
+       *[other] { " ditambah " }{ $fortress } dari benteng
+    }, total { $total }.
+ageofheroes-round-attacker-wins = { $attacker } memenangkan ronde, { $att_total } melawan { $def_total }. { $defender } kehilangan satu pasukan.
+ageofheroes-round-defender-wins = { $defender } berhasil bertahan, { $def_total } melawan { $att_total }. { $attacker } kehilangan satu pasukan.
+ageofheroes-round-draw = Kedua pihak seri dengan hasil { $total }. Tidak ada pasukan yang hilang.
+ageofheroes-round-attacker-wins-brief = { $attacker } mendapat { $att_total }, mengalahkan { $defender } dengan { $def_total }. { $defender } kehilangan satu pasukan.
+ageofheroes-round-defender-wins-brief = { $defender } mendapat { $def_total }, mengalahkan { $attacker } dengan { $att_total }. { $attacker } kehilangan satu pasukan.
+ageofheroes-round-draw-brief = Seri, { $total }. Tidak ada pasukan yang hilang.
+ageofheroes-you-win-battle-as-attacker = Anda mengalahkan { $defender }.
+ageofheroes-you-lose-battle-as-defender = { $attacker } mengalahkan Anda.
 ageofheroes-battle-victory-attacker = { $attacker } mengalahkan { $defender }.
+ageofheroes-you-lose-battle-as-attacker = { $defender } berhasil bertahan melawan Anda.
+ageofheroes-you-win-battle-as-defender = Anda berhasil bertahan melawan { $attacker }.
 ageofheroes-battle-victory-defender = { $defender } berhasil bertahan melawan { $attacker }.
-ageofheroes-battle-mutual-defeat = { $attacker } dan { $defender } kehilangan semua tentara.
-ageofheroes-general-bonus = +{ $count } dari { $count ->
-    [one] jenderal
-    *[other] jenderal
-}
-ageofheroes-fortress-bonus = +{ $count } dari pertahanan benteng
-ageofheroes-battle-winner = { $winner } memenangkan pertempuran.
-ageofheroes-battle-draw = Pertempuran berakhir seri...
+ageofheroes-you-draw-battle = Anda dan { $opponent } kehilangan seluruh pasukan yang dikerahkan dalam pertempuran ini.
+ageofheroes-battle-mutual-defeat = Baik { $attacker } maupun { $defender } kehilangan semua pasukan yang dikerahkan untuk pertempuran.
 ageofheroes-battle-continue = Lanjutkan pertempuran.
-ageofheroes-battle-end = Pertempuran telah berakhir.
-
 # War outcomes
-ageofheroes-conquest-success = { $attacker } menaklukkan { $count } { $count ->
-    [one] kota
-    *[other] kota
-} dari { $defender }.
-ageofheroes-plunder-success = { $attacker } menjarah { $count } { $count ->
-    [one] kartu
-    *[other] kartu
-} dari { $defender }.
-ageofheroes-destruction-success = { $attacker } menghancurkan { $count } { $count ->
-    [one] sumber daya
-    *[other] sumber daya
-} monumen { $defender }.
-ageofheroes-army-losses = { $player } kehilangan { $count } { $count ->
-    [one] tentara
-    *[other] tentara
-}.
-ageofheroes-army-losses-you = Anda kehilangan { $count } { $count ->
-    [one] tentara
-    *[other] tentara
-}.
-
+ageofheroes-conquest-success =
+    { $attacker } menaklukkan { $count } { $count ->
+        [one] kota
+       *[other] kota
+    } dari { $defender }.
+ageofheroes-plunder-success =
+    { $attacker } menjarah { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    } dari { $defender }.
+ageofheroes-destruction-success =
+    { $attacker } menghancurkan { $count } { $count ->
+        [one] bahan monumen
+       *[other] bahan monumen
+    } milik { $defender }.
+ageofheroes-conquest-success-brief =
+    { $attacker } mengambil { $count } { $count ->
+        [one] kota
+       *[other] kota
+    } dari { $defender }.
+ageofheroes-plunder-success-brief =
+    { $attacker } mengambil { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    } dari { $defender }.
+ageofheroes-destruction-success-brief =
+    { $attacker } menghancurkan { $count } { $count ->
+        [one] bahan monumen
+       *[other] bahan monumen
+    } milik { $defender }.
+ageofheroes-army-losses =
+    { $player } kehilangan { $count } { $count ->
+        [one] pasukan
+       *[other] pasukan
+    }.
+ageofheroes-army-losses-you =
+    Anda kehilangan { $count } { $count ->
+        [one] pasukan
+       *[other] pasukan
+    }.
 # Army return
-ageofheroes-army-return-road = Pasukan Anda kembali segera melalui jalan.
-ageofheroes-army-return-delayed = { $count } { $count ->
-    [one] unit kembali
-    *[other] unit kembali
-} di akhir giliran Anda berikutnya.
+ageofheroes-army-return-road = Pasukan Anda segera kembali melalui jalan darat.
+ageofheroes-army-return-delayed =
+    { $count } { $count ->
+        [one] unit
+       *[other] unit
+    } kembali pada akhir giliran Anda berikutnya.
 ageofheroes-army-returned = Pasukan { $player } telah kembali dari perang.
 ageofheroes-army-returned-you = Pasukan Anda telah kembali dari perang.
-ageofheroes-army-recover = Tentara { $player } pulih dari gempa bumi.
-ageofheroes-army-recover-you = Tentara Anda pulih dari gempa bumi.
-
+ageofheroes-army-recover = Pasukan { $player } pulih dari gempa.
+ageofheroes-army-recover-you = Pasukan Anda pulih dari gempa.
 # Olympics
-ageofheroes-olympics-cancel = { $player } memainkan Olimpiade. Perang dibatalkan.
-ageofheroes-olympics-prompt = { $attacker } telah menyatakan perang. Anda memiliki Olimpiade - gunakan untuk membatalkannya?
+ageofheroes-you-cancel-war-with-olympics = Anda memainkan Olimpiade, membatalkan perang yang telah diumumkan.
+ageofheroes-player-cancels-war-with-olympics = { $player } memainkan Olimpiade, membatalkan perang yang telah diumumkan.
+ageofheroes-olympics-prompt = { $attacker } telah menyatakan perang. Anda memiliki kartu Olimpiade. Gunakan untuk membatalkan perang?
 ageofheroes-yes = Ya
 ageofheroes-no = Tidak
-
 # Monument progress
-ageofheroes-monument-progress = Monumen { $player } { $count }/5 selesai.
-ageofheroes-monument-progress-you = Monumen Anda { $count }/5 selesai.
-
+ageofheroes-monument-progress = Kemajuan monumen { $player }: { $count } dari 5.
+ageofheroes-monument-progress-you = Kemajuan monumen Anda: { $count } dari 5.
 # Hand management
-ageofheroes-discard-excess = Anda memiliki lebih dari { $max } kartu. Buang { $count } { $count ->
-    [one] kartu
-    *[other] kartu
-}.
-ageofheroes-discard-excess-other = { $player } harus membuang kartu berlebih.
-ageofheroes-discard-more = Buang { $count } { $count ->
-    [one] kartu
-    *[other] kartu
-} lagi.
-
+ageofheroes-discard-excess =
+    Anda memiliki lebih dari { $max } kartu. Buang { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }.
+ageofheroes-discard-excess-other = { $player } harus membuang kelebihan kartu.
+ageofheroes-discard-more =
+    Buang { $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    } lagi.
 # Victory
-ageofheroes-victory-cities = { $player } telah membangun 5 kota! Kerajaan Lima Kota.
-ageofheroes-victory-cities-you = Anda telah membangun 5 kota! Kerajaan Lima Kota.
-ageofheroes-victory-monument = { $player } telah menyelesaikan monumen mereka! Pembawa Budaya Agung.
-ageofheroes-victory-monument-you = Anda telah menyelesaikan monumen Anda! Pembawa Budaya Agung.
+ageofheroes-victory-cities = { $player } telah membangun { $cities } kota! Kekaisaran Kota.
+ageofheroes-victory-cities-you = Anda telah membangun { $cities } kota! Kekaisaran Kota.
+ageofheroes-victory-monument = { $player } telah menyelesaikan monumennya! Pembawa Kebudayaan Besar.
+ageofheroes-victory-monument-you = Anda telah menyelesaikan monumen Anda! Pembawa Kebudayaan Besar.
 ageofheroes-victory-last-standing = { $player } adalah suku terakhir yang bertahan! Yang Paling Gigih.
 ageofheroes-victory-last-standing-you = Anda adalah suku terakhir yang bertahan! Yang Paling Gigih.
 ageofheroes-game-over = Permainan Berakhir.
-
+ageofheroes-final-winner = Pemenang: { $player }
+ageofheroes-final-days = Jumlah hari permainan: { $days }
 # Elimination
-ageofheroes-eliminated = { $player } telah dieliminasi.
-ageofheroes-eliminated-you = Anda telah dieliminasi.
-
+ageofheroes-eliminated = { $player } telah tersingkir.
+ageofheroes-eliminated-you = Anda telah tersingkir.
 # Hand
-ageofheroes-hand-empty = Anda tidak memiliki kartu.
-ageofheroes-hand-contents = Kartu Anda ({ $count } { $count ->
-    [one] kartu
-    *[other] kartu
-}): { $cards }
-
+ageofheroes-check-hand = Periksa kartu di tangan
+ageofheroes-hand-empty = Anda tidak punya kartu.
+ageofheroes-initial-hand =
+    Kartu awal Anda ({ $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }): { $cards }
+ageofheroes-hand-contents =
+    Kartu di tangan Anda ({ $count } { $count ->
+        [one] kartu
+       *[other] kartu
+    }): { $cards }
 # Status
-ageofheroes-status = { $player } ({ $tribe }): { $cities } { $cities ->
-    [one] kota
-    *[other] kota
-}, { $armies } { $armies ->
-    [one] tentara
-    *[other] tentara
-}, { $monument }/5 monumen
+ageofheroes-check-status = Periksa status
+ageofheroes-check-status-detailed = Status terperinci
+ageofheroes-status =
+    { $player } ({ $tribe }): { $cities } { $cities ->
+        [one] kota
+       *[other] kota
+    }, { $armies } { $armies ->
+        [one] pasukan
+       *[other] pasukan
+    }, monumen { $monument } dari 5
 ageofheroes-status-detailed-header = { $player } ({ $tribe })
-ageofheroes-status-cities = Kota: { $count }
-ageofheroes-status-armies = Tentara: { $count }
-ageofheroes-status-generals = Jenderal: { $count }
-ageofheroes-status-fortresses = Benteng: { $count }
-ageofheroes-status-monument = Monumen: { $count }/5
-ageofheroes-status-roads = Jalan: { $left }{ $right }
 ageofheroes-status-road-left = kiri
 ageofheroes-status-road-right = kanan
 ageofheroes-status-none = tidak ada
-ageofheroes-status-earthquake-armies = Tentara yang pulih: { $count }
-ageofheroes-status-returning-armies = Tentara yang kembali: { $count }
+ageofheroes-status-earthquake-armies = Pasukan dalam pemulihan: { $count }
+ageofheroes-status-returning-armies = Pasukan yang kembali: { $count }
 ageofheroes-status-returning-generals = Jenderal yang kembali: { $count }
-
+ageofheroes-status-detailed-line =
+    { $player } ({ $tribe }): { $cities } { $cities ->
+        [one] kota
+       *[other] kota
+    }, { $armies } { $armies ->
+        [one] pasukan
+       *[other] pasukan
+    }, { $generals } { $generals ->
+        [one] jenderal
+       *[other] jenderal
+    }, { $fortresses } { $fortresses ->
+        [one] benteng
+       *[other] benteng
+    }, monumen { $monument } dari 5, jalan: { $roads }{ $details }
+ageofheroes-status-detail-recovering-armies =
+    { $count } { $count ->
+        [one] pasukan
+       *[other] pasukan
+    } dalam pemulihan
+ageofheroes-status-detail-returning-armies =
+    { $count } { $count ->
+        [one] pasukan
+       *[other] pasukan
+    } sedang kembali
+ageofheroes-status-detail-returning-generals =
+    { $count } { $count ->
+        [one] jenderal
+       *[other] jenderal
+    } sedang kembali
 # Deck info
-ageofheroes-deck-empty = Tidak ada kartu { $card } lagi di dek.
-ageofheroes-deck-count = Kartu tersisa: { $count }
-ageofheroes-deck-reshuffled = Tumpukan buangan telah dikocok ulang ke dalam dek.
-
+ageofheroes-deck-reshuffled = Tumpukan kartu buangan telah dikocok kembali menjadi tumpukan kartu ambil.
 # Give up
 ageofheroes-give-up-confirm = Apakah Anda yakin ingin menyerah?
 ageofheroes-gave-up = { $player } menyerah!
 ageofheroes-gave-up-you = Anda menyerah!
-
-# Hero card
-ageofheroes-hero-use = Gunakan sebagai tentara atau jenderal?
-ageofheroes-hero-army = Tentara
-ageofheroes-hero-general = Jenderal
-
 # Fortune card
-ageofheroes-fortune-reroll = { $player } menggunakan Keberuntungan untuk melempar ulang.
-ageofheroes-fortune-prompt = Anda kalah dalam lemparan. Gunakan Keberuntungan untuk melempar ulang?
-
+ageofheroes-you-use-fortune = Anda menggunakan Keberuntungan untuk melempar ulang dadu pertempuran.
+ageofheroes-player-uses-fortune = { $player } menggunakan Keberuntungan untuk melempar ulang dadu pertempuran.
 # Disabled action reasons
-ageofheroes-not-your-turn = Bukan giliran Anda.
+ageofheroes-not-your-turn = Belum giliran Anda.
 ageofheroes-game-not-started = Permainan belum dimulai.
-ageofheroes-wrong-phase = Aksi ini tidak tersedia dalam fase saat ini.
-ageofheroes-no-resources = Anda tidak memiliki sumber daya yang dibutuhkan.
-
-# Building costs (for display)
-ageofheroes-cost-army = 2 Gandum, Besi
-ageofheroes-cost-fortress = Besi, Kayu, Batu
-ageofheroes-cost-general = Besi, Emas
-ageofheroes-cost-road = 2 Batu
-ageofheroes-cost-city = 2 Kayu, Batu
+ageofheroes-wrong-phase = Tindakan ini tidak tersedia pada tahap saat ini.
+ageofheroes-invalid-player = Tindakan ini tidak tersedia untuk Anda.
+ageofheroes-not-in-game = Anda tidak berada dalam permainan ini.
+ageofheroes-not-in-war = Anda tidak terlibat dalam perang ini.
+ageofheroes-already-rolled = Anda sudah melempar dadu.
+ageofheroes-invalid-card-index = Kartu itu tidak lagi tersedia.
+ageofheroes-no-card-selected = Pilih kartu terlebih dahulu.
+ageofheroes-no-cards-to-discard = Anda tidak memiliki kartu untuk dibuang.
+ageofheroes-disaster-too-early = Kartu bencana hanya dapat dimainkan mulai hari ke-2 dan seterusnya.
+ageofheroes-no-resources = Anda tidak memiliki sumber daya yang diperlukan.
+ageofheroes-cannot-accept-own-offer = Anda tidak dapat menerima tawaran dagang Anda sendiri.
+ageofheroes-offerer-unavailable = Tawaran perdagangan itu tidak lagi tersedia.
+ageofheroes-offered-card-unavailable = Kartu yang ditawarkan tidak lagi tersedia.
+ageofheroes-trade-card-type-mismatch = Kartu yang Anda pilih tidak sesuai dengan jenis kartu yang diminta.
+ageofheroes-trade-card-subtype-mismatch = Kartu yang Anda pilih tidak cocok dengan kartu yang diminta.
+ageofheroes-trade-offer-label = { $player }: { $offered } untuk { $wanted }

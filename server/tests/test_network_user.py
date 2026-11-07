@@ -1,8 +1,9 @@
 """Tests for the NetworkUser implementation."""
 
-from server.core.users.base import EscapeBehavior, MenuItem, TrustLevel
-from server.core.users.network_user import NetworkUser
-from server.core.users.preferences import UserPreferences
+from server.users.base import EscapeBehavior, MenuItem
+from server.users.trust_level import TrustLevel
+from server.users.network_user import NetworkUser
+from server.users.preferences import UserPreferences
 
 
 class DummyConnection:
@@ -321,3 +322,12 @@ def test_flush_keeps_distinct_menus_and_remove_wins_when_last():
     packets = drain_messages(user)
     assert len(packets) == 1
     assert packets[0]["items"] == []
+
+
+def test_engine_speech_buffers_map_to_the_buffers_our_clients_keep():
+    """The iOS app drops speech for a buffer it doesn't have from history, so the engine's names are translated."""
+    user = NetworkUser("alice", "en", connection=None)
+    for buffer in ("game", "system", "chat", "private", "activity", "misc"):
+        user.speak("line", buffer=buffer)
+    buffers = [packet.get("buffer", "misc") for packet in user.get_queued_messages()]
+    assert buffers == ["table", "activity", "chats", "chats", "activity", "misc"]

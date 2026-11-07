@@ -1,0 +1,80 @@
+\*\*Điều khiển toàn cục\*\*
+
+Tài liệu này giải thích các cách điều khiển dùng chung trong PlayAural. Người dùng trên máy tính chủ yếu dùng phím tắt. Người dùng trên thiết bị di động chủ yếu dùng cử chỉ có sẵn trong ứng dụng. Hai cách này đều giúp bạn đi tới cùng một nhóm tính năng.
+
+\*\*Gợi ý trong trình đơn\*\*
+
+Theo mặc định, mục trình đơn nào có phần trợ giúp sẽ đọc luôn phần mô tả sau tên mục, nhờ vậy bạn vừa biết lựa chọn là gì vừa biết nó có tác dụng gì. Nếu muốn trình đơn ngắn gọn hơn, hãy mở \*\*Cá nhân và Tùy chỉnh > Tùy chỉnh chung > Hỗ trợ tiếp cận > Gợi ý trong trình đơn\*\* rồi tắt tùy chọn này. Thiết lập được áp dụng trên mọi thiết bị cho trình đơn hệ thống, tùy chọn trước ván và các lựa chọn trong trò chơi có kèm mô tả.
+
+Khi tắt Gợi ý trong trình đơn, hãy chọn một mục có mô tả rồi nhấn \*\*F1\*\* trên ứng dụng máy tính hoặc bản web khi dùng bàn phím, hoặc chạm một lần bằng ba ngón trong chế độ tự đọc của ứng dụng di động, để nghe phần trợ giúp mà không kích hoạt mục đó. Cách này dùng được trong trình đơn hệ thống, phần thiết lập trước ván và cả khi ván đang diễn ra. Bạn có thể bật lại Gợi ý trong trình đơn bất cứ lúc nào để phần mô tả tự xuất hiện.
+
+\*\*Phím tắt trên máy tính\*\*
+
+\*\*Hệ thống và âm thanh\*\*
+
+\* \*\*F2:\*\* Đọc người dùng trực tuyến: nghe tổng số người, sau đó là các nhà phát triển và quản trị viên đang trực tuyến, rồi tối đa 20 tên người dùng khác và số người còn lại.
+\* \*\*Shift + F2:\*\* Mở danh sách người dùng trực tuyến: nhà phát triển đứng đầu, tiếp theo là quản trị viên, rồi đến người dùng khác; tên trong mỗi nhóm được xếp theo thứ tự chữ cái. Danh sách có hoạt động hiện tại của từng người và tự động cập nhật.
+\* \*\*F4:\*\* Tắt hoặc bật tiếng của bộ đệm hiện tại.
+\* \*\*F6:\*\* Tắt hoặc bật tiếng trò chuyện trong bàn.
+\* \*\*Shift + F6:\*\* Tắt hoặc bật tiếng trò chuyện chung.
+\* \*\*F7 / F8:\*\* Giảm hoặc tăng âm lượng môi trường.
+\* \*\*F9 / F10:\*\* Giảm hoặc tăng âm lượng nhạc nền.
+\* \*\*Alt + P:\*\* Kiểm tra độ trễ kết nối.
+\* \*\*Alt + M:\*\* Đưa tiêu điểm về trình đơn chính.
+\* \*\*Alt + F:\*\* Mở mục Bạn bè.
+\* \*\*Alt + O:\*\* Mở mục Tùy chỉnh.
+
+\*\*Thông tin bàn và trò chơi\*\*
+
+\* \*\*Ctrl + M:\*\* Mở phần quản lý bàn nếu bạn là chủ bàn.
+\* \*\*Ctrl + I:\*\* Mở phần Thông tin trò chơi.
+\* \*\*Ctrl + U:\*\* Mở phần Ai đang ở bàn.
+\* \*\*Ctrl + F1:\*\* Mở phần Cách chơi.
+\* \*\*Alt + V:\*\* Chuyển tiêu điểm tới khu vực Trò chuyện thoại trên ứng dụng máy tính.
+
+\*\*Các bộ đệm tin nhắn\*\*
+
+PlayAural chia tin nhắn thành nhiều bộ đệm để bạn dễ xem riêng tin của trò chơi, phần trò chuyện và các loại thông báo khác.
+
+\* \*\*`[` / `]`:\*\* Chuyển sang bộ đệm trước hoặc bộ đệm kế tiếp.
+\* \*\*Shift + `[` / Shift + `]`:\*\* Nhảy tới bộ đệm đầu tiên hoặc cuối cùng.
+\* \*\*`,` / `.`:\*\* Đọc tin nhắn trước hoặc sau trong bộ đệm hiện tại.
+\* \*\*Shift + `,` / Shift + `.`:\*\* Nhảy tới tin nhắn cũ nhất hoặc mới nhất trong bộ đệm hiện tại.
+
+\*\*Di chuyển trong trình đơn trên máy tính\*\*
+
+\* \*\*Các phím mũi tên:\*\* Di chuyển trong trình đơn, danh sách và vị trí trên bàn cờ.
+\* \*\*Enter:\*\* Kích hoạt mục đang được chọn.
+\* \*\*Escape:\*\* Quay lại hoặc mở trình đơn hành động.
+\* \*\*Home / End:\*\* Nhảy tới mục đầu tiên hoặc cuối cùng trong danh sách hiện tại.
+\* \*\*F1:\*\* Nghe mô tả của mục trình đơn đang được chọn, nếu mục đó có mô tả.
+\* \*\*Các chữ cái A-Z:\*\* Nhảy nhanh tới những mục bắt đầu bằng chữ tương ứng.
+
+\*\*Điều khiển trên di động\*\*
+
+Nếu bạn đang dùng ứng dụng di động, tốt nhất hãy tắt trình đọc màn hình của hệ thống ngay sau khi kết nối thành công vào trò chơi để có trải nghiệm chơi tốt nhất.
+
+Ứng dụng di động có sẵn lời đọc và cách điều hướng riêng. Khi cần nhập văn bản theo cách gốc, chẳng hạn như nhập mật khẩu hoặc soạn tin nhắn, bạn có thể tạm bật lại trình đọc màn hình của hệ thống, sau đó quay lại dùng cử chỉ của trò chơi để tiếp tục chơi.
+
+\* \*\*Vuốt một ngón:\*\* Di chuyển giữa các mục. Trong danh sách thông thường, mọi hướng vuốt đều dùng để đổi mục. Trong trò chơi dạng lưới, hướng vuốt trùng với hướng trên bàn cờ.
+\* \*\*Chạm hai lần bằng một ngón:\*\* Kích hoạt mục đang được chọn.
+\* \*\*Chạm hai lần rồi giữ:\*\* Thực hiện thao tác phụ mà một số trò chơi sử dụng.
+\* \*\*Vuốt lên bằng hai ngón:\*\* Quay lại, đóng trình đơn hiện tại, hoặc mở và đóng trình đơn hành động khi đang trong ván.
+\* \*\*Vuốt sang phải bằng hai ngón:\*\* Mở hoặc đóng Trò chuyện.
+\* \*\*Vuốt sang trái bằng hai ngón:\*\* Mở hoặc đóng Nhật ký.
+\* \*\*Vuốt xuống bằng hai ngón:\*\* Mở hoặc đóng Phím tắt.
+\* \*\*Chạm bằng hai ngón:\*\* Dừng lời đọc hiện tại.
+\* \*\*Chạm bằng ba ngón:\*\* Nghe mô tả của mục trình đơn đang được chọn, nếu mục đó có mô tả.
+\* \*\*Chạm ba lần bằng ba ngón:\*\* Bật hoặc tắt chế độ tự đọc.
+\* \*\*Vuốt lên bằng ba ngón:\*\* Nhảy tới mục đầu tiên trong danh sách hiện tại.
+\* \*\*Vuốt xuống bằng ba ngón:\*\* Nhảy tới mục cuối cùng trong danh sách hiện tại.
+
+\*\*Phần Phím tắt trên di động\*\*
+
+Phần Phím tắt giúp người dùng di động mở nhanh các tính năng quan trọng mà không cần rời khỏi bàn đang ngồi.
+
+\* \*\*Tùy chỉnh:\*\* Mở các thiết lập cá nhân.
+\* \*\*Bạn bè:\*\* Mở danh sách bạn bè và các tính năng giao tiếp.
+\* \*\*Kiểm tra độ trễ:\*\* Kiểm tra độ trễ kết nối tới máy chủ.
+\* \*\*Đọc người dùng trực tuyến:\*\* Nghe thông tin tóm tắt giống phím F2.
+\* \*\*Mở danh sách người dùng trực tuyến:\*\* Mở danh sách ưu tiên nhà phát triển và quản trị viên giống tổ hợp Shift + F2.

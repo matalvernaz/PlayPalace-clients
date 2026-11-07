@@ -9,15 +9,19 @@ import random
 from mashumaro.mixins.json import DataClassJSONMixin
 
 from ..base import Game, GameOptions, Player
+from ..categories import CATEGORY_CARDS
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
-from ...game_utils.game_status import GameStatus
+from ...game_utils.stats_helpers import (
+    RATING_COMPETITORS_KEY,
+    rating_competitors_from_scores,
+)
 from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
-from server.core.users.base import MenuItem
+from ...ui.keybinds import KeybindState
+from ...users.base import MenuItem
 from .bot import bot_think as _bot_think
 
 
@@ -198,7 +202,7 @@ class DeadMansDeckGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-card-games"
+        return CATEGORY_CARDS
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -226,7 +230,7 @@ class DeadMansDeckGame(Game):
         ]
 
     def on_start(self) -> None:
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self._sync_table_status()
         self.game_active = True
         self.round = 0
@@ -255,6 +259,7 @@ class DeadMansDeckGame(Game):
 
     def on_tick(self) -> None:
         super().on_tick()
+        self.process_scheduled_sounds()
         self.process_sequences()
 
         if not self.game_active:
@@ -1115,7 +1120,11 @@ class DeadMansDeckGame(Game):
         dmd_player: DeadMansDeckPlayer = player  # type: ignore[assignment]
         dmd_player.selected_card_ids.clear()
         if user:
-            user.speak_l("deadmansdeck-selection-cleared", buffer="game")
+            user.speak_l(
+                "deadmansdeck-selection-cleared",
+                buffer="game",
+                history=False,
+            )
         self.refresh_menus(player)
 
     def _action_play_selected(self, player: Player, action_id: str) -> None:
@@ -1840,11 +1849,7 @@ class DeadMansDeckGame(Game):
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
             player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot and not p.replaced_human,
-                )
+                PlayerResult.from_player(p)
                 for p in active_players
             ],
             custom_data={
@@ -1852,6 +1857,12 @@ class DeadMansDeckGame(Game):
                 "winner_ids": winner_ids,
                 "rounds_played": self.round,
                 "team_rankings": team_rankings,
+                RATING_COMPETITORS_KEY: rating_competitors_from_scores(
+                    (
+                        ([player.id], 1 if player.id == self.winner_id else 0)
+                        for player in rankings
+                    )
+                ),
                 "player_stats": {
                     p.name: {
                         "correct_challenges": p.correct_challenges,

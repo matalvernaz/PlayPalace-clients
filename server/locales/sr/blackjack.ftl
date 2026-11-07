@@ -1,75 +1,56 @@
-# Blackjack
+# blackjack.ftl for locale sr. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 game-name-blackjack = Blek džek
-
 blackjack-set-rules-profile = Profil pravila: { $profile }
 blackjack-select-rules-profile = Izaberite profil pravila
 blackjack-option-changed-rules-profile = Profil pravila podešen na { $profile }.
-
 blackjack-set-starting-chips = Početni žetoni: { $count }
 blackjack-enter-starting-chips = Upišite početne žetone
 blackjack-option-changed-starting-chips = Početni žetoni podešeni na { $count }.
-
 blackjack-set-base-bet = Osnovni ulog: { $count }
 blackjack-enter-base-bet = Upišite osnovni ulog
 blackjack-option-changed-base-bet = Osnovni ulog podešen na { $count }.
-
 blackjack-set-table-min-bet = Minimalni ulog za sto: { $count }
 blackjack-enter-table-min-bet = Upišite minimalni ulog za sto
 blackjack-option-changed-table-min-bet = Minimalni ulog za sto podešen na { $count }.
-
 blackjack-set-table-max-bet = Maksimalan ulog za sto: { $count }
 blackjack-enter-table-max-bet = Upišite maksimalan ulog za sto
 blackjack-option-changed-table-max-bet = Maksimalan ulog za sto podešen na { $count }.
-
 blackjack-set-deck-count = Broj špilova: { $count }
 blackjack-enter-deck-count = Upišite broj špilova
 blackjack-option-changed-deck-count = Broj špilova podešen na { $count }.
-
 blackjack-set-dealer-soft-17 = Delitelj uvek ostaje na 17: { $enabled }
 blackjack-option-changed-dealer-soft-17 = Delitelj uvek ostaje na 17 set to { $enabled }.
-
 blackjack-set-dealer-peek-blackjack = Delitelj proverava blek džek: { $enabled }
 blackjack-option-changed-dealer-peek-blackjack = Delitelj proverava blek džek { $enabled }.
-
 blackjack-set-players-cards-face-up = Vidljive karte igrača: { $enabled }
 blackjack-option-changed-players-cards-face-up = Vidljive karte igrača { $enabled }.
-
 blackjack-set-allow-insurance = Ponudi garanciju i jednak novac: { $enabled }
 blackjack-option-changed-allow-insurance = Garancija i jednak novac { $enabled }.
-
 blackjack-set-allow-late-surrender = Dozvoli kasno odustajanje: { $enabled }
 blackjack-option-changed-allow-late-surrender = Kasno odustajanje { $enabled }.
-
 blackjack-set-blackjack-payout = Plaćanje za blek džek: { $mode }
 blackjack-select-blackjack-payout = Izaberite plaćanje za blek džek
 blackjack-option-changed-blackjack-payout = Plaćanje za blek džek podešeno na { $mode }.
-
 blackjack-set-double-down-rule = Pravilo dupliranja: { $mode }
 blackjack-select-double-down-rule = Izaberite pravilo dupliranja
 blackjack-option-changed-double-down-rule = Pravilo dupliranja podešeno na { $mode }.
-
 blackjack-set-allow-double-after-split = Dupliranje nakon razdvajanja: { $enabled }
 blackjack-option-changed-allow-double-after-split = Dupliranje nakon razdvajanja { $enabled }.
-
 blackjack-set-split-rule = Pravilo razdvajanja: { $mode }
 blackjack-select-split-rule = Izaberite pravilo razdvajanja
 blackjack-option-changed-split-rule = Pravilo razdvajanja podešeno na { $mode }.
-
 blackjack-set-max-split-hands = Maksimum razdvajanja ruke: { $count }
 blackjack-enter-max-split-hands = Upišite maksimum razdvajanja ruke
 blackjack-option-changed-max-split-hands = Maksimum razdvajanja ruke podešen na { $count }.
-
 blackjack-set-split-aces-one-card = Razdvajanje kečeva vuče samo jednu kartu: { $enabled }
 blackjack-option-changed-split-aces-one-card = Pravilo izvlačenja jedne karte nakon razdvajanja kečeva { $enabled }.
-
 blackjack-set-split-aces-blackjack = Razdvajanje kečeva se može računati kao blek džek: { $enabled }
 blackjack-option-changed-split-aces-blackjack = Pravilo razdvajanja kečeva kao blek džek { $enabled }.
-
 blackjack-set-turn-timer = Tajmer poteza: { $mode }
 blackjack-select-turn-timer = Izaberite tajmer poteza
 blackjack-option-changed-turn-timer = Tajmer poteza podešen na { $mode }.
-
 blackjack-rules-profile-vegas = Vegas
 blackjack-rules-profile-european = Evropski
 blackjack-rules-profile-friendly = Prijateljski
@@ -81,7 +62,6 @@ blackjack-double-rule-9-to-11 = Zbir 9 do 11
 blackjack-double-rule-10-to-11 = Zbir 10 do 11
 blackjack-split-rule-same-value = Ista vrednost
 blackjack-split-rule-same-rank = Isti rang
-
 blackjack-hit = Uzmi
 blackjack-stand = Završi
 blackjack-double-down = Dupliraj
@@ -94,7 +74,6 @@ blackjack-read-hand = Pročitaj ruku
 blackjack-read-dealer = Pročitaj delitelja
 blackjack-table-status = Status stola
 blackjack-read-rules = Pročitaj pravila
-
 blackjack-not-player-phase = Igrači trenutno ne rade ništa.
 blackjack-not-insurance-phase = Trenutno se ne donose odluke o garanciji.
 blackjack-hand-complete = Vaša ruka je kompletna.
@@ -108,7 +87,6 @@ blackjack-cannot-surrender = Ne možete da odustanete sa ovom rukom.
 blackjack-insurance-closed = Trenutno ne možete da donese odluku o garanciji.
 blackjack-cannot-insure = Trenutno ne možete da prihvatite garanciju.
 blackjack-cannot-even-money = Trenutno ne možete da prihvatite jednak novac.
-
 blackjack-hand-start = Ruka { $hand }.
 blackjack-you-bet = Ulažete { $amount }.
 blackjack-player-bets = { $player } ulaže { $amount }.
@@ -117,19 +95,15 @@ blackjack-insurance-prompt = Garancija je dostupna. Možete uzeti garanciju za {
 blackjack-insurance-prompt-player = Odluka o garanciji igrača { $player }.
 blackjack-insurance-prompt-even-money = Sada možete da prihvatite jednak novac.
 blackjack-insurance-prompt-even-money-player = { $player } može da uzme jednak novac.
-
 blackjack-dealer-shows = Delitelj pokazuje { $card }.
-blackjack-dealer-reveals = Delitelj otkriva { $card }. Delitelj ima { $cards } ({ $total }).
 blackjack-dealer-hits = Delitelj vuče { $card }. Delitelj ima { $total }.
 blackjack-dealer-stands = Delitelj ostaje na { $total }.
 blackjack-dealer-bust = Delitelj prelazi ograničenje sa { $total }.
 blackjack-dealer-blackjack = Delitelj ima blek džek.
-
 blackjack-you-have = Imate { $cards } ({ $total }).
 blackjack-player-has = { $player } ima { $cards } ({ $total }).
 blackjack-you-blackjack = Imate blek džek.
 blackjack-player-blackjack = { $player } ima blek džek.
-
 blackjack-you-hit = Vučete { $card }.
 blackjack-player-hits = { $player } vuče kartu.
 blackjack-you-stand = Završavate.
@@ -156,7 +130,6 @@ blackjack-your-total = Vaš zbir je { $total }.
 blackjack-player-total = { $player } ima { $total }.
 blackjack-your-total-hand = Ruka { $hand }: { $total }.
 blackjack-player-total-hand = { $player }: ruka { $hand }: { $total }.
-
 blackjack-you-win = Dobijate { $amount } žetona.
 blackjack-player-wins = { $player } dobija { $amount } žetona.
 blackjack-you-even-money-win = Jednak novac isplaćuje { $amount } žetona.
@@ -179,10 +152,8 @@ blackjack-you-broke = Nemate žetone.
 blackjack-player-broke = { $player } nema žetone.
 blackjack-you-win-game = Pobeđujete sa { $chips } žetona.
 blackjack-player-wins-game = { $player } pobeđuje sa { $chips } žetona.
-
 blackjack-total-soft = { $total } meko
 blackjack-total-hard = { $total }
-
 blackjack-read-hand-response = Vaša ruka je { $cards } ({ $total }).
 blackjack-read-hand-response-split = Ruka 1: { $hand1 } ({ $total1 }). Ruka 2: { $hand2 } ({ $total2 }). Aktivna ruka: { $active }.
 blackjack-no-dealer-cards = Delitelj još uvek nema karata.
@@ -191,7 +162,6 @@ blackjack-read-dealer-full = Delitelj ima { $cards } ({ $total }).
 blackjack-rule-yes = Da
 blackjack-rule-no = Ne
 blackjack-rules-readout = Pravila: Profil { $profile }. Ograničenja stola { $min_bet } do { $max_bet }, osnovni ulog { $base_bet }. Delitelj ostaje na 17: { $soft_17 }. Delitelj proverava blek džek: { $peek }. Karte igrača vidljive: { $players_cards_face_up }. Garancija i jednak novac: { $insurance }. Kasno odustajanje: { $surrender }. Plaćanje za blek džek: { $payout }. Pravilo dupliranja: { $double_rule }. Dupliranje nakon razdvajanja: { $das }. Pravilo razdvajanja: { $split_rule }. Maksimalan broj ruka za razdvajanje: { $split_hands }. Pravilo jedne karte nakon razdvajanja kečeva: { $split_aces_one }. Blek džek razdvajanja kečeva: { $split_aces_blackjack }.
-
 blackjack-status-line = { $player }: { $chips } Žetona
 blackjack-status-line-bet = { $player }: { $chips } žetona, ulog { $bet }
 blackjack-status-line-hand = { $player }: { $chips } žetona, ulog { $bet }, ukupno { $total }

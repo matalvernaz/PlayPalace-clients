@@ -14,6 +14,7 @@ from datetime import datetime
 import random
 
 from ..base import Game, Player
+from ..categories import CATEGORY_BOARD
 from ..registry import register_game
 from ...game_utils.action_guard_mixin import ActionGuardMixin
 from ...game_utils.actions import Action, ActionSet, Visibility
@@ -38,7 +39,7 @@ from ...game_utils.parcheesi import (
 from ...game_utils.round_based_game_mixin import RoundBasedGameMixin
 from ...game_utils.teams import TeamManager
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
+from server.ui.keybinds import KeybindState
 
 from .bot import bot_think
 from .presets import PRESETS, PRESET_KEYS, apply_preset, matching_preset_id
@@ -49,10 +50,10 @@ from .presets import PRESETS, PRESET_KEYS, apply_preset, matching_preset_id
 # ==========================================================================
 
 TRACK_SIZE_CHOICES = ["20", "24", "28", "32", "36", "40"]
-TRACK_SIZE_LABELS = {s: s for s in TRACK_SIZE_CHOICES}
 
 TOKENS_PER_PLAYER_CHOICES = ["2", "3", "4", "5", "6"]
-TOKENS_PER_PLAYER_LABELS = {s: s for s in TOKENS_PER_PLAYER_CHOICES}
+# Moves and number keys exist for this many tokens, whatever the table picks.
+MAX_TOKENS_PER_PLAYER = max(int(choice) for choice in TOKENS_PER_PLAYER_CHOICES)
 
 SAFE_SPACES_CHOICES = ["none", "home_stretch", "every_seventh"]
 SAFE_SPACES_LABELS = {
@@ -140,7 +141,6 @@ class TroubleOptions(GameOptions):
             default="28",
             value_key="track_size",
             choices=TRACK_SIZE_CHOICES,
-            choice_labels=TRACK_SIZE_LABELS,
             label="trouble-option-track-size",
             prompt="trouble-option-select-track-size",
             change_msg="trouble-option-changed-track-size",
@@ -152,7 +152,6 @@ class TroubleOptions(GameOptions):
             default="4",
             value_key="tokens",
             choices=TOKENS_PER_PLAYER_CHOICES,
-            choice_labels=TOKENS_PER_PLAYER_LABELS,
             label="trouble-option-tokens-per-player",
             prompt="trouble-option-enter-tokens-per-player",
             change_msg="trouble-option-changed-tokens-per-player",
@@ -240,7 +239,11 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-board-games"
+        return CATEGORY_BOARD
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -310,6 +313,7 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     def on_tick(self) -> None:
         super().on_tick()
+        self.process_scheduled_sounds()
         BotHelper.on_tick(self)
 
     def _reset_player_for_game(self, player: TroublePlayer) -> None:
@@ -354,7 +358,7 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             ["check_board"],
             state=KeybindState.ACTIVE,
         )
-        for token_number in range(1, self.tokens_per_player + 1):
+        for token_number in range(1, MAX_TOKENS_PER_PLAYER + 1):
             self.define_keybind(
                 str(token_number),
                 f"Move token {token_number}",
@@ -376,7 +380,7 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 is_hidden="_is_roll_hidden",
             )
         )
-        for token_number in range(1, self.tokens_per_player + 1):
+        for token_number in range(1, MAX_TOKENS_PER_PLAYER + 1):
             action_set.add(
                 Action(
                     id=f"move_token_{token_number}",
@@ -398,6 +402,7 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                 handler="_action_check_board",
                 is_enabled="_is_check_board_enabled",
                 is_hidden="_is_check_board_hidden",
+                include_spectators=True,
             )
         )
         return action_set
@@ -432,6 +437,8 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         if action_id is None:
             return None
         token_number = int(action_id.split("_")[-1])
+        if token_number > self.tokens_per_player:
+            return "trouble-reason-blocked"
         if token_number not in player.legal_move_tokens:
             token = self._token(player, token_number)
             if token is None:
@@ -453,6 +460,9 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             return vis
         assert isinstance(player, TroublePlayer)
         if player.last_roll == 0:
+            return Visibility.HIDDEN
+        # Moves for tokens beyond this table's count are never shown.
+        if action_id is not None and int(action_id.split("_")[-1]) > self.tokens_per_player:
             return Visibility.HIDDEN
         return Visibility.VISIBLE
 
@@ -528,7 +538,7 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             return
 
         # Multiple legal moves — update menus so the player can pick.
-        self.update_all_menus()
+        self.refresh_menus()
         if player.is_bot:
             BotHelper.jolt_bot(player, ticks=random.randint(10, 20))  # nosec B311
 
@@ -735,6 +745,13 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
 
     def _check_team_victory(self) -> str | None:
         """Return the team name that has finished, or None."""
+        team = self._winning_team()
+        if team is None:
+            return None
+        return self._team_manager.get_team_name(team)
+
+    def _winning_team(self):
+        """Return the team whose members have all finished, or None."""
         for team in self._team_manager.teams:
             if not team.members:
                 continue
@@ -745,7 +762,7 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                     all_finished = False
                     break
             if all_finished:
-                return self._team_manager.get_team_name(team)
+                return team
         return None
 
     # ---------------- Speech — board descriptions ----------------
@@ -894,17 +911,10 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
-            player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot,
-                    is_virtual_bot=getattr(p, "is_virtual_bot", False),
-                )
-                for p in active
-            ],
+            player_results=[PlayerResult.from_player(p) for p in active],
             custom_data={
                 "winner_name": winner_name,
+                "winner_ids": self._winner_ids(winner_name),
                 "standings": standings,
                 "track_size": self.track_length,
                 "tokens_per_player": self.tokens_per_player,
@@ -913,9 +923,27 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
             },
         )
 
+    def _winner_ids(self, winner_name: str | None) -> list[str]:
+        """Ids of the winning player, or of every member of the winning team."""
+        if self.options.team_mode != "individual":
+            team = self._winning_team()
+            if team is not None:
+                return [
+                    member.id
+                    for name in team.members
+                    if (member := self._player_by_name(name)) is not None
+                ]
+        winner = self._player_by_name(winner_name) if winner_name else None
+        if winner is None or not self._player_has_finished_all(winner):
+            return []
+        return [winner.id]
+
     def format_end_screen(self, result: GameResult, locale: str) -> list[str]:
         lines: list[str] = []
         standings = result.custom_data.get("standings", {})
+        # The end screen can be repainted by the next lobby's game, so read
+        # the token count from the result rather than the live options.
+        total = result.custom_data.get("tokens_per_player", self.tokens_per_player)
         for name, count in standings.items():
             lines.append(
                 Localization.get(
@@ -923,7 +951,7 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
                     "trouble-final-standing",
                     player=name,
                     finished=count,
-                    total=self.tokens_per_player,
+                    total=total,
                 )
             )
         winner = result.custom_data.get("winner_name")

@@ -1,244 +1,263 @@
-import json
-import random
+"""Tests for Nine rules and accessibility polish."""
 
-from server.games.nine.game import (
+from pathlib import Path
+import re
+from unittest.mock import patch
+
+from ..game_utils.cards import Card, SUIT_CLUBS, SUIT_DIAMONDS, SUIT_HEARTS
+from ..games.nine.game import (
+    CARD_ACTION_PREFIX,
     NineGame,
-    NinePlayer,
-    RANK_NINE,
-    SUIT_CLUBS,
-    SUIT_DIAMONDS,
-    SUIT_HEARTS,
-    SUIT_SPADES,
-    RANK_SIX,
-    RANK_SEVEN,
     RANK_EIGHT,
+    RANK_NINE,
+    RANK_SEVEN,
+    RANK_SIX,
     RANK_TEN,
-    RANK_JACK,
-    RANK_QUEEN,
-    RANK_KING,
-    RANK_ACE,
+    STARTING_NINE_SUIT,
 )
-from server.games.nine.state import NineState, SequenceState
-from server.game_utils.cards import Card, Deck
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
-from server.messages.localization import Localization  # For checking reasons
+from ..games.nine.state import SequenceState
+from ..messages.localization import Localization
+from ..users.test_user import MockUser
 
 
-class TestNineGameUnit:
-    """Unit tests for Nine game functions."""
-
-    def test_game_creation(self):
-        """Test creating a new Nine game."""
-        game = NineGame()
-        assert game.get_name() == "Nine"
-        assert game.get_type() == "nine"
-        assert game.get_category() == "category-card-games"
-        assert game.get_min_players() == 2
-        assert game.get_max_players() == 6
-
-    def test_player_creation(self):
-        """Test creating a player with correct initial state."""
-        game = NineGame()
-        user = MockUser("Alice")
-        player = game.add_player("Alice", user)
-
-        assert player.name == "Alice"
-        assert player.is_bot is False
-        assert isinstance(player, NinePlayer)
-        assert player.hand == []
-
-    def test_options_defaults(self):
-        """Test default game options."""
-        game = NineGame()
-        # With NineOptions removed, winning_score would be defined directly in NineGame or removed
-        # For now, it is not an option
-        # assert game.options.winning_score == 1 # Winning when 1 card left (i.e. emptied hand)
-        pass
-
-    def test_build_nine_deck(self):
-        """Test the custom nine deck building."""
-        game = NineGame()
-        deck = game._build_nine_deck()
-        assert deck.size() == 36
-
-        # Check a specific card exists, e.g., Nine of Clubs
-        nine_of_clubs_found = False
-        for card in deck.cards:
-            if card.rank == RANK_NINE and card.suit == SUIT_CLUBS:
-                nine_of_clubs_found = True
-                break
-        assert nine_of_clubs_found, "Nine of Clubs not found in deck."
-
-        # Check no invalid ranks
-        invalid_rank_found = False
-        for card in deck.cards:
-            if card.rank not in [
-                RANK_SIX,
-                RANK_SEVEN,
-                RANK_EIGHT,
-                RANK_NINE,
-                RANK_TEN,
-                RANK_JACK,
-                RANK_QUEEN,
-                RANK_KING,
-                RANK_ACE,
-            ]:
-                invalid_rank_found = True
-                break
-        assert not invalid_rank_found, "Invalid rank found in deck."
-
-    def test_prestart_validate_player_counts(self):
-        """Test player count validation."""
-        user_a = MockUser("A")
-        user_b = MockUser("B")
-        user_c = MockUser("C")
-        user_d = MockUser("D")
-        user_e = MockUser("E")
-        user_f = MockUser("F")
-
-        # Valid: 2 players
-        game_2 = NineGame()
-        game_2.add_player("A", user_a)
-        game_2.add_player("B", user_b)
-        assert not game_2.prestart_validate()
-
-        # Valid: 3 players
-        game_3 = NineGame()
-        game_3.add_player("A", user_a)
-        game_3.add_player("B", user_b)
-        game_3.add_player("C", user_c)
-        assert not game_3.prestart_validate()
-
-        # Valid: 4 players
-        game_4 = NineGame()
-        game_4.add_player("A", user_a)
-        game_4.add_player("B", user_b)
-        game_4.add_player("C", user_c)
-        game_4.add_player("D", user_d)
-        assert not game_4.prestart_validate()
-
-        # Invalid: 5 players
-        game_5 = NineGame()
-        game_5.add_player("A", user_a)
-        game_5.add_player("B", user_b)
-        game_5.add_player("C", user_c)
-        game_5.add_player("D", user_d)
-        game_5.add_player("E", user_e)
-        assert game_5.prestart_validate() == [
-            Localization.get("en", "nine-error-invalid-player-count")
-        ]
-
-        # Valid: 6 players
-        game_6 = NineGame()
-        game_6.add_player("A", user_a)
-        game_6.add_player("B", user_b)
-        game_6.add_player("C", user_c)
-        game_6.add_player("D", user_d)
-        game_6.add_player("E", user_e)
-        game_6.add_player("F", user_f)
-        assert not game_6.prestart_validate()
+_locales_dir = Path(__file__).parent.parent / "locales"
+Localization.init(_locales_dir)
 
 
-class TestNineGameSerialization:
-    """Tests for game serialization."""
-
-    def test_serialization(self):
-        """Test that game state can be serialized and deserialized."""
-        game = NineGame()
-        user1 = MockUser("Alice")
-        user2 = MockUser("Bob")
-        game.add_player("Alice", user1)
-        game.add_player("Bob", user2)
-
-        # Start game and modify some state
-        game.on_start()
-
-        # Play some cards to change the state
-        # Find Nine of Clubs and play it
-        nine_of_clubs_player = None
-        nine_of_clubs_slot = -1
-        for i, p in enumerate(game.get_active_players()):
-            for j, card in enumerate(p.hand):
-                if card.rank == RANK_NINE and card.suit == SUIT_CLUBS:
-                    nine_of_clubs_player = p
-                    nine_of_clubs_slot = j
-                    break
-            if nine_of_clubs_player:
-                break
-
-        assert nine_of_clubs_player is not None
-
-        # Ensure it's the nine_of_clubs_player's turn
-        game.current_player = nine_of_clubs_player
-        game._action_play_card(nine_of_clubs_player, f"play_card_slot_{nine_of_clubs_slot + 1}")
-
-        # The game's _end_turn logic (triggered by _action_play_card) should have advanced the current_player.
-        # So, loaded_game.current_player should automatically be the next player.
-
-        # Serialize
-        json_str = game.to_json()
-        data = json.loads(json_str)
-
-        # Verify some critical state
-        assert data["game_active"] is True
-        assert data["nine_state"]["nine_of_clubs_played"] is True
-        assert len(data["players"]) == 2
-        assert data["nine_state"]["sequences"][str(SUIT_CLUBS)]["low_card"]["rank"] == RANK_NINE
-
-        # Deserialize
-        loaded_game = NineGame.from_json(json_str)
-
-        # Verify loaded state matches original
-        assert loaded_game.game_active is True
-        assert loaded_game.nine_state.nine_of_clubs_played is True
-        assert len(loaded_game.players) == 2
-        assert loaded_game.nine_state.sequences[SUIT_CLUBS].low_card.rank == RANK_NINE
-        assert loaded_game.nine_state.sequences[SUIT_CLUBS].low_card.suit == SUIT_CLUBS
-
-        # Ensure the game can continue after loading
-        # The exact continuation depends on the bot logic, but we can verify it doesn't crash
-        # For simplicity, just check that current_player is correctly loaded and can make a move
-        assert loaded_game.current_player is not None
-        assert loaded_game._has_valid_move(loaded_game.current_player)
+def _add_players(game: NineGame, count: int) -> list:
+    players = []
+    for index in range(count):
+        name = f"Player{index + 1}"
+        players.append(game.add_player(name, MockUser(name, uuid=f"nine-player-{index + 1}")))
+    return players
 
 
-# Placeholder for Play Tests (integration tests with bots)
-# Will add these after unit tests are passing and basic functionality is stable.
-class TestNineGamePlayTest:
-    """Integration tests for complete game play."""
+def _ftl_messages(text: str) -> dict[str, set[str]]:
+    result = {}
+    current_key = None
+    current_lines: list[str] = []
+    for line in text.splitlines():
+        if line and not line.startswith((" ", "\t")) and "=" in line:
+            if current_key is not None:
+                result[current_key] = set(
+                    re.findall(r"\{\s*\$([a-zA-Z_][\w-]*)", "\n".join(current_lines))
+                )
+            current_key = line.split("=", 1)[0].strip()
+            current_lines = [line]
+        elif current_key is not None:
+            current_lines.append(line)
+    if current_key is not None:
+        result[current_key] = set(
+            re.findall(r"\{\s*\$([a-zA-Z_][\w-]*)", "\n".join(current_lines))
+        )
+    return result
 
-    def test_two_player_game_completes(self):
-        """Test that a 2-player bot game completes."""
-        random.seed(42)  # For reproducible bot behavior
-        game = NineGame()
 
-        bot1 = Bot("Bot1")
-        bot2 = Bot("Bot2")
-        game.add_player("Bot1", bot1)
-        game.add_player("Bot2", bot2)
+def test_nine_metadata_uses_authentic_supported_counts_and_preferences() -> None:
+    assert NineGame.get_min_players() == 3
+    assert NineGame.get_max_players() == 6
+    assert NineGame.relevant_preferences == ["brief_announcements"]
 
-        game.on_start()
 
-        # Run game for many ticks
-        max_ticks = 10000  # Max ticks to prevent infinite loops in case of logic error
-        for _ in range(max_ticks):
-            if game.status == "finished":
-                break
-            game.on_tick()
+def test_invalid_player_count_returns_localizable_error_key() -> None:
+    two_player_game = NineGame()
+    _add_players(two_player_game, 2)
 
-        assert game.status == "finished"
-        winner_found = False
-        for p in game.players:
-            if len(p.hand) == 0:
-                winner_found = True
-                break
-        assert winner_found, "Game finished but no player emptied their hand."
+    five_player_game = NineGame()
+    _add_players(five_player_game, 5)
 
-        # Verify final scores are sorted by cards remaining (ascending)
-        game_result = game.build_game_result()
-        final_scores = game_result.custom_data["final_scores"]
-        sorted_player_names = list(final_scores.keys())
-        # The winner should have 0 cards, so the first element should be the lowest
-        assert final_scores[sorted_player_names[0]] == 0
-        assert final_scores[sorted_player_names[0]] <= final_scores[sorted_player_names[1]]
+    assert "nine-error-invalid-player-count" in two_player_game.validate_start()
+    assert "nine-error-invalid-player-count" in five_player_game.validate_start()
+
+
+def test_direct_start_with_invalid_player_count_refuses_without_finishing() -> None:
+    game = NineGame()
+    _add_players(game, 2)
+
+    game.on_start()
+
+    assert game.status != "finished"
+    assert game.game_active is False
+
+
+def test_starting_nine_is_diamonds_not_clubs() -> None:
+    game = NineGame()
+    alice, bob, charlie = _add_players(game, 3)
+    alice.hand = [Card(id=1, rank=RANK_NINE, suit=SUIT_CLUBS)]
+    bob.hand = [Card(id=2, rank=RANK_NINE, suit=SUIT_DIAMONDS)]
+    charlie.hand = [Card(id=3, rank=RANK_SIX, suit=SUIT_HEARTS)]
+
+    assert STARTING_NINE_SUIT == SUIT_DIAMONDS
+    assert game._find_starting_nine_player() == bob.id
+
+
+def test_first_play_requires_nine_of_diamonds_with_contextual_reason() -> None:
+    game = NineGame()
+    player = _add_players(game, 3)[0]
+    game.status = "playing"
+    game.current_player = player
+    clubs_nine = Card(id=1, rank=RANK_NINE, suit=SUIT_CLUBS)
+    diamonds_nine = Card(id=2, rank=RANK_NINE, suit=SUIT_DIAMONDS)
+    player.hand = [clubs_nine, diamonds_nine]
+
+    can_play_clubs, reason = game._can_play_card(player, clubs_nine)
+    can_play_diamonds, _ = game._can_play_card(player, diamonds_nine)
+
+    assert can_play_clubs is False
+    assert reason == (
+        "nine-reason-must-play-starting-nine",
+        {"card": "9 of clubs", "starting_card": "9 of diamonds"},
+    )
+    assert can_play_diamonds is True
+
+
+def test_invalid_card_attempt_speaks_specific_recovery_message() -> None:
+    game = NineGame()
+    user = MockUser("Alice", uuid="nine-invalid-play")
+    player = game.add_player("Alice", user)
+    _add_players(game, 2)
+    game.status = "playing"
+    game.set_turn_players(game.get_active_players())
+    player.hand = [Card(id=1, rank=RANK_NINE, suit=SUIT_CLUBS)]
+
+    game._action_play_card(player, f"{CARD_ACTION_PREFIX}1")
+
+    assert user.get_last_spoken() == (
+        "The first play must be the 9 of diamonds. "
+        "9 of clubs cannot be played until the table is opened."
+    )
+
+
+def test_card_actions_use_stable_card_ids_and_report_stale_actions() -> None:
+    game = NineGame()
+    user = MockUser("Alice", uuid="nine-card-actions")
+    player = game.add_player("Alice", user)
+    _add_players(game, 2)
+    game.setup_keybinds()
+    game.status = "playing"
+    game.set_turn_players(game.get_active_players())
+    game.nine_state.nine_of_clubs_played = True
+    game.nine_state.sequences = {
+        SUIT_DIAMONDS: SequenceState(
+            low_card=Card(id=100, rank=RANK_NINE, suit=SUIT_DIAMONDS),
+            high_card=Card(id=100, rank=RANK_NINE, suit=SUIT_DIAMONDS),
+        )
+    }
+    player.hand = [
+        Card(id=12, rank=RANK_EIGHT, suit=SUIT_DIAMONDS),
+        Card(id=42, rank=RANK_TEN, suit=SUIT_DIAMONDS),
+    ]
+
+    game._update_card_actions(player)
+    turn_set = game.get_action_set(player, "turn")
+
+    assert turn_set is not None
+    assert f"{CARD_ACTION_PREFIX}12" in turn_set._order
+    assert f"{CARD_ACTION_PREFIX}42" in turn_set._order
+    assert "play_card_slot_1" not in turn_set._order
+
+    user.clear_messages()
+    game._action_play_card(player, f"{CARD_ACTION_PREFIX}999")
+
+    assert user.get_last_spoken() == (
+        "That card is no longer in your hand. Your hand menu has been refreshed."
+    )
+
+
+def test_brief_announcements_are_per_listener() -> None:
+    game = NineGame()
+    actor_user = MockUser("Alice", uuid="nine-brief-actor")
+    observer_user = MockUser("Bob", uuid="nine-brief-observer")
+    third_user = MockUser("Charlie", uuid="nine-brief-third")
+    actor_user.preferences.brief_announcements = True
+    actor = game.add_player("Alice", actor_user)
+    game.add_player("Bob", observer_user)
+    game.add_player("Charlie", third_user)
+    game.status = "playing"
+    game.current_player = actor
+    game.nine_state.nine_of_clubs_played = True
+    game.nine_state.sequences = {
+        SUIT_DIAMONDS: SequenceState(
+            low_card=Card(id=100, rank=RANK_NINE, suit=SUIT_DIAMONDS),
+            high_card=Card(id=100, rank=RANK_NINE, suit=SUIT_DIAMONDS),
+        )
+    }
+    actor.hand = [Card(id=1, rank=RANK_EIGHT, suit=SUIT_DIAMONDS)]
+
+    with patch.object(game, "_end_turn"):
+        game._play_card(actor, 0, actor.hand[0])
+
+    assert actor_user.get_last_spoken() == "You play 8 of diamonds on diamonds."
+    assert observer_user.get_last_spoken() == (
+        "Alice extends the diamonds sequence with the 8 of diamonds."
+    )
+
+
+def test_bot_opens_with_nine_of_diamonds() -> None:
+    game = NineGame()
+    bot = game.create_player("bot", "Bot", is_bot=True)
+    game.players = [bot]
+    game.set_turn_players([bot])
+    bot.hand = [
+        Card(id=1, rank=RANK_NINE, suit=SUIT_CLUBS),
+        Card(id=2, rank=RANK_NINE, suit=SUIT_DIAMONDS),
+    ]
+
+    assert game.bot_think(bot) == f"{CARD_ACTION_PREFIX}2"
+
+
+def test_bot_prefers_extension_that_unlocks_its_own_run() -> None:
+    game = NineGame()
+    bot = game.create_player("bot", "Bot", is_bot=True)
+    game.players = [bot]
+    game.set_turn_players([bot])
+    game.nine_state.nine_of_clubs_played = True
+    game.nine_state.sequences = {
+        SUIT_DIAMONDS: SequenceState(
+            low_card=Card(id=100, rank=RANK_NINE, suit=SUIT_DIAMONDS),
+            high_card=Card(id=100, rank=RANK_NINE, suit=SUIT_DIAMONDS),
+        )
+    }
+    bot.hand = [
+        Card(id=1, rank=RANK_EIGHT, suit=SUIT_DIAMONDS),
+        Card(id=2, rank=RANK_TEN, suit=SUIT_DIAMONDS),
+        Card(id=3, rank=RANK_SEVEN, suit=SUIT_DIAMONDS),
+    ]
+
+    assert game.bot_think(bot) == f"{CARD_ACTION_PREFIX}1"
+
+
+def test_nine_auto_skip_does_not_play_turn_sound_for_skipped_player() -> None:
+    game = NineGame()
+    game.setup_keybinds()
+    alice_user = MockUser("Alice", uuid="nine-turn-1")
+    bob_user = MockUser("Bob", uuid="nine-turn-2")
+    alice = game.add_player("Alice", alice_user)
+    bob = game.add_player("Bob", bob_user)
+
+    game.status = "playing"
+    game.game_active = True
+    game.nine_state.nine_of_clubs_played = True
+    game.nine_state.sequences = {
+        SUIT_CLUBS: SequenceState(
+            low_card=Card(id=100, rank=RANK_NINE, suit=SUIT_CLUBS),
+            high_card=Card(id=100, rank=RANK_NINE, suit=SUIT_CLUBS),
+        )
+    }
+    alice.hand = [Card(id=1, rank=RANK_SIX, suit=SUIT_DIAMONDS)]
+    bob.hand = [Card(id=2, rank=RANK_EIGHT, suit=SUIT_CLUBS)]
+    game.set_turn_players([alice, bob])
+    alice_user.clear_messages()
+    bob_user.clear_messages()
+
+    game._start_turn()
+
+    assert "turn.ogg" not in alice_user.get_sounds_played()
+    assert bob_user.get_sounds_played() == ["turn.ogg"]
+
+
+def test_nine_locale_key_and_variable_parity() -> None:
+    en_text = (_locales_dir / "en" / "nine.ftl").read_text(encoding="utf-8")
+    vi_text = (_locales_dir / "vi" / "nine.ftl").read_text(encoding="utf-8")
+
+    assert _ftl_messages(en_text) == _ftl_messages(vi_text)

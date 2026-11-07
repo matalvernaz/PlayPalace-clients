@@ -38,10 +38,11 @@ from ..games.citadels.game import (
     THIEF_LAUGH_SOUNDS,
 )
 from ..games.registry import GameRegistry
+from ..game_utils.stats_helpers import RATING_COMPETITORS_KEY
 from ..messages.localization import Localization
-from ..core.users.bot import Bot
-from ..core.users.base import MenuItem
-from ..core.users.test_user import MockUser
+from ..users.bot import Bot
+from ..users.base import MenuItem
+from ..users.test_user import MockUser
 
 
 _locales_dir = Path(__file__).parent.parent / "locales"
@@ -64,7 +65,7 @@ def make_game(
         else:
             user = MockUser(name, uuid=f"p{index + 1}")
             if touch_first and index == 0:
-                user.set_client_type("mobile")
+                user.client_type = "mobile"
         game.add_player(name, user)
     game.host = "Player1"
     if start:
@@ -138,6 +139,17 @@ def test_game_registered_and_defaults() -> None:
         "rating",
         "games_played",
     ]
+
+
+def test_rating_placement_uses_complete_result_tiebreak_order() -> None:
+    game = make_game()
+    game.players[1].gold = 1
+
+    result = game.build_game_result()
+
+    competitors = result.custom_data[RATING_COMPETITORS_KEY]
+    assert competitors[0] == {"player_ids": ["p2"], "rank": 0}
+    assert [entry["rank"] for entry in competitors[1:]] == [1, 1, 1]
 
 
 def test_prestart_validation_enforces_four_to_eight_players() -> None:
@@ -579,7 +591,7 @@ def test_unique_district_scoring_and_keep_protection_work() -> None:
     assert game._score_city(player) == 14
 
 
-def test_district_descriptions_appear_in_hand_build_and_warlord_labels() -> None:
+def test_district_descriptions_use_menu_hint_metadata() -> None:
     game = make_game(start=True)
     player = game.players[0]
     target = game.players[1]
@@ -594,7 +606,8 @@ def test_district_descriptions_appear_in_hand_build_and_warlord_labels() -> None
     game.turn_resource_taken = True
     build_action = game.find_action(player, "build_650")
     assert build_action is not None
-    assert "Once per turn, discard a card from your hand to gain 2 gold." in build_action.label
+    assert "Once per turn" not in build_action.label
+    assert "Once per turn, discard a card from your hand to gain 2 gold." in build_action.description
 
     target.city = [laboratory]
     begin_turn(game, player, CHARACTER_WARLORD)
@@ -603,7 +616,17 @@ def test_district_descriptions_appear_in_hand_build_and_warlord_labels() -> None
     game.execute_action(player, "warlord_destroy_mode")
     destroy_action = game.find_action(player, f"warlord_destroy_target_{target.id}_650")
     assert destroy_action is not None
-    assert "Once per turn, discard a card from your hand to gain 2 gold." in destroy_action.label
+    assert "Once per turn" not in destroy_action.label
+    assert "Once per turn, discard a card from your hand to gain 2 gold." in destroy_action.description
+
+    game.refresh_menus(player)
+    game.flush_menus()
+    destroy_item = next(
+        item
+        for item in game.get_user(player).get_current_menu_items("turn_menu")
+        if item.id == f"warlord_destroy_target_{target.id}_650"
+    )
+    assert "Once per turn, discard a card from your hand to gain 2 gold." in destroy_item.text
 
 
 def test_dynamic_target_and_toggle_menus_focus_the_expected_item() -> None:
@@ -949,18 +972,18 @@ def test_live_status_boxes_use_stable_menu_item_ids() -> None:
         make_card(682, "Palace", 5, DISTRICT_NOBLE),
     ]
     game.execute_action(player, "read_hand")
-    hand_items = user.menus["transient_display"]["items"]
+    hand_items = user.menus["status_box"]["items"]
     assert all(isinstance(item, MenuItem) for item in hand_items)
     assert [item.id for item in hand_items] == ["hand:header", "hand:681", "hand:682"]
 
     game.execute_action(player, "read_cities")
-    city_items = user.menus["transient_display"]["items"]
+    city_items = user.menus["status_box"]["items"]
     assert isinstance(city_items[0], MenuItem)
     assert city_items[0].id == "cities:header"
     assert f"city:{player.id}" in [item.id for item in city_items if isinstance(item, MenuItem)]
 
     game.execute_action(player, "check_scores_detailed")
-    standings_items = user.menus["transient_display"]["items"]
+    standings_items = user.menus["status_box"]["items"]
     assert isinstance(standings_items[0], MenuItem)
     assert standings_items[0].id == "standings:header"
     assert f"standings:{player.id}" in [
@@ -1181,7 +1204,7 @@ def test_status_character_and_discards_use_tts_while_detailed_status_opens_a_sta
 
     user.clear_messages()
     game.execute_action(player, "read_status_detailed")
-    assert any(message.type == "show_menu" and message.data.get("menu_id") == "transient_display" for message in user.messages)
+    assert any(message.type == "show_menu" and message.data.get("menu_id") == "status_box" for message in user.messages)
     detailed_lines = game._status_lines("en", detailed=True)
     assert not any("Faceup discarded characters:" in line for line in detailed_lines)
     assert not any("Current standings" in line for line in detailed_lines)

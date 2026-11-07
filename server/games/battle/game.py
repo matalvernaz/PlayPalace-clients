@@ -10,12 +10,11 @@ from ..base import Game, Player, GameOptions
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, MenuInput, Visibility
 from ...game_utils.game_result import GameResult, PlayerResult
-from ...game_utils.game_status import GameStatus
 from ...game_utils.options import BoolOption, IntOption, MenuOption, TeamModeOption, option_field
 from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...game_utils.teams import TeamManager
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
+from ...ui.keybinds import KeybindState
 
 from .content import (
     BattleEffectBlock,
@@ -327,7 +326,7 @@ class BattleGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-arcade-games"
+        return "arcade"
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -393,15 +392,6 @@ class BattleGame(Game):
     def _move_label(self, locale: str, move_id: str) -> str:
         move = get_move_map()[move_id]
         return self._locale_name(move.name, locale)
-
-    def _move_menu_label(self, locale: str, move_id: str) -> str:
-        move = get_move_map()[move_id]
-        return Localization.get(
-            locale,
-            "battle-skill-entry",
-            skill=self._locale_name(move.name, locale),
-            description=self._move_description(locale, move),
-        )
 
     def _preset_label(self, locale: str, preset_id: str) -> str:
         preset = get_preset_map()[preset_id]
@@ -761,20 +751,6 @@ class BattleGame(Game):
             )
         return lines
 
-    def _broadcast_game_localized(self, key: str, **builder_kwargs) -> None:
-        for player in self.players:
-            user = self.get_user(player)
-            if not user:
-                continue
-            kwargs = self._localized_kwargs(user.locale, builder_kwargs)
-            user.speak_l(key, buffer="game", **kwargs)
-
-    def _localized_kwargs(self, locale: str, builder_kwargs: dict) -> dict:
-        return {
-            name: value(locale) if callable(value) else value
-            for name, value in builder_kwargs.items()
-        }
-
     def _broadcast_actor_localized(
         self,
         actor: Player | None,
@@ -782,14 +758,16 @@ class BattleGame(Game):
         public_key: str,
         **builder_kwargs,
     ) -> None:
-        actor_id = actor.id if actor else ""
-        for recipient in self.players:
-            user = self.get_user(recipient)
-            if not user:
-                continue
-            key = personal_key if actor_id and recipient.id == actor_id else public_key
-            kwargs = self._localized_kwargs(user.locale, builder_kwargs)
-            user.speak_l(key, buffer="game", **kwargs)
+        if actor:
+            self.broadcast_personal_l(
+                actor,
+                personal_key,
+                public_key,
+                buffer="game",
+                **builder_kwargs,
+            )
+        else:
+            self.broadcast_l(public_key, buffer="game", **builder_kwargs)
 
     def _broadcast_fighter_localized(
         self,
@@ -803,7 +781,7 @@ class BattleGame(Game):
             if not user:
                 continue
             key = personal_key if subject.owner_player_id and recipient.id == subject.owner_player_id else public_key
-            kwargs = self._localized_kwargs(user.locale, builder_kwargs)
+            kwargs = self._resolve_broadcast_kwargs(user.locale, builder_kwargs)
             user.speak_l(key, buffer="game", **kwargs)
 
     def prestart_validate(self) -> list[str | tuple[str, dict]]:
@@ -854,7 +832,7 @@ class BattleGame(Game):
             self._team_manager.team_mode = "individual"
             self._team_manager.teams = []
             self._team_manager._player_to_team = {}
-        self.status = GameStatus.PLAYING
+        self.status = "playing"
         self.phase = PHASE_SELECTION
         self.game_active = True
         self._sync_table_status()
@@ -901,7 +879,6 @@ class BattleGame(Game):
             player,
             "battle-selection-locked-you",
             "battle-selection-locked-player",
-            player=player.name,
         )
 
     def _choose_bot_roster(self, selection_count: int) -> list[str]:
@@ -1627,6 +1604,7 @@ class BattleGame(Game):
 
     def on_tick(self) -> None:
         super().on_tick()
+        self.process_scheduled_sounds()
         self.process_sequences()
         if self.status != "playing":
             return
@@ -1973,7 +1951,18 @@ class BattleGame(Game):
                         options="_target_options_for_move",
                         bot_select="_bot_select_target_for_move",
                     )
-                turn_set.add(Action(id=f"battle_move_{move_id}", label=self._move_menu_label(locale, move_id), handler="_action_battle_choose_move", is_enabled="_is_battle_choose_move_enabled", is_hidden="_is_battle_choose_move_hidden", input_request=input_request, show_in_actions_menu=False))
+                turn_set.add(
+                    Action(
+                        id=f"battle_move_{move_id}",
+                        label=self._move_label(locale, move_id),
+                        description=self._move_description(locale, move),
+                        handler="_action_battle_choose_move",
+                        is_enabled="_is_battle_choose_move_enabled",
+                        is_hidden="_is_battle_choose_move_hidden",
+                        input_request=input_request,
+                        show_in_actions_menu=False,
+                    )
+                )
 
     def _is_battle_selection_action_hidden(self, player: Player) -> Visibility:
         battle_player = self._as_battle_player(player)
@@ -2131,7 +2120,6 @@ class BattleGame(Game):
             player,
             "battle-selected-fighters-you",
             "battle-selected-fighters-player",
-            player=player.name,
             fighters=lambda locale: self._preset_list_label(locale, selected_ids),
         )
 
@@ -2181,7 +2169,6 @@ class BattleGame(Game):
             player,
             "battle-selection-locked-you",
             "battle-selection-locked-player",
-            player=player.name,
         )
         self.refresh_menus()
 
@@ -2423,7 +2410,10 @@ class BattleGame(Game):
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
-            player_results=[PlayerResult(player_id=player.id, player_name=player.name, is_bot=player.is_bot and not player.replaced_human) for player in self.get_active_players()],
+            player_results=[
+                PlayerResult.from_player(player)
+                for player in self.get_active_players()
+            ],
             custom_data=custom_data,
         )
 

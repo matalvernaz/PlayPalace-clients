@@ -23,13 +23,15 @@ from datetime import datetime
 import random
 
 from ..base import Game, Player
+from ..categories import CATEGORY_BOARD
 from ..registry import register_game
 from ...game_utils.actions import Action, ActionSet, MenuInput, Visibility
 from ...game_utils.bot_helper import BotHelper
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.game_status import GameStatus
+from ...game_utils.sequence_runner_mixin import SequenceBeat, SequenceOperation
 from ...messages.localization import Localization
-from server.core.ui.keybinds import KeybindState
+from server.ui.keybinds import KeybindState
 
 from . import bot as life_bot
 from .options import LifeOptions
@@ -72,6 +74,10 @@ def _fmt_money(n: int) -> str:
     return f"{n:,}"
 
 
+# Picks sound variants without drawing from the game's random stream.
+_SOUND_RANDOM = random.Random()
+
+
 @dataclass
 @register_game
 class GameOfLifeGame(Game):
@@ -104,6 +110,11 @@ class GameOfLifeGame(Game):
     # Per-player pending career offers (player_id -> list of CANONICAL_CAREERS indices)
     career_offers: dict[str, list[int]] = field(default_factory=dict)
 
+    # True while a spin or the endgame is playing out through scheduled events.
+    is_animating: bool = False
+    # Numbers each scheduled event's engine sequence so its id is unique.
+    event_serial: int = 0
+
     # ---------------------------------------------------------------------
     # Metadata
     # ---------------------------------------------------------------------
@@ -118,7 +129,11 @@ class GameOfLifeGame(Game):
 
     @classmethod
     def get_category(cls) -> str:
-        return "category-board-games"
+        return CATEGORY_BOARD
+
+    @classmethod
+    def get_supported_leaderboards(cls) -> list[str]:
+        return ["wins", "rating", "games_played"]
 
     @classmethod
     def get_min_players(cls) -> int:
@@ -264,17 +279,16 @@ class GameOfLifeGame(Game):
         if player.is_bot:
             BotHelper.jolt_bot(player, ticks=random.randint(25, 45))
 
-        # Rebuild menus.
-        if previous_player is not None:
-            self.rebuild_player_menu(player, position=1)
-            if previous_player != player:
-                self.rebuild_player_menu(previous_player)
-        else:
-            for p in self.players:
-                if p == player:
-                    self.rebuild_player_menu(p, position=1)
-                else:
-                    self.rebuild_player_menu(p)
+        # Everyone's menu changes with the turn; the player whose turn it is
+        # lands on their first option.
+        self.refresh_menus()
+        self._focus_first_menu_item(player)
+
+    def _focus_first_menu_item(self, player: Player) -> None:
+        """Queue a one-shot focus jump to the first row of the player's menu."""
+        visible = self.get_all_visible_actions(player)
+        if visible:
+            self.request_menu_focus(player, visible[0].action.id)
 
     def end_turn(self) -> None:
         previous = self.current_player
@@ -403,7 +417,6 @@ class GameOfLifeGame(Game):
                     prompt="life-stock-prompt",
                     options="_stock_number_options",
                     bot_select="_bot_select_stock_number",
-                    include_cancel=False,
                 ),
             )
         )
@@ -472,6 +485,7 @@ class GameOfLifeGame(Game):
             handler="_action_check_status",
             is_enabled="_is_check_status_enabled",
             is_hidden="_is_check_status_hidden",
+            include_spectators=True,
         )
         action_set.add(status_action)
         if status_action.id in action_set._order:
@@ -484,6 +498,7 @@ class GameOfLifeGame(Game):
             handler="_action_check_status_detailed",
             is_enabled="_is_check_status_enabled",
             is_hidden="_is_check_status_hidden",
+            include_spectators=True,
         )
         action_set.add(detailed)
         if detailed.id in action_set._order:
@@ -592,22 +607,33 @@ class GameOfLifeGame(Game):
         lp: LifePlayer = player  # type: ignore
         return Visibility.VISIBLE if lp.pending == "path" else Visibility.HIDDEN
 
-    def _is_career_pick_enabled(self, player: Player) -> str | None:
+    def _is_career_pick_enabled(self, player: Player, *, action_id: str | None = None) -> str | None:
         if not self._my_turn(player):
             return "life-action-not-your-turn"
         lp: LifePlayer = player  # type: ignore
         if lp.pending != "career_pick":
             return "life-action-must-spin-first"
+        if action_id is not None and not self._is_slot_visible(lp, self._career_slot(action_id)):
+            return "life-action-must-spin-first"
         return None
 
-    def _is_career_pick_hidden(self, player: Player) -> Visibility:
+    def _is_career_pick_hidden(self, player: Player, *, action_id: str | None = None) -> Visibility:
         lp: LifePlayer = player  # type: ignore
         if not self._my_turn(player) or lp.pending != "career_pick":
             return Visibility.HIDDEN
-        # Extract slot index from the action id we're being asked about.
-        # (The base action framework calls this per-action; the slot is read
-        # from the action id itself.)
+        # Only as many rows as careers on offer; the engine passes the id of
+        # the slot it's asking about.
+        if action_id is not None and not self._is_slot_visible(lp, self._career_slot(action_id)):
+            return Visibility.HIDDEN
         return Visibility.VISIBLE
+
+    @staticmethod
+    def _career_slot(action_id: str) -> int:
+        """The slot number at the end of a pick_career_<slot> action id."""
+        try:
+            return int(action_id.rsplit("_", 1)[-1])
+        except ValueError:
+            return -1
 
     def _is_slot_visible(self, player: LifePlayer, slot: int) -> bool:
         offers = self.career_offers.get(player.id, [])
@@ -817,15 +843,15 @@ class GameOfLifeGame(Game):
             if p is player:
                 txt = Localization.get(user.locale, message_id, who="you", **kwargs)
                 if hasattr(self, "record_transcript_event"):
-                    self.record_transcript_event(p, txt, "table")
-                user.speak_l(message_id, "table", who="you", **kwargs)
+                    self.record_transcript_event(p, txt, "game")
+                user.speak_l(message_id, "game", who="you", **kwargs)
             else:
                 txt = Localization.get(
                     user.locale, message_id, who="player", player=player.name, **kwargs
                 )
                 if hasattr(self, "record_transcript_event"):
-                    self.record_transcript_event(p, txt, "table")
-                user.speak_l(message_id, "table", who="player", player=player.name, **kwargs)
+                    self.record_transcript_event(p, txt, "game")
+                user.speak_l(message_id, "game", who="player", player=player.name, **kwargs)
 
     def _announce_lines(
         self, lines: list[tuple[Player, str, dict]]
@@ -878,8 +904,8 @@ class GameOfLifeGame(Game):
                 rendered.append(text)
             combined = "\n".join(rendered)
             if hasattr(self, "record_transcript_event"):
-                self.record_transcript_event(p, combined, "table")
-            user.speak(combined, "table")
+                self.record_transcript_event(p, combined, "game")
+            user.speak(combined, "game")
 
     # ---------------------------------------------------------------------
     # Action handlers — spin + movement
@@ -891,7 +917,7 @@ class GameOfLifeGame(Game):
             return
         self.is_animating = True
         self.broadcast_l("life-spinner-spinning")
-        self.play_standard_dice_roll_sound()
+        self._play_spinner_sound()
 
         value = random.randint(1, 10)  # nosec B311
 
@@ -1286,6 +1312,45 @@ class GameOfLifeGame(Game):
     # Animated event queue (spinner, step, landing resolution)
     # ---------------------------------------------------------------------
 
+    def schedule_event(self, event_type: str, data: dict, delay_ticks: int = 0) -> None:
+        """Run on_game_event(event_type, data) after delay_ticks game ticks.
+
+        Each event is a one-beat engine sequence whose callback dispatches to
+        on_game_event, so pending events are saved and restored with the game.
+        As before, an event never fires within the tick that scheduled it.
+        """
+        self.event_serial += 1
+        self.start_sequence(
+            f"life-event-{self.event_serial}",
+            [SequenceBeat(ops=[SequenceOperation.callback_op(event_type, data)])],
+            start_delay=delay_ticks,
+            replace_existing=False,
+            start_immediately=False,
+        )
+
+    def on_sequence_callback(self, sequence_id: str, callback_id: str, payload: dict) -> None:
+        self.on_game_event(callback_id, payload)
+
+    def _play_spinner_sound(self) -> None:
+        """Play one of the board-game spinner (dice roll) sounds."""
+        self.play_sound(f"game_squares/diceroll{_SOUND_RANDOM.randint(1, 3)}.ogg")
+
+    def _schedule_step_sounds(
+        self, steps: int, *, start_delay_ticks: int, step_interval_ticks: int
+    ) -> int:
+        """Schedule one footstep sound per space moved.
+
+        Returns the delay just after the last step, for the arrival event.
+        """
+        next_delay = max(0, start_delay_ticks)
+        for _ in range(max(0, steps)):
+            self.schedule_sound(
+                f"game_squares/step{_SOUND_RANDOM.randint(1, 3)}.ogg",
+                delay_ticks=next_delay,
+            )
+            next_delay += max(0, step_interval_ticks)
+        return next_delay
+
     def on_game_event(self, event_type: str, data: dict) -> None:
         if event_type == "spin_result":
             self._handle_spin_result(data)
@@ -1344,12 +1409,11 @@ class GameOfLifeGame(Game):
         lp: LifePlayer = player  # type: ignore
         base_delay = 6
         step_interval = 4
-        # Use the standard token-movement scheduler for per-step sounds.
-        next_delay = self.schedule_standard_token_movement_sounds(
+        # One footstep sound per space moved.
+        next_delay = self._schedule_step_sounds(
             steps,
             start_delay_ticks=base_delay,
             step_interval_ticks=step_interval,
-            variant_count=3,
         )
         # After all steps, jump the player to the final position in one event.
         target = min(lp.position + steps, len(self.track) - 1)
@@ -1552,7 +1616,8 @@ class GameOfLifeGame(Game):
 
     def _rebuild_and_continue(self, player: Player) -> None:
         """Rebuild the current player's menu for a pending prompt and continue."""
-        self.rebuild_player_menu(player, position=1)
+        self.refresh_menus(player)
+        self._focus_first_menu_item(player)
         # If it's a bot, they'll act on their next tick via bot_think.
         BotHelper.jolt_bot(player, ticks=random.randint(15, 25))
 
@@ -1668,7 +1733,7 @@ class GameOfLifeGame(Game):
             return
         value = random.randint(1, 10)  # nosec B311
         self.estates_results[pid] = value
-        self.play_standard_dice_roll_sound()
+        self._play_spinner_sound()
         self.broadcast_l("life-estates-spin", player=player.name, value=value)
         self.estates_index += 1
         self.schedule_event("estates_spin", {}, delay_ticks=10)
@@ -1803,7 +1868,8 @@ class GameOfLifeGame(Game):
 
     def on_tick(self) -> None:
         super().on_tick()
-        self.process_scheduled_events()
+        self.process_scheduled_sounds()
+        self.process_sequences()
         if self.status == "playing":
             BotHelper.on_tick(self)
 
@@ -1885,17 +1951,10 @@ class GameOfLifeGame(Game):
             game_type=self.get_type(),
             timestamp=datetime.now().isoformat(),
             duration_ticks=self.sound_scheduler_tick,
-            player_results=[
-                PlayerResult(
-                    player_id=p.id,
-                    player_name=p.name,
-                    is_bot=p.is_bot,
-                    is_virtual_bot=getattr(p, "is_virtual_bot", False),
-                )
-                for p in sorted_players
-            ],
+            player_results=[PlayerResult.from_player(p) for p in sorted_players],
             custom_data={
                 "winner_name": winner.name if winner else None,
+                "winner_ids": [winner.id] if winner else [],
                 "totals": {p.name: totals.get(p.id, 0) for p in sorted_players},
             },
         )

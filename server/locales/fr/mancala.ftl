@@ -1,32 +1,26 @@
-# Mancala game messages — fr
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale fr. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mancala
-
 # Actions
 mancala-pit-label = Trou { $pit } : { $stones } graines
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } sème { $stones } graines du trou { $pit }
 mancala-capture = { $player } capture { $captured } graines !
 mancala-extra-turn = Dernière graine dans le grenier ! { $player } rejoue.
 mancala-winner = { $player } gagne avec { $score } graines !
 mancala-draw = Égalité ! Les deux joueurs ont { $score } graines.
-
 # Board status
-mancala-board-status =
-    Vos trous : { $own_pits }. Votre grenier : { $own_store }. Trous adverses : { $opp_pits }. Grenier adverse : { $opp_store }.
-
+mancala-board-status = Vos trous : { $own_pits }. Votre grenier : { $own_store }. Trous adverses : { $opp_pits }. Grenier adverse : { $opp_store }.
 # Options
 mancala-set-stones = Graines par trou : { $stones }
 mancala-desc-stones = Nombre de graines dans chaque trou au début
 mancala-enter-stones = Entrez le nombre de graines de départ par trou :
 mancala-option-changed-stones = Graines de départ changées à { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Ce trou est vide.
-
 # Rules
 mancala-rules =
     Le Mancala est un jeu de trous et de graines pour deux joueurs.
@@ -38,7 +32,5 @@ mancala-rules =
     La partie se termine quand un côté est complètement vide. Les graines restantes vont dans le grenier du joueur correspondant.
     Le joueur avec le plus de graines gagne.
     Utilisez les touches 1 à 6 pour choisir un trou. Appuyez sur E pour vérifier le plateau.
-
 # End screen
 mancala-final-score = { $player } : { $score } graines
-mancala-check-board = Check board

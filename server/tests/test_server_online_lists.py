@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from server.core.server import Server
-from server.core.users.preferences import UserPreferences
+from server.users.preferences import UserPreferences
 
 
 class DummyUser:
@@ -70,12 +70,12 @@ class FakeGame:
         self.user_uuid = user_uuid
         self.transient_open = transient_open
         self.status_calls: list[list[str]] = []
+        # The engine's records of an open status box or pending input.
+        self._status_box_open: set[str] = {user_uuid} if transient_open else set()
+        self._pending_actions: dict[str, str] = {}
 
     def get_player_by_id(self, player_id: str):
         return SimpleNamespace(id=player_id) if player_id == self.user_uuid else None
-
-    def _is_transient_display_open(self, _player) -> bool:
-        return self.transient_open
 
     def status_box(self, player, lines: list[str]) -> None:
         self.status_calls.append(lines)
@@ -84,7 +84,7 @@ class FakeGame:
 @pytest.fixture
 def server(tmp_path, monkeypatch):
     # Use real server wiring but avoid real tables/network.
-    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite", preload_locales=True)
+    srv = Server(host="127.0.0.1", port=0, db_path=tmp_path / "db.sqlite")
 
     # Deterministic localization to avoid locale file dependencies in assertions.
     monkeypatch.setattr(

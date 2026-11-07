@@ -1,95 +1,78 @@
-# Ninety Nine - Bản dịch Tiếng Việt
-# Các thông báo khớp chính xác với bản v10
+# ninetynine.ftl for locale vi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Thông tin game
-ninetynine-name = Ninety Nine
-ninetynine-description = Trò chơi bài mà người chơi cố gắng không để tổng điểm vượt quá 99. Người cuối cùng còn trụ lại sẽ thắng!
-
-# Vòng chơi
+game-name-ninetynine = Chín mươi chín
 ninetynine-round = Vòng { $round }.
-
-# Lượt
-ninetynine-player-turn = Lượt của { $player }.
-
-# Đánh bài - khớp chính xác với bản v10
-ninetynine-you-play = Bạn đánh lá { $card }. Tổng điểm hiện là { $count }.
-ninetynine-player-plays = { $player } đánh lá { $card }. Tổng điểm hiện là { $count }.
-
-# Đảo chiều
-ninetynine-direction-reverses = Đổi chiều chơi!
-
-# Bỏ lượt
-ninetynine-player-skipped = { $player } bị bỏ lượt.
-
-# Mất thẻ (Token) - khớp chính xác với bản v10
-ninetynine-you-lose-tokens = Bạn mất { $amount } { $amount ->
-    [one] thẻ
-   *[other] thẻ
-}.
-ninetynine-player-loses-tokens = { $player } mất { $amount } { $amount ->
-    [one] thẻ
-   *[other] thẻ
-}.
-
-# Loại bỏ
+ninetynine-you-play = Bạn đánh lá { $card }. Tổng điểm giờ là { $count }.
+ninetynine-player-plays = { $player } đánh lá { $card }. Tổng điểm giờ là { $count }.
+ninetynine-direction-reverses = Chiều chơi bị đảo ngược!
+ninetynine-you-skipped = Bạn bị mất lượt.
+ninetynine-player-skipped = { $player } bị mất lượt.
+n99-card-plus-10 = +10
+n99-card-minus-10 = -10
+n99-card-pass = Bỏ lượt
+n99-card-reverse = Đảo chiều
+n99-card-skip = Nhảy lượt
+n99-card-ninety-nine = Chín Mươi Chín
+ninetynine-you-lose-tokens =
+    Bạn mất { $amount } { $amount ->
+        [one] thẻ
+       *[other] thẻ
+    }.
+ninetynine-player-loses-tokens =
+    { $player } mất { $amount } { $amount ->
+        [one] thẻ
+       *[other] thẻ
+    }.
+ninetynine-you-eliminated = Bạn đã bị loại!
 ninetynine-player-eliminated = { $player } đã bị loại!
-
-# Kết thúc game
+ninetynine-you-win = Bạn thắng trò chơi!
 ninetynine-player-wins = { $player } thắng trò chơi!
-
-# Chia bài
-ninetynine-you-deal = Bạn chia bài.
-ninetynine-player-deals = { $player } chia bài.
-
-# Rút bài
+ninetynine-end-score =
+    { $rank }. { $player }: { $tokens } { $tokens ->
+        [one] thẻ
+       *[other] thẻ
+    }
 ninetynine-you-draw = Bạn rút lá { $card }.
 ninetynine-player-draws = { $player } rút một lá bài.
-
-# Không có bài hợp lệ
+ninetynine-you-no-valid-cards = Bạn không có lá bài nào để tổng điểm không vượt quá 99!
+ninetynine-player-no-valid-cards = { $player } không có lá bài nào để tổng điểm không vượt quá 99!
 ninetynine-no-valid-cards = { $player } không có lá bài nào để tổng điểm không vượt quá 99!
-
-# Trạng thái - cho phím C
-ninetynine-current-count = Tổng điểm là { $count }.
-
-# Kiểm tra bài - cho phím H
-ninetynine-hand-cards = Bài trên tay: { $cards }.
-ninetynine-hand-empty = Bạn không có bài.
-
-# Lựa chọn cho quân Át
-ninetynine-ace-choice = Dùng Át là +1 hay +11?
+ninetynine-current-count = Tổng điểm hiện tại là { $count }.
+ninetynine-next-round-wait = Vòng tiếp theo sẽ bắt đầu sau { $seconds } giây.
+ninetynine-ace-choice = Chọn giá trị cho lá Át: +1 hay +11?
 ninetynine-ace-add-eleven = Cộng 11
 ninetynine-ace-add-one = Cộng 1
-
-# Lựa chọn cho quân 10
-ninetynine-ten-choice = Dùng 10 là +10 hay -10?
+ninetynine-ten-choice = Chọn giá trị cho lá 10: +10 hay -10?
 ninetynine-ten-add = Cộng 10
 ninetynine-ten-subtract = Trừ 10
-
-# Rút bài thủ công
+ninetynine-select-card-choice = Chọn cách dùng lá bài này.
+ninetynine-choice-1 = Lựa chọn 1
+ninetynine-choice-2 = Lựa chọn 2
 ninetynine-draw-card = Rút bài
-ninetynine-draw-prompt = Nhấn Space hoặc D để rút bài.
-
-# Tùy chọn
-ninetynine-set-tokens = Số thẻ khởi đầu: { $tokens }
-ninetynine-enter-tokens = Nhập số thẻ khởi đầu:
-ninetynine-option-changed-tokens = Số thẻ khởi đầu đã đặt là { $tokens }.
+ninetynine-draw-prompt = Vui lòng rút một lá bài.
+ninetynine-no-card-to-draw = Không có lá bài nào để rút. Hãy tiếp tục với các lá hiện có trên tay.
+ninetynine-set-tokens = Số thẻ ban đầu: { $tokens }
+ninetynine-enter-tokens = Nhập số thẻ ban đầu:
+ninetynine-option-changed-tokens = Số thẻ ban đầu đã được đặt là { $tokens }.
+ninetynine-desc-starting-tokens = Số thẻ sinh tồn mỗi người chơi Chín Mươi Chín có khi bắt đầu. Người chơi bị loại khi mất hết thẻ (mặc định 9, phạm vi 1-50).
 ninetynine-set-rules = Biến thể luật: { $rules }
 ninetynine-select-rules = Chọn biến thể luật
-ninetynine-option-changed-rules = Biến thể luật đã đặt là { $rules }.
+ninetynine-option-changed-rules = Biến thể luật đã được đặt là { $rules }.
+ninetynine-desc-rules-variant = Chọn bộ bài Chín Mươi Chín tiêu chuẩn 52 lá hoặc bộ bài hành động đặc biệt.
 ninetynine-set-hand-size = Số bài trên tay: { $size }
 ninetynine-enter-hand-size = Nhập số bài trên tay:
-ninetynine-option-changed-hand-size = Số bài trên tay đã đặt là { $size }.
+ninetynine-option-changed-hand-size = Số bài trên tay đã được đặt là { $size }.
+ninetynine-desc-hand-size = Số lá mỗi người chơi được chia khi bắt đầu mỗi vòng Chín Mươi Chín (mặc định 3, phạm vi 1-13).
 ninetynine-set-autodraw = Tự động rút bài: { $enabled }
 ninetynine-option-changed-autodraw = Tự động rút bài: { $enabled }.
-
-# Thông báo biến thể luật (hiện khi bắt đầu game)
-ninetynine-rules-quentin = Luật Quentin C.
-ninetynine-rules-rsgames = Luật RS Games.
-
-# Lựa chọn biến thể luật (hiện trong menu)
-ninetynine-rules-variant-quentin_c = Quentin C
-ninetynine-rules-variant-rs_games = RS Games
-
-# Lý do hành động bị vô hiệu hóa
+ninetynine-desc-autodraw = Khi bật, người chơi tự động rút lá thay thế sau khi đánh bài. Khi tắt, người chơi phải rút thủ công.
+ninetynine-rules-action-cards = Luật lá bài hành động.
+ninetynine-rules-variant-standard = Tiêu chuẩn
+ninetynine-rules-variant-action-cards = Lá Bài Hành Động
 ninetynine-choose-first = Bạn cần đưa ra lựa chọn trước.
-ninetynine-draw-first = Bạn cần rút bài trước.
+ninetynine-round-transition-waiting = Đang chờ vòng tiếp theo bắt đầu.
+ninetynine-pause-timer = Tạm dừng đồng hồ
+ninetynine-timer-not-active = Đồng hồ vòng chơi không hoạt động.
+ninetynine-error-too-many-cards = Cần chia quá nhiều bài: { $players } người chơi × { $hand_size } lá vượt quá bộ bài { $deck_size } lá.
+ninetynine-check-count = Kiểm tra tổng điểm

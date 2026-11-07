@@ -630,7 +630,7 @@ class VirtualBotManager:
 
     def _restore_bot_user(self, bot: VirtualBot) -> None:
         """Restore a VirtualUser for a bot that was online."""
-        from .users.virtual_user import VirtualUser
+        from ..users.virtual_user import VirtualUser
 
         # Check if user already exists (e.g., from table loading for IN_GAME bots)
         existing_user = self._server._users.get(bot.name)
@@ -1281,7 +1281,7 @@ class VirtualBotManager:
         game.add_player(bot.name, user)
         game.broadcast_l("table-joined", player=bot.name)
         game.broadcast_sound("join.ogg")
-        game.rebuild_all_menus()
+        game.refresh_menus()
 
         bot.state = VirtualBotState.IN_GAME
         bot.table_id = table.table_id
@@ -1294,7 +1294,7 @@ class VirtualBotManager:
 
     def _bring_bot_online(self, bot: VirtualBot) -> None:
         """Bring a bot online."""
-        from .users.virtual_user import VirtualUser
+        from ..users.virtual_user import VirtualUser
 
         # Check if username is already taken by a real user
         if bot.name in self._server._users:
@@ -1407,7 +1407,7 @@ class VirtualBotManager:
         game.add_player(bot.name, user)
         game.broadcast_l("table-joined", player=bot.name)
         game.broadcast_sound("join.ogg")
-        game.rebuild_all_menus()
+        game.refresh_menus()
 
         # Update bot state
         bot.state = VirtualBotState.IN_GAME

@@ -6,14 +6,15 @@ import pytest
 
 from ..games.dominos.game import (
     BRANCH_ORDER,
+    DOMINO_SET_MAX_PIPS,
     DominosGame,
     DominosOptions,
     DominoTile,
 )
 from ..games.registry import GameRegistry
 from ..messages.localization import Localization
-from server.core.users.bot import Bot
-from server.core.users.test_user import MockUser
+from ..users.bot import Bot
+from ..users.test_user import MockUser
 
 
 _locales_dir = Path(__file__).parent.parent / "locales"
@@ -48,7 +49,7 @@ def set_web_client(game: DominosGame, *players) -> None:
     for player in targets:
         user = game.get_user(player)
         if user is not None:
-            user.set_client_type("web")
+            user.client_type = "web"
 
 
 def advance_until(game: DominosGame, condition, max_ticks: int = 400) -> bool:
@@ -72,9 +73,9 @@ def test_dominos_game_registration_and_defaults() -> None:
     assert game_class.get_name() == "Dominos"
     assert game_class.get_name_key() == "game-name-dominos"
     assert game_class.get_type() == "dominos"
-    assert game_class.get_category() == "category-playaural"
+    assert game_class.get_category() == "cards"
     assert game_class.get_min_players() == 2
-    assert game_class.get_max_players() == 4
+    assert game_class.get_max_players() == 12
 
     options = DominosOptions()
     assert options.target_score == 100
@@ -91,12 +92,53 @@ def test_prestart_validation_rejects_invalid_team_mode() -> None:
 
 
 @pytest.mark.parametrize(
+    ("domino_set", "player_count", "selected_pip", "required_pip"),
+    [
+        ("double6", 6, 6, 9),
+        ("double9", 8, 9, 12),
+    ],
+)
+def test_prestart_validation_rejects_domino_set_without_enough_tiles(
+    domino_set: str, player_count: int, selected_pip: int, required_pip: int
+) -> None:
+    game = make_game(player_count=player_count, domino_set=domino_set)
+
+    errors = game.prestart_validate()
+
+    assert (
+        "dominos-error-set-too-small",
+        {"players": player_count, "selected_pip": selected_pip, "required_pip": required_pip},
+    ) in errors
+
+
+@pytest.mark.parametrize(
+    ("domino_set", "player_count"),
+    [
+        ("double6", 5),
+        ("double9", 7),
+        ("double12", 12),
+    ],
+)
+def test_prestart_validation_allows_largest_supported_table_for_each_set(
+    domino_set: str, player_count: int
+) -> None:
+    game = make_game(player_count=player_count, domino_set=domino_set)
+
+    assert game.prestart_validate() == []
+
+
+@pytest.mark.parametrize(
     ("domino_set", "player_count", "expected_hand_size"),
     [
         ("double6", 2, 7),
         ("double6", 4, 5),
+        ("double6", 5, 5),
         ("double9", 2, 10),
         ("double9", 4, 7),
+        ("double9", 7, 7),
+        ("double12", 2, 12),
+        ("double12", 4, 10),
+        ("double12", 12, 7),
     ],
 )
 def test_round_start_deals_expected_hand_sizes(
@@ -105,6 +147,8 @@ def test_round_start_deals_expected_hand_sizes(
     game = make_game(player_count=player_count, start=True, domino_set=domino_set)
     hand_sizes = sorted(len(player.hand) for player in game.get_active_players())
     assert hand_sizes == [expected_hand_size - 1] + [expected_hand_size] * (player_count - 1)
+    max_pip = DOMINO_SET_MAX_PIPS[domino_set]
+    assert sum(hand_sizes) + len(game.boneyard) + 1 == DominosGame._tile_count_for_max_pip(max_pip)
 
 
 def test_spinner_opening_creates_four_open_ends() -> None:
@@ -118,28 +162,72 @@ def test_spinner_opening_creates_four_open_ends() -> None:
     assert game.open_ends == {branch: 4 for branch in BRANCH_ORDER}
 
 
-def test_round_winner_opening_rule_uses_previous_round_winner() -> None:
+def test_spinner_integrity_restores_four_branches_from_stale_flag() -> None:
+    game = make_game(start=True)
+    player1, _player2 = game.get_active_players()
+    opening = DominoTile(id=100, left=4, right=4)
+    playable = DominoTile(id=101, left=4, right=2)
+    game._place_opening_tile(opening)
+    game.spinner_active = False
+    game.open_ends = {"left": 4, "right": 4}
+    player1.hand = [playable]
+    game.current_player = player1
+
+    legal = game._legal_destinations(playable)
+    game._execute_play(player1, playable, "up")
+
+    assert legal == BRANCH_ORDER
+    assert game.spinner_active is True
+    assert set(game.open_ends) == set(BRANCH_ORDER)
+    assert game.open_ends["up"] == 2
+
+
+def test_round_winner_opening_rule_selects_player_without_forcing_tile() -> None:
     game = make_game(player_count=2, opening_rule="round_winner")
     player1, player2 = game.get_active_players()
     player1.hand = [DominoTile(id=1, left=1, right=1), DominoTile(id=2, left=6, right=5)]
     player2.hand = [DominoTile(id=3, left=6, right=6)]
     game.previous_round_winner_id = player1.id
 
-    opener, tile = game._select_opening_play([player1, player2], 6)
+    opener, tile = game._select_opening_assignment([player1, player2], 6)
 
     assert opener == player1
-    assert tile.id == 2
+    assert tile is None
+
+
+def test_previous_round_winner_manually_opens_with_chosen_tile() -> None:
+    game = make_game(player_count=2, opening_rule="round_winner")
+    player1, player2 = game.get_active_players()
+    game.status = "playing"
+    game.game_active = True
+    game._setup_teams()
+    game.previous_round_winner_id = player1.id
+
+    game._start_round()
+
+    assert game.center_tile is None
+    assert game.current_player == player1
+    assert len(player1.hand) == 7
+    assert len(player2.hand) == 7
+
+    chosen = min(player1.hand, key=lambda tile: (tile.pip_total, tile.id))
+    game._action_play_tile(player1, f"play_tile_{chosen.id}")
+
+    assert game.center_tile == chosen
+    assert chosen not in player1.hand
+    assert game.current_player == player2
 
 
 def test_option_labels_localize_choice_values() -> None:
-    options = DominosOptions(
-        domino_set="double9", opening_rule="set_max_double", spinner_enabled=True
-    )
-    summary = options.format_options_summary("en")
+    options = DominosOptions(domino_set="double12", opening_rule="set_max_double", spinner_enabled=True)
+    english = options.format_options_summary("en")
+    vietnamese = options.format_options_summary("vi")
 
-    # Summary should contain localized labels, not raw field names
-    assert len(summary) > 0
-    assert not any("domino_set" in line or "opening_rule" in line for line in summary)
+    assert any("Double-12" in line for line in english)
+    assert any("Highest set double" in line for line in english)
+    assert any("Bộ đôi mười hai" in line for line in vietnamese)
+    assert any("Quân bò cao nhất của bộ" in line for line in vietnamese)
+    assert not any("domino_set" in line or "opening_rule" in line for line in english + vietnamese)
 
 
 def test_draw_mode_draws_until_playable_and_auto_plays() -> None:
@@ -185,7 +273,8 @@ def test_draw_button_does_not_remove_hand_tiles_from_turn_menu() -> None:
         DominoTile(id=2, left=4, right=4),
     ]
     game.boneyard = [DominoTile(id=3, left=0, right=0)]
-    game.rebuild_player_menu(player1)
+    game.refresh_menus(player1)
+    game.flush_menus()
 
     menu_ids = [item.id for item in game.get_user(player1).menus["turn_menu"]["items"]]
 
@@ -209,6 +298,26 @@ def test_draw_mode_auto_knocks_after_exhausting_boneyard() -> None:
     assert game.current_player == player2
     assert game.consecutive_passes == 1
     assert [tile.id for tile in player1.hand] == [1, 3]
+
+
+def test_out_of_turn_multi_side_tile_does_not_open_side_selection_menu() -> None:
+    game = make_game(start=True)
+    player1, player2 = game.get_active_players()
+    user1 = game.get_user(player1)
+    assert user1 is not None
+
+    game.current_player = player2
+    set_linear_chain(game, 5, 5)
+    player1.hand = [DominoTile(id=1, left=5, right=2)]
+    game.refresh_menus(player1)
+    game.flush_menus()
+    user1.clear_messages()
+
+    game.execute_action(player1, "play_tile_1")
+
+    assert player1.id not in game._pending_actions
+    assert "action_input_menu" not in user1.menus
+    assert user1.get_last_spoken() == "It's not your turn."
 
 
 def test_empty_boneyard_no_playable_tiles_resolves_blocked_round_immediately() -> None:
@@ -314,7 +423,8 @@ def test_tile_actions_are_hidden_from_global_action_menu_and_info_actions_are_la
         DominoTile(id=1, left=1, right=4),
         DominoTile(id=2, left=6, right=6),
     ]
-    game.rebuild_player_menu(player1)
+    game.refresh_menus(player1)
+    game.flush_menus()
 
     enabled_action_ids = [action.action.id for action in game.get_all_enabled_actions(player1)]
 
@@ -332,7 +442,7 @@ def test_information_actions_use_direct_tts_not_status_box() -> None:
 
     game._action_read_hand(player1, "read_hand")
 
-    assert "transient_display" not in user.menus
+    assert "status_box" not in user.menus
     assert any(message.type == "speak" for message in user.messages)
 
 
@@ -344,7 +454,7 @@ def test_view_chain_uses_status_box() -> None:
 
     game._action_view_chain(player1, "view_chain")
 
-    assert "transient_display" in user.menus
+    assert "status_box" in user.menus
 
 
 def test_read_ends_uses_direct_tts() -> None:
@@ -357,7 +467,7 @@ def test_read_ends_uses_direct_tts() -> None:
 
     game._action_read_ends(player1, "read_ends")
 
-    assert "transient_display" not in user.menus
+    assert "status_box" not in user.menus
     spoken = user.get_last_spoken()
     assert spoken is not None
     assert "3" in spoken
@@ -372,7 +482,8 @@ def test_hand_tiles_remain_visible_when_not_players_turn() -> None:
         DominoTile(id=1, left=1, right=4),
         DominoTile(id=2, left=6, right=6),
     ]
-    game.rebuild_player_menu(player1)
+    game.refresh_menus(player1)
+    game.flush_menus()
 
     menu_ids = [item.id for item in game.get_user(player1).menus["turn_menu"]["items"]]
 
@@ -415,7 +526,8 @@ def test_web_turn_menu_shows_info_actions_and_orders_score_above_turn_and_table(
     player1, _player2 = game.get_active_players()
     set_web_client(game, player1)
     game.on_start()
-    game.rebuild_player_menu(player1)
+    game.refresh_menus(player1)
+    game.flush_menus()
 
     menu_ids = [item.id for item in game.get_user(player1).menus["turn_menu"]["items"]]
 
@@ -454,9 +566,7 @@ def test_round_wait_advances_to_next_round_after_five_seconds() -> None:
     game._finish_round_from_empty_hand(player1)
 
     assert game.round_wait_ticks == 100
-    reached = advance_until(
-        game, lambda: game.round == current_round + 1 and game.round_wait_ticks == 0, max_ticks=120
-    )
+    reached = advance_until(game, lambda: game.round == current_round + 1 and game.round_wait_ticks == 0, max_ticks=120)
     assert reached is True
 
 
@@ -492,8 +602,6 @@ def test_bot_turn_uses_advance_until_to_act() -> None:
     bot.bot_pending_action = None
     game._update_all_turn_actions()
 
-    reached = advance_until(
-        game, lambda: game.current_player == human and game.open_ends["right"] == 4
-    )
+    reached = advance_until(game, lambda: game.current_player == human and game.open_ends["right"] == 4)
 
     assert reached is True

@@ -14,7 +14,7 @@ from server.core.menu_pagination import (
     paginate_sequence,
     total_pages_for,
 )
-from server.core.users.network_user import NetworkUser
+from server.users.network_user import NetworkUser
 
 
 class DummyConnection:

@@ -1,95 +1,78 @@
-# Ninety Nine - English Localization
-# Messages match v10 exactly
+# ninetynine.ftl for locale id. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
-# Game info
-ninetynine-name = Ninety Nine
-ninetynine-description = Permainan kartu di mana pemain mencoba menghindari mendorong total melebihi 99. Pemain terakhir yang bertahan menang!
-
-# Round
+game-name-ninetynine = Sembilan Puluh Sembilan
 ninetynine-round = Ronde { $round }.
-
-# Turn
-ninetynine-player-turn = Giliran { $player }.
-
-# Playing cards - match v10 exactly
-ninetynine-you-play = Anda memainkan { $card }. Hitungan sekarang { $count }.
-ninetynine-player-plays = { $player } memainkan { $card }. Hitungan sekarang { $count }.
-
-# Direction reverse
-ninetynine-direction-reverses = Arah permainan berbalik!
-
-# Skip
-ninetynine-player-skipped = { $player } dilewati.
-
-# Token loss - match v10 exactly
-ninetynine-you-lose-tokens = Anda kehilangan { $amount } { $amount ->
-    [one] token
-    *[other] token
-}.
-ninetynine-player-loses-tokens = { $player } kehilangan { $amount } { $amount ->
-    [one] token
-    *[other] token
-}.
-
-# Elimination
-ninetynine-player-eliminated = { $player } telah dieliminasi!
-
-# Game end
+ninetynine-you-play = Anda memainkan { $card }. Totalnya sekarang { $count }.
+ninetynine-player-plays = { $player } memainkan { $card }. Totalnya sekarang { $count }.
+ninetynine-direction-reverses = Arah giliran berbalik!
+ninetynine-you-skipped = Giliran Anda dilewati.
+ninetynine-player-skipped = Giliran { $player } dilewati.
+n99-card-plus-10 = Tambah 10
+n99-card-minus-10 = Kurangi 10
+n99-card-pass = Lewat
+n99-card-reverse = Balik Arah
+n99-card-skip = Lewati Giliran
+n99-card-ninety-nine = Sembilan Puluh Sembilan
+ninetynine-you-lose-tokens =
+    Anda kehilangan { $amount } { $amount ->
+        [one] token
+       *[other] token
+    }.
+ninetynine-player-loses-tokens =
+    { $player } kehilangan { $amount } { $amount ->
+        [one] token
+       *[other] token
+    }.
+ninetynine-you-eliminated = Anda tersingkir!
+ninetynine-player-eliminated = { $player } tersingkir!
+ninetynine-you-win = Anda memenangkan permainan!
 ninetynine-player-wins = { $player } memenangkan permainan!
-
-# Dealing
-ninetynine-you-deal = Anda membagikan kartu.
-ninetynine-player-deals = { $player } membagikan kartu.
-
-# Drawing cards
+ninetynine-end-score =
+    { $rank }. { $player }: { $tokens } { $tokens ->
+        [one] token
+       *[other] token
+    }
 ninetynine-you-draw = Anda mengambil { $card }.
-ninetynine-player-draws = { $player } mengambil kartu.
-
-# No valid cards
-ninetynine-no-valid-cards = { $player } tidak memiliki kartu yang tidak akan melebihi 99!
-
-# Status - for C key
-ninetynine-current-count = Hitungan adalah { $count }.
-
-# Hand check - for H key
-ninetynine-hand-cards = Kartu Anda: { $cards }.
-ninetynine-hand-empty = Anda tidak memiliki kartu.
-
-# Ace choice
-ninetynine-ace-choice = Mainkan As sebagai +1 atau +11?
+ninetynine-player-draws = { $player } mengambil satu kartu.
+ninetynine-you-no-valid-cards = Semua kartu Anda akan membuat totalnya melebihi 99!
+ninetynine-player-no-valid-cards = Semua kartu { $player } akan membuat totalnya melebihi 99!
+ninetynine-no-valid-cards = Semua kartu { $player } akan membuat totalnya melebihi 99!
+ninetynine-current-count = Total saat ini { $count }.
+ninetynine-next-round-wait = Ronde berikutnya dimulai dalam { $seconds } detik.
+ninetynine-ace-choice = Gunakan As untuk menambah 1 atau 11?
 ninetynine-ace-add-eleven = Tambah 11
 ninetynine-ace-add-one = Tambah 1
-
-# Ten choice
-ninetynine-ten-choice = Mainkan 10 sebagai +10 atau -10?
+ninetynine-ten-choice = Gunakan kartu 10 untuk menambah atau mengurangi 10?
 ninetynine-ten-add = Tambah 10
-ninetynine-ten-subtract = Kurang 10
-
-# Manual draw
+ninetynine-ten-subtract = Kurangi 10
+ninetynine-select-card-choice = Pilih cara memainkan kartu ini.
+ninetynine-choice-1 = Pilihan 1
+ninetynine-choice-2 = Pilihan 2
 ninetynine-draw-card = Ambil kartu
-ninetynine-draw-prompt = Tekan Spasi atau D untuk mengambil kartu.
-
-# Options
+ninetynine-draw-prompt = Silakan ambil kartu.
+ninetynine-no-card-to-draw = Tidak ada kartu yang bisa diambil. Lanjutkan dengan kartu yang Anda miliki.
 ninetynine-set-tokens = Token awal: { $tokens }
 ninetynine-enter-tokens = Masukkan jumlah token awal:
-ninetynine-option-changed-tokens = Token awal diatur ke { $tokens }.
+ninetynine-option-changed-tokens = Jumlah token awal diubah menjadi { $tokens }.
+ninetynine-desc-starting-tokens = Jumlah token yang dimiliki setiap pemain Sembilan Puluh Sembilan di awal permainan. Pemain tersingkir setelah kehilangan semua token. Nilai bawaan 9, rentang 1 sampai 50.
 ninetynine-set-rules = Varian aturan: { $rules }
 ninetynine-select-rules = Pilih varian aturan
-ninetynine-option-changed-rules = Varian aturan diatur ke { $rules }.
-ninetynine-set-hand-size = Ukuran tangan: { $size }
-ninetynine-enter-hand-size = Masukkan ukuran tangan:
-ninetynine-option-changed-hand-size = Ukuran tangan diatur ke { $size }.
-ninetynine-set-autodraw = Pengambilan otomatis: { $enabled }
-ninetynine-option-changed-autodraw = Pengambilan otomatis diatur ke { $enabled }.
-
-# Rules variant announcements (shown at game start)
-ninetynine-rules-quentin = Aturan Quentin C.
-ninetynine-rules-rsgames = Aturan RS Games.
-
-# Rules variant choices (for menu display)
-ninetynine-rules-variant-quentin_c = Quentin C
-ninetynine-rules-variant-rs_games = RS Games
-
-# Disabled action reasons
-ninetynine-choose-first = Anda perlu membuat pilihan terlebih dahulu.
-ninetynine-draw-first = Anda perlu mengambil kartu terlebih dahulu.
+ninetynine-option-changed-rules = Varian aturan diubah menjadi { $rules }.
+ninetynine-desc-rules-variant = Pilih Sembilan Puluh Sembilan dengan set kartu standar berisi 52 kartu atau set kartu aksi khusus.
+ninetynine-set-hand-size = Jumlah kartu di tangan: { $size }
+ninetynine-enter-hand-size = Masukkan jumlah kartu di tangan:
+ninetynine-option-changed-hand-size = Jumlah kartu di tangan diubah menjadi { $size }.
+ninetynine-desc-hand-size = Jumlah kartu yang diterima setiap pemain pada awal ronde Sembilan Puluh Sembilan. Nilai bawaan 3, rentang 1 sampai 13.
+ninetynine-set-autodraw = Ambil kartu otomatis: { $enabled }
+ninetynine-option-changed-autodraw = Ambil kartu otomatis: { $enabled }.
+ninetynine-desc-autodraw = Jika diaktifkan, pemain otomatis mengambil kartu pengganti setelah memainkan kartu. Jika dinonaktifkan, pemain harus mengambil kartu secara manual.
+ninetynine-rules-action-cards = Aturan kartu aksi.
+ninetynine-rules-variant-standard = Standar
+ninetynine-rules-variant-action-cards = Kartu Aksi
+ninetynine-choose-first = Anda harus menentukan pilihan terlebih dahulu.
+ninetynine-round-transition-waiting = Menunggu ronde berikutnya dimulai.
+ninetynine-pause-timer = Jeda penghitung waktu
+ninetynine-timer-not-active = Penghitung waktu ronde tidak aktif.
+ninetynine-error-too-many-cards = Kartu yang dibutuhkan terlalu banyak. { $players } pemain dengan masing-masing { $hand_size } kartu melebihi isi set yang hanya { $deck_size } kartu.
+ninetynine-check-count = Periksa total

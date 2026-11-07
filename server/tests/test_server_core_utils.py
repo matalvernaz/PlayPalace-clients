@@ -19,7 +19,6 @@ if str(REPO_ROOT) not in sys.path:
 
 from server.core import server as server_module
 from server.core.server import (
-    LOCALIZATION_GATE_ID,
     STARTUP_GATE_ID,
     Server,
     _coerce_bool,
@@ -39,7 +38,6 @@ def make_server(tmp_path):
             "port": 0,
             "db_path": tmp_path / f"db_{idx}.sqlite",
             "config_path": tmp_path / f"config_{idx}.toml",
-            "preload_locales": True,
         }
         defaults.update(overrides)
         return Server(**defaults)
@@ -319,142 +317,3 @@ async def test_maintenance_mode_enters_and_exits(monkeypatch, make_server):
 
     assert srv._lifecycle.snapshot().mode == ServerMode.RUNNING
 
-
-@pytest.mark.asyncio
-async def test_start_localization_warmup_creates_background_task(monkeypatch, make_server):
-    srv = make_server()
-    srv._preload_locales = False
-    called = asyncio.Event()
-
-    async def fake_warm():
-        called.set()
-
-    monkeypatch.setattr(srv, "_warm_locales_async", fake_warm)
-
-    srv._start_localization_warmup()
-
-    assert srv._localization_gate_registered is False
-    assert srv._localization_warmup_task is not None
-    await asyncio.wait_for(called.wait(), 1)
-    await srv._localization_warmup_task
-
-
-@pytest.mark.asyncio
-async def test_start_localization_warmup_does_not_block_running_mode(monkeypatch, make_server):
-    srv = make_server()
-    srv._preload_locales = False
-    srv._lifecycle.resolve_gate(STARTUP_GATE_ID)
-
-    async def fake_warm():
-        return None
-
-    monkeypatch.setattr(srv, "_warm_locales_async", fake_warm)
-
-    srv._start_localization_warmup()
-
-    snapshot = srv._lifecycle.snapshot()
-    assert snapshot.mode == ServerMode.RUNNING
-    assert srv._localization_warmup_task is not None
-    await srv._localization_warmup_task
-
-
-@pytest.mark.asyncio
-async def test_preload_locales_if_requested_runs_in_thread(monkeypatch, make_server):
-    srv = make_server(preload_locales=True)
-    srv._lifecycle.resolve_gate(STARTUP_GATE_ID)
-    called = False
-
-    def fake_preload():
-        nonlocal called
-        called = True
-
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
-    monkeypatch.setattr(server_module.Localization, "preload_bundles", fake_preload)
-    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
-
-    await srv._preload_locales_if_requested()
-
-    assert called is True
-    assert srv._lifecycle.snapshot().mode == ServerMode.RUNNING
-
-
-@pytest.mark.asyncio
-async def test_warm_locales_async_resolves_gate(monkeypatch, make_server):
-    srv = make_server()
-    srv._lifecycle.resolve_gate(STARTUP_GATE_ID)
-    srv._ensure_localization_gate()
-    resolved = False
-
-    def fake_preload():
-        nonlocal resolved
-        resolved = True
-
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
-    monkeypatch.setattr(server_module.Localization, "preload_bundles", fake_preload)
-    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
-
-    await srv._warm_locales_async()
-
-    assert resolved is True
-    snapshot = srv._lifecycle.snapshot()
-    assert snapshot.mode == ServerMode.RUNNING
-
-
-@pytest.mark.asyncio
-async def test_warm_locales_async_failure_enters_maintenance(monkeypatch, make_server):
-    srv = make_server()
-    srv._lifecycle.resolve_gate(STARTUP_GATE_ID)
-    srv._ensure_localization_gate()
-
-    def fake_preload():
-        raise RuntimeError("boom")
-
-    async def fake_to_thread(func, *args, **kwargs):
-        return func(*args, **kwargs)
-
-    monkeypatch.setattr(server_module.Localization, "preload_bundles", fake_preload)
-    monkeypatch.setattr(asyncio, "to_thread", fake_to_thread)
-
-    captured: list[ModeSnapshot] = []
-
-    async def fake_disconnect(snapshot: ModeSnapshot) -> None:
-        captured.append(snapshot)
-
-    monkeypatch.setattr(srv, "_disconnect_clients_for_status", fake_disconnect)
-
-    await srv._warm_locales_async()
-
-    assert srv._lifecycle.snapshot().mode == ServerMode.MAINTENANCE
-    assert captured and captured[-1].mode == ServerMode.MAINTENANCE
-
-
-@pytest.mark.asyncio
-async def test_stop_cancels_localization_warmup_task(monkeypatch, make_server):
-    srv = make_server(preload_locales=False)
-    started = asyncio.Event()
-    cancelled = asyncio.Event()
-
-    async def fake_warmup():
-        started.set()
-        try:
-            await asyncio.Future()
-        except asyncio.CancelledError:
-            cancelled.set()
-            raise
-
-    task = asyncio.create_task(fake_warmup())
-    await started.wait()
-    srv._localization_warmup_task = task
-
-    monkeypatch.setattr(srv, "_save_tables", lambda: None)
-    monkeypatch.setattr(srv._virtual_bots, "save_state", lambda: None)
-    monkeypatch.setattr(srv._db, "close", lambda: None)
-
-    await srv.stop()
-
-    assert cancelled.is_set()
-    assert srv._localization_warmup_task is None

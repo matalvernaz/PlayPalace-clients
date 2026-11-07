@@ -12,8 +12,8 @@ from ..games.pusoydos.evaluator import (
     Combo,
 )
 from ..games.pusoydos.bot import get_all_valid_combos, bot_think, bot_choose_give_cards
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
+from ..users.test_user import MockUser
+from ..users.bot import Bot
 from ..game_utils.cards import Card
 
 
@@ -271,6 +271,16 @@ class TestGameInit:
         assert game.options.rounds_to_win == 2
 
 
+class TestPrestartValidation:
+    def test_full_card_passing_requires_2_or_4_players(self):
+        game, _ = _make_game(3, card_passing="full", instant_wins=False)
+        assert "pusoydos-error-full-passing-players" in game.prestart_validate()
+
+    def test_instant_wins_conflict_with_card_passing(self):
+        game, _ = _make_game(4, instant_wins=True, card_passing="simple")
+        assert "pusoydos-error-instant-wins-card-passing" in game.prestart_validate()
+
+
 class TestDealing:
     def test_4_players_13_cards_each(self):
         game, players = _make_game(4, instant_wins=False)
@@ -485,10 +495,84 @@ class TestConfirmToPass:
         game._start_turn()
         assert current.pass_confirm_ticks == 0
 
+    def test_turn_timeout_passes_without_confirmation_prompt(self):
+        game, players = self._setup_mid_game()
+        current = game.current_player
+        game.current_combo = Combo("single", [Card(99, 5, 1)], 5, 4)
+        game.trick_cards = game.current_combo.cards
+
+        user = game.get_user(current)
+        user.clear_messages()
+        old_turn = current.id
+
+        game._on_turn_timeout()
+
+        assert current.passed_this_trick
+        assert game.current_player.id != old_turn
+        assert not any("again to confirm" in msg.lower() for msg in user.get_spoken_messages())
+
+
+class TestLocalizedAnnouncements:
+    def _setup_mid_game(self):
+        game, players = _make_game(4, instant_wins=False)
+        game.on_start()
+        game.is_first_turn = False
+        return game, players
+
+    def test_play_uses_first_and_third_person_messages(self):
+        game, players = self._setup_mid_game()
+        actor = game.current_player
+        other = next(p for p in players if p.id != actor.id)
+        actor.hand = [Card(201, 5, 1), Card(202, 7, 1)]
+        actor.selected_cards = {201}
+
+        actor_user = game.get_user(actor)
+        other_user = game.get_user(other)
+        actor_user.clear_messages()
+        other_user.clear_messages()
+
+        game.execute_action(actor, "play_selected")
+
+        assert any("You play" in msg for msg in actor_user.get_spoken_messages())
+        assert any(f"{actor.name} plays" in msg for msg in other_user.get_spoken_messages())
+
+    def test_pass_uses_first_and_third_person_messages(self):
+        game, players = self._setup_mid_game()
+        actor = game.current_player
+        other = next(p for p in players if p.id != actor.id)
+        game.current_combo = Combo("single", [Card(99, 5, 1)], 5, 4)
+        game.trick_cards = game.current_combo.cards
+
+        actor_user = game.get_user(actor)
+        actor_user._preferences.confirm_destructive_actions = False
+        other_user = game.get_user(other)
+        actor_user.clear_messages()
+        other_user.clear_messages()
+
+        game.execute_action(actor, "pass")
+
+        assert any("You pass" in msg for msg in actor_user.get_spoken_messages())
+        assert any(f"{actor.name} passes" in msg for msg in other_user.get_spoken_messages())
+
+    def test_card_counts_are_localized(self):
+        game, players = self._setup_mid_game()
+        player = players[0]
+        user = game.get_user(player)
+        user.clear_messages()
+
+        game.execute_action(player, "read_card_counts")
+
+        spoken = user.get_last_spoken()
+        assert spoken is not None
+        assert f"{player.name}: {len(player.hand)} cards" in spoken
+        assert f"{player.name} {len(player.hand)}" not in spoken
+
 
 class TestEliminationMode:
     def test_player_eliminated_after_winning_rounds(self):
-        game, players = _make_game(4, game_mode="elimination", rounds_to_win=1)
+        game, players = _make_game(
+            4, game_mode="elimination", rounds_to_win=1, instant_wins=False
+        )
         game.on_start()
 
         p = game._playing_players()[0]
@@ -499,7 +583,9 @@ class TestEliminationMode:
         assert p.round_wins == 1
 
     def test_game_ends_when_one_remains(self):
-        game, players = _make_game(4, game_mode="elimination", rounds_to_win=1)
+        game, players = _make_game(
+            4, game_mode="elimination", rounds_to_win=1, instant_wins=False
+        )
         game.on_start()
 
         active = game._playing_players()
@@ -652,6 +738,24 @@ class TestBot:
         assert len(ids) == 1
         # Should give the lowest card (3 of Clubs)
         assert ids[0] == 0
+
+    def test_bot_does_not_dump_2_straight_when_disabled(self):
+        game, _ = _make_game(2, instant_wins=False, allow_2_in_straights=False)
+        game.on_start()
+        current = game.current_player
+        game.is_first_turn = False
+        game.current_combo = None
+        current.hand = [
+            Card(1, 1, 1),
+            Card(2, 2, 2),
+            Card(3, 3, 3),
+            Card(4, 4, 4),
+            Card(5, 5, 1),
+        ]
+
+        ids = bot_think(game, current)
+
+        assert set(ids) != {1, 2, 3, 4, 5}
 
 
 # =============================================================================

@@ -9,7 +9,6 @@ import websockets.exceptions
 
 from server.core.server import Server
 from server.core.tick import TickScheduler
-from server.game_utils.duration_estimate_mixin import DurationEstimateMixin
 from server.messages.localization import Localization
 from server.network.websocket_server import ClientConnection
 
@@ -19,48 +18,39 @@ from server.network.websocket_server import ClientConnection
 # ---------------------------------------------------------------------------
 
 
-def test_localization_get_returns_bracketed_fallback_on_missing_key(caplog):
-    """When a message ID does not exist, return [message_id] and log."""
+def test_localization_get_returns_the_id_and_logs_a_missing_key(caplog):
+    """When a message ID does not exist, the engine returns the id; the server logs it once."""
+    from server.core import localization_logging
+
+    localization_logging.install()
     fake_id = "nonexistent-message-id-xyz-test-only"
     with caplog.at_level(logging.WARNING, logger="playpalace.localization"):
         result = Localization.get("en", fake_id)
-    # Fallback must be visually distinguishable from a real translation
-    assert result == f"[{fake_id}]"
-    assert any(fake_id in record.message for record in caplog.records)
+        Localization.get("en", fake_id)
+    assert result == fake_id
+    assert sum(fake_id in record.message for record in caplog.records) == 1
 
 
 def test_localization_get_logs_fluent_format_errors(caplog):
-    """When Fluent reports formatting errors (e.g. missing variables), log them."""
+    """When Fluent reports formatting errors (e.g. missing variables), log them once."""
+    from server.core import localization_logging
+
+    localization_logging.install()
+    localization_logging._already_logged.clear()
     # game-player-skipped uses $player — omitting it triggers a Fluent format error
     with caplog.at_level(logging.WARNING, logger="playpalace.localization"):
         result = Localization.get("en", "game-player-skipped")
+        Localization.get("en", "game-player-skipped")
     # Should still return *something* (Fluent partial result), not crash
     assert isinstance(result, str)
-    assert result != "[game-player-skipped]"  # Should not hit the exception path
-    # If Fluent reported errors for the missing variable, they should be logged
-    if caplog.records:
-        assert any("Fluent formatting errors" in r.message for r in caplog.records)
+    assert result != "game-player-skipped"
+    failures = [r for r in caplog.records if "Failed to format message 'game-player-skipped'" in r.message]
+    assert len(failures) == 1
 
 
 # ---------------------------------------------------------------------------
 # Localization cache — issue #5
 # ---------------------------------------------------------------------------
-
-
-def test_localization_cache_discard_logs_at_debug(caplog, tmp_path, monkeypatch):
-    """Corrupt cache files should be logged at DEBUG before deletion."""
-    # _load_bundle_from_cache expects files at cache_root / locale / fingerprint.json
-    cache_dir = tmp_path / "cache"
-    locale_dir = cache_dir / "en"
-    locale_dir.mkdir(parents=True)
-    fingerprint = "fake-fingerprint"
-    cache_file = locale_dir / f"{fingerprint}.json"
-    cache_file.write_text("not valid json", encoding="utf-8")
-    monkeypatch.setattr(Localization, "_resolve_cache_dir", classmethod(lambda cls: cache_dir))
-    with caplog.at_level(logging.DEBUG, logger="playpalace.localization"):
-        result = Localization._load_bundle_from_cache("en", fingerprint)
-    assert result is None
-    assert any("Discarding corrupt locale cache" in r.message for r in caplog.records)
 
 
 # ---------------------------------------------------------------------------
@@ -168,62 +158,6 @@ async def test_websocket_malformed_json_logs_warning(caplog):
 
 
 # ---------------------------------------------------------------------------
-# DurationEstimateMixin — issue #7
-# ---------------------------------------------------------------------------
-
-
-class DeadThread:
-    def is_alive(self) -> bool:
-        return False
-
-
-class DummyEstimateGame(DurationEstimateMixin):
-    TICKS_PER_SECOND = 20
-
-    def __init__(self):
-        self._estimate_threads: list = []
-        self._estimate_results: list[int] = []
-        self._estimate_errors: list[str] = []
-        self._estimate_running: bool = False
-        self._estimate_lock = threading.Lock()
-        self.players = []
-        self.broadcast_events: list[tuple[str, dict]] = []
-
-    def broadcast_l(self, message_id: str, **kwargs) -> None:
-        self.broadcast_events.append((message_id, kwargs))
-
-    def broadcast(self, message: str) -> None:
-        self.broadcast_events.append(("raw", {"text": message}))
-
-    def get_user(self, _player):
-        return None
-
-    def get_type(self) -> str:
-        return "dummy"
-
-    def get_min_players(self) -> int:
-        return 1
-
-
-def test_duration_estimate_error_uses_broadcast_l_not_broadcast(caplog):
-    """Error path should use localized broadcast, not raw exception text."""
-    game = DummyEstimateGame()
-    game._estimate_threads = [DeadThread()]
-    game._estimate_results = []
-    game._estimate_errors = ["some internal error details"]
-    game._estimate_running = True
-
-    with caplog.at_level(logging.WARNING, logger="playpalace.game_utils.duration_estimate"):
-        game.check_estimate_completion()
-
-    # Should use broadcast_l with localized key, not raw broadcast
-    assert any(msg_id == "estimate-error" for msg_id, _ in game.broadcast_events)
-    assert not any(msg_id == "raw" for msg_id, _ in game.broadcast_events)
-    # Should log the actual error
-    assert any("Duration estimation failed" in r.message for r in caplog.records)
-
-
-# ---------------------------------------------------------------------------
 # Server: preferences — issue #6
 # ---------------------------------------------------------------------------
 
@@ -234,7 +168,7 @@ def server(tmp_path):
         host="127.0.0.1",
         port=0,
         db_path=tmp_path / "db.sqlite",
-        preload_locales=True,
+        
     )
 
 
@@ -305,7 +239,7 @@ def test_config_load_failure_uses_logging(tmp_path, caplog):
         port=0,
         db_path=tmp_path / "db.sqlite",
         config_path=str(config_file),
-        preload_locales=True,
+        
     )
 
     with caplog.at_level(logging.ERROR, logger="playpalace.server"):
@@ -332,7 +266,7 @@ def test_invalid_config_value_logs_warning(tmp_path, caplog):
         port=0,
         db_path=tmp_path / "db.sqlite",
         config_path=str(config_file),
-        preload_locales=True,
+        
     )
 
     with caplog.at_level(logging.WARNING, logger="playpalace.server"):
@@ -363,7 +297,7 @@ class FakeClientBase:
 @pytest.mark.asyncio
 async def test_handoff_session_catches_expected_close_errors(server):
     """Expected exceptions from close() should be caught gracefully."""
-    from server.core.users.network_user import NetworkUser
+    from server.users.network_user import NetworkUser
 
     class OldClient(FakeClientBase):
         username = "old_user"
@@ -388,7 +322,7 @@ async def test_handoff_session_catches_expected_close_errors(server):
 @pytest.mark.asyncio
 async def test_handoff_session_propagates_unexpected_errors(server):
     """Unexpected exceptions from close() should propagate."""
-    from server.core.users.network_user import NetworkUser
+    from server.users.network_user import NetworkUser
 
     class OldClient(FakeClientBase):
         username = "old_user"

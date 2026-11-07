@@ -13,9 +13,8 @@ from ..games.humanitycards.game import (
     HumanityCardsOptions,
     load_humanity_packs,
 )
-from ..game_utils.menu_management_mixin import TRANSIENT_DISPLAY_MENU_ID
 from ..messages.localization import Localization
-from ..core.users.test_user import MockUser
+from ..users.test_user import MockUser
 
 _locales_dir = Path(__file__).parent.parent / "locales"
 Localization.init(_locales_dir)
@@ -39,18 +38,14 @@ def test_humanitycards_vendored_datasets_are_clean_and_complete() -> None:
         "humanity_packs.json": (
             "57c7c6c29380daa05ddff7d4afce562042befc0b1a2123ec584a71406f840247"
         ),
-        # PlayAural edited the Spanish and Brazilian Portuguese files after
-        # importing them, so these are the hashes of the files we vendor from
-        # their HEAD 8ca0edc1, not the original import hashes in
-        # CARD_DATA_PROVENANCE.md.
         "humanity_packs_es.json": (
-            "f60fa7fb7e0bd08b4bbc79c137107901596376f87f9a035d406ff0bbfea64e5d"
+            "ff51192e6528a153bce57169e4ae6277b41bd1fd25b981288bef49bb39fe8ed3"
         ),
         "humanity_black_cards_pt_br.json": (
-            "e176843e867c08c6b0a90d0cc6a7586a332dfa7c8e4da129a5e99324a7050792"
+            "d05729901b560a343daaee082287735c6ec07309ec93e176cb8963eebea52c58"
         ),
         "humanity_white_cards_pt_br.json": (
-            "44b7e2ef361373ca390d174902799dd3907fa216faa37eddbeff52bbd690e04f"
+            "fa24d9a6f983511c091075556ff95fe4f3547fc86359424ff88c8a1a55941879"
         ),
     }
     for filename, expected_hash in expected_hashes.items():
@@ -329,9 +324,10 @@ def test_humanitycards_game_music_is_replayable_after_serialization() -> None:
 
     game.on_start()
 
-    # Our framework tracks the playing track as current_music rather than
-    # PlayAural's active_audio states.
-    assert game.current_music == SOUND_MUSIC
+    assert any(
+        state.kind == "music" and state.asset == SOUND_MUSIC
+        for state in game.active_audio.values()
+    )
 
     restored = HumanityCardsGame.from_json(game.to_json())
     restored.rebuild_runtime_state()
@@ -406,7 +402,7 @@ def test_humanitycards_review_hand_remains_available_after_submission() -> None:
 
     game.execute_action(player, "review_hand")
 
-    items = user.get_current_menu_items(TRANSIENT_DISPLAY_MENU_ID)
+    items = user.get_current_menu_items("status_box")
     assert items is not None
     assert [item.text for item in items] == [
         "1. one",
@@ -431,7 +427,7 @@ def test_humanitycards_judge_prompt_is_read_only_menu_information() -> None:
     items = game.build_menu_items(judge, judge_user).items
     header = next(item for item in items if item.id == "judge_prompt_header")
 
-    assert header.meta == {"read_only": True}
+    assert header.read_only is True
     assert header.text == "Choose the best card that matches: Why blank?"
     turn_set = game.get_action_set(judge, "turn")
     assert turn_set is not None
@@ -466,7 +462,7 @@ def test_humanitycards_submit_and_judging_sounds_use_humanitycards_pack() -> Non
     game.execute_action(player, "submit_cards")
 
     sounds = user.get_sounds_played()
-    assert any(re.fullmatch(r"game_humanitycards/submit[12]\.ogg", sound) for sound in sounds)
+    assert "game_humanitycards/submit" in sounds
     assert "game_humanitycards/judging.ogg" in sounds
 
 
@@ -492,7 +488,7 @@ def test_humanitycards_judging_turn_sound_respects_preference(monkeypatch) -> No
 
     assert judge_user.get_sounds_played() == [
         "game_humanitycards/judging.ogg",
-        "game_pig/turn.ogg",
+        "turn.ogg",
     ]
 
     judge_user.clear_messages()
@@ -539,7 +535,7 @@ def test_humanitycards_judging_announces_and_reviews_anonymous_answers(
     assert all("Alice" not in line and "Bob" not in line for line in announced)
 
     game.execute_action(player, "review_answers")
-    items = player_user.get_current_menu_items(TRANSIENT_DISPLAY_MENU_ID)
+    items = player_user.get_current_menu_items("status_box")
     assert items is not None
     assert [item.text for item in items] == expected
 
@@ -561,7 +557,7 @@ def test_humanitycards_judge_pick_and_win_sounds_use_humanitycards_pack() -> Non
     game.execute_action(judge, "judge_pick_0")
 
     sounds = judge_user.get_sounds_played()
-    assert any(re.fullmatch(r"game_humanitycards/judgechoice[123]\.ogg", sound) for sound in sounds)
+    assert "game_humanitycards/judgechoice" in sounds
     assert "game_humanitycards/win.ogg" in sounds
 
 

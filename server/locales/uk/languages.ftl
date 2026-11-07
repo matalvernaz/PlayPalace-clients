@@ -1,3 +1,6 @@
+# languages.ftl for locale uk. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # Language names translated into this language
 language-ar = Арабська
 language-cs = Чеська
@@ -11,7 +14,6 @@ language-hr = Хорватська
 language-hu = Угорська
 language-id = Індонезійська
 language-it = Італійська
-language-ja = Японська
 language-ko = Корейська
 language-mk = Македонська
 language-mn = Монгольська
@@ -30,3 +32,4 @@ language-uk = Українська
 language-vi = В'єтнамська
 language-zh = Китайська
 language-zu = Зулуська
+language-ja = Японська

@@ -1,3 +1,6 @@
+# languages.ftl for locale ja. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
+
 # この言語に翻訳された言語名
 language-ar = アラビア語
 language-cs = チェコ語
@@ -11,7 +14,6 @@ language-hr = クロアチア語
 language-hu = ハンガリー語
 language-id = インドネシア語
 language-it = イタリア語
-language-ja = 日本語
 language-ko = 韓国語
 language-mk = マケドニア語
 language-mn = モンゴル語
@@ -30,3 +32,4 @@ language-uk = ウクライナ語
 language-vi = ベトナム語
 language-zh = 中国語
 language-zu = ズールー語
+language-ja = 日本語

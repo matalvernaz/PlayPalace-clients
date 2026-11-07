@@ -1,32 +1,26 @@
-# Mancala game messages — uk
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale uk. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Манкала
-
 # Actions
 mancala-pit-label = Лунка { $pit }: { $stones } каменів
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } сіє { $stones } каменів з лунки { $pit }
 mancala-capture = { $player } захоплює { $captured } каменів!
 mancala-extra-turn = Останній камінь у сховищі! { $player } ходить ще раз.
 mancala-winner = { $player } перемагає з { $score } каменями!
 mancala-draw = Нічия! Обидва гравці мають по { $score } каменів.
-
 # Board status
-mancala-board-status =
-    Ваші лунки: { $own_pits }. Ваше сховище: { $own_store }. Лунки суперника: { $opp_pits }. Сховище суперника: { $opp_store }.
-
+mancala-board-status = Ваші лунки: { $own_pits }. Ваше сховище: { $own_store }. Лунки суперника: { $opp_pits }. Сховище суперника: { $opp_store }.
 # Options
 mancala-set-stones = Каменів на лунку: { $stones }
 mancala-desc-stones = Кількість каменів у кожній лунці на початку
 mancala-enter-stones = Введіть кількість початкових каменів на лунку:
 mancala-option-changed-stones = Початкові камені змінено на { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Ця лунка порожня.
-
 # Rules
 mancala-rules =
     Манкала — гра для двох гравців з лунками та каменями.
@@ -38,7 +32,5 @@ mancala-rules =
     Гра закінчується, коли одна сторона повністю порожня.
     Гравець з найбільшою кількістю каменів перемагає.
     Використовуйте клавіші 1-6 для вибору лунки. Натисніть E для перевірки дошки.
-
 # End screen
 mancala-final-score = { $player }: { $score } каменів
-mancala-check-board = Check board

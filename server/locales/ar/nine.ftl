@@ -1,58 +1,60 @@
-# Nine game messages
+# nine.ftl for locale ar. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name and description
-game-name-nine = Nine
-nine-description = A popular Russian card game in which players build suit sequences.
-
+game-name-nine = التسعة
+nine-description = لعبة ورق روسية شهيرة يبني فيها اللاعبون متتاليات حسب نوع الورق.
 # Player count validation
-nine-error-invalid-player-count = Nine can only be played with 2, 3, 4, or 6 players.
-
+nine-error-invalid-player-count = تستخدم لعبة التسعة مجموعة أوراق من 36 بطاقة وتتسع لـ 3 أو 4 أو 6 لاعبين بالضبط.
+nine-error-starting-nine-missing = لم يُعثر على تسعة الماس في أي يد. لا يمكن متابعة اللعبة.
 # Dealing messages
-nine-player-nine-deal = Dealing {$cards} cards to all players.
-
+nine-player-nine-deal = توزيع { $cards } بطاقة لكل لاعب.
 # Game start
-nine-you-start-player-announcement = You have the nine of clubs and start the game.
-nine-player-start-player-announcement = { $player } has the nine of clubs and starts the game.
-
+nine-you-start-player-announcement = لديك تسعة الماس وتبدأ اللعبة.
+nine-player-start-player-announcement = { $player } لديه تسعة الماس ويبدأ اللعبة.
+nine-you-start-player-announcement-brief = تبدأ بتسعة الماس.
+nine-player-start-player-announcement-brief = { $player } يبدأ بتسعة الماس.
 # Turn actions
-nine-you-play-card = You play the { $card }.
-nine-player-plays-card = { $player } plays the { $card }.
-
-nine-you-plays-nine-clubs = You play the nine of clubs.
-nine-player-plays-nine-clubs = { $player } plays the nine of clubs.
-
-nine-you-plays-nine-suit = You play the { $card } to start the { $suit } sequence.
-nine-player-plays-nine-suit = { $player } plays the { $card } to start the { $suit } sequence.
-
-nine-you-extend-sequence = You extend the { $suit } sequence with the { $card }.
-nine-player-extend-sequence = { $player } extends the { $suit } sequence with the { $card }.
-
-nine-you-skips-turn = You have no valid moves and must skip your turn.
-nine-player-skips-turn = { $player } has no valid moves and skips their turn.
-
+nine-you-plays-starting-nine = تلعب { $card } لفتح الطاولة.
+nine-player-plays-starting-nine = { $player } يلعب { $card } لفتح الطاولة.
+nine-you-plays-starting-nine-brief = تلعب { $card }.
+nine-player-plays-starting-nine-brief = { $player }: { $card }.
+nine-you-plays-nine-suit = تلعب { $card } لبدء متتالية { $suit }.
+nine-player-plays-nine-suit = { $player } يلعب { $card } لبدء متتالية { $suit }.
+nine-you-plays-nine-suit-brief = تبدأ { $suit } بـ { $card }.
+nine-player-plays-nine-suit-brief = { $player } يبدأ { $suit } بـ { $card }.
+nine-you-extend-sequence = تمدّد متتالية { $suit } بـ { $card }.
+nine-player-extend-sequence = { $player } يمدّد متتالية { $suit } بـ { $card }.
+nine-you-extend-sequence-brief = تلعب { $card } على { $suit }.
+nine-player-extend-sequence-brief = { $player }: { $card } على { $suit }.
+nine-you-skips-turn = ليس لديك بطاقة قانونية للعب، لذا يُتخطّى دورك.
+nine-player-skips-turn = { $player } ليس لديه بطاقة قانونية للعب، لذا يُتخطّى دور { GENDER_TERM($player_gender, "possessive-determiner") }.
+nine-you-skips-turn-brief = تتخطّى؛ لا بطاقة قانونية.
+nine-player-skips-turn-brief = { $player } يتخطّى؛ لا بطاقة قانونية.
 # Reasons for not being able to play a card
-nine-reason-not-your-turn = It is not your turn.
-nine-reason-must-play-nine-clubs = You must play the nine of clubs to start the game.
-nine-reason-no-nine = You do not have a nine to start a new sequence.
-nine-reason-cannot-extend = That card cannot extend the { $suit } sequence.
-nine-reason-generic = That card cannot be played right now.
-
+nine-reason-not-your-turn = ليس دورك.
+nine-reason-card-slot-gone = لم تعد تلك البطاقة في يدك. تم تحديث قائمة يدك.
+nine-reason-must-play-starting-nine = يجب أن تكون أول لعبة هي { $starting_card }. لا يمكن لعب { $card } حتى تُفتح الطاولة.
+nine-reason-nine-already-started = لا يمكن لعب { $card } لأن متتالية { $suit } مفتوحة بالفعل.
+nine-reason-cannot-extend = لا يمكن لـ { $card } تمديد متتالية { $suit }. العب البطاقة الأدنى التالية أو الأعلى التالية عند أحد طرفَي تلك المتتالية.
+nine-reason-unopened-suit = لا يمكن لعب { $card } لأن متتالية { $suit } لم تُفتح بعد. ابدأ ذلك النوع بالتسعة الخاصة به أولًا.
+nine-reason-must-skip = ليس لديك بطاقة قانونية للعب؛ سيُتخطّى دورك تلقائيًا.
 # Winning
-nine-you-wins-game = You have no cards left and win the game!
-nine-player-wins-game = { $player } has no cards left and wins the game!
-nine-player-game-ended = The game of Nine has ended.
-nine-you-game-ended = The game of Nine has ended.
-
-nine-you-win = You win!
-nine-you-lose = You lose!
-nine-final-score = Cards left: { $score }
-
+nine-you-wins-game = لم يتبقَّ لديك أي بطاقات وتفوز باللعبة!
+nine-player-wins-game = لم يتبقَّ لدى { $player } أي بطاقات ويفوز باللعبة!
+nine-you-wins-game-brief = أنت تفوز!
+nine-player-wins-game-brief = { $player } يفوز!
+nine-player-game-ended = انتهت لعبة التسعة.
+nine-you-game-ended = انتهت لعبة التسعة.
+nine-you-win = أنت تفوز!
+nine-you-lose = أنت تخسر!
+nine-final-score = البطاقات المتبقية: { $score }
 # Status
-nine-status = { $name }: { $cards_left } cards left.
-nine-status-sequence = { $suit } sequence: { $sequence }.
-nine-status-no-sequence = No { $suit } sequence started yet.
-nine-none = none
-nine-action-check-sequences = Check Sequences
-nine-action-check-hand-counts = Check Hand Counts
-
-nine-status-player-hand-count = { $player }: { $count } cards
+nine-status = { $name }: { $cards_left } بطاقة متبقية.
+nine-status-sequence = متتالية { $suit }: { $sequence }.
+nine-status-no-sequence = لم تبدأ متتالية { $suit } بعد.
+nine-sequence-range = { $low } إلى { $high }
+nine-none = لا شيء
+nine-action-check-sequences = عرض المتتاليات
+nine-action-check-hand-counts = عرض عدد البطاقات في الأيدي
+nine-status-player-hand-count = { $player }: { $count } بطاقة

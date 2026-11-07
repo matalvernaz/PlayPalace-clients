@@ -1,45 +1,39 @@
-game-name-battle = Battle
+# battle.ftl for locale sk. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-battle = Battle
 battle-set-game-mode = Game mode: { $mode }
 battle-select-game-mode = Select a game mode:
 battle-option-changed-game-mode = Game mode changed to { $mode }.
 battle-desc-game-mode = Chooses the Battle format: fixed fighter counts, Team Battle, Chaos Free For All, Spitting Image, arena, survival, or wave modes.
-
 battle-desc-team-mode = Chooses individual play or fixed team sizes. This is used by Team Battle and must fit the current player count.
 battle-set-turn-mode = Turn mode: { $mode }
 battle-select-turn-mode = Select a turn mode:
 battle-option-changed-turn-mode = Turn mode changed to { $mode }.
 battle-desc-turn-mode = Chooses turn order: Initiative sorts combatants by speed each round, while Round Robin follows a fixed rotation.
-
 battle-set-balance-mode = Balance mode: { $enabled }
 battle-option-changed-balance-mode = Balance mode changed to { $enabled }.
 battle-desc-balance-mode = When enabled, fighters outside the balanced baseline are reset before combat to 50 health, 0 attack, 0 defense, and 100 speed.
-
 battle-set-unlimited-selection-limit = Unlimited-mode fighter limit: { $count }
 battle-enter-unlimited-selection-limit = Enter the fighter limit for unlimited modes:
 battle-option-changed-unlimited-selection-limit = Unlimited-mode fighter limit changed to { $count }.
 battle-desc-unlimited-selection-limit = How many fighters each player may select in unlimited-selection modes such as Chaos Free For All, Team Battle, arenas, survival, and waves (default 3, range 1-6).
-
 battle-set-classic-enemy-preset = Classic enemy preset: { $preset }
 battle-select-classic-enemy-preset = Select the classic enemy preset:
 battle-option-changed-classic-enemy-preset = Classic enemy preset changed to { $preset }.
 battle-desc-classic-enemy-preset = Chooses the fixed enemy preset used only by Classic Arena, Classic Survival, and Classic Waves.
-
 battle-set-arena-difficulty = Arena difficulty: { $difficulty }
 battle-select-arena-difficulty = Select arena difficulty:
 battle-option-changed-arena-difficulty = Arena difficulty changed to { $difficulty }.
 battle-desc-arena-difficulty = Sets how dangerous generated arena, survival, and wave opponents are, from Easy through Ultimate.
-
 battle-set-survival-target = Survival target: { $count }
 battle-enter-survival-target = Enter the survival target (0 for endless):
 battle-option-changed-survival-target = Survival target changed to { $count }.
 battle-desc-survival-target = How many enemies must be defeated in Survival or Waves. Set 0 for endless play with no fixed defeat target (range 0-10000).
-
 battle-set-survival-heal-percent = Survival heal percent: { $percent }
 battle-enter-survival-heal-percent = Enter the survival heal percent:
 battle-option-changed-survival-heal-percent = Survival heal percent changed to { $percent }.
 battle-desc-survival-heal-percent = Percentage of maximum health living allied fighters recover after each survival replacement or cleared wave (default 0%, range 0-100).
-
 battle-mode-free-for-all = Chaos Free For All
 battle-mode-one-each = 1 Each
 battle-mode-two-each = 2 Each
@@ -52,17 +46,14 @@ battle-mode-classic-survival = Classic Survival
 battle-mode-mixed-survival = Mixed Survival
 battle-mode-classic-waves = Classic Waves
 battle-mode-mixed-waves = Mixed Waves
-
 battle-turn-mode-initiative = Initiative
 battle-turn-mode-round-robin = Round Robin
-
 battle-difficulty-easy = Easy
 battle-difficulty-normal = Normal
 battle-difficulty-hard = Hard
 battle-difficulty-insane = Insane
 battle-difficulty-professional = Professional
 battle-difficulty-ultimate = Ultimate
-
 battle-classic-preset-novice-boxer = Novice Boxer
 battle-classic-preset-boxer = Boxer
 battle-classic-preset-the-great-fighter = The Great Fighter
@@ -75,7 +66,6 @@ battle-classic-preset-the-fiery-lion = The Fiery Lion
 battle-classic-preset-master-mage = Master Mage
 battle-classic-preset-the-wizardly-warrior = The Wizardly Warrior
 battle-classic-preset-master-of-the-storm = Master of the Storm
-
 battle-read-status = Read battle status
 battle-read-status-detailed = Detailed battle status
 battle-read-roster = Read roster
@@ -88,7 +78,6 @@ battle-fighter-selected = Selected: { $fighter }
 battle-fighter-unselected = Not selected: { $fighter }
 battle-submit-selection = Submit selection. Selected { $count } of { $limit }.
 battle-submit-selection-required = Submit selection. Selected { $count } of { $required } required.
-battle-skill-entry = { $skill }: { $description }.
 battle-skill-description = { $scope } targeting { $target }. { $effects }
 battle-skill-scope-single = Single-target
 battle-skill-target-self = yourself
@@ -107,7 +96,6 @@ battle-skill-effect-unknown = no additional effect listed
 battle-select-target = Select a target:
 battle-target-option = { $fighter }, { $team }, { $health } health
 battle-target-option-no-team = { $fighter }, { $health } health
-
 battle-selection-start = Fighter selection has begun.
 battle-selection-start-chaos = Chaos selection has begun. Every fighter you choose will enter as its own side, even if you control more than one.
 battle-selected-fighter = { $player } selected { $fighter }.
@@ -122,7 +110,7 @@ battle-turn-start = { $fighter } takes the turn.
 battle-turn-start-you = Your { $fighter } takes the turn.
 battle-turn-start-player = { $fighter } takes the turn.
 battle-whose-turn-selection = The game is in the fighter selection phase.
-battle-whose-turn-combat = It is { $fighter}'s turn. Health { $health}. Team: { $team}.
+battle-whose-turn-combat = It is { $fighter }'s turn. Health { $health }. Team: { $team }.
 battle-used-move = { $fighter } used { $move } on { $target }.
 battle-used-move-with-teams = { $fighter } from { $fighter_team } used { $move } on { $target } from { $target_team }.
 battle-used-move-you = Your { $fighter } used { $move } on { $target }.
@@ -148,14 +136,12 @@ battle-fighter-incapacitated-player = { $fighter } is too dizzy to keep fighting
 battle-enemies-arrive = { $count } new enemy fighters enter the arena.
 battle-no-valid-targets = No valid targets are available for that move.
 battle-no-fight-same-team = Everyone is on the same team, so no fight can happen.
-
 battle-score-summary = { $fighters } fighters remain across { $teams } teams.
 battle-score-summary-endurance = { $fighters } fighters remain across { $teams } teams. Survival kills: { $kills }.
 battle-survival-progress-target = Survival run. Kills: { $kills }. Target: { $target }.
 battle-survival-progress-endless = Endless survival run. Kills: { $kills }.
 battle-wave-progress-target = Wave run. Current wave: { $wave }. Kills: { $kills }. Target: { $target }.
 battle-wave-progress-endless = Endless wave run. Current wave: { $wave }. Kills: { $kills }.
-
 battle-status-header = Battle status
 battle-status-mode-line = Mode: { $mode }. Turn mode: { $turn_mode }.
 battle-status-selection-limit-line = Fighter limit per player: { $limit }.
@@ -177,21 +163,17 @@ battle-fighter-summary-line = { $fighter }: health { $health }, attack { $attack
 battle-fighter-summary-line-no-team = { $fighter }: health { $health }, attack { $attack }, defense { $defense }, speed { $speed }, moves { $moves }.
 battle-fighter-name-numbered = { $name } { $number }
 battle-no-fighters-in-list = No fighters are available in this list.
-
 battle-end-header = Battle result
 battle-end-winner = Winning team: { $team }
 battle-end-draw = The battle ended without a winner.
-
 battle-team-allies = Ally Team
 battle-team-enemies = Enemy Team
 battle-team-contestants = Contestant Side
 battle-team-arena = Arena Side
 battle-team-owned = { $player }'s Team
-
 battle-stat-attack = attack
 battle-stat-defense = defense
 battle-stat-speed = speed
-
 battle-error-no-registry = The bundled Battle registry could not be loaded.
 battle-error-mode-min-players = This mode requires at least { $count } players.
 battle-error-survival-target-mode = Survival target can only be used in Survival or Waves modes.

@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 def can_offer_card(game: AgeOfHeroesGame, player: AgeOfHeroesPlayer, card_index: int) -> str | None:
     """Check if a card can be offered for trade. Returns error message or None."""
     if card_index < 0 or card_index >= len(player.hand):
-        return "Invalid card index"
+        return "ageofheroes-invalid-card-index"
 
     card = player.hand[card_index]
 
@@ -120,29 +120,29 @@ def can_accept_offer(
 ) -> str | None:
     """Check if a player can accept an offer. Returns error message or None."""
     if acceptor_card_index < 0 or acceptor_card_index >= len(acceptor.hand):
-        return "Invalid card index"
+        return "ageofheroes-invalid-card-index"
 
     active_players = game.get_active_players()
 
     # Can't accept your own offer
     acceptor_index = active_players.index(acceptor)
     if offer.player_index == acceptor_index:
-        return "Cannot accept your own offer"
+        return "ageofheroes-cannot-accept-own-offer"
 
     # Check if the offered card is still available
     offerer = active_players[offer.player_index]
     if not hasattr(offerer, "hand"):
-        return "Offerer has no hand"
+        return "ageofheroes-offerer-unavailable"
     if offer.card_index >= len(offerer.hand):
-        return "Offered card no longer available"
+        return "ageofheroes-offered-card-unavailable"
 
     # Check if acceptor's card matches what's wanted
     acceptor_card = acceptor.hand[acceptor_card_index]
 
     if offer.wanted_type is not None and acceptor_card.card_type != offer.wanted_type:
-        return "Card type doesn't match"
+        return "ageofheroes-trade-card-type-mismatch"
     if offer.wanted_subtype is not None and acceptor_card.subtype != offer.wanted_subtype:
-        return "Card subtype doesn't match"
+        return "ageofheroes-trade-card-subtype-mismatch"
 
     # Check special resource restrictions
     error = can_offer_card(game, acceptor, acceptor_card_index)
@@ -268,7 +268,13 @@ def format_offer(game: AgeOfHeroesGame, offer: TradeOffer, locale: str) -> str:
     else:
         wanted_name = offer.wanted_type or ""
 
-    return f"{offerer.name}: {offered_name} -> {wanted_name}"
+    return Localization.get(
+        locale,
+        "ageofheroes-trade-offer-label",
+        player=offerer.name,
+        offered=offered_name,
+        wanted=wanted_name,
+    )
 
 
 def announce_offer(
@@ -300,6 +306,7 @@ def announce_offer(
                     "ageofheroes-offer-made-you",
                     card=offered_name,
                     wanted=wanted_name,
+                    buffer="game",
                 )
             else:
                 user.speak_l(
@@ -307,6 +314,7 @@ def announce_offer(
                     player=player.name,
                     card=offered_name,
                     wanted=wanted_name,
+                    buffer="game",
                 )
 
 
@@ -439,12 +447,14 @@ def execute_matched_trade(
                     "ageofheroes-trade-accepted-you",
                     other=player2.name,
                     receive=card2_name,
+                    buffer="game",
                 )
             elif p == player2:
                 user.speak_l(
                     "ageofheroes-trade-accepted-you",
                     other=player1.name,
                     receive=card1_name,
+                    buffer="game",
                 )
             else:
                 user.speak_l(
@@ -453,4 +463,5 @@ def execute_matched_trade(
                     other=player2.name,
                     give=card1_name,
                     receive=card2_name,
+                    buffer="game",
                 )

@@ -10,7 +10,7 @@ from types import SimpleNamespace
 
 import server.core.server as server_module
 from server.core.server import Server
-from server.core.users.preferences import UserPreferences
+from server.users.preferences import UserPreferences
 
 
 @contextmanager
@@ -619,7 +619,7 @@ def test_handle_list_ignored_for_unknown_requester_is_noop(server):
 
 
 def test_menu_item_to_dict_includes_meta_when_set():
-    from server.core.users.base import MenuItem
+    from server.core.menu_items import MetaMenuItem as MenuItem
     item = MenuItem(text="Bob (online)", id="online_user", meta={"username": "Bob"})
     assert item.to_dict() == {
         "text": "Bob (online)",
@@ -630,13 +630,14 @@ def test_menu_item_to_dict_includes_meta_when_set():
 
 def test_menu_item_to_dict_omits_empty_meta():
     """An empty meta dict shouldn't bloat the wire payload."""
-    from server.core.users.base import MenuItem
+    from server.core.menu_items import MetaMenuItem as MenuItem
     item = MenuItem(text="x", id="x", meta={})
     out = item.to_dict()
     assert out == {"text": "x", "id": "x"}
     assert "meta" not in out
 
 
-def test_menu_item_to_dict_returns_plain_string_with_no_attrs():
-    from server.core.users.base import MenuItem
-    assert MenuItem(text="plain").to_dict() == "plain"
+def test_menu_item_without_an_id_is_sent_as_a_read_only_row():
+    # PlayAural's engine marks a row with nothing to activate as read-only.
+    from server.users.base import MenuItem
+    assert MenuItem(text="plain").to_dict() == {"text": "plain", "read_only": True}

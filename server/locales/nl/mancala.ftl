@@ -1,32 +1,26 @@
-# Mancala game messages — nl
-# Note: Common messages like round-start, turn-start are in games.ftl
+# mancala.ftl for locale nl. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game info
 game-name-mancala = Mancala
-
 # Actions
 mancala-pit-label = Put { $pit }: { $stones } stenen
-
+mancala-check-board = Check board
 # Game events
 mancala-sow = { $player } zaait { $stones } stenen uit put { $pit }
 mancala-capture = { $player } vangt { $captured } stenen!
 mancala-extra-turn = Laatste steen in de pot! { $player } is opnieuw aan de beurt.
 mancala-winner = { $player } wint met { $score } stenen!
 mancala-draw = Gelijkspel! Beide spelers hebben { $score } stenen.
-
 # Board status
-mancala-board-status =
-    Jouw putten: { $own_pits }. Jouw pot: { $own_store }. Putten tegenstander: { $opp_pits }. Pot tegenstander: { $opp_store }.
-
+mancala-board-status = Jouw putten: { $own_pits }. Jouw pot: { $own_store }. Putten tegenstander: { $opp_pits }. Pot tegenstander: { $opp_store }.
 # Options
 mancala-set-stones = Stenen per put: { $stones }
 mancala-desc-stones = Aantal stenen in elke put bij de start
 mancala-enter-stones = Voer het aantal startstenen per put in:
 mancala-option-changed-stones = Startstenen gewijzigd naar { $stones }
-
 # Disabled reasons
 mancala-pit-empty = Die put is leeg.
-
 # Rules
 mancala-rules =
     Mancala is een put-en-stenenspel voor twee spelers.
@@ -38,7 +32,5 @@ mancala-rules =
     Het spel eindigt als één kant helemaal leeg is.
     De speler met de meeste stenen wint.
     Gebruik toetsen 1 tot 6 om een put te kiezen. Druk op E om het bord te bekijken.
-
 # End screen
 mancala-final-score = { $player }: { $score } stenen
-mancala-check-board = Check board

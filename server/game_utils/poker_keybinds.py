@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from server.core.ui.keybinds import KeybindState
+from ..ui.keybinds import KeybindState
 
 
 def setup_poker_keybinds(
@@ -29,42 +29,15 @@ def setup_poker_keybinds(
     read_cards_count: int = 0,
     draw_cards: str | None = None,
 ) -> None:
-    """Define standard poker keybinds on a game instance.
-
-    Args:
-        game: Game instance with define_keybind method.
-        check_pot: Action id for pot check.
-        fold: Action id for fold.
-        call: Action id for call/check.
-        raise_action: Action id for raise.
-        all_in: Action id for all-in.
-        read_hand: Action id for reading hand.
-        hand_value: Action id for hand value.
-        check_dealer: Action id for dealer/button check.
-        dealer_label: Label for dealer/button keybind.
-        check_position: Action id for position check.
-        check_bet: Action id for current bet check.
-        check_min_raise: Action id for min-raise check.
-        check_hand_players: Action id for players-in-hand.
-        check_turn_timer: Action id for turn timer check.
-        turn_timer_key: Keybind string for timer check.
-        read_table: Optional action id for reading table.
-        check_blind_timer: Optional action id for blind timer.
-        reveal_both: Optional action id for reveal both.
-        reveal_first: Optional action id for reveal first.
-        reveal_second: Optional action id for reveal second.
-        read_cards_count: Number of per-card read actions to bind.
-        draw_cards: Optional action id for draw cards.
-    """
     game.define_keybind("p", "Check pot", [check_pot], include_spectators=True)
     game.define_keybind("f", "Fold", [fold])
     game.define_keybind("c", "Call/Check", [call])
     game.define_keybind("r", "Raise", [raise_action])
     game.define_keybind("shift+a", "All in", [all_in])
     game.define_keybind("w", "Read hand", [read_hand], include_spectators=False)
-    game.define_keybind("g", "Hand value", [hand_value], include_spectators=False)
+    game.define_keybind("g", "Read hand strength", [hand_value], include_spectators=False)
     game.define_keybind("x", dealer_label, [check_dealer], include_spectators=True)
-    game.define_keybind("z", "Position", [check_position], include_spectators=True)
+    game.define_keybind("z", "Position", [check_position], include_spectators=False)
     game.define_keybind("n", "Current bet", [check_bet], include_spectators=True)
     game.define_keybind("m", "Minimum raise", [check_min_raise], include_spectators=True)
     game.define_keybind("h", "Players in hand", [check_hand_players], include_spectators=True)

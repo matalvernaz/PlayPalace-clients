@@ -1,19 +1,14 @@
-# Scopa game messages
-# Note: Common messages like round-start, turn-start, target-score, team-mode are in games.ftl
+# scopa.ftl for locale uk. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
 # Game name
 game-name-scopa = Скопа
-
 # Game events
 scopa-initial-table = Карти столу: { $cards }
 scopa-no-initial-table = Немає карт на столі для початку.
-scopa-you-collect = Ви збираєте { $cards } з { $card }
-scopa-player-collects = { $player } збирає { $cards } з { $card }
 scopa-you-put-down = Ви кладете { $card }.
 scopa-player-puts-down = { $player } кладе { $card }.
-scopa-scopa-suffix =  - СКОПА!
 scopa-clear-table-suffix = , очищаючи стіл.
-scopa-remaining-cards = { $player } отримує залишкові карти столу.
 scopa-scoring-round = Підрахунок очок...
 scopa-most-cards = { $player } отримує 1 очко за найбільше карт ({ $count } карт).
 scopa-most-cards-tie = Найбільше карт - нічия, очко не присуджується.
@@ -29,11 +24,9 @@ scopa-round-score-line = { $player }: +{ $round_score } (всього: { $total_
 scopa-table-empty = На столі немає карт.
 scopa-no-such-card = Немає карти на цій позиції.
 scopa-captured-count = Ви зібрали { $count } карт
-
 # View actions
 scopa-view-table = Переглянути стіл
 scopa-view-captured = Переглянути зібране
-
 # Scopa-specific options
 scopa-enter-target-score = Введіть цільовий рахунок (1-121)
 scopa-set-cards-per-deal = Карт на роздачу: { $cards }
@@ -47,7 +40,6 @@ scopa-select-mechanic = Виберіть механіку скопи
 scopa-toggle-instant-win = Миттєва перемога на скопі: { $enabled }
 scopa-toggle-team-scoring = Об'єднувати командні карти для підрахунку: { $enabled }
 scopa-toggle-inverse = Інверсний режим (досягнення мети = вибування): { $enabled }
-
 # Option change announcements
 scopa-option-changed-cards = Карт на роздачу встановлено на { $cards }.
 scopa-option-changed-decks = Кількість колод встановлено на { $decks }.
@@ -57,20 +49,18 @@ scopa-option-changed-mechanic = Механіка скопи встановлен
 scopa-option-changed-instant = Миттєва перемога на скопі { $enabled }.
 scopa-option-changed-team-scoring = Підрахунок командних карт { $enabled }.
 scopa-option-changed-inverse = Інверсний режим { $enabled }.
-
 # Scopa mechanic choices
 scopa-mechanic-normal = Нормальна
 scopa-mechanic-no_scopas = Без скоп
 scopa-mechanic-only_scopas = Тільки скопи
-
 # Disabled action reasons
 scopa-timer-not-active = Таймер раунду не активний.
-
 # Validation errors
-scopa-error-not-enough-cards = Недостатньо карт у { $decks } { $decks ->
-    [one] колоді
-    *[other] колодах
-} для { $players } { $players ->
-    [one] гравця
-    *[other] гравців
-} з { $cards_per_deal } картами кожному. (Потрібно { $cards_per_deal } × { $players } = { $cards_needed } карт, але є лише { $total_cards }.)
+scopa-error-not-enough-cards =
+    Недостатньо карт у { $decks } { $decks ->
+        [one] колоді
+       *[other] колодах
+    } для { $players } { $players ->
+        [one] гравця
+       *[other] гравців
+    } з { $cards_per_deal } картами кожному. (Потрібно { $cards_per_deal } × { $players } = { $cards_needed } карт, але є лише { $total_cards }.)

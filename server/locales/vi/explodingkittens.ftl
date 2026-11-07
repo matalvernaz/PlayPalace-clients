@@ -1,5 +1,7 @@
-game-name-explodingkittens = Mèo Nổ
+# explodingkittens.ftl for locale vi. Messages missing here are spoken in English.
+# Merged from PlayAural and this server by tools/merge_playaural_locales.py.
 
+game-name-explodingkittens = Mèo Nổ
 explodingkittens-set-fast-game = Ván nhanh: { $enabled }
 explodingkittens-option-changed-fast-game = Ván nhanh đã chuyển thành { $enabled }.
 explodingkittens-option-fast-game-description = Với 2 hoặc 3 người, bỏ ngẫu nhiên một phần ba chồng rút trước khi thêm các lá Mèo Nổ (mặc định tắt).
@@ -18,7 +20,6 @@ explodingkittens-nope-response-10 = 10 giây
 explodingkittens-nope-response-15 = 15 giây
 explodingkittens-nope-response-20 = 20 giây
 explodingkittens-error-invalid-nope-response = Hãy chọn thời gian phản hồi Phủ Nhận hợp lệ.
-
 explodingkittens-card-exploding-kitten = Mèo Nổ
 explodingkittens-card-defuse = Gỡ Bom
 explodingkittens-card-nope = Phủ Nhận
@@ -33,7 +34,6 @@ explodingkittens-card-hairy-potato-cat = Mèo Khoai Tây Lông Xù
 explodingkittens-card-rainbow-ralphing-cat = Mèo Nôn Cầu Vồng
 explodingkittens-card-tacocat = Mèo Taco
 explodingkittens-card-unknown = Lá bài không rõ
-
 explodingkittens-action-nope = Đánh lá Phủ Nhận
 explodingkittens-action-pass = Bỏ qua
 explodingkittens-action-draw = Rút một lá
@@ -48,17 +48,17 @@ explodingkittens-action-read-table = Đọc tình hình bàn
 explodingkittens-action-check-nope-timer = Kiểm tra thời gian Phủ Nhận
 explodingkittens-action-name-pair = đôi cùng tên
 explodingkittens-action-name-triple = bộ ba cùng tên
-explodingkittens-target-player = { $player }, { $cards ->
-    [one] 1 lá
-   *[other] { $cards } lá
-}
+explodingkittens-target-player =
+    { $player }, { $cards ->
+        [one] 1 lá
+       *[other] { $cards } lá
+    }
 explodingkittens-card-selected = Đã chọn: { $card }
 explodingkittens-card-not-selected = Chưa chọn: { $card }
 explodingkittens-give-card-label = Đưa lá { $card }
 explodingkittens-insert-top = Đặt lên đầu chồng
 explodingkittens-insert-bottom = Đặt xuống đáy chồng
 explodingkittens-insert-position = Đặt dưới { $cards } lá tính từ đầu chồng
-
 explodingkittens-error-eliminated = Bạn đã phát nổ và bị loại.
 explodingkittens-error-card-missing = Lá đó không còn trên tay bạn.
 explodingkittens-error-card-not-combo = Không thể dùng Mèo Nổ trong bộ cùng tên.
@@ -106,18 +106,19 @@ explodingkittens-error-no-defuse = Bạn không có lá Gỡ Bom.
 explodingkittens-error-invalid-target = Không thể chọn người chơi đó.
 explodingkittens-error-invalid-request = Không thể yêu cầu lá đó.
 explodingkittens-error-invalid-position = Vị trí đặt lại đó không còn hợp lệ.
-
 explodingkittens-game-started = Mèo Nổ bắt đầu với { $players } người và { $cards } lá trong chồng rút.
 explodingkittens-game-starting-wait = Vui lòng chờ trò chơi bắt đầu.
-explodingkittens-hand = { $count ->
-    [one] Lá bài của bạn: { $cards }.
-   *[other] Bạn có { $count } lá: { $cards }.
-}
+explodingkittens-hand =
+    { $count ->
+        [one] Lá bài của bạn: { $cards }.
+       *[other] Bạn có { $count } lá: { $cards }.
+    }
 explodingkittens-hand-empty = Bạn không còn lá nào trên tay.
-explodingkittens-combo-selection-count = { $count ->
-    [one] Đã chọn 1 lá.
-   *[other] Đã chọn { $count } lá.
-}
+explodingkittens-combo-selection-count =
+    { $count ->
+        [one] Đã chọn 1 lá.
+       *[other] Đã chọn { $count } lá.
+    }
 explodingkittens-you-play-card = Bạn đánh lá { $card }.
 explodingkittens-player-plays-card = { $player } đánh lá { $card }.
 explodingkittens-you-play-targeted-card = Bạn đánh lá { $card } vào { $target }.
@@ -132,28 +133,32 @@ explodingkittens-player-plays-triple-target = { $player } đánh bộ ba { $card
 explodingkittens-you-play-nope = Bạn đánh lá Phủ Nhận.
 explodingkittens-player-plays-nope = { $player } đánh lá Phủ Nhận.
 explodingkittens-you-pass-nope = Bạn bỏ qua cửa sổ Phủ Nhận.
-explodingkittens-nope-time-remaining = Còn { $seconds ->
-    [one] 1 giây.
-   *[other] { $seconds } giây.
-}
+explodingkittens-nope-time-remaining =
+    Còn { $seconds ->
+        [one] 1 giây.
+       *[other] { $seconds } giây.
+    }
 explodingkittens-your-action-canceled = { $action } của bạn bị hủy.
 explodingkittens-player-action-canceled = { $action } của { $player } bị hủy.
 explodingkittens-your-action-resolves = { $action } của bạn có hiệu lực.
 explodingkittens-player-action-resolves = { $action } của { $player } có hiệu lực.
 explodingkittens-your-shuffle-resolves = Xáo Bài của bạn có hiệu lực. Chồng rút đã được xáo.
 explodingkittens-player-shuffle-resolves = Xáo Bài của { $player } có hiệu lực. Chồng rút đã được xáo.
-explodingkittens-your-attack-resolves = Tấn Công của bạn có hiệu lực. { $target } phải đi { $turns ->
-    [one] 1 lượt.
-   *[other] { $turns } lượt.
-}
-explodingkittens-attack-resolves-target = Tấn Công của { $player } có hiệu lực. Bạn phải đi { $turns ->
-    [one] 1 lượt.
-   *[other] { $turns } lượt.
-}
-explodingkittens-player-attack-resolves = Tấn Công của { $player } có hiệu lực. { $target } phải đi { $turns ->
-    [one] 1 lượt.
-   *[other] { $turns } lượt.
-}
+explodingkittens-your-attack-resolves =
+    Tấn Công của bạn có hiệu lực. { $target } phải đi { $turns ->
+        [one] 1 lượt.
+       *[other] { $turns } lượt.
+    }
+explodingkittens-attack-resolves-target =
+    Tấn Công của { $player } có hiệu lực. Bạn phải đi { $turns ->
+        [one] 1 lượt.
+       *[other] { $turns } lượt.
+    }
+explodingkittens-player-attack-resolves =
+    Tấn Công của { $player } có hiệu lực. { $target } phải đi { $turns ->
+        [one] 1 lượt.
+       *[other] { $turns } lượt.
+    }
 explodingkittens-future-cards = Nhìn Tương Lai của bạn có hiệu lực. Các lá kế tiếp theo thứ tự: { $cards }.
 explodingkittens-player-see-future-resolves = Nhìn Tương Lai của { $player } có hiệu lực.
 explodingkittens-your-favor-resolves = Xin Bài của bạn có hiệu lực. { $target } đang chọn một lá.
@@ -167,19 +172,20 @@ explodingkittens-you-defuse = Bạn dùng lá Gỡ Bom.
 explodingkittens-player-defuses = { $player } dùng lá Gỡ Bom.
 explodingkittens-you-reinsert-kitten = Bạn đặt Mèo Nổ trở lại chồng rút.
 explodingkittens-player-reinserts-kitten = { $player } đặt Mèo Nổ trở lại chồng rút.
-explodingkittens-you-have-turns = Bạn còn { $turns ->
-    [one] 1 lượt
-   *[other] { $turns } lượt
-}.
-explodingkittens-player-has-turns = { $player } còn { $turns ->
-    [one] 1 lượt
-   *[other] { $turns } lượt
-}.
+explodingkittens-you-have-turns =
+    Bạn còn { $turns ->
+        [one] 1 lượt
+       *[other] { $turns } lượt
+    }.
+explodingkittens-player-has-turns =
+    { $player } còn { $turns ->
+        [one] 1 lượt
+       *[other] { $turns } lượt
+    }.
 explodingkittens-you-explode = Bạn phát nổ.
 explodingkittens-player-explodes = { $player } phát nổ.
 explodingkittens-you-win = Bạn là người sống sót cuối cùng và thắng Mèo Nổ.
 explodingkittens-player-wins = { $player } là người sống sót cuối cùng và thắng Mèo Nổ.
-
 explodingkittens-favor-transfer-you = { $target } đưa cho bạn lá { $card }.
 explodingkittens-favor-transfer-target = Bạn đưa lá { $card } cho { $player }.
 explodingkittens-favor-transfer-public = { $target } đưa một lá cho { $player }.
@@ -198,29 +204,23 @@ explodingkittens-triple-transfer-public = { $target } đưa lá được yêu c�
 explodingkittens-triple-miss-you = { $target } không có lá { $card } mà bạn yêu cầu.
 explodingkittens-triple-miss-target = Bạn không có lá { $card } mà { $player } yêu cầu.
 explodingkittens-triple-miss-public = { $target } không có lá { $card } mà { $player } yêu cầu.
-
 explodingkittens-no-discard = chưa có lá nào trong chồng bỏ
 explodingkittens-piles = Chồng rút: { $deck }. Chồng bỏ: { $discard }. Lá trên cùng chồng bỏ: { $top }.
 explodingkittens-table-piles = Chồng rút: { $deck }. Chồng bỏ: { $discard }.
-explodingkittens-table-turn = Lượt hiện tại: { $player }, còn { $turns ->
-    [one] 1 lượt.
-   *[other] { $turns } lượt.
-}
-explodingkittens-table-player = { $player }: { $cards ->
-    [one] 1 lá
-   *[other] { $cards } lá
-}, { $status }.
+explodingkittens-table-turn =
+    Lượt hiện tại: { $player }, còn { $turns ->
+        [one] 1 lượt.
+       *[other] { $turns } lượt.
+    }
+explodingkittens-table-player =
+    { $player }: { $cards ->
+        [one] 1 lá
+       *[other] { $cards } lá
+    }, { $status }.
 explodingkittens-status-alive = còn chơi
 explodingkittens-status-eliminated = đã bị loại
 explodingkittens-phase-normal = Đang chờ đánh hoặc rút bài.
-explodingkittens-phase-combo = Có người đang chọn một bộ cùng tên.
-explodingkittens-phase-target = Có người đang chọn mục tiêu.
-explodingkittens-phase-request = Có người đang yêu cầu một lá bài.
-explodingkittens-phase-nope = Cửa sổ Phủ Nhận đang mở.
 explodingkittens-phase-favor-give = Có người đang đưa bài theo lá Xin Bài.
-explodingkittens-phase-defuse = Một lá Mèo Nổ đang chờ quyết định Gỡ Bom.
-explodingkittens-phase-reinsert = Một lá Mèo Nổ đang được đặt lại vào chồng rút.
 explodingkittens-phase-game-over = Ván chơi đã kết thúc.
-
 explodingkittens-results-winner = Người thắng: { $player }.
 explodingkittens-results-place = { $rank }. { $player }.

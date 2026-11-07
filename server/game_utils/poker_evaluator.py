@@ -27,14 +27,7 @@ STRAIGHT_FLUSH = 8
 
 
 def best_hand(cards: list[Card]) -> tuple[tuple[int, tuple[int, ...]], list[Card]]:
-    """Return the best 5-card hand score and chosen 5 cards.
-
-    Args:
-        cards: List of 5+ cards to evaluate.
-
-    Returns:
-        Tuple of (score, best_five_cards).
-    """
+    """Return the best 5-card hand score and the chosen 5 cards."""
     if len(cards) < 5:
         raise ValueError("best_hand requires at least 5 cards")
 
@@ -52,14 +45,7 @@ def best_hand(cards: list[Card]) -> tuple[tuple[int, tuple[int, ...]], list[Card
 
 
 def score_5_cards(cards: list[Card]) -> tuple[int, tuple[int, ...]]:
-    """Score exactly 5 cards.
-
-    Args:
-        cards: Exactly five cards.
-
-    Returns:
-        Comparable score tuple (higher is better).
-    """
+    """Score exactly 5 cards. Higher tuples compare as better hands."""
     if len(cards) != 5:
         raise ValueError("score_5_cards requires exactly 5 cards")
 
@@ -115,26 +101,22 @@ def score_5_cards(cards: list[Card]) -> tuple[int, tuple[int, ...]]:
 
 
 def describe_hand(score: tuple[int, tuple[int, ...]], locale: str = "en") -> str:
-    """Return a human-friendly description for a scored hand.
-
-    Args:
-        score: Hand score tuple.
-        locale: Locale for localization.
-
-    Returns:
-        Localized description of the hand.
-    """
+    """Return a human-friendly description for a scored hand."""
     category, tiebreakers = score
 
     if category == HIGH_CARD:
         high = _cap(_rank_name(tiebreakers[0], locale))
         kickers = _rank_list(tiebreakers[1:], locale, cap=True)
-        return Localization.get(locale, "poker-high-card-with", high=high, rest=kickers)
+        return Localization.get(
+            locale, "poker-high-card-with", high=high, rest=kickers
+        )
 
     if category == ONE_PAIR:
         pair = _cap(_rank_name_plural(tiebreakers[0], locale))
         kickers = _rank_list(tiebreakers[1:], locale, cap=True)
-        return Localization.get(locale, "poker-pair-with", pair=pair, rest=kickers)
+        return Localization.get(
+            locale, "poker-pair-with", pair=pair, rest=kickers
+        )
 
     if category == TWO_PAIR:
         high_pair = _cap(_rank_name_plural(tiebreakers[0], locale))
@@ -151,7 +133,9 @@ def describe_hand(score: tuple[int, tuple[int, ...]], locale: str = "en") -> str
     if category == THREE_OF_A_KIND:
         trips = _cap(_rank_name_plural(tiebreakers[0], locale))
         kickers = _rank_list(tiebreakers[1:], locale, cap=True)
-        return Localization.get(locale, "poker-trips-with", trips=trips, rest=kickers)
+        return Localization.get(
+            locale, "poker-trips-with", trips=trips, rest=kickers
+        )
 
     if category == STRAIGHT:
         high = _cap(_rank_name(tiebreakers[0], locale))
@@ -160,49 +144,43 @@ def describe_hand(score: tuple[int, tuple[int, ...]], locale: str = "en") -> str
     if category == FLUSH:
         high = _cap(_rank_name(tiebreakers[0], locale))
         kickers = _rank_list(tiebreakers[1:], locale, cap=True)
-        return Localization.get(locale, "poker-flush-high-with", high=high, rest=kickers)
+        return Localization.get(
+            locale, "poker-flush-high-with", high=high, rest=kickers
+        )
 
     if category == FULL_HOUSE:
         trips = _cap(_rank_name_plural(tiebreakers[0], locale))
         pair = _cap(_rank_name_plural(tiebreakers[1], locale))
-        return Localization.get(locale, "poker-full-house", trips=trips, pair=pair)
+        return Localization.get(
+            locale, "poker-full-house", trips=trips, pair=pair
+        )
 
     if category == FOUR_OF_A_KIND:
         quads = _cap(_rank_name_plural(tiebreakers[0], locale))
         kicker = _cap(_rank_name(tiebreakers[1], locale))
-        return Localization.get(locale, "poker-quads-with", quads=quads, kicker=kicker)
+        return Localization.get(
+            locale, "poker-quads-with", quads=quads, kicker=kicker
+        )
 
     if category == STRAIGHT_FLUSH:
+        if tiebreakers[0] == 14:
+            return Localization.get(locale, "poker-royal-flush")
         high = _cap(_rank_name(tiebreakers[0], locale))
-        return Localization.get(locale, "poker-straight-flush-high", high=high)
+        return Localization.get(
+            locale, "poker-straight-flush-high", high=high
+        )
 
     return Localization.get(locale, "poker-unknown-hand")
 
 
 def describe_best_hand(cards: list[Card], locale: str = "en") -> tuple[str, list[Card]]:
-    """Return the best hand description and the chosen 5 cards.
-
-    Args:
-        cards: List of 5+ cards to evaluate.
-        locale: Locale for localization.
-
-    Returns:
-        Tuple of (description, best_five_cards).
-    """
+    """Return the best hand description and the chosen 5 cards."""
     score, best = best_hand(cards)
     return describe_hand(score, locale), best
 
 
 def describe_partial_hand(cards: list[Card], locale: str = "en") -> str:
-    """Describe a partial hand without inventing missing cards.
-
-    Args:
-        cards: List of 0-4 cards.
-        locale: Locale for localization.
-
-    Returns:
-        Localized partial-hand description.
-    """
+    """Describe a partial hand without inventing missing cards."""
     if len(cards) >= 5:
         score, _ = best_hand(cards)
         return describe_hand(score, locale)
@@ -238,7 +216,9 @@ def describe_partial_hand(cards: list[Card], locale: str = "en") -> str:
                 low=low_pair_name,
                 kicker=kickers,
             )
-        return Localization.get(locale, "poker-two-pair", high=high_pair_name, low=low_pair_name)
+        return Localization.get(
+            locale, "poker-two-pair", high=high_pair_name, low=low_pair_name
+        )
     if by_count[0][0] == 2:
         pair = _cap(_rank_name_plural(by_count[0][1], locale))
         kickers = _rank_list([r for r in ranks if r != by_count[0][1]], locale, cap=True)
@@ -255,14 +235,12 @@ def _rank_value(rank: int) -> int:
 
 
 def _rank_name(rank: int, locale: str) -> str:
-    """Return the localized rank name for a poker rank value."""
     normalized = 1 if rank == 14 else rank
     key = RANK_KEYS.get(normalized)
     return Localization.get(locale, key) if key else str(rank)
 
 
 def _rank_name_plural(rank: int, locale: str) -> str:
-    """Return the localized plural rank name for a poker rank value."""
     name = _rank_name(rank, locale)
     normalized = 1 if rank == 14 else rank
     key = RANK_KEYS.get(normalized)
@@ -273,7 +251,6 @@ def _rank_name_plural(rank: int, locale: str) -> str:
 
 
 def _rank_list(ranks: Iterable[int], locale: str, cap: bool = False) -> str:
-    """Format a list of ranks into a localized, human-readable list."""
     names = [_rank_name(rank, locale) for rank in ranks]
     if cap:
         names = [_cap(name) for name in names]
@@ -281,7 +258,6 @@ def _rank_list(ranks: Iterable[int], locale: str, cap: bool = False) -> str:
 
 
 def _cap(name: str) -> str:
-    """Capitalize the first character of a string if present."""
     if not name:
         return name
     first = name[0].upper()
@@ -289,13 +265,11 @@ def _cap(name: str) -> str:
 
 
 def _is_flush(suits: Iterable[int]) -> bool:
-    """Return True if all suits are the same and not suit-less."""
     suit_set = set(suits)
     return len(suit_set) == 1 and next(iter(suit_set)) != SUIT_NONE
 
 
 def _is_straight(ranks: list[int]) -> tuple[bool, int]:
-    """Return True and the high card if the ranks form a straight."""
     unique = sorted(set(ranks), reverse=True)
     if len(unique) != 5:
         return False, 0
@@ -313,6 +287,5 @@ def _is_straight(ranks: list[int]) -> tuple[bool, int]:
 
 
 def _highest_of_excluding(ranks: list[int], excluded: set[int]) -> list[int]:
-    """Return remaining ranks sorted high-to-low excluding a set."""
     remaining = [r for r in ranks if r not in excluded]
     return sorted(remaining, reverse=True)

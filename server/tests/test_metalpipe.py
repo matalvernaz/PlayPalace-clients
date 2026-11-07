@@ -1,218 +1,333 @@
-"""
-Tests for the Metal Pipe game.
-"""
+"""Tests for the Metal Pipe game."""
 
-import json
-import random
+from pathlib import Path
+import re
+from unittest.mock import patch
 
-from server.games.metalpipe.game import MetalPipeGame, MetalPipePlayer
-from server.core.users.test_user import MockUser
-from server.core.users.bot import Bot
-
-
-class TestMetalPipeUnit:
-    """Unit tests for Metal Pipe game."""
-
-    def test_game_creation(self):
-        """Test creating a new Metal Pipe game."""
-        game = MetalPipeGame()
-        assert game.get_name() == "Metal Pipe"
-        assert game.get_type() == "metalpipe"
-        assert game.get_category() == "category-uncategorized"
-        assert game.get_min_players() == 2
-        assert game.get_max_players() == 8
-
-    def test_player_creation(self):
-        """Test creating a player with correct initial state."""
-        game = MetalPipeGame()
-        user = MockUser("Alice")
-        player = game.add_player("Alice", user)
-
-        assert player.name == "Alice"
-        assert player.is_bot is False
-        assert isinstance(player, MetalPipePlayer)
-        assert player.alive is True
-
-    def test_serialization(self):
-        """Test that game state can be serialized and deserialized."""
-        game = MetalPipeGame()
-        user1 = MockUser("Alice")
-        user2 = MockUser("Bob")
-        game.add_player("Alice", user1)
-        game.add_player("Bob", user2)
-
-        # Serialize
-        json_str = game.to_json()
-        data = json.loads(json_str)
-
-        assert data["options"]["multiple_bonks"] is False
-        assert data["options"]["allow_self_bonk"] is True
-
-        # Deserialize
-        loaded = MetalPipeGame.from_json(json_str)
-        assert loaded.options.multiple_bonks is False
-        assert loaded.options.allow_self_bonk is True
+from ..games.metalpipe.game import BONK_SEQUENCE_ID, MetalPipeGame, MetalPipeOptions
+from ..games.registry import GameRegistry
+from ..messages.localization import Localization
+from ..users.test_user import MockUser
 
 
-class TestMetalPipePlayTest:
-    """Integration tests for complete game play."""
+_locales_dir = Path(__file__).resolve().parents[1] / "locales"
 
-    def _run_game_to_completion(self, game, max_ticks=5000):
-        """Helper to run a game to completion."""
+
+def make_game(
+    *,
+    player_count: int = 3,
+    mobile_first: bool = False,
+    locale: str = "en",
+    **option_overrides,
+) -> tuple[MetalPipeGame, list[MockUser]]:
+    game = MetalPipeGame(options=MetalPipeOptions(**option_overrides))
+    game.setup_keybinds()
+    users: list[MockUser] = []
+    for index in range(player_count):
+        user = MockUser(
+            f"Player{index + 1}",
+            locale=locale,
+            uuid=f"metalpipe-p{index + 1}",
+        )
+        if mobile_first and index == 0:
+            user.client_type = "mobile"
+        users.append(user)
+        game.add_player(user.username, user)
+    game.host = users[0].username
+    return game, users
+
+
+def advance_until(game: MetalPipeGame, condition, max_ticks: int = 500) -> bool:
+    for _ in range(max_ticks):
+        if condition():
+            return True
+        game.on_tick()
+    return condition()
+
+
+def test_game_registered_defaults_and_metadata() -> None:
+    assert GameRegistry.get("metalpipe") is MetalPipeGame
+    game = MetalPipeGame()
+
+    assert game.get_name() == "Metal Pipe"
+    assert game.get_type() == "metalpipe"
+    assert game.get_category() == "misc"
+    assert game.get_min_players() == 2
+    assert game.get_max_players() == 8
+    assert game.get_supported_leaderboards() == []
+    assert game.relevant_preferences == ["brief_announcements"]
+    assert game.options.multiple_bonks is False
+    assert game.options.allow_self_bonk is True
+
+
+def test_start_resets_players_and_announces_automatic_mode() -> None:
+    game, users = make_game(player_count=2)
+    game.players[1].alive = False
+
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[1].id],
+    ):
         game.on_start()
-        for _ in range(max_ticks):
-            if game.status == "finished":
-                break
-            game.on_tick()
-        assert game.status == "finished"
 
-    def test_single_bonk_completes(self):
-        """Test that a single bonk game completes."""
-        game = MetalPipeGame()
-        bot1 = Bot("Bot1")
-        bot2 = Bot("Bot2")
-        game.add_player("Bot1", bot1)
-        game.add_player("Bot2", bot2)
-        self._run_game_to_completion(game)
-        assert len(game._winner_names) >= 1
-
-    def test_single_bonk_no_self_bonk(self):
-        """Test single bonk with self-bonk disabled always has bonker win."""
-        game = MetalPipeGame()
-        game.options.allow_self_bonk = False
-        bot1 = Bot("Bot1")
-        bot2 = Bot("Bot2")
-        game.add_player("Bot1", bot1)
-        game.add_player("Bot2", bot2)
-        self._run_game_to_completion(game)
-        # With self-bonk off, bonker always wins (exactly 1 winner)
-        assert len(game._winner_names) == 1
-
-    def test_single_bonk_self_bonk_everyone_else_wins(self):
-        """Test that self-bonk makes everyone else win."""
-        # Force a self-bonk by seeding random
-        game = MetalPipeGame()
-        game.options.allow_self_bonk = True
-        bot1 = Bot("Bot1")
-        bot2 = Bot("Bot2")
-        bot3 = Bot("Bot3")
-        game.add_player("Bot1", bot1)
-        game.add_player("Bot2", bot2)
-        game.add_player("Bot3", bot3)
-
-        # Run many times to verify logic (self-bonk should yield 2 winners out of 3)
-        found_self_bonk = False
-        for seed in range(100):
-            game2 = MetalPipeGame()
-            game2.options.allow_self_bonk = True
-            b1 = Bot("Bot1")
-            b2 = Bot("Bot2")
-            b3 = Bot("Bot3")
-            game2.add_player("Bot1", b1)
-            game2.add_player("Bot2", b2)
-            game2.add_player("Bot3", b3)
-
-            random.seed(seed)
-            self._run_game_to_completion(game2)
-
-            if len(game2._winner_names) == 2:
-                # Self-bonk occurred: 2 out of 3 players won
-                found_self_bonk = True
-                break
-
-        assert found_self_bonk, "Expected at least one self-bonk in 100 seeds"
-
-    def test_multiple_bonks_completes(self):
-        """Test that multiple bonks mode completes."""
-        game = MetalPipeGame()
-        game.options.multiple_bonks = True
-        for i in range(4):
-            bot = Bot(f"Bot{i}")
-            game.add_player(f"Bot{i}", bot)
-        self._run_game_to_completion(game)
-        assert len(game._winner_names) == 1
-
-    def test_multiple_bonks_last_alive_wins(self):
-        """Test that in multiple bonks mode, last alive player wins."""
-        game = MetalPipeGame()
-        game.options.multiple_bonks = True
-        for i in range(4):
-            bot = Bot(f"Bot{i}")
-            game.add_player(f"Bot{i}", bot)
-        self._run_game_to_completion(game)
-
-        winner = game._winner_names[0]
-        # The winner should be the only alive player
-        for player in game.players:
-            if player.name == winner:
-                assert player.alive is True
-            else:
-                assert player.alive is False
-
-    def test_multiple_bonks_no_self_bonk(self):
-        """Test multiple bonks with self-bonk disabled."""
-        game = MetalPipeGame()
-        game.options.multiple_bonks = True
-        game.options.allow_self_bonk = False
-        for i in range(4):
-            bot = Bot(f"Bot{i}")
-            game.add_player(f"Bot{i}", bot)
-        self._run_game_to_completion(game)
-        assert len(game._winner_names) == 1
-
-    def test_two_player_multiple_bonks(self):
-        """Test 2-player multiple bonks (edge case)."""
-        game = MetalPipeGame()
-        game.options.multiple_bonks = True
-        bot1 = Bot("Bot1")
-        bot2 = Bot("Bot2")
-        game.add_player("Bot1", bot1)
-        game.add_player("Bot2", bot2)
-        self._run_game_to_completion(game)
-        assert len(game._winner_names) == 1
-
-    def test_eight_player_game(self):
-        """Test max player game completes."""
-        game = MetalPipeGame()
-        game.options.multiple_bonks = True
-        for i in range(8):
-            bot = Bot(f"Bot{i}")
-            game.add_player(f"Bot{i}", bot)
-        self._run_game_to_completion(game)
-        assert len(game._winner_names) == 1
-
-    def test_game_result_built(self):
-        """Test that game result is built correctly."""
-        game = MetalPipeGame()
-        game.options.multiple_bonks = True
-        for i in range(3):
-            bot = Bot(f"Bot{i}")
-            game.add_player(f"Bot{i}", bot)
-        self._run_game_to_completion(game)
-
-        result = game.build_game_result()
-        assert result.game_type == "metalpipe"
-        assert len(result.player_results) == 3
-        assert "winner_names" in result.custom_data
-        assert result.custom_data["multiple_bonks"] is True
+    assert game.status == "playing"
+    assert game.game_active is True
+    assert all(player.alive for player in game.players)
+    assert game.has_active_sequence(sequence_id=BONK_SEQUENCE_ID)
+    assert users[0].get_spoken_messages()[0] == (
+        "Metal Pipe begins in Single bonk mode. The pipe will choose everything automatically."
+    )
 
 
-class TestMetalPipePersistence:
-    """Tests for game persistence."""
+def test_single_bonk_other_uses_personal_victim_and_public_messages() -> None:
+    game, users = make_game(allow_self_bonk=False)
 
-    def test_options_preserved(self):
-        """Test that options are preserved through save/load."""
-        game = MetalPipeGame()
-        game.options.multiple_bonks = True
-        game.options.allow_self_bonk = False
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[1].id],
+    ):
+        game.on_start()
+        for user in users:
+            user.clear_messages()
+        assert advance_until(game, lambda: game.bonk_count == 1)
 
-        user1 = MockUser("Alice")
-        user2 = MockUser("Bob")
-        game.add_player("Alice", user1)
-        game.add_player("Bob", user2)
+    assert game.players[1].alive is False
+    assert users[0].get_last_spoken() == (
+        "You swing the metal pipe and hit Player2. Player2 is eliminated."
+    )
+    assert users[1].get_last_spoken() == (
+        "Player1 swings the metal pipe and hits you. You are eliminated."
+    )
+    assert users[2].get_last_spoken() == (
+        "Player1 swings the metal pipe and hits Player2. Player2 is eliminated."
+    )
 
-        json_str = game.to_json()
-        loaded = MetalPipeGame.from_json(json_str)
+    assert advance_until(game, lambda: game.status == "finished")
+    assert game.winner_ids == [game.players[0].id]
+    assert game.winner_names == ["Player1"]
 
-        assert loaded.options.multiple_bonks is True
-        assert loaded.options.allow_self_bonk is False
+
+def test_single_self_bonk_makes_everyone_else_winners() -> None:
+    game, users = make_game()
+
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[0].id],
+    ):
+        game.on_start()
+        for user in users:
+            user.clear_messages()
+        assert advance_until(game, lambda: game.status == "finished")
+
+    assert game.players[0].alive is False
+    assert set(game.winner_ids) == {game.players[1].id, game.players[2].id}
+    assert (
+        users[0].get_spoken_messages()[-1]
+        == "Player2 and Player3 win. The metal pipe has spoken."
+    )
+    assert (
+        users[1].get_spoken_messages()[-1]
+        == "You win along with Player3. The metal pipe has spoken."
+    )
+    assert (
+        users[2].get_spoken_messages()[-1]
+        == "You win along with Player2. The metal pipe has spoken."
+    )
+
+
+def test_multiple_bonks_continues_until_last_standing() -> None:
+    game, _ = make_game(multiple_bonks=True)
+
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[
+            game.players[0].id,
+            game.players[1].id,
+            game.players[0].id,
+            game.players[0].id,
+        ],
+    ):
+        game.on_start()
+        assert advance_until(game, lambda: game.status == "finished")
+
+    assert game.bonk_count == 2
+    assert game.winner_ids == [game.players[2].id]
+    assert [player.alive for player in game.players] == [False, False, True]
+
+
+def test_touch_standard_actions_include_status_turn_and_table_controls() -> None:
+    game, users = make_game(player_count=2, mobile_first=True)
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[1].id],
+    ):
+        game.on_start()
+
+    action_set = game.create_standard_action_set(game.players[0])
+    order = action_set._order
+    assert order.index("check_status") < order.index("whose_turn")
+    assert order.index("whose_turn") < order.index("whos_at_table")
+
+    game.refresh_menus(game.players[0])
+    game.flush_menus()
+    visible_ids = [
+        item.id
+        for item in users[0].menus["turn_menu"]["items"]
+        if getattr(item, "id", None)
+    ]
+    assert "check_status" in visible_ids
+    assert "whose_turn" in visible_ids
+    assert "whos_at_table" in visible_ids
+    assert "check_scores" not in visible_ids
+    assert "web_actions_menu" in visible_ids
+    assert "web_leave_table" in visible_ids
+
+
+def test_whose_turn_reports_automatic_phase() -> None:
+    game, users = make_game(player_count=2)
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[1].id],
+    ):
+        game.on_start()
+
+    users[0].clear_messages()
+    game.execute_action(game.players[0], "whose_turn")
+
+    assert users[0].get_last_spoken() == (
+        "Metal Pipe is resolving automatically. There are 2 players still standing, "
+        "and no player has a manual turn."
+    )
+
+
+def test_live_status_box_uses_stable_rows_and_refreshes() -> None:
+    game, users = make_game(player_count=2)
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[1].id],
+    ):
+        game.on_start()
+
+    game.execute_action(game.players[0], "check_status")
+    items = users[0].menus["status_box"]["items"]
+    assert [item.id for item in items] == [
+        "mode",
+        "progress",
+        "last_bonk",
+        "player:metalpipe-p1",
+        "player:metalpipe-p2",
+    ]
+    assert "Bonks resolved: 0" in items[1].text
+    assert items[2].text == "The pipe has not landed yet."
+
+    assert advance_until(game, lambda: game.bonk_count == 1)
+    game.flush_menus()
+
+    updated_items = users[0].menus["status_box"]["items"]
+    assert [item.id for item in updated_items] == [item.id for item in items]
+    assert "Bonks resolved: 1" in updated_items[1].text
+    assert updated_items[2].text == "Last bonk: Player1 hit Player2."
+    assert updated_items[-1].text == "Player2: Eliminated."
+
+
+def test_brief_announcements_are_per_listener() -> None:
+    game, users = make_game(allow_self_bonk=False)
+    users[0].preferences.brief_announcements = True
+
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[1].id],
+    ):
+        game.on_start()
+        for user in users:
+            user.clear_messages()
+        assert advance_until(game, lambda: game.bonk_count == 1)
+
+    assert users[0].get_last_spoken() == "You hit Player2. Player2 out."
+    assert users[1].get_last_spoken() == (
+        "Player1 swings the metal pipe and hits you. You are eliminated."
+    )
+
+
+def test_desktop_keybind_can_open_status_without_desktop_action_button() -> None:
+    game, users = make_game(player_count=2)
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[1].id],
+    ):
+        game.on_start()
+
+    game.handle_event(game.players[0], {"type": "keybind", "key": "c"})
+
+    assert "status_box" in users[0].menus
+    visible_ids = [
+        resolved.action.id for resolved in game.get_all_visible_actions(game.players[0])
+    ]
+    assert "check_status" not in visible_ids
+
+
+def test_game_result_and_end_screen_keep_scoreless_winner_data() -> None:
+    game, _ = make_game(player_count=2, allow_self_bonk=False)
+    with patch(
+        "server.games.metalpipe.game.random.choice",
+        side_effect=[game.players[0].id, game.players[1].id],
+    ):
+        game.on_start()
+        assert advance_until(game, lambda: game.status == "finished")
+
+    result = game.build_game_result()
+    assert result.custom_data["winner_names"] == ["Player1"]
+    assert result.custom_data["bonk_count"] == 1
+    assert result.custom_data["alive_status"] == {"Player1": True, "Player2": False}
+    assert game.format_end_screen(result, "en") == [
+        "Metal Pipe results",
+        "Winner: Player1.",
+        "Player1: Standing",
+        "Player2: Eliminated",
+    ]
+
+
+def test_metalpipe_locale_key_and_variable_parity() -> None:
+    en_text = (_locales_dir / "en" / "metalpipe.ftl").read_text(encoding="utf-8")
+    vi_text = (_locales_dir / "vi" / "metalpipe.ftl").read_text(encoding="utf-8")
+
+    def messages(text: str) -> dict[str, set[str]]:
+        result = {}
+        current_key = None
+        current_lines: list[str] = []
+        for line in text.splitlines():
+            if line and not line.startswith((" ", "\t")) and "=" in line:
+                if current_key is not None:
+                    result[current_key] = set(
+                        re.findall(
+                            r"\{\s*\$([a-zA-Z_][\w-]*)",
+                            "\n".join(current_lines),
+                        )
+                    )
+                current_key = line.split("=", 1)[0].strip()
+                current_lines = [line]
+            elif current_key is not None:
+                current_lines.append(line)
+        if current_key is not None:
+            result[current_key] = set(
+                re.findall(r"\{\s*\$([a-zA-Z_][\w-]*)", "\n".join(current_lines))
+            )
+        return result
+
+    assert messages(en_text) == messages(vi_text)
+
+
+def test_vietnamese_documentation_uses_in_game_terms() -> None:
+    document = (
+        Path(__file__).resolve().parents[1]
+        / "documentation"
+        / "content"
+        / "vi"
+        / "games"
+        / "metalpipe.md"
+    ).read_text(encoding="utf-8")
+
+    assert Localization.get("vi", "game-name-metalpipe") in document
+    assert "Phang liên hoàn" in document
+    assert "Cho phép tự phang" in document
+    assert "còn đứng vững" in document

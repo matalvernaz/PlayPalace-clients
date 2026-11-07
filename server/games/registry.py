@@ -2,6 +2,8 @@
 
 from typing import Type, TYPE_CHECKING
 
+from .categories import normalize_categories
+
 if TYPE_CHECKING:
     from .base import Game
 
@@ -23,25 +25,21 @@ class GameRegistry:
         return cls._games.get(game_type)
 
     @classmethod
-    def get_game_class(cls, game_type: str) -> Type["Game"] | None:
-        """Backward compatible alias for getting a game class by type."""
-        return cls.get(game_type)
-
-    @classmethod
     def get_all(cls) -> list[Type["Game"]]:
         """Get all registered game classes."""
         return list(cls._games.values())
 
     @classmethod
     def get_games_for_preference(cls, pref_name: str) -> list[str]:
-        """Return game type strings that declare a given preference as relevant.
+        """Return game type strings that declare a preference as relevant.
 
         Results are sorted alphabetically for stable menu ordering.
         """
-        result = []
-        for game_type, game_cls in cls._games.items():
-            if pref_name in getattr(game_cls, "relevant_preferences", []):
-                result.append(game_type)
+        result = [
+            game_type
+            for game_type, game_cls in cls._games.items()
+            if pref_name in getattr(game_cls, "relevant_preferences", [])
+        ]
         result.sort()
         return result
 
@@ -50,10 +48,10 @@ class GameRegistry:
         """Get games organized by category."""
         categories: dict[str, list[Type["Game"]]] = {}
         for game_class in cls._games.values():
-            category = game_class.get_category()
-            if category not in categories:
-                categories[category] = []
-            categories[category].append(game_class)
+            for category in normalize_categories(game_class.get_categories()):
+                if category not in categories:
+                    categories[category] = []
+                categories[category].append(game_class)
         return categories
 
 
