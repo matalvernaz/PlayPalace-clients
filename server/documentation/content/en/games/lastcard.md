@@ -46,7 +46,7 @@ A Wild Draw Four is only fair if the player had no other card of the color in pl
 
 \*\*Calling Last Card\*\*
 
-With the Last card callout rule on, which is the default, a few seconds open up whenever a play leaves a player with one card. That player should press \*\*B\*\*, the Buzzer, to call Last Card. If anyone else presses B first, they catch that player, who draws 2 penalty cards. If nobody presses in time, nothing happens.
+With the Last card callout rule on, which is the default, a few seconds open up whenever a play leaves a player with one card. That player should press \*\*B\*\*, the Buzzer, to call Last Card; in the web client and the iOS app, Buzzer appears in the turn menu instead. If anyone else presses B first, they catch that player, who draws 2 penalty cards. If nobody presses in time, nothing happens.
 
 \*\*Scoring\*\*
 
@@ -76,7 +76,7 @@ These are all off unless the host turns them on.
 
 \* \*\*Swap hand with opponent:\*\* Playing a 7 lets you choose another player to swap hands with. With 2 players, the swap is automatic.
 
-\* \*\*Jump-in:\*\* After most cards are played, the other players get a few seconds to play an identical card, the same color and the same number or symbol, by pressing \*\*J\*\*. Play then carries on from the player who jumped in. Only one jump-in can happen before the next player's turn.
+\* \*\*Jump-in:\*\* After most cards are played, the other players get a few seconds to play an identical card, the same color and the same number or symbol, by pressing \*\*J\*\* (in the web client and the iOS app, Jump in appears in the turn menu while the window is open). Play then carries on from the player who jumped in. Only one jump-in can happen before the next player's turn.
 
 \* \*\*Draw until playable:\*\* A card you draw that can't be played lets you draw again, and you keep drawing until you get one that can, or reach the draw limit. You may draw even while you hold a card that can be played, but you can't pass in between draws.
 

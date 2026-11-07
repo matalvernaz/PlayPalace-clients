@@ -1628,3 +1628,32 @@ def test_web_turn_menu_order():
     sort_idx = order.index("cycle_hand_sort_turn")
     assert sort_idx > draw_idx, "sort must be after draw"
     assert sort_idx > pass_idx, "sort must be after pass"
+
+
+# ============================================================================
+# Touch clients (the web client and the iOS app) get reaction buttons
+# ============================================================================
+
+
+@pytest.mark.parametrize(
+    "client_type, sees_buttons",
+    [("mobile", True), ("Web", True), ("web", True), ("Desktop", False), ("macos", False)],
+)
+def test_touch_clients_see_jump_in_and_buzzer_buttons(client_type, sees_buttons):
+    """Phones and browsers have no B or J key, so those reactions must be buttons for them."""
+    from server.game_utils.actions import Visibility
+    from server.users.test_user import MockUser
+
+    game = make_game(jump_in=True, buzzer_enabled=True)
+    user = MockUser("Alice")
+    user.client_type = client_type
+    alice = game.add_player("Alice", user)
+    add_bots(game, 2)
+    start_game(game)
+    setup_turn(game, 1, make_card(1, 5, COLOR_RED))
+    expected = Visibility.VISIBLE if sees_buttons else Visibility.HIDDEN
+
+    game.interrupt_phase = "jump_in_window"
+    assert game._is_jump_in_hidden(alice) == expected
+    game.interrupt_phase = "last_card_callout"
+    assert game._is_buzzer_hidden(alice) == expected

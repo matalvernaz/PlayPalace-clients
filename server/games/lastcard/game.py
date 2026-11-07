@@ -20,6 +20,7 @@ from ...game_utils.cards import Card, Deck, DeckFactory, card_name
 from ...game_utils.game_result import GameResult, PlayerResult
 from ...game_utils.options import IntOption, BoolOption, MenuOption, option_field
 from ...game_utils.bot_helper import BotHelper
+from ...game_utils.client_types import is_touch_client
 from ...game_utils.poker_timer import PokerTurnTimer
 from ...messages.localization import Localization
 from ...game_utils.game_status import GameStatus
@@ -656,7 +657,7 @@ class LastCardGame(Game, TurnTimerMixin):
                 )
             )
 
-        # Sort hand (web-only, visible in turn menu for mobile users)
+        # Sort hand (touch clients only: the web client and the iOS app)
         action_set.add(
             Action(
                 id="cycle_hand_sort_turn",
@@ -734,8 +735,8 @@ class LastCardGame(Game, TurnTimerMixin):
             )
         )
 
-        # WEB-SPECIFIC: Reorder for Web Clients
-        if user and getattr(user, "client_type", "") == "web":
+        # Touch clients (the web client and the iOS app): reorder for them
+        if user and is_touch_client(user):
             target_order = [
                 "read_top",
                 "read_counts",
@@ -880,11 +881,11 @@ class LastCardGame(Game, TurnTimerMixin):
                 )
             )
 
-        # Web-specific turn menu reordering:
+        # Touch-client turn menu reordering:
         # [Reaction: buzzer, jump_in] → [Context: colors, challenge, accept,
         #  swap targets] → [Cards + confirm] → [Draw, Pass] → [Sort]
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if user and is_touch_client(user):
             top = ["buzzer", "jump_in"]
             bottom = ["draw", "pass", "cycle_hand_sort_turn"]
             card_ids = [
@@ -2229,10 +2230,10 @@ class LastCardGame(Game, TurnTimerMixin):
             return Visibility.HIDDEN
         if not self.options.buzzer_enabled:
             return Visibility.HIDDEN
-        # Web clients: show buzzer button during last-card callout window,
+        # Touch clients: show buzzer button during last-card callout window,
         # or when current player has 2 cards (pre-buzz opportunity)
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if user and is_touch_client(user):
             if self.interrupt_phase == "last_card_callout":
                 return Visibility.VISIBLE
             if (
@@ -2283,9 +2284,9 @@ class LastCardGame(Game, TurnTimerMixin):
             return Visibility.HIDDEN
         if player.is_spectator or self.current_player == player:
             return Visibility.HIDDEN
-        # Web clients: show jump-in button during the window
+        # Touch clients: show jump-in button during the window
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if user and is_touch_client(user):
             return Visibility.VISIBLE
         return Visibility.HIDDEN  # Keybind-only for desktop
 
@@ -2331,7 +2332,7 @@ class LastCardGame(Game, TurnTimerMixin):
 
     def _is_check_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if user and is_touch_client(user):
             if self.status == "playing":
                 return Visibility.VISIBLE
             return Visibility.HIDDEN
@@ -2339,13 +2340,13 @@ class LastCardGame(Game, TurnTimerMixin):
 
     def _is_whos_at_table_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if user and is_touch_client(user):
             return Visibility.VISIBLE
         return super()._is_whos_at_table_hidden(player)
 
     def _is_whose_turn_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if user and is_touch_client(user):
             if self.status == "playing":
                 return Visibility.VISIBLE
             return Visibility.HIDDEN
@@ -2353,7 +2354,7 @@ class LastCardGame(Game, TurnTimerMixin):
 
     def _is_check_scores_hidden(self, player: Player) -> Visibility:
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if user and is_touch_client(user):
             if self.status == "playing":
                 return Visibility.VISIBLE
             return Visibility.HIDDEN
@@ -2365,11 +2366,11 @@ class LastCardGame(Game, TurnTimerMixin):
         return Visibility.HIDDEN  # Keybind-only
 
     def _is_sort_turn_hidden(self, player: Player) -> Visibility:
-        """Sort hand button in turn menu: web-only."""
+        """Sort hand button in turn menu: touch clients only."""
         if self.status != "playing" or player.is_spectator:
             return Visibility.HIDDEN
         user = self.get_user(player)
-        if user and getattr(user, "client_type", "") == "web":
+        if user and is_touch_client(user):
             return Visibility.VISIBLE
         return Visibility.HIDDEN
 
