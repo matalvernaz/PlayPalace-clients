@@ -893,6 +893,27 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         matched = matching_preset_id(self.options)
         self.options.preset = matched if matched is not None else "custom"
 
+    def _handle_option_change(self, option_name: str, value: str) -> None:
+        super()._handle_option_change(option_name, value)
+        self._keep_preset_in_step(option_name)
+
+    def _handle_option_toggle(self, option_name: str) -> None:
+        super()._handle_option_toggle(option_name)
+        self._keep_preset_in_step(option_name)
+
+    def _keep_preset_in_step(self, option_name: str) -> None:
+        """Choosing a preset sets its rules; changing one of those rules retags the preset."""
+        if option_name == "preset":
+            if not self.apply_preset_to_options(self.options.preset):
+                return
+        elif option_name in PRESET_KEYS:
+            self.recompute_preset_tag()
+        else:
+            return
+        if hasattr(self.options, "update_options_labels"):
+            self.options.update_options_labels(self)
+        self.refresh_menus()
+
     # ---------------- Game result ----------------
 
     def build_game_result(self) -> GameResult:

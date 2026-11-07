@@ -38,7 +38,7 @@ In team mode, the players form two teams, and a team wins when every one of its 
 
 \*\*Customizable Options\*\*
 
-\* \*\*Preset:\*\* A name for a set of rules (default Classic Hasbro; choices Custom, Classic Hasbro, Fast and Brutal). Choosing a preset changes only this setting: it doesn't change the options below, and changing them doesn't change it, so set each option yourself.
+\* \*\*Preset:\*\* Sets several of the rules below at once (default Classic Hasbro; choices Custom, Classic Hasbro, Fast and Brutal). \*\*Classic Hasbro\*\* is a 28-space track, 4 tokens, an extra turn on a 6, a 6 to leave Home, no safe spaces and an exact roll to finish. \*\*Fast\*\* is a 20-space track, 2 tokens, an extra turn on a 6, any roll to leave Home, safe spaces on the home stretch, and overshoot bounces back. \*\*Brutal\*\* is Classic Hasbro with 6 tokens each. Changing any of those rules yourself switches the preset to Custom, or to the preset the rules now match.
 
 \* \*\*Team mode:\*\* Individual, or 2 teams of 2 (default Individual).
 

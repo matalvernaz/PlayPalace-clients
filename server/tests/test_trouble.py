@@ -563,3 +563,41 @@ def test_track_size_and_token_options_read_as_plain_numbers():
     assert metas["tokens_per_player"].get_localized_choice("5", "en") == "5"
     assert not metas["track_size"].choice_labels
     assert not metas["tokens_per_player"].choice_labels
+
+
+class TestPresetsFromTheOptionsMenu:
+    """Choosing a preset in the lobby used to change nothing but its own label."""
+
+    def _lobby(self) -> TroubleGame:
+        game = TroubleGame()
+        game.add_player("Alice", MockUser("Alice"))
+        return game
+
+    def test_choosing_a_preset_sets_its_rules(self):
+        game = self._lobby()
+        game._handle_option_change("preset", "fast")
+        assert game.options.preset == "fast"
+        for key, value in PRESETS["fast"].items():
+            assert getattr(game.options, key) == value
+
+    def test_changing_a_rule_afterwards_switches_to_custom(self):
+        game = self._lobby()
+        game._handle_option_change("preset", "fast")
+        game._handle_option_change("track_size", "36")
+        assert game.options.preset == "custom"
+        assert game.options.track_size == "36"
+
+    def test_toggling_a_rule_back_finds_the_matching_preset(self):
+        game = self._lobby()
+        game._handle_option_change("preset", "classic")
+        game._handle_option_toggle("extra_turn_on_six")
+        assert game.options.preset == "custom"
+        game._handle_option_toggle("extra_turn_on_six")
+        assert game.options.preset == "classic"
+
+    def test_choosing_custom_keeps_the_rules(self):
+        game = self._lobby()
+        game._handle_option_change("preset", "fast")
+        game._handle_option_change("preset", "custom")
+        assert game.options.preset == "custom"
+        assert game.options.track_size == PRESETS["fast"]["track_size"]
