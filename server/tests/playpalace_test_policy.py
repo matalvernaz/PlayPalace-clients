@@ -38,16 +38,16 @@ NOT_APPLICABLE = {
     "tests/test_blackjack.py::test_blackjack_whose_turn_between_hands_uses_localized_waiting_message": "assumes Serbian has no Blackjack translation; this server ships one",
 }
 
-# Tests that check our sound pack has every sound a game asks for. They pass
-# once the sound batch adds the missing files to clients/desktop/sounds.
+# Tests that check our sound pack against PlayAural's, file for file. Each
+# reason says what still differs; strict, so a test that starts passing fails
+# the run until its entry is removed here.
 WAITING_FOR_SOUNDS = {
-    "tests/test_audio_engine.py::test_shared_presence_and_notification_assets_match_every_sound_pack": "table presence sounds not in our pack yet",
-    "tests/test_deadmansdice.py::test_sound_assets_are_complete_identical_ogg_files_in_every_client": "Dead Man's Dice sounds not in our pack yet",
-    "tests/test_zombiedice.py::test_sound_assets_are_complete_identical_and_use_authored_formats": "Zombie Dice sounds not in our pack yet",
-    "tests/test_monopoly.py::test_monopoly_audio_assets_match_every_first_party_sound_pack": "Monopoly sounds not in our pack yet",
-    "tests/test_flip7.py::test_flip7_audio_reuses_complete_shared_assets_with_exact_fallbacks": "Flip 7 sounds not in our pack yet",
-    "tests/test_bang.py::test_every_bang_audio_asset_exists_in_all_shipped_sound_packs": "BANG! sounds not in our pack yet",
-    "tests/test_dice_sounds.py::test_shared_dice_assets_match_across_clients": "shared dice sounds not in our pack yet",
+    "tests/test_audio_engine.py::test_shared_presence_and_notification_assets_match_every_sound_pack": "the engine's table presence sounds (table_join and the rest) play our join and leave sounds through aliases",
+    "tests/test_zombiedice.py::test_sound_assets_are_complete_identical_and_use_authored_formats": "Zombie Dice's music isn't in our pack; the Sonniss bundles have none that fits",
+    "tests/test_monopoly.py::test_monopoly_audio_assets_match_every_first_party_sound_pack": "Monopoly's music loop isn't in our pack; the Sonniss bundles have none that fits",
+    "tests/test_flip7.py::test_flip7_audio_reuses_complete_shared_assets_with_exact_fallbacks": "Flip 7 reuses Dead Man's Poker's deal_card.ogg, which is 0.9 s in our pack and 1.2 s in PlayAural's",
+    "tests/test_bang.py::test_every_bang_audio_asset_exists_in_all_shipped_sound_packs": "BANG!'s two music tracks aren't in our pack; the Sonniss bundles have none that fits",
+    "tests/test_dice_sounds.py::test_shared_dice_assets_match_across_clients": "the shared dice throws play game_pig/roll.ogg through an alias",
 }
 
 
