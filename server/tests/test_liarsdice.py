@@ -11,6 +11,7 @@ from server.games.liarsdice.state import (
 )
 from server.users.test_user import MockUser
 from server.users.bot import Bot
+from server.game_utils.actions import Visibility
 
 
 # ---------------------------------------------------------------------------
@@ -210,3 +211,46 @@ class TestPlayToCompletion:
                 break
             game.on_tick()
         assert not game.game_active
+
+
+# ---------------------------------------------------------------------------
+# Every bid stays reachable, and bots bid what they hold
+# ---------------------------------------------------------------------------
+
+
+class TestEveryBidReachable:
+    def test_three_players_can_open_on_any_face(self):
+        """15 dice used to fill a 60-bid list with ones to fours; fives and sixes never appeared."""
+        bids = enumerate_valid_bids(current=None, total_dice=15, wild_ones=True)
+        assert len(bids) == 6 * 15
+        assert (1, 5) in bids and (1, 6) in bids and (15, 6) in bids
+
+    def test_smallest_raises_come_first(self):
+        bids = enumerate_valid_bids(current=None, total_dice=30, wild_ones=False)
+        assert bids[:7] == [(1, 1), (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (2, 1)]
+
+    def _started_game(self, players: int = 3) -> LiarsDiceGame:
+        game = LiarsDiceGame()
+        game.add_player("Alice", MockUser("Alice"))
+        for number in range(1, players):
+            game.add_player(f"Bot{number}", Bot(f"Bot{number}"))
+        game.on_start()
+        return game
+
+    def test_bot_bids_the_face_it_holds(self):
+        """Bots used to walk the ones first and stop there, so they nearly always bid ones."""
+        game = self._started_game()
+        bot = game.players[1]
+        bot.dice = [5, 5, 5, 2, 3]
+        game.current_bid = (3, 4)
+        options = game._bid_options(bot)
+        choice = game._bot_select_bid(bot, options)
+        assert game._parse_bid_choice(bot, choice)[1] == 5
+
+    def test_make_a_bid_goes_away_when_nothing_is_higher(self):
+        game = self._started_game()
+        alice = game.players[0]
+        game.current_bid = (game._total_dice_on_table(), 1)
+        game.turn_index = game.players.index(alice)
+        assert game._is_bid_enabled(alice) == "action-not-available"
+        assert game._is_bid_hidden(alice) == Visibility.HIDDEN

@@ -299,15 +299,29 @@ class LiarsDiceGame(Game):
             return "ld-action-not-playing"
         if not self._my_turn(player):
             return "ld-action-not-your-turn"
+        if not self._any_bid_left():
+            # The bid already claims every die on the table as ones.
+            return "action-not-available"
         return None
 
     def _is_bid_hidden(self, player: Player) -> Visibility:
         if not self._my_turn(player):
             return Visibility.HIDDEN
         lp: LiarsDicePlayer = player  # type: ignore
-        if lp.eliminated:
+        if lp.eliminated or not self._any_bid_left():
             return Visibility.HIDDEN
         return Visibility.VISIBLE
+
+    def _any_bid_left(self) -> bool:
+        """Whether any bid beats the current one."""
+        return bool(
+            enumerate_valid_bids(
+                current=self.current_bid,
+                total_dice=self._total_dice_on_table(),
+                wild_ones=self.options.wild_ones,
+                max_options=1,
+            )
+        )
 
     def _is_call_enabled(self, player: Player) -> str | None:
         if self.status != "playing":
@@ -387,17 +401,22 @@ class LiarsDiceGame(Game):
                 return 1 / 6
             return 2 / 6
 
-        # Choose the highest-quantity bid where expected count >= bid quantity
-        # (i.e., we're betting on average outcomes).
-        best = bids[0]
+        # Bids the bot expects to be true on average outcomes.
+        viable = []
         for q, f in bids:
-            mine = my_counts[f]
-            expected_others = opponent_dice * per_die_prob(f)
-            expected_total = mine + expected_others
+            expected_total = my_counts[f] + opponent_dice * per_die_prob(f)
             if expected_total + 0.5 >= q:
-                best = (q, f)
-            else:
-                break
+                viable.append((q, f))
+
+        def raise_size(bid: tuple[int, int]) -> tuple[int, int, int]:
+            quantity, face = bid
+            # With wild ones, a bid on ones is worth about twice as many of
+            # any other face, so compare it at that size.
+            equivalent = quantity * 2 if self.options.wild_ones and face == 1 else quantity
+            # Smallest raise first, then the face the bot holds most of.
+            return (equivalent, -my_counts[face], -face)
+
+        best = min(viable, key=raise_size) if viable else bids[0]
         # Sometimes the bot should challenge instead (handled in bot_think).
         # Translate (q, f) back into the option string.
         user = self.get_user(player)

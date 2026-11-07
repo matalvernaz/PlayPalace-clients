@@ -20,7 +20,7 @@ On your turn, either make a bid or challenge the last one. The first bid of a ro
 
 When 1s are wild, bids on ones follow the special rules below instead.
 
-\*\*Make a bid\*\* opens a list of legal bids, starting with ones and working up through the faces, smallest quantity first. The list holds at most 60 bids, so with more than 10 dice on the table it can end before the higher faces.
+\*\*Make a bid\*\* opens a list of every legal bid, smallest quantity first, and within each quantity from ones up to sixes. When no higher bid is possible, it isn't offered.
 
 \*\*Wild Ones\*\*
 

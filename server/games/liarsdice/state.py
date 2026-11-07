@@ -78,12 +78,13 @@ def enumerate_valid_bids(
     current: tuple[int, int] | None,
     total_dice: int,
     wild_ones: bool,
-    max_options: int = 60,
+    max_options: int | None = None,
 ) -> list[tuple[int, int]]:
-    """Return up to `max_options` legal next bids, sorted by face then quantity.
+    """Return every legal next bid, smallest quantity first, then by face.
 
-    The list is bounded to keep menu sizes reasonable. We start from the
-    smallest legal bid for each face and walk up to `total_dice` quantity.
+    Every face stays reachable however many dice are on the table, and the
+    likeliest bids (the smallest raises) come first. `max_options` can
+    still bound the list for callers that want a short one.
     """
     out: list[tuple[int, int]] = []
     for face in range(1, 7):
@@ -109,6 +110,7 @@ def enumerate_valid_bids(
                     min_q = cq + 1
         for q in range(min_q, total_dice + 1):
             out.append((q, face))
-            if len(out) >= max_options:
-                return out
+    out.sort()
+    if max_options is not None:
+        return out[:max_options]
     return out
