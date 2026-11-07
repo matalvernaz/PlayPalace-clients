@@ -254,3 +254,17 @@ class TestEveryBidReachable:
         game.turn_index = game.players.index(alice)
         assert game._is_bid_enabled(alice) == "action-not-available"
         assert game._is_bid_hidden(alice) == Visibility.HIDDEN
+
+
+def test_a_player_who_cannot_raise_can_still_call_liar():
+    """When no bid beats the current one, Call Liar must still be there, or the turn is stuck."""
+    game = LiarsDiceGame()
+    game.add_player("Alice", MockUser("Alice"))
+    game.add_player("Bot1", Bot("Bot1"))
+    game.on_start()
+    alice = game.players[0]
+    game.current_bid = (game._total_dice_on_table(), 1)
+    game.turn_index = game.players.index(alice)
+    assert game._is_bid_hidden(alice) == Visibility.HIDDEN
+    assert game._is_call_enabled(alice) is None
+    assert game._is_call_hidden(alice) == Visibility.VISIBLE

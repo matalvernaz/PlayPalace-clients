@@ -64,8 +64,12 @@ Game Audio Bundles of 2015 through 2026:
 
 They were converted to mono 48 kHz Ogg Vorbis and levelled, trimmed, padded
 with silence to match server timing, and in some cases cut into crossfaded
-loops. These bundles carry the same Sonniss GDC Game Audio Bundle License as
-the 2026 bundle above.
+loops. Each bundle came with its own Sonniss license. The 2024 bundle uses the
+license linked above. The 2016 to 2021-2023 bundles use an earlier version of it,
+which allows royalty-free use in games without attribution, including editing
+the sounds and releasing them as part of a production, and forbids selling the
+sounds as they are or claiming authorship of them. The 2015 bundle was released
+under what it calls a royalty-free single license.
 
 Source collections used:
 
