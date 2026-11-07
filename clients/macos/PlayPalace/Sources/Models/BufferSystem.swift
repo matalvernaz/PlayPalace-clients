@@ -46,9 +46,12 @@ final class BufferSystem: ObservableObject {
     var currentBufferName: String { buffers[currentIndex].name }
 
     func addItem(_ text: String, buffer bufferName: String) {
-        guard let idx = buffers.firstIndex(where: { $0.name == bufferName }) else { return }
         let item = BufferItem(text)
-        appendTo(bufferIndex: idx, item: item)
+        // A buffer name this app doesn't keep (a newer server's) used to drop
+        // the message from history altogether; it still belongs in "all".
+        if let idx = buffers.firstIndex(where: { $0.name == bufferName }) {
+            appendTo(bufferIndex: idx, item: item)
+        }
 
         // Also add to "all" buffer
         if bufferName != "all", let allIdx = buffers.firstIndex(where: { $0.name == "all" }) {

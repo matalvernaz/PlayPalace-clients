@@ -20,6 +20,22 @@ final class SoundManager: ObservableObject {
     /// then falls back to the desktop client's sounds folder.
     private let soundsDirectory: URL
 
+    /// Where each requested sound name was found, and names known to be
+    /// missing. The server asks for ".ogg" names and the app ships ".caf"
+    /// files, so without this every sound paid for a full walk of the sounds
+    /// folder on the main thread before trying the ".caf" name.
+    private var resolvedSounds: [String: URL] = [:]
+    private var missingSounds: Set<String> = []
+    /// Every file in the sounds folder by its bare file name, built once, for
+    /// servers that send a bare name without the game folder.
+    private lazy var soundsByFileName: [String: URL] = indexSoundsByFileName()
+
+    /// What should keep playing, so it can be started again after a phone
+    /// call or Siri interrupts it, or after iOS resets its audio system.
+    private var currentMusic: (name: String, looping: Bool)?
+    private var currentAmbience: (intro: String?, loop: String, outro: String?)?
+    private var interruptionObservers: [NSObjectProtocol] = []
+
     init() {
         // Look for sounds in the app bundle's Resources directory
         let bundleSounds = Bundle.main.resourceURL?
@@ -31,6 +47,62 @@ final class SoundManager: ObservableObject {
             // Fallback: sounds folder next to the app bundle
             let appDir = Bundle.main.bundleURL.deletingLastPathComponent()
             soundsDirectory = appDir.appendingPathComponent("sounds")
+        }
+        observeAudioInterruptions()
+    }
+
+    // MARK: - Interruptions
+
+    /// A phone call, Siri or an alarm pauses every player; iOS doesn't resume
+    /// them. One-shot effects recover on their own because each is a new
+    /// player, but the looping music and ambience stayed silent until the
+    /// server happened to change tracks. Start them again when the
+    /// interruption ends, and rebuild them if iOS resets its audio system.
+    private func observeAudioInterruptions() {
+        #if os(iOS)
+        let center = NotificationCenter.default
+        interruptionObservers.append(center.addObserver(
+            forName: AVAudioSession.interruptionNotification, object: nil, queue: .main
+        ) { [weak self] note in
+            guard let raw = note.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+                  AVAudioSession.InterruptionType(rawValue: raw) == .ended else { return }
+            Task { @MainActor [weak self] in self?.resumeLoopsAfterInterruption() }
+        })
+        interruptionObservers.append(center.addObserver(
+            forName: AVAudioSession.mediaServicesWereResetNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in self?.rebuildLoopsAfterReset() }
+        })
+        #endif
+    }
+
+    private func resumeLoopsAfterInterruption() {
+        #if os(iOS)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
+        if let player = musicPlayer, !player.isPlaying, currentMusic != nil {
+            player.play()
+        }
+        if let player = ambienceLoopPlayer, !player.isPlaying, currentAmbience != nil {
+            player.play()
+        }
+    }
+
+    private func rebuildLoopsAfterReset() {
+        // Every player belongs to the old audio system; make new ones.
+        soundPlayers.removeAll()
+        musicPlayer = nil
+        ambienceIntroPlayer = nil
+        ambienceLoopPlayer = nil
+        #if os(iOS)
+        try? AVAudioSession.sharedInstance().setActive(true)
+        #endif
+        if let music = currentMusic {
+            playMusic(music.name, looping: music.looping, fadeOutOld: false)
+        }
+        if let ambience = currentAmbience {
+            // Back in at the loop: the intro already played before the reset.
+            playAmbience(intro: nil, loop: ambience.loop, outro: ambience.outro)
         }
     }
 
@@ -76,6 +148,7 @@ final class SoundManager: ObservableObject {
         }
 
         guard let url = resolveSound(name) else { return }
+        currentMusic = looping ? (name: name, looping: true) : nil
         do {
             let player = try AVAudioPlayer(contentsOf: url)
             player.volume = musicVolume
@@ -87,6 +160,7 @@ final class SoundManager: ObservableObject {
     }
 
     func stopMusic(fade: Bool = true) {
+        currentMusic = nil
         guard let player = musicPlayer else { return }
         if fade {
             fadeOut(player, duration: 1.0)
@@ -105,6 +179,7 @@ final class SoundManager: ObservableObject {
 
     func playAmbience(intro: String?, loop: String, outro: String?) {
         stopAmbience()
+        currentAmbience = (intro: intro, loop: loop, outro: outro)
         if let intro, let url = resolveSound(intro) {
             do {
                 ambienceIntroPlayer = try AVAudioPlayer(contentsOf: url)
@@ -133,6 +208,7 @@ final class SoundManager: ObservableObject {
     }
 
     func stopAmbience(force: Bool = true) {
+        currentAmbience = nil
         ambienceIntroPlayer?.stop()
         ambienceIntroPlayer = nil
         if force {
@@ -190,28 +266,45 @@ final class SoundManager: ObservableObject {
     // MARK: - Helpers
 
     private func resolveSound(_ name: String) -> URL? {
-        // Try the exact name first, then macOS-native formats
+        if let known = resolvedSounds[name] { return known }
+        if missingSounds.contains(name) { return nil }
+        // The server names a sound by its path in the pack with ".ogg"; the
+        // app ships the same paths converted to other formats.
         let candidates = [name, name.replacingOccurrences(of: ".ogg", with: ".caf"),
                           name.replacingOccurrences(of: ".ogg", with: ".wav"),
                           name.replacingOccurrences(of: ".ogg", with: ".mp3")]
         for candidate in candidates {
             let url = soundsDirectory.appendingPathComponent(candidate)
             if FileManager.default.fileExists(atPath: url.path) {
+                resolvedSounds[name] = url
                 return url
             }
-            // Check subdirectories (games have sounds in subdirs)
-            let enumerator = FileManager.default.enumerator(
-                at: soundsDirectory,
-                includingPropertiesForKeys: nil,
-                options: [.skipsHiddenFiles]
-            )
-            while let fileURL = enumerator?.nextObject() as? URL {
-                if fileURL.lastPathComponent == candidate {
-                    return fileURL
-                }
+        }
+        // Older servers sent bare file names for sounds kept in game folders.
+        for candidate in candidates {
+            if let url = soundsByFileName[candidate] {
+                resolvedSounds[name] = url
+                return url
             }
         }
+        missingSounds.insert(name)
         return nil
+    }
+
+    private func indexSoundsByFileName() -> [String: URL] {
+        var index: [String: URL] = [:]
+        let enumerator = FileManager.default.enumerator(
+            at: soundsDirectory,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        )
+        while let fileURL = enumerator?.nextObject() as? URL {
+            let fileName = fileURL.lastPathComponent
+            if index[fileName] == nil {
+                index[fileName] = fileURL
+            }
+        }
+        return index
     }
 
     private func fadeOut(_ player: AVAudioPlayer, duration: TimeInterval) {
