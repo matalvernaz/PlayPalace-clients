@@ -74,7 +74,7 @@ Two choices appear in your menu whenever they apply, even on other players' turn
 
 \* \*\*Sell your stock:\*\* Sells your stock number back for the full $50,000.
 
-\* \*\*Pay off college loan:\*\* Pays the whole balance, or all of your cash if that is less. It is available once you have at least $10,000, or the whole balance if that is smaller.
+\* \*\*Pay off college loan:\*\* Pays the whole balance, or all of your cash if that is less. Until the loan is paid off, every Pay Day also charges $5,000 interest, and whatever you still owe at the end comes off your final cash. It is available once you have at least $10,000, or the whole balance if that is smaller.
 
 \*\*Retirement\*\*
 
@@ -88,7 +88,7 @@ With the Safe retirement style you still choose, but everyone collects the $1,00
 
 \*\*End of the Game\*\*
 
-Once every player has retired, the Estates spin-off and the Acres bonuses are settled. Then every Life tile is revealed, and each player's cash, tiles and total are read out. Your total is your cash plus your Life tiles. Stock you still own and any college loan you still owe are not counted. The highest total wins. If players tie, they are all announced as winners.
+Once every player has retired, the Estates spin-off and the Acres bonuses are settled. Then every Life tile is revealed, and each player's cash, tiles and total are read out. Any college loan you still owe is paid off from your cash first. Your total is then your cash plus your Life tiles. Stock you still own is not counted. The highest total wins. If players tie, they are all announced as winners.
 
 \*\*Customizable Options\*\*
 

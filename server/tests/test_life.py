@@ -6,6 +6,8 @@ from server.games.life.game import GameOfLifeGame
 from server.games.life.player import LifePlayer
 from server.games.life.options import LifeOptions
 from server.games.life.state import (
+    COLLEGE_LOAN_INTEREST,
+    COLLEGE_LOAN_PRINCIPAL,
     ACRES_BONUS,
     CANONICAL_CAREERS,
     EVENT_DECK,
@@ -541,3 +543,65 @@ def test_career_pick_shows_one_row_per_career_on_offer():
     picks = [action_id for action_id in visible if action_id.startswith("pick_career_")]
     assert picks == ["pick_career_0", "pick_career_1"]
     assert game.resolve_action(player, game.find_action(player, "pick_career_2")).enabled is False
+
+
+class TestCollegeLoanCosts:
+    """The loan was free: no interest ever charged, and the balance never counted."""
+
+    def setup_method(self):
+        self.game = GameOfLifeGame()
+        self.game.add_player("Alice", MockUser("Alice"))
+        self.game.add_player("Bob", MockUser("Bob"))
+        self.game.options.college_path = False
+        self.game.on_start()
+        for p in self.game.players:
+            p.career_key = "teacher"
+            p.career_label_key = "life-career-teacher"
+            p.salary = 40_000
+            p.pending = ""
+        self.game.career_offers.clear()
+        self.alice = self.game.players[0]
+        self.first_payday = next(
+            i for i, s in enumerate(self.game.track) if s.type == SpaceType.PAYDAY
+        )
+
+    def test_passing_a_pay_day_charges_interest_while_the_loan_is_unpaid(self):
+        self.alice.college_loan = COLLEGE_LOAN_PRINCIPAL
+        self.alice.cash = 10_000
+        self.alice.position = 0
+        self.game._handle_step_move({"player_id": self.alice.id, "target": self.first_payday + 1})
+        assert self.alice.cash == 10_000 + 40_000 - COLLEGE_LOAN_INTEREST
+
+    def test_no_interest_once_the_loan_is_paid(self):
+        self.alice.college_loan = 0
+        self.alice.cash = 10_000
+        self.alice.position = 0
+        self.game._handle_step_move({"player_id": self.alice.id, "target": self.first_payday + 1})
+        assert self.alice.cash == 50_000
+
+    def test_landing_on_a_pay_day_charges_interest_after_the_pay_day(self):
+        self.alice.college_loan = COLLEGE_LOAN_PRINCIPAL
+        self.alice.cash = 10_000
+        self.alice.position = 0
+        self.game._handle_step_move({"player_id": self.alice.id, "target": self.first_payday})
+        assert self.alice.cash == 10_000 + 40_000 - COLLEGE_LOAN_INTEREST
+        self.alice.pending = ""
+        self.game._handle_resolve_landing(
+            {"player_id": self.alice.id, "payday": 40_000, "loan_interest": COLLEGE_LOAN_INTEREST}
+        )
+        assert self.alice.cash == 10_000 + 40_000 - COLLEGE_LOAN_INTEREST
+
+    def test_an_unpaid_loan_comes_off_the_final_total(self):
+        self.alice.college_loan = 30_000
+        self.alice.cash = 200_000
+        bob = self.game.players[1]
+        bob.college_loan = 0
+        bob.cash = 190_000
+        for p in self.game.players:
+            p.retired = True
+            p.life_tile_values = []
+        self.game._begin_tally()
+        assert self.alice.cash == 170_000
+        assert self.alice.college_loan == 0
+        self.game._handle_tally_finish()
+        assert self.game.winner is bob

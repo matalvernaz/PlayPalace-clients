@@ -1444,6 +1444,7 @@ class GameOfLifeGame(Game):
         # (exclusive) and target (inclusive — payouts trigger whether we
         # pass or stop).
         payday_gained = 0
+        landing_interest = 0
         for idx in range(old_pos + 1, target + 1):
             space = self.track[idx]
             if space.type == SpaceType.PAYDAY and lp.salary > 0:
@@ -1458,6 +1459,16 @@ class GameOfLifeGame(Game):
                     lines.append(
                         (player, "life-pass-payday", {"money": _fmt_money(earning)}),
                     )
+                # An unpaid college loan costs interest every Pay Day.
+                if lp.college_loan > 0:
+                    lp.cash -= COLLEGE_LOAN_INTEREST
+                    if idx != target:
+                        lines.append(
+                            (player, "life-loan-interest-due", {"money": _fmt_money(COLLEGE_LOAN_INTEREST)}),
+                        )
+                    else:
+                        # Spoken after the landing's Pay Day line.
+                        landing_interest = COLLEGE_LOAN_INTEREST
 
         lp.position = target
         lines.append((player, "life-move", {"position": target}))
@@ -1480,7 +1491,9 @@ class GameOfLifeGame(Game):
 
         # Schedule landing resolution.
         self.schedule_event(
-            "resolve_landing", {"player_id": player.id, "payday": payday_gained}, delay_ticks=6
+            "resolve_landing",
+            {"player_id": player.id, "payday": payday_gained, "loan_interest": landing_interest},
+            delay_ticks=6,
         )
 
     # ---------------------------------------------------------------------
@@ -1525,6 +1538,9 @@ class GameOfLifeGame(Game):
                     )
                 else:
                     self._announce(player, "life-payday", money=_fmt_money(total))
+                interest = int(data.get("loan_interest", 0))
+                if interest:
+                    self._announce(player, "life-loan-interest-due", money=_fmt_money(interest))
         elif stype == SpaceType.EVENT:
             self._apply_event(lp, space)
         elif stype == SpaceType.MARRY:
@@ -1794,6 +1810,14 @@ class GameOfLifeGame(Game):
                 self._announce(p, "life-acres-bonus", money=_fmt_money(ACRES_BONUS))
 
         self.broadcast_l("life-end-header")
+        # Whatever is left of a college loan is paid off before the count.
+        for p in self.get_active_players():
+            lp: LifePlayer = p  # type: ignore
+            if lp.college_loan > 0:
+                owed = lp.college_loan
+                lp.cash -= owed
+                lp.college_loan = 0
+                self._announce(p, "life-loan-paid", money=_fmt_money(owed))
         self.tally_index = 0
         # Reveal each tile (hidden mode).
         self.schedule_event("tally_reveal_tile", {}, delay_ticks=10)
