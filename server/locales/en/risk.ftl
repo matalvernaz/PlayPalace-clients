@@ -66,3 +66,10 @@ risk-rules =
     Eliminate all opponents to win.
     Press E to check your status.
 risk-wrong-phase = You cannot do that in this phase.
+
+# Score unit for S and Shift+S.
+risk-score-unit-territories =
+    { $count ->
+        [one] territory
+       *[other] territories
+    }

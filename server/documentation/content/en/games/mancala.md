@@ -40,6 +40,8 @@ The game ends as soon as all six pits on either side are empty. Each player then
 
 \* \*\*T:\*\* Check whose turn it is.
 
+\* \*\*S:\*\* Hear the score: the stones in each player's store. Shift+S shows the same in a box.
+
 \*\*Strategy\*\*
 
 \* A pit holding exactly 7 minus its own number of stones ends in your store and earns another turn: 1 stone in pit 6, 2 in pit 5, and so on up to 6 in pit 1.

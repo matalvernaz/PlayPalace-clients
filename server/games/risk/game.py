@@ -151,6 +151,16 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     def _player_territories(self, player: RiskPlayer) -> list[str]:
         return [tid for tid, pid in self.owners.items() if pid == player.id]
 
+    score_unit_key = "risk-score-unit-territories"
+
+    def _sync_score_display_names(self) -> None:
+        """Before S or Shift+S reads the scores, set each one to the territories that player holds."""
+        super()._sync_score_display_names()
+        for player in self.players:
+            team = self._team_manager.get_team(player.name)
+            if team:
+                team.total_score = len(self._player_territories(player))
+
     def _player_territory_set(self, player: RiskPlayer) -> set[str]:
         return {tid for tid, pid in self.owners.items() if pid == player.id}
 

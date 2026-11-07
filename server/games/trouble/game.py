@@ -261,6 +261,18 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     def get_team_mode(self) -> str:
         return self.options.team_mode
 
+    score_unit_key = "trouble-score-unit-tokens-finished"
+
+    def _sync_score_display_names(self) -> None:
+        """Before S or Shift+S reads the scores, count each team's tokens at the finish."""
+        super()._sync_score_display_names()
+        finished = {
+            player.name: sum(1 for token in player.tokens if token.zone == TokenZone.FINISHED)
+            for player in self.players
+        }
+        for team in self._team_manager.teams:
+            team.total_score = sum(finished.get(name, 0) for name in team.members)
+
     def prestart_validate(self) -> list[str | tuple[str, dict]]:
         errors: list[str | tuple[str, dict]] = list(super().prestart_validate())
         # "2 teams of 2" needs exactly four players, as in Pig or Scopa.

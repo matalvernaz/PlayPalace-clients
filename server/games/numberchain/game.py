@@ -71,6 +71,10 @@ class NumberChainGame(Game):
     options: NumberChainOptions = field(default_factory=NumberChainOptions)
     game_state: NumberChainState = field(default_factory=NumberChainState)
 
+    def supports_score_actions(self) -> bool:
+        """There's no score in Number Chain, so S and Shift+S say so instead of reading zeros."""
+        return False
+
     @classmethod
     def get_name(cls) -> str:
         return "Number Chain"

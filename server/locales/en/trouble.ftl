@@ -152,3 +152,10 @@ trouble-preset-fast = Fast
 trouble-preset-brutal = Brutal
 trouble-preset-custom = Custom
 trouble-desc-team-mode = Play individually, or in teams that share a goal. A team wins when all of its tokens are home.
+
+# Score unit for S and Shift+S: tokens at the finish (Home is where tokens start).
+trouble-score-unit-tokens-finished =
+    { $count ->
+        [one] token finished
+       *[other] tokens finished
+    }

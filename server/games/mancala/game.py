@@ -141,6 +141,14 @@ class MancalaGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     def _store_idx(self, player_idx: int) -> int:
         return P0_STORE if player_idx == 0 else P1_STORE
 
+    def _sync_score_display_names(self) -> None:
+        """Before S or Shift+S reads the scores, set each one to the stones in that player's store."""
+        super()._sync_score_display_names()
+        for player in self.get_active_players():
+            team = self._team_manager.get_team(player.name)
+            if team:
+                team.total_score = self.board[self._store_idx(self._player_index(player))]
+
     def _own_pits(self, player_idx: int) -> range:
         return range(player_idx * 7, player_idx * 7 + NUM_PITS)
 

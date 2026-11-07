@@ -66,6 +66,8 @@ In team mode, the players form two teams, and a team wins when every one of its 
 
 \* \*\*T:\*\* Check whose turn it is.
 
+\* \*\*S:\*\* Hear how many tokens each player, or each team, has at the finish. Shift+S shows the same in a box.
+
 \*\*Strategy\*\*
 
 \* Count the spaces between your tokens and the enemy tokens behind them. A token 1 to 6 spaces ahead of an enemy token is within reach of its next roll, unless your token is on a safe space or the enemy token turns off into its finish lane first.

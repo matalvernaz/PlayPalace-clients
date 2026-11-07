@@ -92,6 +92,8 @@ These are the only links between continents:
 
 \* \*\*T:\*\* Check whose turn it is.
 
+\* \*\*S:\*\* Hear how many territories each player holds. Shift+S shows the same in a box.
+
 \*\*Strategy\*\*
 
 \* Small continents are the easiest to hold. Australia can only be entered through Indonesia, and South America only through Venezuela and Brazil.
