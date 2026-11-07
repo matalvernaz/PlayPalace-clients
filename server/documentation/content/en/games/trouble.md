@@ -34,7 +34,7 @@ Players take turns in seating order, starting with the first player seated. At t
 
 The first player with all of their tokens at the finish wins.
 
-In team mode, the players form two teams, and a team wins when every one of its players has all their tokens at the finish. The mode is made for 4 players: with 4, the host can review the teams and swap players between them before the game starts. The game also starts with fewer players, splitting them between the two teams in turn. A teammate's tokens can still be bumped like anyone else's. A player who gets all their tokens home first keeps taking turns, but has nothing left to move.
+In team mode, the players form two teams, and a team wins when every one of its players has all their tokens at the finish. It needs exactly 4 players; with any other number the game won't start. Before the game starts, the host can review the teams and swap players between them. A teammate's tokens can still be bumped like anyone else's. A player who gets all their tokens home first keeps taking turns, but has nothing left to move.
 
 \*\*Customizable Options\*\*
 

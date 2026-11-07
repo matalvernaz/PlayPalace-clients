@@ -261,6 +261,14 @@ class TroubleGame(ActionGuardMixin, RoundBasedGameMixin, Game):
     def get_team_mode(self) -> str:
         return self.options.team_mode
 
+    def prestart_validate(self) -> list[str | tuple[str, dict]]:
+        errors: list[str | tuple[str, dict]] = list(super().prestart_validate())
+        # "2 teams of 2" needs exactly four players, as in Pig or Scopa.
+        team_mode_error = self._validate_team_mode(self.options.team_mode)
+        if team_mode_error:
+            errors.append(team_mode_error)
+        return errors
+
     # ---------------- Derived configuration ----------------
 
     @property

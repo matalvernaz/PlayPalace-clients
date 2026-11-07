@@ -601,3 +601,14 @@ class TestPresetsFromTheOptionsMenu:
         game._handle_option_change("preset", "custom")
         assert game.options.preset == "custom"
         assert game.options.track_size == PRESETS["fast"]["track_size"]
+
+
+@pytest.mark.parametrize("players, can_start", [(2, False), (3, False), (4, True)])
+def test_two_teams_of_two_needs_four_players(players, can_start):
+    """It used to start with 2 or 3 players as uneven teams."""
+    game = TroubleGame()
+    for number in range(players):
+        game.add_player(f"P{number}", MockUser(f"P{number}"))
+    game.options.team_mode = "2v2"
+    errors = game.prestart_validate()
+    assert ("game-error-invalid-team-mode" in errors) is not can_start
