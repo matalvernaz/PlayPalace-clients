@@ -976,7 +976,10 @@ class RiskGame(ActionGuardMixin, RoundBasedGameMixin, Game):
         self.finish_game()
 
     def build_game_result(self) -> GameResult:
-        active = self.get_active_players()
+        # Eliminated players are turned into spectators to take them out of
+        # the turn order, but they played this game: keep them in the result
+        # so their games played and ratings are recorded.
+        active = [p for p in self.players if not p.is_spectator or p.eliminated]
         alive = self._alive_players()
         winner = alive[0] if len(alive) == 1 else None
 

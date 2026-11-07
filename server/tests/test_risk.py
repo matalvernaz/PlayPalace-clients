@@ -373,3 +373,40 @@ class TestRiskPersistence:
             game.on_tick()
 
         assert not game.game_active, "Game should complete with save/reload"
+
+
+class TestEliminatedPlayersStayInTheResult:
+    """Eliminated players became spectators and dropped out of the result, so their game never counted."""
+
+    def test_an_eliminated_player_is_in_the_result_and_rated_as_a_loser(self):
+        from server.game_utils.stats_helpers import RatingHelper
+
+        random.seed(7)
+        game = RiskGame()
+        alice = game.add_player("Alice", MockUser("Alice"))
+        bob = game.add_player("Bob", MockUser("Bob"))
+        carol = game.add_player("Carol", MockUser("Carol"))
+        game.on_start()
+        # Carol is knocked out, then Alice takes everything.
+        for territory in list(game.owners):
+            game.owners[territory] = alice.id
+        for loser in (carol, bob):
+            loser.eliminated = True
+            loser.is_spectator = True
+
+        result = game.build_game_result()
+
+        assert {r.player_name for r in result.player_results} == {"Alice", "Bob", "Carol"}
+        assert result.custom_data["final_territories"] == {"Alice": 42, "Bob": 0, "Carol": 0}
+        teams, ranks = RatingHelper.extract_teams_and_ranks(result)
+        assert dict(zip((team[0] for team in teams), ranks)) == {alice.id: 0, bob.id: 1, carol.id: 1}
+
+    def test_a_spectator_who_never_played_is_left_out(self):
+        game = RiskGame()
+        game.add_player("Alice", MockUser("Alice"))
+        game.add_player("Bob", MockUser("Bob"))
+        watcher = game.add_player("Watcher", MockUser("Watcher"))
+        watcher.is_spectator = True
+        game.on_start()
+        result = game.build_game_result()
+        assert "Watcher" not in {r.player_name for r in result.player_results}
