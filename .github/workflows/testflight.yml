@@ -176,11 +176,15 @@ jobs:
           fi
           echo "::notice::Tester notes: ${notes}"
 
-          python3 ~/asc-tools/asc.py ship "${ASC_BUNDLE_ID}" \
-            --build "${BUILD_NUMBER}" \
-            --group-id "${ASC_BETA_GROUP_ID}" \
-            --notes "${notes}" \
-            --wait \
+          # The key options are asc.py's global options, so they go before the
+          # subcommand. en-CA is the primary locale; en-US is added explicitly.
+          python3 ~/asc-tools/asc.py \
             --key-id "${ASC_KEY_ID}" \
             --issuer-id "${ASC_ISSUER_ID}" \
-            --key-path "${ASC_KEY_PATH}"
+            --key-path "${ASC_KEY_PATH}" \
+            ship "${ASC_BUNDLE_ID}" \
+            --build "${BUILD_NUMBER}" \
+            --group-id "${ASC_BETA_GROUP_ID}" \
+            --locale en-US \
+            --notes "${notes}" \
+            --wait
